@@ -1,0 +1,1796 @@
+{
+  "generated_at": "2026-08-30",
+  "status": "READY_FOR_ATOMIC_REPLACEMENT",
+  "shop": "CandyBaked Factory",
+  "domain": "7ft7dv-2s.myshopify.com",
+  "source_recovery": {
+    "restored_files": 17,
+    "copies_created": 51,
+    "targets": [
+      "Cloudflare/Media",
+      "Shopify/Media",
+      "Main Photo/Media"
+    ]
+  },
+  "coverage": {
+    "duplicateDrive": [],
+    "exactDrive": 63,
+    "handles": 44,
+    "imageCountMismatch": [],
+    "missingDrive": [],
+    "missingProducts": [],
+    "products": 44,
+    "rows": 63
+  },
+  "products": [
+    {
+      "product": {
+        "id": "gid://shopify/Product/7657636659297",
+        "handle": "original-shio-pan",
+        "title": "ชิโอะปังออริจินัล / ชาร์โคล｜塩パン オリジナル／チャコール",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087229460577",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-original_d272ca72-15f6-4e94-8deb-4648e7a8a862.png?v=1787382733",
+          "alt_text": "ชิโอะปังออริจินัล — Original Shio Pan"
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33087229493345",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-charcoal_0d84fc0b-8dc5-4231-b2be-b381e97d8506.png?v=1787382734",
+          "alt_text": "ชิโอะปังชาร์โคล — Charcoal Shio Pan"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "original-shio-pan--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-original_d272ca72-15f6-4e94-8deb-4648e7a8a862.png?v=1787382733",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1d8abhYMJRb12hyBY3yFjGEZ6eKVyRKET",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2142441,
+            "url": "https://drive.google.com/file/d/1d8abhYMJRb12hyBY3yFjGEZ6eKVyRKET/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 2,
+          "filename": "original-shio-pan--2.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-charcoal_0d84fc0b-8dc5-4231-b2be-b381e97d8506.png?v=1787382734",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1jTpOSvZOQM-AVIFzTVbDl_3feEYT4jMC",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2116961,
+            "url": "https://drive.google.com/file/d/1jTpOSvZOQM-AVIFzTVbDl_3feEYT4jMC/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352312417",
+        "handle": "ชิโอะปังวิปครีมโอรีโอ-shiopan-oreo-whipped-cream",
+        "title": "ชิโอะปังวิปครีมโอรีโอ｜オレオホイップ塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087231787105",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-oreo-whipped-cream_d3cf71ee-0c7c-4553-9532-0bbc0ca62b8a.png?v=1787382785",
+          "alt_text": "ชิโอะปังวิปครีมโอรีโอ"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_____________________-shiopan-oreo-whipped-cream--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-oreo-whipped-cream_d3cf71ee-0c7c-4553-9532-0bbc0ca62b8a.png?v=1787382785",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1k4uzBjzUc59MV6x1b_F9j2O8dF-Q0yPh",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2116237,
+            "url": "https://drive.google.com/file/d/1k4uzBjzUc59MV6x1b_F9j2O8dF-Q0yPh/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352345185",
+        "handle": "ชิโอะปังวิปครีมสตรอว์เบอร์รี-shiopan-strawberry-whipped-cream",
+        "title": "ชิโอะปังวิปครีมสตรอว์เบอร์รี｜ストロベリーホイップ塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087231393889",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-strawberry-whipped-cream_cde61596-40b0-4e17-8045-6f75c8747f74.png?v=1787382781",
+          "alt_text": "ชิโอะปังวิปครีมสตรอว์เบอร์รี"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "____________________________-shiopan-strawberry-whipped-cream--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-strawberry-whipped-cream_cde61596-40b0-4e17-8045-6f75c8747f74.png?v=1787382781",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1R9znTltKh37RGpZleWCorqftHgdWzkeP",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2300720,
+            "url": "https://drive.google.com/file/d/1R9znTltKh37RGpZleWCorqftHgdWzkeP/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352377953",
+        "handle": "ชิโอะปังนูเทลล่าสตรอว์เบอร์รีครัมเบิล-shiopan-nutella-strawberry-crumble",
+        "title": "ชิโอะปังนูเทลล่าสตรอว์เบอร์รีครัมเบิล｜ヌテラストロベリークランブル塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087229755489",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-nutella-strawberry-crumble_f1c791e4-a507-4d9c-a1fa-e6989f598210.png?v=1787382743",
+          "alt_text": "ชิโอะปังนูเทลล่าสตรอว์เบอร์รีครัมเบิล"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_____________________________________-shiopan-nutella-strawberry-crumble--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-nutella-strawberry-crumble_f1c791e4-a507-4d9c-a1fa-e6989f598210.png?v=1787382743",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1YH6TbGBIPiV8s2f8j38pLZlcrjxCGRQ1",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2209551,
+            "url": "https://drive.google.com/file/d/1YH6TbGBIPiV8s2f8j38pLZlcrjxCGRQ1/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352410721",
+        "handle": "ชิโอะปังคาราเมลกล้วยครัมเบิล-shiopan-caramel-banana-crumble",
+        "title": "ชิโอะปังคาราเมลกล้วยครัมเบิล｜キャラメルバナナクランブル塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087229886561",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-caramel-banana-crumble_4799ea10-85a6-448c-be6e-2424688c5a30.png?v=1787382751",
+          "alt_text": "ชิโอะปังคาราเมลกล้วยครัมเบิล"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "____________________________-shiopan-caramel-banana-crumble--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-caramel-banana-crumble_4799ea10-85a6-448c-be6e-2424688c5a30.png?v=1787382751",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1GMNBGkudF1PGFjcXD74Xu_v6_GVNk9ce",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2355026,
+            "url": "https://drive.google.com/file/d/1GMNBGkudF1PGFjcXD74Xu_v6_GVNk9ce/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352443489",
+        "handle": "ชิโอะปังบานอฟฟี่-shiopan-banoffee",
+        "title": "ชิโอะปังบานอฟฟี่｜バノフィー塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087230345313",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-banoffee_44f07b6f-47d0-49fb-92bb-8042ad6a1537.png?v=1787382763",
+          "alt_text": "ชิโอะปังบานอฟฟี่"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "________________-shiopan-banoffee--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-banoffee_44f07b6f-47d0-49fb-92bb-8042ad6a1537.png?v=1787382763",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "18vsreRKVwRsGryqd6Wl3gj_gJXgwqs92",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2252692,
+            "url": "https://drive.google.com/file/d/18vsreRKVwRsGryqd6Wl3gj_gJXgwqs92/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352509025",
+        "handle": "ชิโอะปังนูเทลล่ากล้วยครัมเบิล-shiopan-nutella-banana-crumble",
+        "title": "ชิโอะปังนูเทลล่ากล้วยครัมเบิล｜ヌテラバナナクランブル塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087230214241",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-nutella-banana-crumble_4b1fd7c5-738c-487f-9a95-0aa40555585e.png?v=1787382757",
+          "alt_text": "ชิโอะปังนูเทลล่ากล้วยครัมเบิล"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_____________________________-shiopan-nutella-banana-crumble--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-nutella-banana-crumble_4b1fd7c5-738c-487f-9a95-0aa40555585e.png?v=1787382757",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1jpJDl95X5DWUtaUblkUYLvXaYihGlACO",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2329382,
+            "url": "https://drive.google.com/file/d/1jpJDl95X5DWUtaUblkUYLvXaYihGlACO/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352541793",
+        "handle": "ชิโอะปังวิปสตรอว์เบอร์รีครัมเบิล-shiopan-strawberry-whip-crumble",
+        "title": "ชิโอะปังวิปสตรอว์เบอร์รีครัมเบิล｜ストロベリーホイップクランブル塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087233032289",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-strawberry-whip-crumble_95f6afe7-c5ed-4ebc-b688-d3a4a5b50bc0.png?v=1787382801",
+          "alt_text": "ชิโอะปังวิปสตรอว์เบอร์รีครัมเบิล"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "________________________________-shiopan-strawberry-whip-crumble--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-strawberry-whip-crumble_95f6afe7-c5ed-4ebc-b688-d3a4a5b50bc0.png?v=1787382801",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1FoeSxkOfYo8Wu-jm5z4zMkeW7oVfcv50",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2278217,
+            "url": "https://drive.google.com/file/d/1FoeSxkOfYo8Wu-jm5z4zMkeW7oVfcv50/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352574561",
+        "handle": "ชิโอะปังวิปครีมมาร์ชแมลโลว์-shiopan-marshmallow-whipped-cream",
+        "title": "ชิโอะปังวิปครีมมาร์ชแมลโลว์｜マシュマロホイップ塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087230902369",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-marshmallow-whipped-cream_061d51fd-7da8-4bf7-8440-2c1c140cd196.png?v=1787382775",
+          "alt_text": "ชิโอะปังวิปครีมมาร์ชแมลโลว์"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "___________________________-shiopan-marshmallow-whipped-cream--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-marshmallow-whipped-cream_061d51fd-7da8-4bf7-8440-2c1c140cd196.png?v=1787382775",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1k8JYC3v-BLpY2qhwdKx5h8eY2lNFJdKD",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2158567,
+            "url": "https://drive.google.com/file/d/1k8JYC3v-BLpY2qhwdKx5h8eY2lNFJdKD/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352607329",
+        "handle": "ชิโอะปังวิปครีมบราวนี่-shiopan-brownie-whipped-cream",
+        "title": "ชิโอะปังวิปครีมบราวนี่｜ブラウニーホイップ塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087230378081",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-brownie-whipped-cream_1b8ffc6e-4acc-4a63-b7a6-627698476f0b.png?v=1787382766",
+          "alt_text": "ชิโอะปังวิปครีมบราวนี่"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "______________________-shiopan-brownie-whipped-cream--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-brownie-whipped-cream_1b8ffc6e-4acc-4a63-b7a6-627698476f0b.png?v=1787382766",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1gK9zgwfV7vo7JuOEO3VwTvrdWOFhgWAl",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2405023,
+            "url": "https://drive.google.com/file/d/1gK9zgwfV7vo7JuOEO3VwTvrdWOFhgWAl/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352640097",
+        "handle": "ชิโอะปังวิปครีมฝอยทอง-shiopan-foi-thong-whipped-cream",
+        "title": "ชิโอะปังวิปครีมฝอยทอง｜フォイトーンホイップ塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087232999521",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-foi-thong-whipped-cream_36c43968-8705-4c3c-a1ec-1941406f1762.png?v=1787382796",
+          "alt_text": "ชิโอะปังวิปครีมฝอยทอง"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_____________________-shiopan-foi-thong-whipped-cream--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-foi-thong-whipped-cream_36c43968-8705-4c3c-a1ec-1941406f1762.png?v=1787382796",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1e4D-lnxT5aA3QkO-vW4N4Zr-yplgQBn5",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2255084,
+            "url": "https://drive.google.com/file/d/1e4D-lnxT5aA3QkO-vW4N4Zr-yplgQBn5/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352738401",
+        "handle": "ชิโอะปังนูเทลล่ากล้วย-shiopan-nutella-banana",
+        "title": "ชิโอะปังนูเทลล่ากล้วย｜ヌテラバナナ塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087230181473",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-nutella-banana_ad215d10-52bf-4abf-ab95-052c0307a401.png?v=1787382754",
+          "alt_text": "ชิโอะปังนูเทลล่ากล้วย"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_____________________-shiopan-nutella-banana--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-nutella-banana_ad215d10-52bf-4abf-ab95-052c0307a401.png?v=1787382754",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1_T6q6CcrzEPF0lF-PokgBfY8gcw0euGZ",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2422030,
+            "url": "https://drive.google.com/file/d/1_T6q6CcrzEPF0lF-PokgBfY8gcw0euGZ/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352771169",
+        "handle": "ชิโอะปังวิปครีมบลูเบอร์รี-shiopan-blueberry-whipped-cream",
+        "title": "ชิโอะปังวิปครีมบลูเบอร์รี｜ブルーベリーホイップ塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087230509153",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-blueberry-whipped-cream_022ccf02-4c8f-4c54-8da1-4e4031b92983.png?v=1787382771",
+          "alt_text": "ชิโอะปังวิปครีมบลูเบอร์รี"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_________________________-shiopan-blueberry-whipped-cream--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-blueberry-whipped-cream_022ccf02-4c8f-4c54-8da1-4e4031b92983.png?v=1787382771",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1PCKd5MHsm38hB3RlgggEHK3H_gDrCPyy",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2154293,
+            "url": "https://drive.google.com/file/d/1PCKd5MHsm38hB3RlgggEHK3H_gDrCPyy/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352803937",
+        "handle": "ชิโอะปังดาร์กช็อกโกแลตอัลมอนด์-shiopan-dark-chocolate-almond",
+        "title": "ชิโอะปังดาร์กช็อกโกแลตอัลมอนด์｜ダークチョコアーモンド塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087229788257",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-dark-chocolate-almond_623a2d24-a017-4913-aa1d-a37a672c88eb.png?v=1787382747",
+          "alt_text": "ชิโอะปังดาร์กช็อกโกแลตอัลมอนด์"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "______________________________-shiopan-dark-chocolate-almond--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-dark-chocolate-almond_623a2d24-a017-4913-aa1d-a37a672c88eb.png?v=1787382747",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "12oKcvZL-H9QMf53b12r3uqUEns0WJKEJ",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2174795,
+            "url": "https://drive.google.com/file/d/12oKcvZL-H9QMf53b12r3uqUEns0WJKEJ/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658352836705",
+        "handle": "ชิโอะปังดาร์กช็อกโกแลต-shiopan-dark-chocolate",
+        "title": "ชิโอะปังดาร์กช็อกโกแลต｜ダークチョコレート塩パン",
+        "product_type": "Shio Pan",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087229526113",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-dark-chocolate_76bc5eb1-9fb2-4f53-9c91-914db2fe9e31.png?v=1787382740",
+          "alt_text": "ชิโอะปังดาร์กช็อกโกแลต"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "______________________-shiopan-dark-chocolate--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/candy-baked-shio-pan-dark-chocolate_76bc5eb1-9fb2-4f53-9c91-914db2fe9e31.png?v=1787382740",
+          "width": 1448,
+          "height": 1086,
+          "drive": {
+            "id": "1DZc719iSFLnTXvV-NrYztC1cc0sThUHp",
+            "category": "Shiopan",
+            "mime_type": "image/png",
+            "size": 2216568,
+            "url": "https://drive.google.com/file/d/1DZc719iSFLnTXvV-NrYztC1cc0sThUHp/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658353000545",
+        "handle": "ชีสเค้กหน้าไหม้-ออริจินอล-burnt-cheesecake-original",
+        "title": "ชีสเค้กหน้าไหม้ ออริจินอล｜オリジナル バスクチーズケーキ",
+        "product_type": "Burnt Cheesecake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087599542369",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/burnt-cheesecake-original_9d688567-2532-47f0-92aa-f350add3ac15.png?v=1787389670",
+          "alt_text": "Original Burnt Cheesecake"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_______________-_________-burnt-cheesecake-original--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/burnt-cheesecake-original_9d688567-2532-47f0-92aa-f350add3ac15.png?v=1787389670",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1pEbAUqSYEXQKQNlzpRs-e1rW8aJDSopf",
+            "category": "Burnt Cheesecake",
+            "mime_type": "image/png",
+            "size": 2059365,
+            "url": "https://drive.google.com/file/d/1pEbAUqSYEXQKQNlzpRs-e1rW8aJDSopf/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658353033313",
+        "handle": "ชีสเค้กหน้าไหม้-สตรอว์เบอร์รี-burnt-cheesecake-strawberry",
+        "title": "ชีสเค้กหน้าไหม้ สตรอว์เบอร์รี｜ストロベリー バスクチーズケーキ",
+        "product_type": "Burnt Cheesecake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087600689249",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/burnt-cheesecake-strawberry_6bcbbb58-5dfc-47fb-a590-d3a8977bde7e.png?v=1787389681",
+          "alt_text": "Strawberry Burnt Cheesecake"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_______________-_____________-burnt-cheesecake-strawberry--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/burnt-cheesecake-strawberry_6bcbbb58-5dfc-47fb-a590-d3a8977bde7e.png?v=1787389681",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "18Zq1lSsMRuWSvLI3KZYJlutSIQcMHAIH",
+            "category": "Burnt Cheesecake",
+            "mime_type": "image/png",
+            "size": 2029896,
+            "url": "https://drive.google.com/file/d/18Zq1lSsMRuWSvLI3KZYJlutSIQcMHAIH/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658353066081",
+        "handle": "ชีสเค้กหน้าไหม้-นูเทลล่ากล้วย-burnt-cheesecake-nutella-banana",
+        "title": "ชีสเค้กหน้าไหม้ นูเทลล่ากล้วย｜ヌテラバナナ バスクチーズケーキ",
+        "product_type": "Burnt Cheesecake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087601246305",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/burnt-cheesecake-nutella-banana_21ce2729-d5b3-41c6-875d-f5c682fb397a.png?v=1787389684",
+          "alt_text": "Nutella Banana Burnt Cheesecake"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_______________-_____________-burnt-cheesecake-nutella-banana--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/burnt-cheesecake-nutella-banana_21ce2729-d5b3-41c6-875d-f5c682fb397a.png?v=1787389684",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1ZduGCOzs1RpT-DkRpyF-e7smw5fACvap",
+            "category": "Burnt Cheesecake",
+            "mime_type": "image/png",
+            "size": 2038217,
+            "url": "https://drive.google.com/file/d/1ZduGCOzs1RpT-DkRpyF-e7smw5fACvap/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658353098849",
+        "handle": "ชีสเค้กหน้าไหม้-บลูเบอร์รี-burnt-cheesecake-blueberry",
+        "title": "ชีสเค้กหน้าไหม้ บลูเบอร์รี｜ブルーベリー バスクチーズケーキ",
+        "product_type": "Burnt Cheesecake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087600459873",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/burnt-cheesecake-blueberry_eb3b8eef-e462-4d6b-a0dc-4a679e7c53c7.png?v=1787389673",
+          "alt_text": "Blueberry Burnt Cheesecake"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_______________-__________-burnt-cheesecake-blueberry--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/burnt-cheesecake-blueberry_eb3b8eef-e462-4d6b-a0dc-4a679e7c53c7.png?v=1787389673",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1viRfs7fTAPJLjFP31UqM1167mDNeyUPK",
+            "category": "Burnt Cheesecake",
+            "mime_type": "image/png",
+            "size": 2105221,
+            "url": "https://drive.google.com/file/d/1viRfs7fTAPJLjFP31UqM1167mDNeyUPK/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658353131617",
+        "handle": "ชีสเค้กหน้าไหม้-วิปครีมโอรีโอ้-burnt-cheesecake-oreo-whipped-cream",
+        "title": "ชีสเค้กหน้าไหม้ วิปครีมโอรีโอ้｜オレオホイップ バスクチーズケーキ",
+        "product_type": "Burnt Cheesecake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33087600623713",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/burnt-cheesecake-oreo_a95b8be1-c707-4a8f-94b7-db53a454446f.png?v=1787389677",
+          "alt_text": "Oreo Burnt Cheesecake"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_______________-______________-burnt-cheesecake-oreo-whipped-cream--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/burnt-cheesecake-oreo_a95b8be1-c707-4a8f-94b7-db53a454446f.png?v=1787389677",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "188oh7y0sybIhm-rmjwy9GhK8HGLbF9vN",
+            "category": "Burnt Cheesecake",
+            "mime_type": "image/png",
+            "size": 2274135,
+            "url": "https://drive.google.com/file/d/188oh7y0sybIhm-rmjwy9GhK8HGLbF9vN/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7658354147425",
+        "handle": "20-_03-06-06",
+        "title": "Shio Pan & Bnurnt Cheesecake",
+        "product_type": "Shio Pan & Bnurnt Cheesecake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33062265913441",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/F6438E4B-5FCF-4C2D-AC11-7E85478E7C69_0416ed61-4612-412a-a180-c9e85947d7e4.png?v=1787157634",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33062265880673",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/27ED836F-997B-4A3A-958C-51FF2DECB2E2_d345ba10-633e-4caa-9476-82f52f2c2b53.png?v=1787157633",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33062265946209",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/23191859-9E73-4D8C-B89C-DFE16DEAFB43.png?v=1787157635",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33061923913825",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/B3A2447E-0407-4A93-8429-A9CA7485B21B.jpg?v=1787147989",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33061923749985",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/A80C9B98-2A5C-41B2-BB95-A2676EB67665.jpg?v=1787147989",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33061923815521",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/7F1CEC75-F6D9-4B7B-ACFB-BA49B623E453.jpg?v=1787147989",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33061923881057",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/A628E64D-516E-4C88-A7C9-D39A194F0250.jpg?v=1787147989",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33061923717217",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/3EE2CABD-BBFB-4CAE-8289-2BBFEDDF4938.jpg?v=1787147989",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33061923848289",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/E01C2661-FC1F-483E-9409-463BED8CED23.jpg?v=1787147989",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33061923782753",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/EE98DFDF-D6B3-41C5-A434-CAFD3562EB10.jpg?v=1787147989",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33061923618913",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/C564C3F6-4658-475B-9860-91843976E5B1.jpg?v=1787147989",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33061923684449",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/AD8061E4-0E0B-46E7-8445-C5F9DD630CE7.jpg?v=1787147989",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33061923651681",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/C55F6051-ED96-41A6-810B-76F365E559F5.jpg?v=1787147989",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33061923553377",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/818B21A5-F359-419B-ACB1-E27AA6CBFAAC.jpg?v=1787147989",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33063041532001",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/82EA5DD7-4520-4A40-BAA5-CEB59FF2D18C.png?v=1787172430",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33062921044065",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/CANDY-BAKED_MENU_4_OF_4.png?v=1787170426",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33062921011297",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/CANDY-BAKED_MENU_1_OF_4.png?v=1787170426",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33062920978529",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/CANDY-BAKED_MENU_3_OF_4.png?v=1787170426",
+          "alt_text": ""
+        },
+        {
+          "media_id": "gid://shopify/MediaImage/33062920945761",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/CANDY-BAKED_MENU_2_OF_4.png?v=1787170426",
+          "alt_text": ""
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "20-_03-06-06--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/F6438E4B-5FCF-4C2D-AC11-7E85478E7C69_0416ed61-4612-412a-a180-c9e85947d7e4.png?v=1787157634",
+          "width": 941,
+          "height": 1672,
+          "drive": {
+            "id": "1hnb6nCtACTHXYJoj113WLjnQq_2RLMTq",
+            "category": "Media",
+            "mime_type": "image/png",
+            "size": 2226906,
+            "url": "https://drive.google.com/file/d/1hnb6nCtACTHXYJoj113WLjnQq_2RLMTq/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 2,
+          "filename": "20-_03-06-06--2.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/27ED836F-997B-4A3A-958C-51FF2DECB2E2_d345ba10-633e-4caa-9476-82f52f2c2b53.png?v=1787157633",
+          "width": 941,
+          "height": 1672,
+          "drive": {
+            "id": "1ulCCX2vD8ODgNBpq_wKILdlFt_2pQkTI",
+            "category": "Media",
+            "mime_type": "image/png",
+            "size": 2300891,
+            "url": "https://drive.google.com/file/d/1ulCCX2vD8ODgNBpq_wKILdlFt_2pQkTI/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 3,
+          "filename": "20-_03-06-06--3.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/23191859-9E73-4D8C-B89C-DFE16DEAFB43.png?v=1787157635",
+          "width": 941,
+          "height": 1672,
+          "drive": {
+            "id": "1nME-r2l_RXFkvlfU6F85F8CRP3EnG5fv",
+            "category": "Media",
+            "mime_type": "image/png",
+            "size": 2450770,
+            "url": "https://drive.google.com/file/d/1nME-r2l_RXFkvlfU6F85F8CRP3EnG5fv/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 4,
+          "filename": "20-_03-06-06--4.jpg",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/B3A2447E-0407-4A93-8429-A9CA7485B21B.jpg?v=1787147989",
+          "width": 1024,
+          "height": 947,
+          "drive": {
+            "id": "1Y7AY3crj3zX-j9DSVukibGzgTYef7-vw",
+            "category": "Media",
+            "mime_type": "image/jpeg",
+            "size": 173589,
+            "url": "https://drive.google.com/file/d/1Y7AY3crj3zX-j9DSVukibGzgTYef7-vw/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 5,
+          "filename": "20-_03-06-06--5.jpg",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/A80C9B98-2A5C-41B2-BB95-A2676EB67665.jpg?v=1787147989",
+          "width": 1023,
+          "height": 929,
+          "drive": {
+            "id": "1TL1y5P9NVkyJoRplXyUO_a-vT3Q5BE02",
+            "category": "Media",
+            "mime_type": "image/jpeg",
+            "size": 139868,
+            "url": "https://drive.google.com/file/d/1TL1y5P9NVkyJoRplXyUO_a-vT3Q5BE02/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 6,
+          "filename": "20-_03-06-06--6.jpg",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/7F1CEC75-F6D9-4B7B-ACFB-BA49B623E453.jpg?v=1787147989",
+          "width": 1024,
+          "height": 949,
+          "drive": {
+            "id": "1POj5hZ8vLcuyGzKLSvfOO1ol3hiVJAeK",
+            "category": "Media",
+            "mime_type": "image/jpeg",
+            "size": 158652,
+            "url": "https://drive.google.com/file/d/1POj5hZ8vLcuyGzKLSvfOO1ol3hiVJAeK/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 7,
+          "filename": "20-_03-06-06--7.jpg",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/A628E64D-516E-4C88-A7C9-D39A194F0250.jpg?v=1787147989",
+          "width": 1024,
+          "height": 940,
+          "drive": {
+            "id": "1lgw07ZpJFaMQUJ_9XZ0mkp1m9pq_2O65",
+            "category": "Media",
+            "mime_type": "image/jpeg",
+            "size": 126482,
+            "url": "https://drive.google.com/file/d/1lgw07ZpJFaMQUJ_9XZ0mkp1m9pq_2O65/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 8,
+          "filename": "20-_03-06-06--8.jpg",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/3EE2CABD-BBFB-4CAE-8289-2BBFEDDF4938.jpg?v=1787147989",
+          "width": 1024,
+          "height": 938,
+          "drive": {
+            "id": "19BEYn-pp7FlzR1qcli62u1UUWqlZBKGt",
+            "category": "Media",
+            "mime_type": "image/jpeg",
+            "size": 167635,
+            "url": "https://drive.google.com/file/d/19BEYn-pp7FlzR1qcli62u1UUWqlZBKGt/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 9,
+          "filename": "20-_03-06-06--9.jpg",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/E01C2661-FC1F-483E-9409-463BED8CED23.jpg?v=1787147989",
+          "width": 1024,
+          "height": 944,
+          "drive": {
+            "id": "1KGYrD5Stzhwkw36zXz8WyEAjz3Mjm1HP",
+            "category": "Media",
+            "mime_type": "image/jpeg",
+            "size": 180563,
+            "url": "https://drive.google.com/file/d/1KGYrD5Stzhwkw36zXz8WyEAjz3Mjm1HP/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 10,
+          "filename": "20-_03-06-06--10.jpg",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/EE98DFDF-D6B3-41C5-A434-CAFD3562EB10.jpg?v=1787147989",
+          "width": 1023,
+          "height": 945,
+          "drive": {
+            "id": "1LDLGcB4Bj_WXLELwfVb_8cFaCz70q28b",
+            "category": "Media",
+            "mime_type": "image/jpeg",
+            "size": 171090,
+            "url": "https://drive.google.com/file/d/1LDLGcB4Bj_WXLELwfVb_8cFaCz70q28b/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 11,
+          "filename": "20-_03-06-06--11.jpg",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/C564C3F6-4658-475B-9860-91843976E5B1.jpg?v=1787147989",
+          "width": 1024,
+          "height": 903,
+          "drive": {
+            "id": "1eXLKBiLP6oN0Nt_Z-gbFA04R_IRtBqNg",
+            "category": "Media",
+            "mime_type": "image/jpeg",
+            "size": 153138,
+            "url": "https://drive.google.com/file/d/1eXLKBiLP6oN0Nt_Z-gbFA04R_IRtBqNg/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 12,
+          "filename": "20-_03-06-06--12.jpg",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/AD8061E4-0E0B-46E7-8445-C5F9DD630CE7.jpg?v=1787147989",
+          "width": 895,
+          "height": 1115,
+          "drive": {
+            "id": "1ml1E9pitHgSFINSrjB_KZ_cs37cSmBFN",
+            "category": "Media",
+            "mime_type": "image/jpeg",
+            "size": 183739,
+            "url": "https://drive.google.com/file/d/1ml1E9pitHgSFINSrjB_KZ_cs37cSmBFN/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 13,
+          "filename": "20-_03-06-06--13.jpg",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/C55F6051-ED96-41A6-810B-76F365E559F5.jpg?v=1787147989",
+          "width": 1087,
+          "height": 836,
+          "drive": {
+            "id": "1Mlrzlr9NMsdOY2a_W4KEiORm0CYsfY2i",
+            "category": "Media",
+            "mime_type": "image/jpeg",
+            "size": 101884,
+            "url": "https://drive.google.com/file/d/1Mlrzlr9NMsdOY2a_W4KEiORm0CYsfY2i/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 14,
+          "filename": "20-_03-06-06--14.jpg",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/818B21A5-F359-419B-ACB1-E27AA6CBFAAC.jpg?v=1787147989",
+          "width": 1024,
+          "height": 934,
+          "drive": {
+            "id": "1O2XnzFvwaik9chLxmWU3JBkmrtA5HEcl",
+            "category": "Media",
+            "mime_type": "image/jpeg",
+            "size": 148821,
+            "url": "https://drive.google.com/file/d/1O2XnzFvwaik9chLxmWU3JBkmrtA5HEcl/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 15,
+          "filename": "20-_03-06-06--15.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/82EA5DD7-4520-4A40-BAA5-CEB59FF2D18C.png?v=1787172430",
+          "width": 1054,
+          "height": 1492,
+          "drive": {
+            "id": "1JmM2ZHRQa8oTmh43TwgN8AMAzPlf4JbQ",
+            "category": "Media",
+            "mime_type": "image/png",
+            "size": 1626033,
+            "url": "https://drive.google.com/file/d/1JmM2ZHRQa8oTmh43TwgN8AMAzPlf4JbQ/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 16,
+          "filename": "20-_03-06-06--16.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/CANDY-BAKED_MENU_4_OF_4.png?v=1787170426",
+          "width": 1122,
+          "height": 1402,
+          "drive": {
+            "id": "1DSA1iHUTg2aXPxdPHblVErz3B4y4ixYm",
+            "category": "Media",
+            "mime_type": "image/png",
+            "size": 1344742,
+            "url": "https://drive.google.com/file/d/1DSA1iHUTg2aXPxdPHblVErz3B4y4ixYm/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 17,
+          "filename": "20-_03-06-06--17.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/CANDY-BAKED_MENU_1_OF_4.png?v=1787170426",
+          "width": 1122,
+          "height": 1402,
+          "drive": {
+            "id": "16obyhiQIQf_syuixu4ieg2qC26wfEwul",
+            "category": "Media",
+            "mime_type": "image/png",
+            "size": 1337253,
+            "url": "https://drive.google.com/file/d/16obyhiQIQf_syuixu4ieg2qC26wfEwul/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 18,
+          "filename": "20-_03-06-06--18.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/CANDY-BAKED_MENU_3_OF_4.png?v=1787170426",
+          "width": 1122,
+          "height": 1402,
+          "drive": {
+            "id": "1O-YngXZLCWCTHN3jAWBKkUNV2TI6Kq7T",
+            "category": "Media",
+            "mime_type": "image/png",
+            "size": 1321894,
+            "url": "https://drive.google.com/file/d/1O-YngXZLCWCTHN3jAWBKkUNV2TI6Kq7T/view?usp=drivesdk"
+          }
+        },
+        {
+          "order": 19,
+          "filename": "20-_03-06-06--19.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/CANDY-BAKED_MENU_2_OF_4.png?v=1787170426",
+          "width": 1122,
+          "height": 1402,
+          "drive": {
+            "id": "1Twq4vkGkUsGktoe408-gQDM8Q5VsMmlX",
+            "category": "Media",
+            "mime_type": "image/png",
+            "size": 1355643,
+            "url": "https://drive.google.com/file/d/1Twq4vkGkUsGktoe408-gQDM8Q5VsMmlX/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667106906209",
+        "handle": "เค้กช็อกโกแลตหน้านิ่ม-チョコレートソフトケーキ",
+        "title": "เค้กช็อกโกแลตหน้านิ่ม｜チョコレートソフトケーキ",
+        "product_type": "Cake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120470466657",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/01-chocolate-soft-cake.png?v=1787842384",
+          "alt_text": "เค้กช็อกโกแลตหน้านิ่ม"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_____________________-____________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/01-chocolate-soft-cake.png?v=1787842384",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1FiF0TvJWrths2dY38ml_zA6TTp80wOzh",
+            "category": "Fudge Cack",
+            "mime_type": "image/png",
+            "size": 2126996,
+            "url": "https://drive.google.com/file/d/1FiF0TvJWrths2dY38ml_zA6TTp80wOzh/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667106971745",
+        "handle": "เค้กบลูเบอร์รี่ครีมสด-ブルーベリー生クリームケーキ",
+        "title": "เค้กบลูเบอร์รี่ครีมสด｜ブルーベリー生クリームケーキ",
+        "product_type": "Cake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120470827105",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/02-blueberry-fresh-cream-cake.png?v=1787842413",
+          "alt_text": "เค้กบลูเบอร์รี่ครีมสด"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_____________________-______________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/02-blueberry-fresh-cream-cake.png?v=1787842413",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1dmJHInDy-_a-c2IpTWwJtHydIBIrjG_S",
+            "category": "Fudge Cack",
+            "mime_type": "image/png",
+            "size": 1975903,
+            "url": "https://drive.google.com/file/d/1dmJHInDy-_a-c2IpTWwJtHydIBIrjG_S/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667107070049",
+        "handle": "เค้กเรดเวลเวท-レッドベルベットケーキ",
+        "title": "เค้กเรดเวลเวท｜レッドベルベットケーキ",
+        "product_type": "Cake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120471253089",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/03-red-velvet-cake.png?v=1787842439",
+          "alt_text": "เค้กเรดเวลเวท"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_____________-___________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/03-red-velvet-cake.png?v=1787842439",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1ELFsrU7x3vqSJdoGanQToLWEOwk-BwRV",
+            "category": "Fudge Cack",
+            "mime_type": "image/png",
+            "size": 2051858,
+            "url": "https://drive.google.com/file/d/1ELFsrU7x3vqSJdoGanQToLWEOwk-BwRV/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667107135585",
+        "handle": "เค้กส้มหน้านิ่ม-オレンジソフトケーキ",
+        "title": "เค้กส้มหน้านิ่ม｜オレンジソフトケーキ",
+        "product_type": "Cake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120471548001",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/04-orange-soft-cake.png?v=1787842468",
+          "alt_text": "เค้กส้มหน้านิ่ม"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "_______________-__________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/04-orange-soft-cake.png?v=1787842468",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1F9-83vyVnwTDRC6uDmo_ONPybEBuOnOQ",
+            "category": "Fudge Cack",
+            "mime_type": "image/png",
+            "size": 1981490,
+            "url": "https://drive.google.com/file/d/1F9-83vyVnwTDRC6uDmo_ONPybEBuOnOQ/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667107233889",
+        "handle": "เค้กคุกกี้แอนด์ครีม-クッキー-クリームケーキ",
+        "title": "เค้กคุกกี้แอนด์ครีม｜クッキー＆クリームケーキ",
+        "product_type": "Cake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120471711841",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/05-cookies-cream-cake.png?v=1787842495",
+          "alt_text": "เค้กคุกกี้แอนด์ครีม"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "___________________-____-_______--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/05-cookies-cream-cake.png?v=1787842495",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "18WQ1oLiYMWnLsbvlU14ix93YQe_Twqeq",
+            "category": "Fudge Cack",
+            "mime_type": "image/png",
+            "size": 2386727,
+            "url": "https://drive.google.com/file/d/18WQ1oLiYMWnLsbvlU14ix93YQe_Twqeq/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667107397729",
+        "handle": "เค้กชิฟฟ่อนวานิลลา-バニラシフォンケーキ",
+        "title": "เค้กชิฟฟ่อนวานิลลา｜バニラシフォンケーキ",
+        "product_type": "Cake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120472662113",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/06-vanilla-chiffon-cake.png?v=1787842539",
+          "alt_text": "เค้กชิฟฟ่อนวานิลลา"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "__________________-__________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/06-vanilla-chiffon-cake.png?v=1787842539",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1no42CBY25rRH_ZvxdqdbrLdDdTATWowN",
+            "category": "Chiffon Cake",
+            "mime_type": "image/png",
+            "size": 2302035,
+            "url": "https://drive.google.com/file/d/1no42CBY25rRH_ZvxdqdbrLdDdTATWowN/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667107790945",
+        "handle": "ชิฟฟ่อนเค้กช็อกโกแลต-チョコレートシフォンケーキ",
+        "title": "ชิฟฟ่อนเค้กช็อกโกแลต｜チョコレートシフォンケーキ",
+        "product_type": "Cake",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120473251937",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/07-chocolate-chiffon-cake.png?v=1787842571",
+          "alt_text": "ชิฟฟ่อนเค้กช็อกโกแลต"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "____________________-_____________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/07-chocolate-chiffon-cake.png?v=1787842571",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1UFQFyBtobDG-z7wpZ3mMwjyjLL9pAjLY",
+            "category": "Chiffon Cake",
+            "mime_type": "image/png",
+            "size": 2435577,
+            "url": "https://drive.google.com/file/d/1UFQFyBtobDG-z7wpZ3mMwjyjLL9pAjLY/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667107987553",
+        "handle": "swiss-meringue-buttercream-スイスメレンゲバタークリーム",
+        "title": "Swiss Meringue Buttercream｜スイスメレンゲバタークリーム",
+        "product_type": "Buttercream",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120473612385",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/08-swiss-meringue-buttercream.png?v=1787842606",
+          "alt_text": "Swiss Meringue Buttercream"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "swiss-meringue-buttercream-______________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/08-swiss-meringue-buttercream.png?v=1787842606",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1FLNvF9lxqAUItzn-1zlFWhrG5e0gfelW",
+            "category": "Batter cream ",
+            "mime_type": "image/png",
+            "size": 1825908,
+            "url": "https://drive.google.com/file/d/1FLNvF9lxqAUItzn-1zlFWhrG5e0gfelW/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667108249697",
+        "handle": "chocolate-buttercream-チョコレートバタークリーム",
+        "title": "Chocolate Buttercream｜チョコレートバタークリーム",
+        "product_type": "Buttercream",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120474529889",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/09-chocolate-buttercream.png?v=1787842638",
+          "alt_text": "Chocolate Buttercream"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "chocolate-buttercream-_____________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/09-chocolate-buttercream.png?v=1787842638",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1XrOHobYseroKgCTdEjf0AdTm1YHUWSfP",
+            "category": "Batter cream ",
+            "mime_type": "image/png",
+            "size": 2074491,
+            "url": "https://drive.google.com/file/d/1XrOHobYseroKgCTdEjf0AdTm1YHUWSfP/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667108479073",
+        "handle": "buttercream-coconut-ココナッツバタークリーム",
+        "title": "Buttercream Coconut｜ココナッツバタークリーム",
+        "product_type": "Buttercream",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120474824801",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/10-coconut-buttercream.png?v=1787842666",
+          "alt_text": "Buttercream Coconut"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "buttercream-coconut-____________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/10-coconut-buttercream.png?v=1787842666",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1ZF1PuNGVHu-tLTqLqBa3Pit-iqZx9IXk",
+            "category": "Batter cream ",
+            "mime_type": "image/png",
+            "size": 1921669,
+            "url": "https://drive.google.com/file/d/1ZF1PuNGVHu-tLTqLqBa3Pit-iqZx9IXk/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667108511841",
+        "handle": "mama-เย็นตาโฟต้มยำ-ママー-イェンタフォー-トムヤム",
+        "title": "MAMA เย็นตาโฟต้มยำ｜ママー イェンタフォー・トムヤム",
+        "product_type": "Thai Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120475676769",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/11-mama-yentafo-tomyum.png?v=1787842717",
+          "alt_text": "MAMA เย็นตาโฟต้มยำ"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "mama-_____________-___-_______-____--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/11-mama-yentafo-tomyum.png?v=1787842717",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1wHPl0HvKH1j--vwh3YHJB0U7X7j6tJh8",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2212267,
+            "url": "https://drive.google.com/file/d/1wHPl0HvKH1j--vwh3YHJB0U7X7j6tJh8/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667108642913",
+        "handle": "mama-ต้มยำกุ้ง-ママー-トムヤムクン",
+        "title": "MAMA ต้มยำกุ้ง｜ママー トムヤムクン",
+        "product_type": "Thai Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120476659809",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/12-mama-tomyum-goong.png?v=1787842745",
+          "alt_text": "MAMA ต้มยำกุ้ง"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "mama-_________-___-______--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/12-mama-tomyum-goong.png?v=1787842745",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1ZjAQPCGWoPBGXIfvfla4rLCpRNaCxHI6",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2103271,
+            "url": "https://drive.google.com/file/d/1ZjAQPCGWoPBGXIfvfla4rLCpRNaCxHI6/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667108872289",
+        "handle": "mama-ต้มยำกุ้งน้ำข้น-ママー-クリーミートムヤムクン",
+        "title": "MAMA ต้มยำกุ้งน้ำข้น｜ママー クリーミートムヤムクン",
+        "product_type": "Thai Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120476987489",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/13-mama-creamy-tomyum-goong.png?v=1787842774",
+          "alt_text": "MAMA ต้มยำกุ้งน้ำข้น"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "mama-_______________-___-___________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/13-mama-creamy-tomyum-goong.png?v=1787842774",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1GSEMHm8gTzcX43B40jbVuKEyVhQ94vY-",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2224891,
+            "url": "https://drive.google.com/file/d/1GSEMHm8gTzcX43B40jbVuKEyVhQ94vY-/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667108937825",
+        "handle": "mama-หมูสับ-ママー-豚ひき肉",
+        "title": "MAMA หมูสับ｜ママー 豚ひき肉",
+        "product_type": "Thai Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120477511777",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/14-mama-minced-pork.png?v=1787842800",
+          "alt_text": "MAMA หมูสับ"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "mama-______-___-____--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/14-mama-minced-pork.png?v=1787842800",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1MG7NotU1frvmJY-7h2lyK8JLkQ1emTv9",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2093952,
+            "url": "https://drive.google.com/file/d/1MG7NotU1frvmJY-7h2lyK8JLkQ1emTv9/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667109068897",
+        "handle": "mama-หมูน้ำตก-ママー-ムーナムトック",
+        "title": "MAMA หมูน้ำตก｜ママー ムーナムトック",
+        "product_type": "Thai Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120477970529",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/15-mama-pork-namtok.png?v=1787842828",
+          "alt_text": "MAMA หมูน้ำตก"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "mama-________-___-_______--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/15-mama-pork-namtok.png?v=1787842828",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1EJW0bT4Z5PJFKmJjPP2tNyWQ_noh0XZR",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2257717,
+            "url": "https://drive.google.com/file/d/1EJW0bT4Z5PJFKmJjPP2tNyWQ_noh0XZR/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667109134433",
+        "handle": "mama-เส้นหมี่น้ำใส-ママー-センミー-クリアスープ",
+        "title": "MAMA เส้นหมี่น้ำใส｜ママー センミー・クリアスープ",
+        "product_type": "Thai Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120478691425",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/16-mama-clear-rice-noodle.png?v=1787842856",
+          "alt_text": "MAMA เส้นหมี่น้ำใส"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "mama-_____________-___-____-______--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/16-mama-clear-rice-noodle.png?v=1787842856",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1Syd_X5FNrsLcMsWG1QYmZkRt749GeXA6",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2296235,
+            "url": "https://drive.google.com/file/d/1Syd_X5FNrsLcMsWG1QYmZkRt749GeXA6/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667109265505",
+        "handle": "samyang-hot-chicken-cheese-サムヤン-ホットチキンチーズ",
+        "title": "Samyang Hot Chicken Cheese｜サムヤン ホットチキンチーズ",
+        "product_type": "Korean Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120480100449",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/17-samyang-hot-chicken-cheese.png?v=1787842903",
+          "alt_text": "Samyang Hot Chicken Cheese"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "samyang-hot-chicken-cheese-____-_________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/17-samyang-hot-chicken-cheese.png?v=1787842903",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1GieZvZjXAbp8covKMjDx7mmPUVYsvb6d",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2191068,
+            "url": "https://drive.google.com/file/d/1GieZvZjXAbp8covKMjDx7mmPUVYsvb6d/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667109953633",
+        "handle": "samyang-chicken-stew-サムヤン-チキンスチュー",
+        "title": "Samyang Chicken Stew｜サムヤン チキンスチュー",
+        "product_type": "Korean Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120480755809",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/18-samyang-chicken-stew.png?v=1787842931",
+          "alt_text": "Samyang Chicken Stew"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "samyang-chicken-stew-____-_______--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/18-samyang-chicken-stew.png?v=1787842931",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "13mYwGq14iu_5zVJnEaapIn-SP1lMHELO",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2220429,
+            "url": "https://drive.google.com/file/d/13mYwGq14iu_5zVJnEaapIn-SP1lMHELO/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667110084705",
+        "handle": "samyang-chicken-carbonara-サムヤン-チキンカルボナーラ",
+        "title": "Samyang Chicken Carbonara｜サムヤン チキンカルボナーラ",
+        "product_type": "Korean Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120484851809",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/19-samyang-chicken-carbonara.png?v=1787843243",
+          "alt_text": "Samyang Chicken Carbonara"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "samyang-chicken-carbonara-____-_________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/19-samyang-chicken-carbonara.png?v=1787843243",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1XTUuODs1G6usXXlfLioCsdOnnAFpmge7",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2388014,
+            "url": "https://drive.google.com/file/d/1XTUuODs1G6usXXlfLioCsdOnnAFpmge7/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667110281313",
+        "handle": "samyang-buldak-mala-サムヤン-ブルダックマーラー",
+        "title": "Samyang Buldak Mala｜サムヤン ブルダックマーラー",
+        "product_type": "Korean Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120486096993",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/20-samyang-buldak-mala.png?v=1787843300",
+          "alt_text": "Samyang Buldak Mala"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "samyang-buldak-mala-____-_________--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/20-samyang-buldak-mala.png?v=1787843300",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1reLLpeNZcxNcEG9L4xVUwh57yMAuspmF",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2526536,
+            "url": "https://drive.google.com/file/d/1reLLpeNZcxNcEG9L4xVUwh57yMAuspmF/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667110412385",
+        "handle": "samyang-rose-ramen-サムヤン-ロゼラーメン",
+        "title": "Samyang Rose Ramen｜サムヤン ロゼラーメン",
+        "product_type": "Korean Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120486850657",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/21-samyang-rose-ramen.png?v=1787843345",
+          "alt_text": "Samyang Rose Ramen"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "samyang-rose-ramen-____-______--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/21-samyang-rose-ramen.png?v=1787843345",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1NjXztB3oyQwcq2Vpr_VYtbgVrFsp_V2g",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2198356,
+            "url": "https://drive.google.com/file/d/1NjXztB3oyQwcq2Vpr_VYtbgVrFsp_V2g/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667110543457",
+        "handle": "nongshim-zha-wang-จาจัง-ノンシム-チャーワン",
+        "title": "Nongshim ZHA WANG จาจัง｜ノンシム チャーワン",
+        "product_type": "Korean Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120487702625",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/22-nongshim-zhawang-jajang.png?v=1787843398",
+          "alt_text": "Nongshim ZHA WANG จาจัง"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "nongshim-zha-wang-_____-____-_____--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/22-nongshim-zhawang-jajang.png?v=1787843398",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1yP3pv6yg7tFaabQjQ-mwrrExVIs9xxGa",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2231039,
+            "url": "https://drive.google.com/file/d/1yP3pv6yg7tFaabQjQ-mwrrExVIs9xxGa/view?usp=drivesdk"
+          }
+        }
+      ]
+    },
+    {
+      "product": {
+        "id": "gid://shopify/Product/7667110674529",
+        "handle": "nongshim-shin-spicy-kimchi-ノンシム-辛キムチ",
+        "title": "Nongshim Shin Spicy Kimchi｜ノンシム 辛キムチ",
+        "product_type": "Korean Noodles",
+        "status": "ACTIVE"
+      },
+      "current_media": [
+        {
+          "media_id": "gid://shopify/MediaImage/33120490094689",
+          "url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/23-nongshim-shin-kimchi.png?v=1787843450",
+          "alt_text": "Nongshim Shin Spicy Kimchi"
+        }
+      ],
+      "replacement_images": [
+        {
+          "order": 1,
+          "filename": "nongshim-shin-spicy-kimchi-____-____--1.png",
+          "source_url": "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/23-nongshim-shin-kimchi.png?v=1787843450",
+          "width": 1254,
+          "height": 1254,
+          "drive": {
+            "id": "1BB9jJwz4AhnQns5wvFl9hEetf-Lj7Bne",
+            "category": "Noodle & Soup",
+            "mime_type": "image/png",
+            "size": 2140348,
+            "url": "https://drive.google.com/file/d/1BB9jJwz4AhnQns5wvFl9hEetf-Lj7Bne/view?usp=drivesdk"
+          }
+        }
+      ]
+    }
+  ]
+}
