@@ -1,0 +1,764 @@
+{
+  "generated_at": "2026-08-30",
+  "shop": "CandyBaked Factory",
+  "domain": "7ft7dv-2s.myshopify.com",
+  "result": "SUCCESS",
+  "summary": {
+    "active_products": 44,
+    "replaced_products": 44,
+    "replaced_images": 63,
+    "exact_image_count": 44,
+    "failures": 0
+  },
+  "source_recovery": {
+    "files_restored": 17,
+    "copies_created": 51,
+    "cloudflare_media_count": 28,
+    "shopify_media_count": 28,
+    "main_photo_media_count": 28
+  },
+  "products": [
+    {
+      "active": true,
+      "actual": 2,
+      "expected": 2,
+      "handle": "original-shio-pan",
+      "id": "gid://shopify/Product/7657636659297",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136068558945",
+        "gid://shopify/MediaImage/33136068591713"
+      ],
+      "title": "ชิโอะปังออริจินัล / ชาร์โคล｜塩パン オリジナル／チャコール",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-original-shio-pan--1_a9dbe578-0a26-4725-8c57-cccb3bd2914a.png?v=1788082617",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-original-shio-pan--2_b31c9bf0-db1a-44ca-9e22-3b069aee5fbe.png?v=1788082617"
+      ],
+      "wfCount": 2
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังวิปครีมโอรีโอ-shiopan-oreo-whipped-cream",
+      "id": "gid://shopify/Product/7658352312417",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136068460641"
+      ],
+      "title": "ชิโอะปังวิปครีมโอรีโอ｜オレオホイップ塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_____________________-shiopan-oreo-whipped-cream--1_f5d7b468-0214-4a41-8aa0-1f387b6d7d0f.png?v=1788082616"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังวิปครีมสตรอว์เบอร์รี-shiopan-strawberry-whipped-cream",
+      "id": "gid://shopify/Product/7658352345185",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136068624481"
+      ],
+      "title": "ชิโอะปังวิปครีมสตรอว์เบอร์รี｜ストロベリーホイップ塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-____________________________-shiopan-strawberry-whipped-cream--1_a7fb91f9-6b53-4d50-ab18-dd3a743e9f1e.png?v=1788082619"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังนูเทลล่าสตรอว์เบอร์รีครัมเบิล-shiopan-nutella-strawberry-crumble",
+      "id": "gid://shopify/Product/7658352377953",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136068657249"
+      ],
+      "title": "ชิโอะปังนูเทลล่าสตรอว์เบอร์รีครัมเบิล｜ヌテラストロベリークランブル塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_____________________________________-shiopan-nutella-strawberry-crumble--1_3a397aaa-8f2f-44f7-ba09-8fb59ab26d31.png?v=1788082620"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังคาราเมลกล้วยครัมเบิล-shiopan-caramel-banana-crumble",
+      "id": "gid://shopify/Product/7658352410721",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136068722785"
+      ],
+      "title": "ชิโอะปังคาราเมลกล้วยครัมเบิล｜キャラメルバナナクランブル塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-____________________________-shiopan-caramel-banana-crumble--1_a3b24a54-e55c-4fca-8876-36934d20b414.png?v=1788082622"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังบานอฟฟี่-shiopan-banoffee",
+      "id": "gid://shopify/Product/7658352443489",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136068690017"
+      ],
+      "title": "ชิโอะปังบานอฟฟี่｜バノフィー塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-________________-shiopan-banoffee--1_ff7d5b58-ea9d-4208-b00c-cbdb5e998320.png?v=1788082621"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังนูเทลล่ากล้วยครัมเบิล-shiopan-nutella-banana-crumble",
+      "id": "gid://shopify/Product/7658352509025",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136068821089"
+      ],
+      "title": "ชิโอะปังนูเทลล่ากล้วยครัมเบิล｜ヌテラバナナクランブル塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_____________________________-shiopan-nutella-banana-crumble--1_dabe8aa6-93d3-4d24-820e-4a70e36c8e85.png?v=1788082624"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังวิปสตรอว์เบอร์รีครัมเบิล-shiopan-strawberry-whip-crumble",
+      "id": "gid://shopify/Product/7658352541793",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136069378145"
+      ],
+      "title": "ชิโอะปังวิปสตรอว์เบอร์รีครัมเบิล｜ストロベリーホイップクランブル塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-________________________________-shiopan-strawberry-whip-crumble--1_35e0e2dc-c098-4657-b23d-9f00a987dba9.png?v=1788082625"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังวิปครีมมาร์ชแมลโลว์-shiopan-marshmallow-whipped-cream",
+      "id": "gid://shopify/Product/7658352574561",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136069509217"
+      ],
+      "title": "ชิโอะปังวิปครีมมาร์ชแมลโลว์｜マシュマロホイップ塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-___________________________-shiopan-marshmallow-whipped-cream--1_d7375335-750c-4864-b8b0-9094f2334d65.png?v=1788082626"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังวิปครีมบราวนี่-shiopan-brownie-whipped-cream",
+      "id": "gid://shopify/Product/7658352607329",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136070099041"
+      ],
+      "title": "ชิโอะปังวิปครีมบราวนี่｜ブラウニーホイップ塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-______________________-shiopan-brownie-whipped-cream--1_0f939afc-8322-4e89-8ce3-37d5aaa56665.png?v=1788082630"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังวิปครีมฝอยทอง-shiopan-foi-thong-whipped-cream",
+      "id": "gid://shopify/Product/7658352640097",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136069640289"
+      ],
+      "title": "ชิโอะปังวิปครีมฝอยทอง｜フォイトーンホイップ塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_____________________-shiopan-foi-thong-whipped-cream--1_ddf6d8a4-9938-4ae5-ba18-86520599560f.png?v=1788082627"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังนูเทลล่ากล้วย-shiopan-nutella-banana",
+      "id": "gid://shopify/Product/7658352738401",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136069836897"
+      ],
+      "title": "ชิโอะปังนูเทลล่ากล้วย｜ヌテラバナナ塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_____________________-shiopan-nutella-banana--1_215e74d9-e9ce-4796-a938-39063370092f.png?v=1788082628"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังวิปครีมบลูเบอร์รี-shiopan-blueberry-whipped-cream",
+      "id": "gid://shopify/Product/7658352771169",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136070230113"
+      ],
+      "title": "ชิโอะปังวิปครีมบลูเบอร์รี｜ブルーベリーホイップ塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_________________________-shiopan-blueberry-whipped-cream--1_231509a2-b316-4e7e-bfb7-5fc40bdf687b.png?v=1788082631"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังดาร์กช็อกโกแลตอัลมอนด์-shiopan-dark-chocolate-almond",
+      "id": "gid://shopify/Product/7658352803937",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136070361185"
+      ],
+      "title": "ชิโอะปังดาร์กช็อกโกแลตอัลมอนด์｜ダークチョコアーモンド塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-______________________________-shiopan-dark-chocolate-almond--1_36242996-a28f-4599-96f8-2ddae67b9f01.png?v=1788082632"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิโอะปังดาร์กช็อกโกแลต-shiopan-dark-chocolate",
+      "id": "gid://shopify/Product/7658352836705",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136070688865"
+      ],
+      "title": "ชิโอะปังดาร์กช็อกโกแลต｜ダークチョコレート塩パン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-______________________-shiopan-dark-chocolate--1_01d27b36-2a12-43fe-94fe-9550583c6406.png?v=1788082636"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชีสเค้กหน้าไหม้-ออริจินอล-burnt-cheesecake-original",
+      "id": "gid://shopify/Product/7658353000545",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136069967969"
+      ],
+      "title": "ชีสเค้กหน้าไหม้ ออริจินอล｜オリジナル バスクチーズケーキ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_______________-_________-burnt-cheesecake-original--1_1e45af93-4dbd-4134-a85f-4a258870cc46.png?v=1788082629"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชีสเค้กหน้าไหม้-สตรอว์เบอร์รี-burnt-cheesecake-strawberry",
+      "id": "gid://shopify/Product/7658353033313",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136070754401"
+      ],
+      "title": "ชีสเค้กหน้าไหม้ สตรอว์เบอร์รี｜ストロベリー バスクチーズケーキ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_______________-_____________-burnt-cheesecake-strawberry--1_18830d9b-b5bf-4c73-8537-286c741a6268.png?v=1788082638"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชีสเค้กหน้าไหม้-นูเทลล่ากล้วย-burnt-cheesecake-nutella-banana",
+      "id": "gid://shopify/Product/7658353066081",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136070918241"
+      ],
+      "title": "ชีสเค้กหน้าไหม้ นูเทลล่ากล้วย｜ヌテラバナナ バスクチーズケーキ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_______________-_____________-burnt-cheesecake-nutella-banana--1_ee366abe-438b-4bd5-ac66-da00255ba28f.png?v=1788082639"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชีสเค้กหน้าไหม้-บลูเบอร์รี-burnt-cheesecake-blueberry",
+      "id": "gid://shopify/Product/7658353098849",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136070983777"
+      ],
+      "title": "ชีสเค้กหน้าไหม้ บลูเบอร์รี｜ブルーベリー バスクチーズケーキ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_______________-__________-burnt-cheesecake-blueberry--1_a6f53f0c-6d6d-4e29-80a9-1e78513be2e4.png?v=1788082640"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชีสเค้กหน้าไหม้-วิปครีมโอรีโอ้-burnt-cheesecake-oreo-whipped-cream",
+      "id": "gid://shopify/Product/7658353131617",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136071016545"
+      ],
+      "title": "ชีสเค้กหน้าไหม้ วิปครีมโอรีโอ้｜オレオホイップ バスクチーズケーキ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_______________-______________-burnt-cheesecake-oreo-whipped-cream--1_038848f9-0b33-489a-8675-f354fd6e0de3.png?v=1788082641"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 19,
+      "expected": 19,
+      "handle": "20-_03-06-06",
+      "id": "gid://shopify/Product/7658354147425",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136071049313",
+        "gid://shopify/MediaImage/33136071082081",
+        "gid://shopify/MediaImage/33136071114849",
+        "gid://shopify/MediaImage/33136071147617",
+        "gid://shopify/MediaImage/33136071180385",
+        "gid://shopify/MediaImage/33136071213153",
+        "gid://shopify/MediaImage/33136071245921",
+        "gid://shopify/MediaImage/33136071278689",
+        "gid://shopify/MediaImage/33136071311457",
+        "gid://shopify/MediaImage/33136071344225",
+        "gid://shopify/MediaImage/33136071376993",
+        "gid://shopify/MediaImage/33136071409761",
+        "gid://shopify/MediaImage/33136071442529",
+        "gid://shopify/MediaImage/33136071475297",
+        "gid://shopify/MediaImage/33136071508065",
+        "gid://shopify/MediaImage/33136071540833",
+        "gid://shopify/MediaImage/33136071573601",
+        "gid://shopify/MediaImage/33136071606369",
+        "gid://shopify/MediaImage/33136071639137"
+      ],
+      "title": "Shio Pan & Bnurnt Cheesecake",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--1_16d56e3a-5851-41f6-bd1c-f380e01387e2.png?v=1788082643",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--2_3cc5342a-a162-46ec-97ce-b0fb50315d26.png?v=1788082643",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--3_b0c6820e-5e36-4608-b968-573f6884d17c.png?v=1788082643",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--4_2c73210e-992b-4b1f-88b7-ae6c4f66a9ec.jpg?v=1788082643",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--5_322d5968-3cf0-4e4f-b521-9eb0ddfec390.jpg?v=1788082642",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--6_a72d91f3-dca9-4660-8508-223c8c6b9a80.jpg?v=1788082642",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--7_d60b7a48-c993-4bb5-aa90-e78e78d75aff.jpg?v=1788082642",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--8_99ef6eb8-46e1-40d8-9e7a-7736d4932bd1.jpg?v=1788082643",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--9_ed0fe5ad-e992-439a-9cd1-863d6c929cc6.jpg?v=1788082642",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--10_ab709b8f-4748-4ec3-8a39-ee93eda69723.jpg?v=1788082642",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--11_3ed5425a-b5dd-4206-9cba-5025635afb25.jpg?v=1788082643",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--12_ae640aa7-5154-45bb-a0ae-e0a98c70ea01.jpg?v=1788082643",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--13_723f867c-7d84-439d-8327-f1c8a13be767.jpg?v=1788082643",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--14_2e8a9857-c1d7-4563-99e6-e65dec1c98d0.jpg?v=1788082642",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--15_e9f19dcd-782c-455f-8afa-1e289168b161.png?v=1788082643",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--16_de129f91-d637-4e41-ae1a-b621d23272cf.png?v=1788082643",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--17_8747607f-f122-4755-bdf3-65108940eec0.png?v=1788082643",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--18_fe226e86-e92f-4a4a-b93d-8fad3925472e.png?v=1788082658",
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-20-_03-06-06--19_f29802eb-1d4f-4e00-92fe-d791f5326021.png?v=1788082643"
+      ],
+      "wfCount": 19
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "เค้กช็อกโกแลตหน้านิ่ม-チョコレートソフトケーキ",
+      "id": "gid://shopify/Product/7667106906209",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136071704673"
+      ],
+      "title": "เค้กช็อกโกแลตหน้านิ่ม｜チョコレートソフトケーキ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_____________________-____________--1_e857a71a-2d5d-4fa3-af5a-bc9ff364be25.png?v=1788082644"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "เค้กบลูเบอร์รี่ครีมสด-ブルーベリー生クリームケーキ",
+      "id": "gid://shopify/Product/7667106971745",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136071802977"
+      ],
+      "title": "เค้กบลูเบอร์รี่ครีมสด｜ブルーベリー生クリームケーキ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_____________________-______________--1_4e6aef3a-a09d-4d6e-9837-2e604756b86c.png?v=1788082645"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "เค้กเรดเวลเวท-レッドベルベットケーキ",
+      "id": "gid://shopify/Product/7667107070049",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136071901281"
+      ],
+      "title": "เค้กเรดเวลเวท｜レッドベルベットケーキ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_____________-___________--1_5ff7797b-d0f3-49b8-9fad-38fc87eb71e4.png?v=1788082646"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "เค้กส้มหน้านิ่ม-オレンジソフトケーキ",
+      "id": "gid://shopify/Product/7667107135585",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136072065121"
+      ],
+      "title": "เค้กส้มหน้านิ่ม｜オレンジソフトケーキ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-_______________-__________--1_66baf9bd-a426-4f4d-8026-9be5ffa26938.png?v=1788082647"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "เค้กคุกกี้แอนด์ครีม-クッキー-クリームケーキ",
+      "id": "gid://shopify/Product/7667107233889",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136073048161"
+      ],
+      "title": "เค้กคุกกี้แอนด์ครีม｜クッキー＆クリームケーキ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-___________________-____-_______--1_51e26629-3ecf-495c-81a2-ff556185553b.png?v=1788082654"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "เค้กชิฟฟ่อนวานิลลา-バニラシフォンケーキ",
+      "id": "gid://shopify/Product/7667107397729",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136072294497"
+      ],
+      "title": "เค้กชิฟฟ่อนวานิลลา｜バニラシフォンケーキ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-__________________-__________--1_89d16d16-f99c-4dce-b70d-28841d360fbd.png?v=1788082650"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "ชิฟฟ่อนเค้กช็อกโกแลต-チョコレートシフォンケーキ",
+      "id": "gid://shopify/Product/7667107790945",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136072228961"
+      ],
+      "title": "ชิฟฟ่อนเค้กช็อกโกแลต｜チョコレートシフォンケーキ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-____________________-_____________--1_83a83bfd-f2a7-4222-a411-e11e437cce7d.png?v=1788082648"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "swiss-meringue-buttercream-スイスメレンゲバタークリーム",
+      "id": "gid://shopify/Product/7667107987553",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136073343073"
+      ],
+      "title": "Swiss Meringue Buttercream｜スイスメレンゲバタークリーム",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-swiss-meringue-buttercream-______________--1_af6563e7-1000-4d66-885f-72383c7830f3.png?v=1788082657"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "chocolate-buttercream-チョコレートバタークリーム",
+      "id": "gid://shopify/Product/7667108249697",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136072818785"
+      ],
+      "title": "Chocolate Buttercream｜チョコレートバタークリーム",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-chocolate-buttercream-_____________--1_9c8e268e-eb88-457f-803f-ba85d1dc3e8a.png?v=1788082652"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "buttercream-coconut-ココナッツバタークリーム",
+      "id": "gid://shopify/Product/7667108479073",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136056565857"
+      ],
+      "title": "Buttercream Coconut｜ココナッツバタークリーム",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-buttercream-coconut-____________--1_6ca4be2d-b22b-4b7f-9edc-32092751f3eb.png?v=1788082353"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "mama-เย็นตาโฟต้มยำ-ママー-イェンタフォー-トムヤム",
+      "id": "gid://shopify/Product/7667108511841",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136072982625"
+      ],
+      "title": "MAMA เย็นตาโฟต้มยำ｜ママー イェンタフォー・トムヤム",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-mama-_____________-___-_______-____--1_9cd40078-fcd4-4441-83dd-4c9edf7000f2.png?v=1788082653"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "mama-ต้มยำกุ้ง-ママー-トムヤムクン",
+      "id": "gid://shopify/Product/7667108642913",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136073179233"
+      ],
+      "title": "MAMA ต้มยำกุ้ง｜ママー トムヤムクン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-mama-_________-___-______--1_3d3175ad-b364-4c6e-8831-3301e981a391.png?v=1788082656"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "mama-ต้มยำกุ้งน้ำข้น-ママー-クリーミートムヤムクン",
+      "id": "gid://shopify/Product/7667108872289",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136073637985"
+      ],
+      "title": "MAMA ต้มยำกุ้งน้ำข้น｜ママー クリーミートムヤムクン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-mama-_______________-___-___________--1_fab47934-f52f-4a01-b75a-b8bffa1d210f.png?v=1788082660"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "mama-หมูสับ-ママー-豚ひき肉",
+      "id": "gid://shopify/Product/7667108937825",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136074031201"
+      ],
+      "title": "MAMA หมูสับ｜ママー 豚ひき肉",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-mama-______-___-____--1_c6f98ac9-41cf-48ef-82d3-aad9ba842a76.png?v=1788082663"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "mama-หมูน้ำตก-ママー-ムーナムトック",
+      "id": "gid://shopify/Product/7667109068897",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136073474145"
+      ],
+      "title": "MAMA หมูน้ำตก｜ママー ムーナムトック",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-mama-________-___-_______--1_0d05f565-20e8-4375-bb9c-950f5a10012e.png?v=1788082658"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "mama-เส้นหมี่น้ำใส-ママー-センミー-クリアスープ",
+      "id": "gid://shopify/Product/7667109134433",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136073801825"
+      ],
+      "title": "MAMA เส้นหมี่น้ำใส｜ママー センミー・クリアスープ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-mama-_____________-___-____-______--1_df1cbb3b-c54c-4381-bc9a-4f0d4532ac09.png?v=1788082661"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "samyang-hot-chicken-cheese-サムヤン-ホットチキンチーズ",
+      "id": "gid://shopify/Product/7667109265505",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136073900129"
+      ],
+      "title": "Samyang Hot Chicken Cheese｜サムヤン ホットチキンチーズ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-samyang-hot-chicken-cheese-____-_________--1_fa83662c-a993-4438-bbdc-42817b20dc01.png?v=1788082662"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "samyang-chicken-stew-サムヤン-チキンスチュー",
+      "id": "gid://shopify/Product/7667109953633",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136074063969"
+      ],
+      "title": "Samyang Chicken Stew｜サムヤン チキンスチュー",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-samyang-chicken-stew-____-_______--1_e9a7950e-98e9-4ea3-a986-b88114a18817.png?v=1788082664"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "samyang-chicken-carbonara-サムヤン-チキンカルボナーラ",
+      "id": "gid://shopify/Product/7667110084705",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136074096737"
+      ],
+      "title": "Samyang Chicken Carbonara｜サムヤン チキンカルボナーラ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-samyang-chicken-carbonara-____-_________--1_b1ceb9c5-b57f-47c5-839f-97afaf864e4f.png?v=1788082665"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "samyang-buldak-mala-サムヤン-ブルダックマーラー",
+      "id": "gid://shopify/Product/7667110281313",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136074129505"
+      ],
+      "title": "Samyang Buldak Mala｜サムヤン ブルダックマーラー",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-samyang-buldak-mala-____-_________--1_76228486-55ef-4a6a-876f-58698c5fbb33.png?v=1788082666"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "samyang-rose-ramen-サムヤン-ロゼラーメン",
+      "id": "gid://shopify/Product/7667110412385",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136074162273"
+      ],
+      "title": "Samyang Rose Ramen｜サムヤン ロゼラーメン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-samyang-rose-ramen-____-______--1_57e9d550-7f32-4b6a-ba34-2b46e1dd9f35.png?v=1788082668"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "nongshim-zha-wang-จาจัง-ノンシム-チャーワン",
+      "id": "gid://shopify/Product/7667110543457",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136074195041"
+      ],
+      "title": "Nongshim ZHA WANG จาจัง｜ノンシム チャーワン",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-nongshim-zha-wang-_____-____-_____--1_832e10ba-ee25-4c83-98e4-86a7a9f1101f.png?v=1788082669"
+      ],
+      "wfCount": 1
+    },
+    {
+      "active": true,
+      "actual": 1,
+      "expected": 1,
+      "handle": "nongshim-shin-spicy-kimchi-ノンシム-辛キムチ",
+      "id": "gid://shopify/Product/7667110674529",
+      "isError": false,
+      "mediaIds": [
+        "gid://shopify/MediaImage/33136074227809"
+      ],
+      "title": "Nongshim Shin Spicy Kimchi｜ノンシム 辛キムチ",
+      "urls": [
+        "https://cdn.shopify.com/s/files/1/0648/5491/7217/files/wf-nongshim-shin-spicy-kimchi-____-____--1_7d6d7b5f-8b8c-40f3-8ec5-2de12852e648.png?v=1788082670"
+      ],
+      "wfCount": 1
+    }
+  ]
+}
