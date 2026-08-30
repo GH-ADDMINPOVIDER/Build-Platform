@@ -1,0 +1,4 @@
+interface:
+  display_name: "Developer System-Bootstrap Ops"
+  short_description: "Develop, audit, build, bootstrap, and sync OGENIC workflows."
+  default_prompt: "Use $developer-system-bootstrap-ops to inspect, build, audit, and save this OGENIC workflow."
