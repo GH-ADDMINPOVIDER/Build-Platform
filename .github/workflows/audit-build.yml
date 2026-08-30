@@ -1,4 +1,4 @@
-name: Audit Developer System-Bootstrap Ops
+name: Audit and Bundle Developer System-Bootstrap Ops
 
 on:
   pull_request:
@@ -10,12 +10,54 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  validate-and-bundle:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Validate toolkit
         run: python scripts/validate_toolkit.py
+
+      - name: Build ZIP bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          zip -r dist/developer-system-bootstrap-ops.zip \
+            .codex-plugin README.md PRIVACY.md TERMS.md assets scripts skills \
+            -x "**/__pycache__/**" "*.pyc"
+          zip -j dist/shopify-audit-2026-08-30.zip audit/shopify-*.json
+          zip -j dist/cloudflare-audit-2026-08-30.zip audit/cloudflare-*.json
+          zip -j dist/workflow-audit-markdown.zip audit/*.md README.md
+
+      - name: Upload toolkit ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: developer-system-bootstrap-ops
+          path: dist/developer-system-bootstrap-ops.zip
+          if-no-files-found: error
+
+      - name: Upload Shopify audit ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: shopify-audit
+          path: dist/shopify-audit-2026-08-30.zip
+          if-no-files-found: error
+
+      - name: Upload Cloudflare audit ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-audit
+          path: dist/cloudflare-audit-2026-08-30.zip
+          if-no-files-found: error
+
+      - name: Upload Markdown audit ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-audit-markdown
+          path: dist/workflow-audit-markdown.zip
+          if-no-files-found: error
