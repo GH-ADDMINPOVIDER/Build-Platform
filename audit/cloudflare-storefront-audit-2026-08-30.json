@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-08-30",
+  "site": "Candy Baked Factory",
+  "live_url": "https://candybaked.ogenicchocolate.com/",
+  "source_repository": "https://github.com/Ogenicchocolate21debug/ogenic-chocolate",
+  "source_commit": "7118e1c4915043e3c28450f4279f358bb0c0335c",
+  "result": "PASS_WITH_NON_BLOCKING_WARNING",
+  "checks": {
+    "document_title": "Candy Baked Factory — ชิโอะปัง 16 เมนู | OGENIC",
+    "images_total": 89,
+    "images_with_zero_natural_width": 0,
+    "product_rails": [
+      {
+        "group": "Shio Pan",
+        "items": 16,
+        "interaction": "horizontal touch swipe",
+        "css": [
+          "overflow-x-auto",
+          "snap-x",
+          "snap-mandatory",
+          "scroll-smooth"
+        ]
+      },
+      {
+        "group": "Burnt Cheesecake",
+        "items": 6,
+        "interaction": "horizontal touch swipe",
+        "css": [
+          "overflow-x-auto",
+          "snap-x",
+          "snap-mandatory",
+          "scroll-smooth"
+        ]
+      }
+    ],
+    "navigation_controls": {
+      "previous": 2,
+      "next": 2
+    },
+    "product_content_visible": true
+  },
+  "warning": {
+    "code": "React minified error #418",
+    "classification": "non-blocking hydration mismatch",
+    "impact_observed": "No missing image or unusable product rail observed in live audit.",
+    "follow_up": "Normalize server/client initial markup in the Cloudflare storefront build."
+  }
+}
