@@ -62,20 +62,18 @@ jobs:
                   print(f"OIDC {key}={claims[key]}")
           PY
 
-      - name: Auto-discover Infisical project metadata via OIDC
+      - name: Auto-discover Infisical project and canonical Cloudflare credential source
         id: infisical_project
-        if: ${{ env.INFISICAL_PROJECT_SLUG == '' }}
         shell: bash
         run: bash scripts/infisical-discover-project.sh
 
       - name: Load Cloudflare deploy credentials from Infisical via OIDC
-        if: ${{ env.INFISICAL_IDENTITY_ID != '' && env.INFISICAL_ENV_SLUG != '' }}
         uses: Infisical/secrets-action@v1.0.9
         with:
           method: oidc
           identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
           project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
-          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          env-slug: ${{ steps.infisical_project.outputs.secret_env_slug || env.INFISICAL_ENV_SLUG }}
           secret-path: ${{ steps.infisical_project.outputs.secret_path || env.INFISICAL_SECRET_PATH }}
 
       - name: Report deployment credential source
@@ -83,12 +81,11 @@ jobs:
         run: |
           set -euo pipefail
           PROJECT_SLUG="${INFISICAL_PROJECT_SLUG:-${{ steps.infisical_project.outputs.project_slug }}}"
-          if [ -n "${INFISICAL_IDENTITY_ID:-}" ] && [ -n "$PROJECT_SLUG" ] && [ -n "${INFISICAL_ENV_SLUG:-}" ]; then
-            echo "Deployment credential source: Infisical OIDC Machine Identity"
-            echo "Infisical project slug resolved: ${PROJECT_SLUG}"
-          else
-            echo "Deployment credential source: GitHub encrypted-secret fallback (temporary migration path)"
-          fi
+          SECRET_ENV="${{ steps.infisical_project.outputs.secret_env_slug }}"
+          SECRET_PATH="${{ steps.infisical_project.outputs.secret_path }}"
+          echo "Deployment credential source: Infisical OIDC Machine Identity"
+          echo "Infisical project slug resolved: ${PROJECT_SLUG}"
+          echo "Canonical Cloudflare credential source: env=${SECRET_ENV} path=${SECRET_PATH}"
 
       - name: Require Cloudflare authorization
         shell: bash
