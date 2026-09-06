@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 env:
   WORKER_NAME: ogenic-phase-vi-staging
@@ -36,16 +37,36 @@ jobs:
         with:
           node-version: 22
 
+      - name: Load Cloudflare deploy credentials from Infisical via OIDC
+        if: ${{ vars.INFISICAL_IDENTITY_ID != '' && vars.INFISICAL_PROJECT_SLUG != '' && vars.INFISICAL_ENV_SLUG != '' }}
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ vars.INFISICAL_ENV_SLUG }}
+          secret-path: ${{ vars.INFISICAL_SECRET_PATH || '/connectors/cloudflare' }}
+
+      - name: Report deployment credential source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${{ vars.INFISICAL_IDENTITY_ID }}" ] && [ -n "${{ vars.INFISICAL_PROJECT_SLUG }}" ] && [ -n "${{ vars.INFISICAL_ENV_SLUG }}" ]; then
+            echo "Deployment credential source: Infisical OIDC Machine Identity"
+          else
+            echo "Deployment credential source: GitHub encrypted-secret fallback (temporary migration path)"
+          fi
+
       - name: Require Cloudflare authorization
         shell: bash
         run: |
           set -euo pipefail
           if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
-            echo "::error::REAUTH_REQUIRED: missing GitHub Actions secret CLOUDFLARE_API_TOKEN"
+            echo "::error::REAUTH_REQUIRED: missing CLOUDFLARE_API_TOKEN from Infisical OIDC or GitHub fallback"
             exit 1
           fi
           if [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
-            echo "::error::REAUTH_REQUIRED: missing GitHub Actions secret CLOUDFLARE_ACCOUNT_ID"
+            echo "::error::REAUTH_REQUIRED: missing CLOUDFLARE_ACCOUNT_ID from Infisical OIDC or GitHub fallback"
             exit 1
           fi
 
