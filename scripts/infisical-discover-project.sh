@@ -8,6 +8,7 @@ set -euo pipefail
 : "${ACTIONS_ID_TOKEN_REQUEST_URL:?missing GitHub OIDC request URL}"
 
 INFISICAL_API_URL="${INFISICAL_API_URL:-https://app.infisical.com}"
+TARGET_ENV="${INFISICAL_ENV_SLUG:-staging}"
 
 OIDC_RESPONSE="$(curl -sS \
   -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
@@ -53,9 +54,7 @@ if [ "$COUNT" -eq 0 ]; then
 fi
 
 if [ "$COUNT" -eq 1 ]; then
-  PROJECT_SLUG="$(printf '%s' "$PROJECTS" | jq -r '.[0].slug')"
-  PROJECT_ID="$(printf '%s' "$PROJECTS" | jq -r '.[0].id')"
-  PROJECT_NAME="$(printf '%s' "$PROJECTS" | jq -r '.[0].name')"
+  SELECTED="$(printf '%s' "$PROJECTS" | jq -c '.[0]')"
 else
   MATCHES="$(printf '%s' "$PROJECTS" | jq -c '[.[] | select((.name | ascii_downcase | gsub("[ _-]"; "")) == "ogenicsio")]')"
   MATCH_COUNT="$(printf '%s' "$MATCHES" | jq 'length')"
@@ -65,10 +64,12 @@ else
     echo "::error::Could not uniquely identify OGENIC-SIO project automatically"
     exit 1
   fi
-  PROJECT_SLUG="$(printf '%s' "$MATCHES" | jq -r '.[0].slug')"
-  PROJECT_ID="$(printf '%s' "$MATCHES" | jq -r '.[0].id')"
-  PROJECT_NAME="$(printf '%s' "$MATCHES" | jq -r '.[0].name')"
+  SELECTED="$(printf '%s' "$MATCHES" | jq -c '.[0]')"
 fi
+
+PROJECT_SLUG="$(printf '%s' "$SELECTED" | jq -r '.slug')"
+PROJECT_ID="$(printf '%s' "$SELECTED" | jq -r '.id')"
+PROJECT_NAME="$(printf '%s' "$SELECTED" | jq -r '.name')"
 
 if [ -z "$PROJECT_SLUG" ] || [ "$PROJECT_SLUG" = "null" ]; then
   echo "::error::Resolved Infisical project has no slug"
@@ -79,7 +80,63 @@ printf 'Resolved Infisical project: name=%s slug=%s id=%s\n' "$PROJECT_NAME" "$P
 echo "INFISICAL_PROJECT_SLUG=${PROJECT_SLUG}" >> "$GITHUB_ENV"
 echo "INFISICAL_PROJECT_ID=${PROJECT_ID}" >> "$GITHUB_ENV"
 
+# Discover the Cloudflare secret path without ever requesting secret values.
+SECRETS_RESPONSE="$(curl -sS --get \
+  -H "Authorization: Bearer ${INFISICAL_TOKEN}" \
+  --data-urlencode "projectId=${PROJECT_ID}" \
+  --data-urlencode "environment=${TARGET_ENV}" \
+  --data-urlencode "secretPath=/" \
+  --data-urlencode "recursive=true" \
+  --data-urlencode "viewSecretValue=false" \
+  --data-urlencode "expandSecretReferences=false" \
+  "${INFISICAL_API_URL}/api/v4/secrets")"
+
+CF_PATHS="$(printf '%s' "$SECRETS_RESPONSE" | jq -c '[.secrets[]? | select(.secretKey == "CLOUDFLARE_API_TOKEN" or .secretKey == "CLOUDFLARE_ACCOUNT_ID") | (.secretPath // "/")] | unique')"
+CF_PATH_COUNT="$(printf '%s' "$CF_PATHS" | jq 'length')"
+
+if [ "$CF_PATH_COUNT" -eq 1 ]; then
+  SECRET_PATH="$(printf '%s' "$CF_PATHS" | jq -r '.[0]')"
+  echo "Resolved Infisical Cloudflare secret path: ${SECRET_PATH}"
+  echo "INFISICAL_SECRET_PATH=${SECRET_PATH}" >> "$GITHUB_ENV"
+elif [ "$CF_PATH_COUNT" -gt 1 ]; then
+  echo "Cloudflare secret keys were found in multiple staging paths:"
+  printf '%s' "$CF_PATHS" | jq -r '.[] | "- " + .'
+  echo "::error::CONFIGURATION_REQUIRED: Cloudflare deploy keys must resolve to one Infisical secret path"
+  exit 1
+else
+  echo "No Cloudflare deploy keys were found in environment '${TARGET_ENV}'. Checking other project environments (metadata only)."
+  ENV_SLUGS="$(printf '%s' "$SELECTED" | jq -r '.environments[]?.slug')"
+  FOUND_ANY=0
+  while IFS= read -r ENV_SLUG; do
+    [ -n "$ENV_SLUG" ] || continue
+    META="$(curl -sS --get \
+      -H "Authorization: Bearer ${INFISICAL_TOKEN}" \
+      --data-urlencode "projectId=${PROJECT_ID}" \
+      --data-urlencode "environment=${ENV_SLUG}" \
+      --data-urlencode "secretPath=/" \
+      --data-urlencode "recursive=true" \
+      --data-urlencode "viewSecretValue=false" \
+      --data-urlencode "expandSecretReferences=false" \
+      "${INFISICAL_API_URL}/api/v4/secrets")"
+    MATCHES="$(printf '%s' "$META" | jq -c '[.secrets[]? | select(.secretKey == "CLOUDFLARE_API_TOKEN" or .secretKey == "CLOUDFLARE_ACCOUNT_ID") | {key:.secretKey,path:(.secretPath // "/")}]')"
+    N="$(printf '%s' "$MATCHES" | jq 'length')"
+    if [ "$N" -gt 0 ]; then
+      FOUND_ANY=1
+      echo "Cloudflare key metadata found in environment '${ENV_SLUG}':"
+      printf '%s' "$MATCHES" | jq -r '.[] | "- key=\(.key) path=\(.path)"'
+    fi
+  done <<< "$ENV_SLUGS"
+
+  if [ "$FOUND_ANY" -eq 0 ]; then
+    echo "::error::CONFIGURATION_REQUIRED: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not present in Infisical project '${PROJECT_NAME}'"
+  else
+    echo "::error::CONFIGURATION_REQUIRED: Cloudflare deploy keys exist, but not in required '${TARGET_ENV}' environment"
+  fi
+  exit 1
+fi
+
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
   echo "project_slug=${PROJECT_SLUG}" >> "$GITHUB_OUTPUT"
   echo "project_id=${PROJECT_ID}" >> "$GITHUB_OUTPUT"
+  echo "secret_path=${SECRET_PATH}" >> "$GITHUB_OUTPUT"
 fi
