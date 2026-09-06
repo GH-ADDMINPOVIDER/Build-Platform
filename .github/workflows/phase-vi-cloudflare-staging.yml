@@ -5,6 +5,7 @@ on:
     branches: [phase-vi-unified-cloudflare]
     paths:
       - ".github/workflows/phase-vi-cloudflare-staging.yml"
+      - "scripts/infisical-discover-project.sh"
       - "src/**"
       - "worker/**"
       - "database/**"
@@ -23,6 +24,8 @@ env:
   D1_DATABASE_NAME: ogenic-phase-vi-staging
   STAGING_URL: https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev
   INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
   INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
   INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG || 'staging' }}
   INFISICAL_SECRET_PATH: ${{ vars.INFISICAL_SECRET_PATH || '/connectors/cloudflare' }}
@@ -59,13 +62,19 @@ jobs:
                   print(f"OIDC {key}={claims[key]}")
           PY
 
+      - name: Auto-discover Infisical project metadata via OIDC
+        id: infisical_project
+        if: ${{ env.INFISICAL_PROJECT_SLUG == '' }}
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
       - name: Load Cloudflare deploy credentials from Infisical via OIDC
-        if: ${{ env.INFISICAL_IDENTITY_ID != '' && env.INFISICAL_PROJECT_SLUG != '' && env.INFISICAL_ENV_SLUG != '' }}
+        if: ${{ env.INFISICAL_IDENTITY_ID != '' && env.INFISICAL_ENV_SLUG != '' }}
         uses: Infisical/secrets-action@v1.0.9
         with:
           method: oidc
           identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
-          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
           env-slug: ${{ env.INFISICAL_ENV_SLUG }}
           secret-path: ${{ env.INFISICAL_SECRET_PATH }}
 
@@ -73,8 +82,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -n "${INFISICAL_IDENTITY_ID:-}" ] && [ -n "${INFISICAL_PROJECT_SLUG:-}" ] && [ -n "${INFISICAL_ENV_SLUG:-}" ]; then
+          PROJECT_SLUG="${INFISICAL_PROJECT_SLUG:-${{ steps.infisical_project.outputs.project_slug }}}"
+          if [ -n "${INFISICAL_IDENTITY_ID:-}" ] && [ -n "$PROJECT_SLUG" ] && [ -n "${INFISICAL_ENV_SLUG:-}" ]; then
             echo "Deployment credential source: Infisical OIDC Machine Identity"
+            echo "Infisical project slug resolved: ${PROJECT_SLUG}"
           else
             echo "Deployment credential source: GitHub encrypted-secret fallback (temporary migration path)"
           fi
