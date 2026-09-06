@@ -1,18 +1,25 @@
 {
-  "name": "developer-system-bootstrap-ops",
-  "version": "0.1.0",
-  "description": "Develop, audit, build, bootstrap, and synchronize OGENIC workflows across connected cloud services.",
+  "name": "ogenic-phase-vi",
+  "version": "6.0.0",
+  "description": "One OGENIC toolkit for routing, building, migrating, deploying and verifying work across connected providers with Cloudflare as the primary runtime.",
   "author": {
     "name": "TAWATCHAI SAMORNRUM"
   },
-  "skills": "./skills/",
+  "skills": "./skills/ogenic-phase-vi/",
   "interface": {
-    "displayName": "Developer System-Bootstrap Ops",
-    "shortDescription": "Build, audit, bootstrap, and sync OGENIC workflows.",
-    "longDescription": "Routes /WF commands across Drive, GitHub, Notion, Shopify, Cloudflare, and secret-management workflows. It reads before writing, preserves recoverable versions, separates secret metadata from secret values, and verifies builds before deployment.",
+    "displayName": "OGENIC Phase VI",
+    "shortDescription": "One toolkit for all OGENIC work.",
+    "longDescription": "Routes one user-facing toolkit across GitHub, Google Drive, Linear, Documents, Template Creator, Cloudflare and Infisical. D1 is the canonical operational database after cutover; Notion and n8n remain migration sources until verified retirement.",
     "developerName": "TAWATCHAI SAMORNRUM",
     "category": "Developer Tools",
-    "capabilities": ["workflow orchestration", "repository operations", "asset synchronization"],
-    "defaultPrompt": "Use Developer System-Bootstrap Ops to inspect the target, build or synchronize the requested workflow, audit the result, and save a recoverable version."
+    "capabilities": [
+      "capability routing",
+      "repository operations",
+      "data migration",
+      "workflow orchestration",
+      "Cloudflare deployment",
+      "provider health and audit"
+    ],
+    "defaultPrompt": "Use OGENIC Phase VI. Discover the minimum required capability, route to the correct provider, execute the smallest reversible change, verify it, persist canonical state, and report only completion or the exact authorization required."
   }
 }
