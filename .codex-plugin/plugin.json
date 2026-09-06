@@ -1,25 +1,27 @@
 {
   "name": "ogenic-phase-vi",
-  "version": "6.0.0",
-  "description": "One OGENIC toolkit for routing, building, migrating, deploying and verifying work across connected providers with Cloudflare as the primary runtime.",
+  "version": "6.1.0",
+  "description": "One OGENIC toolkit for routing, building, migrating, deploying, verifying and resuming work across connected providers with Cloudflare as the primary runtime.",
   "author": {
     "name": "TAWATCHAI SAMORNRUM"
   },
   "skills": "./skills/ogenic-phase-vi/",
   "interface": {
     "displayName": "OGENIC Phase VI",
-    "shortDescription": "One toolkit for all OGENIC work.",
-    "longDescription": "Routes one user-facing toolkit across GitHub, Google Drive, Linear, Documents, Template Creator, Cloudflare and Infisical. D1 is the canonical operational database after cutover; Notion and n8n remain migration sources until verified retirement.",
+    "shortDescription": "One-click resume control plane for all OGENIC work.",
+    "longDescription": "Routes one user-facing toolkit across GitHub, Google Drive, Linear, Documents, Template Creator, Cloudflare and Infisical. Selecting the tool boots from the compact LIVE_STATE checkpoint, verifies live GitHub/Cloudflare/D1 state, and resumes the first unfinished Phase VI task without replaying old chat history.",
     "developerName": "TAWATCHAI SAMORNRUM",
     "category": "Developer Tools",
     "capabilities": [
+      "one-click live-state resume",
       "capability routing",
       "repository operations",
+      "shared-state coordination",
       "data migration",
       "workflow orchestration",
       "Cloudflare deployment",
       "provider health and audit"
     ],
-    "defaultPrompt": "Use OGENIC Phase VI. Discover the minimum required capability, route to the correct provider, execute the smallest reversible change, verify it, persist canonical state, and report only completion or the exact authorization required."
+    "defaultPrompt": "Activate OGENIC Phase VI in /OG.resume mode. Read skills/ogenic-phase-vi/LIVE_STATE.md first, verify the current GitHub branch/HEAD and CI/deploy state, check Cloudflare health and D1 shared state when authorized, then continue the first unfinished task. Do not ask the user to restate old chat context and do not replay the full conversation history. After a verified milestone or blocker, persist a compact checkpoint back to LIVE_STATE.md."
   }
 }
