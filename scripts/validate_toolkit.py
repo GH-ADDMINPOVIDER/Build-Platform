@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+SELF = Path(__file__).resolve()
 
 
 def main() -> None:
@@ -52,13 +53,16 @@ def main() -> None:
 
     secret_words = ("api_key=", "token=", "password=", "private_key=")
     for path in ROOT.rglob("*"):
-        if path.is_file() and path.suffix.lower() in {".md", ".json", ".jsonc", ".yaml", ".yml", ".py", ".ts", ".tsx", ".sql"}:
-            text = path.read_text(errors="ignore")
-            if "[TODO:" in text:
-                raise SystemExit(f"Unfinished TODO in {path.relative_to(ROOT)}")
-            lowered = text.lower()
-            if any(word in lowered for word in secret_words):
-                raise SystemExit(f"Possible plaintext secret marker in {path.relative_to(ROOT)}")
+        if not path.is_file() or path.resolve() == SELF:
+            continue
+        if path.suffix.lower() not in {".md", ".json", ".jsonc", ".yaml", ".yml", ".py", ".ts", ".tsx", ".sql"}:
+            continue
+        text = path.read_text(errors="ignore")
+        if "[TODO:" in text:
+            raise SystemExit(f"Unfinished TODO in {path.relative_to(ROOT)}")
+        lowered = text.lower()
+        if any(word in lowered for word in secret_words):
+            raise SystemExit(f"Possible plaintext secret marker in {path.relative_to(ROOT)}")
 
     print("OGENIC Phase VI validation passed")
 
