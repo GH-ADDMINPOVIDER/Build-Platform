@@ -48,6 +48,36 @@ jobs:
             exit 1
           fi
 
+      - name: Verify Cloudflare account token and D1 access
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERIFY_JSON="$(curl -sS \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/tokens/verify")"
+
+          VERIFY_SUCCESS="$(printf '%s' "$VERIFY_JSON" | jq -r '.success // false')"
+          VERIFY_STATUS="$(printf '%s' "$VERIFY_JSON" | jq -r '.result.status // "unknown"')"
+          echo "Cloudflare account-token verify: success=${VERIFY_SUCCESS}, status=${VERIFY_STATUS}"
+
+          if [ "$VERIFY_SUCCESS" != "true" ] || [ "$VERIFY_STATUS" != "active" ]; then
+            printf '%s' "$VERIFY_JSON" | jq -r '.errors[]? | "::error::Cloudflare token verify failed: [\(.code)] \(.message)"'
+            exit 1
+          fi
+
+          D1_JSON="$(curl -sS \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database")"
+
+          D1_SUCCESS="$(printf '%s' "$D1_JSON" | jq -r '.success // false')"
+          if [ "$D1_SUCCESS" != "true" ]; then
+            printf '%s' "$D1_JSON" | jq -r '.errors[]? | "::error::Cloudflare D1 access failed: [\(.code)] \(.message)"'
+            exit 1
+          fi
+
+          echo "Cloudflare D1 access probe: success=true"
+
       - name: Install dependencies
         run: npm install --package-lock-only && npm ci
 
