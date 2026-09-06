@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import incentives from "../config/provider-incentives.staging.json";
 
 type IncentiveGroup = (typeof incentives.groups)[number];
-
 type TierBucket = "1-2" | "3-5" | "unconfirmed";
 
 function compactTokens(value: number) {
@@ -71,7 +70,7 @@ export default function IncentiveBuff() {
           <div className="buffPolicyBadges">
             <span className="buffBadge">{routeLabel}</span>
             <span className="buffBadge">PAID FALLBACK {incentives.paid_fallback ? "ON" : "OFF"}</span>
-            <span className="buffBadge">TIER {tier === "unconfirmed" ? "PENDING" : tier}</span>
+            <span className="buffBadge">TIER {incentives.usage_tier}</span>
           </div>
         </div>
 
