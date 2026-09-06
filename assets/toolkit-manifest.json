@@ -1,11 +1,19 @@
 {
-  "name": "Developer System-Bootstrap Ops",
-  "version": "0.1.0",
-  "command_prefix": "/WF",
-  "mode": "cloud-first",
-  "pipeline": ["inspect", "resolve", "secret_check", "develop", "build", "audit", "deploy", "verify", "save"],
-  "surfaces": ["Google Drive", "GitHub", "Notion", "Shopify", "Cloudflare", "Infisical"],
-  "secret_policy": "metadata-only-outside-secret-manager",
-  "duplicate_policy": "category+filename+mime_type+size",
-  "sync_policy": "copy-if-missing-version-on-conflict"
+  "name": "OGENIC Phase VI",
+  "version": "6.0.0",
+  "command_prefix": "/OG",
+  "mode": "cloudflare-main",
+  "toolkit_count": 1,
+  "pipeline": ["intent", "capability", "provider", "execute", "verify", "persist", "report"],
+  "primary_runtime": "Cloudflare Workers",
+  "canonical_database": "Cloudflare D1",
+  "source_code": "GitHub",
+  "file_source": "Google Drive",
+  "secret_source": "Infisical",
+  "task_agent_surface": "Linear",
+  "artifact_surface": "Documents",
+  "template_surface": "Template Creator",
+  "migration_sources": ["Notion", "n8n"],
+  "secret_policy": "references-only-outside-secret-manager",
+  "production_policy": "preview-verify-explicit-promote"
 }
