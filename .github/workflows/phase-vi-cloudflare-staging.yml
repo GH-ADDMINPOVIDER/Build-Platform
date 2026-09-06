@@ -41,6 +41,24 @@ jobs:
         with:
           node-version: 22
 
+      - name: Debug GitHub OIDC trust claims
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESPONSE="$(curl -sS -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}")"
+          TOKEN="$(printf '%s' "$RESPONSE" | jq -r '.value')"
+          export TOKEN
+          python - <<'PY'
+          import base64, json, os
+          token = os.environ['TOKEN']
+          payload = token.split('.')[1]
+          payload += '=' * (-len(payload) % 4)
+          claims = json.loads(base64.urlsafe_b64decode(payload.encode()))
+          for key in ('iss','sub','aud','repository','ref','workflow','job_workflow_ref','event_name'):
+              if key in claims:
+                  print(f"OIDC {key}={claims[key]}")
+          PY
+
       - name: Load Cloudflare deploy credentials from Infisical via OIDC
         if: ${{ env.INFISICAL_IDENTITY_ID != '' && env.INFISICAL_PROJECT_SLUG != '' && env.INFISICAL_ENV_SLUG != '' }}
         uses: Infisical/secrets-action@v1.0.9
