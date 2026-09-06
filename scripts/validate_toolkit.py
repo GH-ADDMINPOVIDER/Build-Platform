@@ -83,8 +83,12 @@ def main() -> None:
 
     if plugin.get("name") != "ogenic-phase-vi":
         raise SystemExit("Plugin name mismatch")
-    if plugin.get("version") != "6.0.0":
-        raise SystemExit("Plugin version mismatch")
+    plugin_version = str(plugin.get("version", ""))
+    manifest_version = str(manifest.get("version", ""))
+    if plugin_version != manifest_version:
+        raise SystemExit(f"Plugin/manifest version mismatch: {plugin_version} != {manifest_version}")
+    if not re.fullmatch(r"6\.\d+\.\d+", plugin_version):
+        raise SystemExit(f"Invalid Phase VI semantic version: {plugin_version}")
     if plugin.get("skills") != "./skills/ogenic-phase-vi/":
         raise SystemExit("Plugin must expose exactly the Phase VI skill directory")
     if manifest.get("command_prefix") != "/OG":
