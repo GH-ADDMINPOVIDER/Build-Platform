@@ -105,4 +105,4 @@ jobs:
           printf '%s' "$STATE" | jq -e --arg resource "$RESOURCE" '[.locks[]? | select(.resource_key == $resource)] | length == 0' >/dev/null
           echo "PASS: create -> claim -> checkpoint -> RUNNING -> DONE -> lock released."
 
-# trigger: secret-binding-verified
+# trigger: staging-key-synced-v2
