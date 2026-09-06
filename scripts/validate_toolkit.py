@@ -1,8 +1,61 @@
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SELF = Path(__file__).resolve()
+
+SECRET_ASSIGNMENT = re.compile(
+    r"(?im)^\s*([A-Za-z0-9_.-]*(?:api[_-]?key|token|password|private[_-]?key)[A-Za-z0-9_.-]*)\s*[:=]\s*(.+?)\s*$"
+)
+DYNAMIC_SECRET_MARKERS = (
+    "${{",
+    "${",
+    "$(",
+    "secrets.",
+    "vars.",
+    "env.",
+    "os.environ",
+    "getenv(",
+    "process.env",
+    "secret_ref",
+)
+SECRET_PLACEHOLDERS = {
+    "",
+    "null",
+    "none",
+    "unset",
+    "not set",
+    "***",
+    "redacted",
+    "changeme",
+    "change-me",
+    "example",
+    "placeholder",
+    "your-token",
+    "your_token",
+    "your-api-key",
+    "your_api_key",
+    "xxx",
+}
+
+
+def looks_like_plaintext_secret(value: str) -> bool:
+    cleaned = value.strip().rstrip(",").strip().strip('"').strip("'").strip()
+    lowered = cleaned.lower()
+
+    if lowered in SECRET_PLACEHOLDERS:
+        return False
+    if any(marker in lowered for marker in DYNAMIC_SECRET_MARKERS):
+        return False
+    if lowered.startswith(("<", "[", "{")) and any(
+        word in lowered for word in ("example", "placeholder", "redacted")
+    ):
+        return False
+
+    # A literal value assigned to a credential-shaped key is suspicious.
+    # Short ordinary words are ignored to avoid flagging prose/examples.
+    return len(cleaned) >= 12
 
 
 def main() -> None:
@@ -51,18 +104,22 @@ def main() -> None:
     if missing_providers:
         raise SystemExit(f"Missing Phase VI providers: {', '.join(missing_providers)}")
 
-    secret_words = ("api_key=", "token=", "password=", "private_key=")
+    scanned_suffixes = {".md", ".json", ".jsonc", ".yaml", ".yml", ".py", ".sh", ".ts", ".tsx", ".sql"}
     for path in ROOT.rglob("*"):
         if not path.is_file() or path.resolve() == SELF:
             continue
-        if path.suffix.lower() not in {".md", ".json", ".jsonc", ".yaml", ".yml", ".py", ".ts", ".tsx", ".sql"}:
+        if path.suffix.lower() not in scanned_suffixes:
             continue
         text = path.read_text(errors="ignore")
         if "[TODO:" in text:
             raise SystemExit(f"Unfinished TODO in {path.relative_to(ROOT)}")
-        lowered = text.lower()
-        if any(word in lowered for word in secret_words):
-            raise SystemExit(f"Possible plaintext secret marker in {path.relative_to(ROOT)}")
+
+        for match in SECRET_ASSIGNMENT.finditer(text):
+            key, value = match.groups()
+            if looks_like_plaintext_secret(value):
+                raise SystemExit(
+                    f"Possible plaintext secret assignment in {path.relative_to(ROOT)}: {key}"
+                )
 
     print("OGENIC Phase VI validation passed")
 
