@@ -1,0 +1,36 @@
+name: OIDC Contract Check
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "config/github-oidc.staging.json"
+      - ".github/workflows/oidc-contract-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify actual GitHub OIDC claims match pinned staging contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_ISS="$(jq -r '.issuer' config/github-oidc.staging.json)"
+          EXPECTED_AUD="$(jq -r '.audience' config/github-oidc.staging.json)"
+          EXPECTED_SUB="$(jq -r '.subject' config/github-oidc.staging.json)"
+          URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=$(python3 -c 'import json,urllib.parse; print(urllib.parse.quote(json.load(open("config/github-oidc.staging.json"))["audience"], safe=""))')"
+          TOKEN="$(curl -fsS -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "$URL" | jq -r '.value')"
+          PAYLOAD="$(printf '%s' "$TOKEN" | cut -d. -f2 | tr '_-' '/+' | awk '{l=length($0)%4; if(l==2) $0=$0"=="; else if(l==3) $0=$0"="; print $0}' | base64 -d 2>/dev/null)"
+          ACTUAL_ISS="$(printf '%s' "$PAYLOAD" | jq -r '.iss')"
+          ACTUAL_AUD="$(printf '%s' "$PAYLOAD" | jq -r '.aud')"
+          ACTUAL_SUB="$(printf '%s' "$PAYLOAD" | jq -r '.sub')"
+          test "$ACTUAL_ISS" = "$EXPECTED_ISS" || { echo "::error::OIDC issuer mismatch"; exit 1; }
+          test "$ACTUAL_AUD" = "$EXPECTED_AUD" || { echo "::error::OIDC audience mismatch"; exit 1; }
+          test "$ACTUAL_SUB" = "$EXPECTED_SUB" || { echo "::error::OIDC subject mismatch"; echo "expected=$EXPECTED_SUB"; echo "actual=$ACTUAL_SUB"; exit 1; }
+          echo "OIDC contract: MATCH"
