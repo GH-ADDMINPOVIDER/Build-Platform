@@ -1,0 +1,44 @@
+{
+  "id": "openai-chat",
+  "version": 1,
+  "environment": "staging",
+  "start": "respond",
+  "budgets": {
+    "max_nodes": 1,
+    "max_agent_calls": 1,
+    "max_input_tokens": 12000,
+    "max_output_tokens": 4000,
+    "max_elapsed_seconds": 180
+  },
+  "nodes": [
+    {
+      "id": "respond",
+      "kind": "agent",
+      "uses": "openai.generate@1",
+      "inputs": {
+        "prompt": { "$ref": "run.input#/prompt" },
+        "mode": { "$ref": "run.input#/mode" },
+        "max_output_tokens": 1200
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["text", "model", "mode", "incentive_pool", "fallback_reason"],
+        "properties": {
+          "text": { "type": "string" },
+          "model": { "type": "string" },
+          "mode": { "type": "string" },
+          "incentive_pool": { "type": "string" },
+          "fallback_reason": {}
+        },
+        "additionalProperties": false
+      },
+      "timeout_seconds": 120,
+      "retry": { "max_attempts": 2 },
+      "limits": {
+        "max_input_tokens": 12000,
+        "max_output_tokens": 1200
+      },
+      "next": null
+    }
+  ]
+}
