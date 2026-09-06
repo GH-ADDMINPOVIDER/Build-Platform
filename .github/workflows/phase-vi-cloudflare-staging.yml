@@ -76,7 +76,7 @@ jobs:
           identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
           project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
           env-slug: ${{ env.INFISICAL_ENV_SLUG }}
-          secret-path: ${{ env.INFISICAL_SECRET_PATH }}
+          secret-path: ${{ steps.infisical_project.outputs.secret_path || env.INFISICAL_SECRET_PATH }}
 
       - name: Report deployment credential source
         shell: bash
