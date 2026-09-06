@@ -1,0 +1,41 @@
+{
+  "schema_version": "6.0",
+  "system": "OGENIC PHASE VI",
+  "principle": "One toolkit, one control plane, many provider bindings",
+  "permission_classes": ["READ", "WRITE", "EXECUTE", "DANGEROUS"],
+  "planes": {
+    "control": ["intent_route", "capability_resolve", "policy_gate", "source_precedence"],
+    "knowledge": ["knowledge_search", "context_load", "knowledge_write", "migration_import"],
+    "development": ["code_search", "read_file", "write_file", "git_diff", "git_commit", "test", "lint", "build"],
+    "execution": ["provider_discover", "workflow_run", "deploy_preview", "deploy_promote", "runtime_verify"],
+    "identity": ["identity_health", "session_health", "credential_reference", "reauth_required"],
+    "convergence": ["snapshot", "hash", "diff", "reconcile", "rollback", "audit"],
+    "data": ["drive_scan", "asset_index", "manifest_build", "sql_query", "data_validate"],
+    "observability": ["logs", "metrics", "traces", "incident_report"],
+    "agents": ["agent_register", "agent_handoff", "agent_delegate", "agent_capability_map"],
+    "business": ["app_scan", "app_build", "app_preview", "app_verify", "connector_provision"]
+  },
+  "aliases": {
+    "/OG.help": "show_command_map",
+    "/OG.status": "system_health",
+    "/OG.tools": "provider_discover",
+    "/OG.context": "context_load",
+    "/OG.sync": "reconcile",
+    "/OG.audit": "audit",
+    "/OG.deploy": "deploy_preview",
+    "/OG.promote": "deploy_promote"
+  },
+  "routing_rules": [
+    "Discover capability before selecting provider",
+    "Read before write",
+    "Use the smallest reversible change",
+    "Never expose raw secrets",
+    "Cloudflare is the primary runtime",
+    "D1 is canonical operational state after migration",
+    "Google Drive remains binary/source-file storage",
+    "GitHub remains source code and CI/CD",
+    "Infisical remains secret source; only secret references enter D1",
+    "Legacy Notion and n8n are migration sources until verified cutover",
+    "Production promotion requires explicit approval"
+  ]
+}
