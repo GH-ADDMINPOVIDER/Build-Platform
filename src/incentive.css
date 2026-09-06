@@ -1,0 +1,282 @@
+.incentiveDashboard {
+  width: min(1240px, calc(100% - 32px));
+  margin: 30px auto -18px;
+  padding: 18px;
+  border: 1px solid rgba(164, 113, 255, .28);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(145, 81, 255, .2), transparent 35%),
+    linear-gradient(180deg, rgba(23, 18, 32, .94), rgba(12, 10, 17, .94));
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .3), inset 0 1px 0 rgba(255, 255, 255, .035);
+}
+
+.incentiveDashboardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 15px;
+}
+
+.incentiveDashboardHeader p,
+.gmBuffCardTop p {
+  margin: 0 0 7px;
+  color: #b996ff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .18em;
+}
+
+.incentiveTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.incentiveTitleRow h2,
+.gmBuffCardTop h3 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -.02em;
+}
+
+.buffPolicyBadges {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.buffBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(137, 124, 155, .25);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .025);
+  color: #aaa1b7;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  white-space: nowrap;
+}
+
+.buffBadgeOn {
+  color: #a9f8c7;
+  border-color: rgba(80, 222, 143, .35);
+  background: rgba(38, 142, 83, .1);
+  box-shadow: 0 0 22px rgba(68, 214, 133, .08);
+}
+
+.buffPoolGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.buffPool {
+  padding: 13px;
+  border: 1px solid rgba(126, 112, 145, .17);
+  border-radius: 15px;
+  background: rgba(5, 5, 9, .32);
+}
+
+.buffPoolTop,
+.buffPoolMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.buffPoolTop div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.buffPoolTop span {
+  color: #8e8599;
+  font-size: 10px;
+}
+
+.buffPoolTop strong {
+  font-size: 16px;
+}
+
+.buffPoolTop small {
+  color: #655d6f;
+  font-size: 8px;
+  letter-spacing: .08em;
+}
+
+.buffTrack {
+  position: relative;
+  height: 8px;
+  margin: 10px 0 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #17141d;
+  box-shadow: inset 0 0 0 1px rgba(152, 131, 177, .09);
+}
+
+.buffTrack > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 38%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(122, 74, 232, .24), rgba(188, 124, 255, .78), rgba(105, 229, 173, .42));
+}
+
+.buffTrackPending > span {
+  width: 34%;
+  animation: buffScan 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes buffScan {
+  from { transform: translateX(-55%); opacity: .45; }
+  to { transform: translateX(245%); opacity: .95; }
+}
+
+.buffPoolMeta {
+  color: #625b69;
+  font-size: 8px;
+}
+
+.incentiveFootnote {
+  margin-top: 10px;
+  color: #686171;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.gmBuffDock {
+  position: fixed;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+}
+
+.gmBuffButton {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 7px 12px 7px 8px;
+  border: 1px solid rgba(171, 116, 255, .45);
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(145deg, rgba(85, 47, 144, .96), rgba(36, 22, 55, .98));
+  box-shadow: 0 12px 38px rgba(0, 0, 0, .4), 0 0 28px rgba(144, 76, 238, .18);
+}
+
+.gmBuffGlyph {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(212, 181, 255, .3);
+  border-radius: 11px;
+  color: #e4cfff;
+  background: rgba(255, 255, 255, .06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+  font-size: 18px;
+}
+
+.gmBuffButton > span:last-child {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.gmBuffButton strong {
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+
+.gmBuffButton small {
+  color: #aaf3c5;
+  font-size: 7px;
+  letter-spacing: .12em;
+}
+
+.gmBuffCard {
+  width: min(330px, calc(100vw - 28px));
+  padding: 15px;
+  border: 1px solid rgba(159, 112, 230, .35);
+  border-radius: 18px;
+  background: rgba(14, 11, 20, .97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 22px 64px rgba(0, 0, 0, .48);
+}
+
+.gmBuffCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.gmBuffCardTop h3 {
+  font-size: 15px;
+}
+
+.gmBuffRule {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid rgba(112, 101, 126, .13);
+}
+
+.gmBuffRule span {
+  color: #756e7d;
+  font-size: 9px;
+}
+
+.gmBuffRule strong {
+  color: #d6cfdf;
+  font-size: 9px;
+  text-align: right;
+}
+
+.gmBuffNote {
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(112, 101, 126, .13);
+  color: #706878;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .incentiveDashboard {
+    width: min(100% - 16px, 1240px);
+    margin-top: 16px;
+    margin-bottom: -6px;
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .incentiveDashboardHeader {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .buffPolicyBadges { justify-content: flex-start; }
+  .buffPoolGrid { grid-template-columns: 1fr; }
+  .gmBuffDock { right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .buffTrackPending > span { animation: none; opacity: .65; }
+}
