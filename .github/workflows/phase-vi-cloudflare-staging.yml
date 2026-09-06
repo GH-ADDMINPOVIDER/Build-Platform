@@ -22,6 +22,10 @@ env:
   WORKER_NAME: ogenic-phase-vi-staging
   D1_DATABASE_NAME: ogenic-phase-vi-staging
   STAGING_URL: https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG || 'staging' }}
+  INFISICAL_SECRET_PATH: ${{ vars.INFISICAL_SECRET_PATH || '/connectors/cloudflare' }}
 
 jobs:
   stage:
@@ -38,20 +42,20 @@ jobs:
           node-version: 22
 
       - name: Load Cloudflare deploy credentials from Infisical via OIDC
-        if: ${{ vars.INFISICAL_IDENTITY_ID != '' && vars.INFISICAL_PROJECT_SLUG != '' && vars.INFISICAL_ENV_SLUG != '' }}
+        if: ${{ env.INFISICAL_IDENTITY_ID != '' && env.INFISICAL_PROJECT_SLUG != '' && env.INFISICAL_ENV_SLUG != '' }}
         uses: Infisical/secrets-action@v1.0.9
         with:
           method: oidc
-          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
-          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG }}
-          env-slug: ${{ vars.INFISICAL_ENV_SLUG }}
-          secret-path: ${{ vars.INFISICAL_SECRET_PATH || '/connectors/cloudflare' }}
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          secret-path: ${{ env.INFISICAL_SECRET_PATH }}
 
       - name: Report deployment credential source
         shell: bash
         run: |
           set -euo pipefail
-          if [ -n "${{ vars.INFISICAL_IDENTITY_ID }}" ] && [ -n "${{ vars.INFISICAL_PROJECT_SLUG }}" ] && [ -n "${{ vars.INFISICAL_ENV_SLUG }}" ]; then
+          if [ -n "${INFISICAL_IDENTITY_ID:-}" ] && [ -n "${INFISICAL_PROJECT_SLUG:-}" ] && [ -n "${INFISICAL_ENV_SLUG:-}" ]; then
             echo "Deployment credential source: Infisical OIDC Machine Identity"
           else
             echo "Deployment credential source: GitHub encrypted-secret fallback (temporary migration path)"
