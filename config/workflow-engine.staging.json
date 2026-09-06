@@ -15,6 +15,7 @@
     "gate.equals@1",
     "gate.exists@1",
     "linear.repo_context@1",
+    "openai.generate@1",
     "codex.patch@1",
     "claude.analyze@1",
     "github.publish_draft_pr@1",
