@@ -2,12 +2,17 @@
 
 **One toolkit. One control plane. Cloudflare main.**
 
+**Operator harness:** `Harness—Ammonite-OC-Ops`
+
 OGENIC Phase VI consolidates the operational system into a single user-facing toolkit while keeping provider-specific authentication and execution behind a capability router.
 
 ## Target architecture
 
 ```text
 User / Agent
+   |
+   v
+Harness—Ammonite-OC-Ops (AI Operator / orchestration harness)
    |
    v
 OGENIC Phase VI (single toolkit)
@@ -27,11 +32,14 @@ Intent -> Capability -> Provider -> Execute -> Verify -> Persist -> Report
    +-- n8n                          : migration source / optional workflow runtime
 ```
 
+`Harness—Ammonite-OC-Ops` is the named Phase VI operator harness. It coordinates intent/capability routing and execution flow, but it does not replace `OGENIC Phase VI` or create a second user-facing toolkit.
+
 GOD MODE remains an **internal execution contract**. It is not a second user-facing toolkit. Registry/Core behavior is represented by the Phase VI capability registry and router.
 
 ## Phase VI rules
 
 - Expose **one toolkit only**: `OGENIC Phase VI`.
+- Use `Harness—Ammonite-OC-Ops` as the operator/orchestration identity for Phase VI.
 - Cloudflare is the primary runtime.
 - D1 becomes the canonical operational database only after migration verification and production cutover.
 - GitHub stays the canonical source for code/config/migrations.
