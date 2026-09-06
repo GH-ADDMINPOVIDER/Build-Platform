@@ -1,0 +1,7 @@
+{
+  "issuer": "https://token.actions.githubusercontent.com",
+  "audience": "https://github.com/Ogenicchocolate21debug",
+  "subject": "repo:Ogenicchocolate21debug@306097555/Build-Platform@1350684572:ref:refs/heads/phase-vi-provider-incentive-metering",
+  "branch": "phase-vi-provider-incentive-metering",
+  "environment": "staging"
+}
