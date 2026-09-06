@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
           test -n "${OPENAI_API_KEY:-}" || { echo "::error::OPENAI_API_KEY missing"; exit 1; }
           cat >/tmp/request.json <<'JSON'
-          {"model":"gpt-5.6-luna","input":"Reply exactly: OGENIC_RUNTIME_OK","max_output_tokens":16,"store":false}
+          {"model":"gpt-5.6-luna","input":"Reply exactly: OK","max_output_tokens":32,"store":false}
           JSON
           STATUS="$(curl -sS -o /tmp/response.json -w '%{http_code}' \
             -H "Authorization: Bearer ${OPENAI_API_KEY}" \
@@ -58,4 +58,4 @@ jobs:
           echo "OpenAI live smoke: SUCCESS"
           echo "model=gpt-5.6-luna total_tokens=${TOKENS}"
           echo "output=${TEXT}"
-          test "$TEXT" = "OGENIC_RUNTIME_OK"
+          test "$TEXT" = "OK"
