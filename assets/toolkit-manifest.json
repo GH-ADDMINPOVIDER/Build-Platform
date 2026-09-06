@@ -1,6 +1,6 @@
 {
   "name": "OGENIC Phase VI",
-  "version": "6.0.0",
+  "version": "6.1.0",
   "command_prefix": "/OG",
   "mode": "cloudflare-main",
   "toolkit_count": 1,
