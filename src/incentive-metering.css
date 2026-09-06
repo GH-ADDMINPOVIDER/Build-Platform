@@ -1,0 +1,45 @@
+.buffPool-watch { border-color: rgba(244, 190, 91, .34); }
+.buffPool-throttle { border-color: rgba(255, 151, 72, .42); }
+.buffPool-critical,
+.buffPool-exhausted { border-color: rgba(255, 90, 116, .48); }
+
+.buffPool-watch .buffTrack > span {
+  background: linear-gradient(90deg, rgba(122, 74, 232, .3), rgba(239, 190, 92, .82));
+}
+
+.buffPool-throttle .buffTrack > span {
+  background: linear-gradient(90deg, rgba(168, 80, 183, .36), rgba(255, 151, 72, .9));
+}
+
+.buffPool-critical .buffTrack > span,
+.buffPool-exhausted .buffTrack > span {
+  background: linear-gradient(90deg, rgba(170, 59, 153, .46), rgba(255, 82, 111, .94));
+}
+
+.buffBadgeWarn {
+  color: #ffb8c2;
+  border-color: rgba(255, 92, 116, .36);
+  background: rgba(153, 35, 55, .1);
+}
+
+.incentiveFootnoteSplit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.incentiveFootnoteSplit strong {
+  color: #c8b7e7;
+  font-size: 8px;
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .incentiveFootnoteSplit {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+}
