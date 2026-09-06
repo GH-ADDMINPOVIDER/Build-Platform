@@ -18,6 +18,8 @@ type Bindings = {
   OGENIC_RUNTIME: string;
 };
 
+type RouteRequest = { intent?: string };
+
 const app = new Hono<{ Bindings: Bindings }>();
 
 app.get("/api/health", (c) =>
@@ -46,7 +48,7 @@ app.get("/api/state", async (c) => {
 });
 
 app.post("/api/route", async (c) => {
-  const body = await c.req.json<{ intent?: string }>().catch(() => ({}));
+  const body: RouteRequest = await c.req.json<RouteRequest>().catch(() => ({} as RouteRequest));
   const intent = String(body.intent ?? "").trim();
   if (!intent) return c.json({ ok: false, code: "INVALID_REQUEST", message: "intent is required" }, 400);
 
