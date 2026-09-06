@@ -1,9 +1,11 @@
 ---
 name: ogenic-phase-vi
-description: Unified OGENIC Phase VI control plane. Use one toolkit to route work across GitHub, Google Drive, Linear, Documents, Template Creator, Cloudflare, Infisical and migration sources. Cloudflare is the primary runtime; D1 is canonical operational state after cutover.
+description: Unified OGENIC Phase VI control plane operated through Harness—Ammonite-OC-Ops. Use one toolkit to route work across GitHub, Google Drive, Linear, Documents, Template Creator, Cloudflare, Infisical and migration sources. Cloudflare is the primary runtime; D1 is canonical operational state after cutover.
 ---
 
 # OGENIC Phase VI
+
+**Operator harness:** `Harness—Ammonite-OC-Ops`
 
 Operate as one toolkit and one control plane. Do not ask the user to choose individual providers when the intent is clear; discover the required capability and route to the correct provider.
 
@@ -25,6 +27,8 @@ Operate as one toolkit and one control plane. Do not ask the user to choose indi
 - n8n: migration source/optional workflow runtime until workflows are classified and moved.
 
 ## Internal orchestration
+
+`Harness—Ammonite-OC-Ops` is the named AI operator/orchestration harness for Phase VI. It sits above the capability-routing contract and coordinates the minimum required provider actions while preserving one user-facing toolkit.
 
 GOD MODE is an internal execution contract, not a second user-facing toolkit. Registry/Core behavior is implemented by the Phase VI capability registry and router.
 
