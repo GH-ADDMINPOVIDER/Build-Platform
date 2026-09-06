@@ -1,0 +1,53 @@
+{
+  "schema_version": "6.0",
+  "generated_from": "Notion workspace search: OGENIC",
+  "generated_at": "2026-09-06",
+  "migration_policy": {
+    "destination": "cloudflare-d1",
+    "canonical_runtime": "cloudflare",
+    "canonical_repo": "Ogenicchocolate21debug/Build-Platform",
+    "raw_secrets_allowed": false,
+    "stale_candy_product_content_allowed": false,
+    "strategy": "inventory_once_then_normalize_incrementally"
+  },
+  "sources": [
+    {"id":"3d152a91-3871-8112-bab0-c3f2639d96f5","title":"OGENIC CORE HARNESS — Enterprise Infrastructure & Operate Master","last_edited_at":"2026-09-05T17:40:00Z","class":"canonical_operating_master","priority":1,"migration_status":"normalized"},
+    {"id":"3c052a91-3871-8160-b477-d9cefe30e2c7","title":"OGENIC — AI Project Context Handoff — 2026-08-19","last_edited_at":"2026-09-05T17:40:00Z","class":"current_handoff","priority":2,"migration_status":"pending_fetch"},
+    {"id":"3d052a91-3871-81df-8141-d0fa9a1a4061","title":"OGENIC HARNESS — X-Y-Z Systems Blueprint — 2026-09-04","last_edited_at":"2026-09-03T20:58:00Z","class":"current_architecture","priority":2,"migration_status":"pending_fetch"},
+    {"id":"3cc52a91-3871-81cc-8732-db171f15d2aa","title":"OGENIC — Workflow Shortcut Command Center","last_edited_at":"2026-09-04T17:25:00Z","class":"current_command_contract","priority":2,"migration_status":"pending_fetch"},
+    {"id":"3cc52a91-3871-8126-ac15-f37d1b220778","title":"Developer System-Bootstrap Ops — WF + Secret + Build","last_edited_at":"2026-09-02T23:29:00Z","class":"current_bootstrap_ops","priority":2,"migration_status":"pending_fetch"},
+    {"id":"3c852a91-3871-8108-b366-cf3bb4be237f","title":"OGENIC GOD TOOLKIT — Unified 5-Group Master Skill","last_edited_at":"2026-09-03T00:40:00Z","class":"legacy_compatibility_contract","priority":3,"migration_status":"pending_fetch"},
+    {"id":"3c452a91-3871-81b1-8324-c951f93a7f83","title":"OGENIC — OpenAI Capability & Handoff Blocker Log — v1","last_edited_at":"2026-08-30T09:02:00Z","class":"blocker_history","priority":3,"migration_status":"inventory_only"},
+    {"id":"3c752a91-3871-815b-908d-ca55e756b88b","title":"03 — MCP & Connector Implementation — Part 3","last_edited_at":"2026-08-26T16:42:00Z","class":"connector_implementation","priority":3,"migration_status":"pending_fetch"},
+    {"id":"3c852a91-3871-8113-bbae-d1db78cf024d","title":"26-08-2026 — Main & Master RAG Daily Capture","last_edited_at":"2026-08-26T16:23:00Z","class":"historical_capture","priority":4,"migration_status":"inventory_only"},
+    {"id":"3c452a91-3871-81e2-a393-e97f6f87bcdf","title":"RAG MASTER","last_edited_at":"2026-08-22T13:49:00Z","class":"legacy_rag_master","priority":3,"migration_status":"pending_fetch"},
+    {"id":"3a352a91-3871-8183-8d89-dfd0c621bae5","title":"CORE — AI Supervisor & Event Orchestrator v2.0","last_edited_at":"2026-08-22T13:40:00Z","class":"legacy_orchestrator","priority":3,"migration_status":"pending_fetch"},
+    {"id":"3b852a91-3871-8125-ba13-dda68d58803f","title":"OGENIC-SIO | Live Integration Recovery — 2026-08-11","last_edited_at":"2026-08-11T19:44:00Z","class":"recovery_history","priority":4,"migration_status":"inventory_only"},
+    {"id":"3a952a91-3871-818d-8ee1-f6d18aedf4fa","title":"📦 OGENIC Automation Starter Kit — Master Prompt & Deployment Pack","last_edited_at":"2026-07-26T14:42:00Z","class":"legacy_automation_template","priority":4,"migration_status":"inventory_only"},
+    {"id":"3a752a91-3871-81eb-adfc-f1424ed9e7f2","title":"🧠 OGENIC AI Knowledge & RAG Control","last_edited_at":"2026-07-24T03:24:00Z","class":"foundational_knowledge","priority":4,"migration_status":"inventory_only"},
+    {"id":"3a752a91-3871-813e-bb5c-fa48b7db1aa3","title":"OGENIC AI Memory & RAG Architecture","last_edited_at":"2026-07-24T03:26:00Z","class":"foundational_knowledge","priority":4,"migration_status":"inventory_only"},
+    {"id":"3a752a91-3871-81ba-8b20-cb61fd14ddf6","title":"02 — OGENIC Agent System Instruction v1.0","last_edited_at":"2026-07-24T03:28:00Z","class":"legacy_agent_contract","priority":4,"migration_status":"inventory_only"},
+    {"id":"3a352a91-3871-813d-890b-da62a3db53ab","title":"03 — Domain Tool Registry","last_edited_at":"2026-07-20T05:45:00Z","class":"legacy_capability_registry","priority":4,"migration_status":"inventory_only"},
+    {"id":"3a352a91-3871-81d7-b9c6-e32ff9307558","title":"01 — Event Intake & Canonical Envelope","last_edited_at":"2026-07-20T05:45:00Z","class":"legacy_event_contract","priority":4,"migration_status":"inventory_only"},
+    {"id":"3a752a91-3871-8141-9b4f-d136dfa2cd81","title":"2026-07-02 to 2026-07-23 — OGENIC System Architecture History (Reconstructed Summary)","last_edited_at":"2026-07-24T03:30:00Z","class":"architecture_history","priority":5,"migration_status":"inventory_only"},
+    {"id":"3a752a91-3871-8117-b624-c208015feb25","title":"RAG Governance & Retrieval Policy","last_edited_at":"2026-07-24T03:26:00Z","class":"legacy_governance","priority":4,"migration_status":"inventory_only"},
+    {"id":"3a752a91-3871-814c-bd63-f7ac4202c1a4","title":"Use layered Notion knowledge architecture for OGENIC RAG","last_edited_at":"2026-07-24T03:27:00Z","class":"historical_decision","priority":5,"migration_status":"inventory_only"},
+    {"id":"3a752a91-3871-8100-9fae-c90915662447","title":"Build OGENIC system in controlled phases","last_edited_at":"2026-07-24T03:27:00Z","class":"historical_decision","priority":5,"migration_status":"inventory_only"},
+    {"id":"3a752a91-3871-8150-95b8-e058e7f0733c","title":"00 — Knowledge Control & AI Reading Rules","last_edited_at":"2026-07-24T03:25:00Z","class":"legacy_reading_policy","priority":4,"migration_status":"inventory_only"},
+    {"id":"3a752a91-3871-8107-95d8-f6217a1d33d3","title":"05 — Agent Documents","last_edited_at":"2026-07-24T03:25:00Z","class":"legacy_agent_documents","priority":5,"migration_status":"inventory_only"}
+  ],
+  "index_only_containers": [
+    {"id":"39152a91-3871-8037-a3ad-f2cdced9866c","title":"Ogenic-Sio v2.0"},
+    {"id":"39252a91-3871-80f3-82c8-f2a280fd460c","title":"🤖 09 AI"},
+    {"id":"39252a91-3871-80e7-a78f-d79ee51a51cb","title":"📚 11 Knowledge"},
+    {"id":"39252a91-3871-80ee-a49b-c7dc75cbf160","title":"📁00├ 🧠00 Dashboard"}
+  ],
+  "excluded_from_phase_vi_system_migration": [
+    {"title":"Candy x Choccolate","reason":"business/container scope, not OGENIC operating-state source"},
+    {"title":"Candy Baked — Website AI Mode & Product Master Backup — 2026-09-03","reason":"Candy has a separate current A1-A6 canonical source"},
+    {"title":"02 Product","reason":"product/business data; not system architecture"},
+    {"title":"⚙️ Product Master Data","reason":"product/business data; not system architecture"},
+    {"title":"CANDY BAKED & MACUP — Product Recipe Cost Master v1.0","reason":"Candy product source"},
+    {"title":"individual Shio/Burnt Cheesecake product pages","reason":"Candy product source"}
+  ]
+}
