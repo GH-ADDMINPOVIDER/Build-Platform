@@ -1,0 +1,24 @@
+name: OIDC Claims Debug
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print GitHub OIDC claims only
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUD="https://github.com/Ogenicchocolate21debug"
+          URL="${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=$(python3 -c 'import urllib.parse; print(urllib.parse.quote("https://github.com/Ogenicchocolate21debug", safe=""))')"
+          TOKEN="$(curl -fsS -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "$URL" | jq -r '.value')"
+          PAYLOAD="$(printf '%s' "$TOKEN" | cut -d. -f2 | tr '_-' '/+' | awk '{l=length($0)%4; if(l==2) $0=$0"=="; else if(l==3) $0=$0"="; print $0}' | base64 -d 2>/dev/null)"
+          echo "$PAYLOAD" | jq '{iss, sub, aud, repository, ref, environment, job_workflow_ref}'
