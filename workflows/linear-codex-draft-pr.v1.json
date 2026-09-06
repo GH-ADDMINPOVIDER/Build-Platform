@@ -1,0 +1,104 @@
+{
+  "id": "linear-codex-draft-pr",
+  "version": 1,
+  "environment": "staging",
+  "start": "context",
+  "budgets": {
+    "max_nodes": 4,
+    "max_agent_calls": 1,
+    "max_input_tokens": 6000,
+    "max_output_tokens": 2000,
+    "max_elapsed_seconds": 300
+  },
+  "nodes": [
+    {
+      "id": "context",
+      "kind": "action",
+      "uses": "linear.repo_context@1",
+      "inputs": {
+        "linear_issue": { "$ref": "run.input#/linear_issue" },
+        "repository": { "$ref": "run.input#/repository" }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["task", "files"],
+        "properties": {
+          "task": { "type": "object" },
+          "files": { "type": "array" }
+        },
+        "additionalProperties": false
+      },
+      "timeout_seconds": 30,
+      "retry": { "max_attempts": 2 },
+      "next": "implement"
+    },
+    {
+      "id": "implement",
+      "kind": "agent",
+      "uses": "codex.patch@1",
+      "inputs": {
+        "task": { "$ref": "nodes.context.output#/task" },
+        "context": { "$ref": "nodes.context.output#/files" }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["summary", "patch"],
+        "properties": {
+          "summary": { "type": "string" },
+          "patch": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "timeout_seconds": 120,
+      "retry": { "max_attempts": 1 },
+      "limits": {
+        "max_input_tokens": 6000,
+        "max_output_tokens": 2000
+      },
+      "next": "publish_draft"
+    },
+    {
+      "id": "publish_draft",
+      "kind": "action",
+      "uses": "github.publish_draft_pr@1",
+      "inputs": {
+        "repository": { "$ref": "run.input#/repository" },
+        "linear_issue": { "$ref": "run.input#/linear_issue" },
+        "summary": { "$ref": "nodes.implement.output#/summary" },
+        "patch": { "$ref": "nodes.implement.output#/patch" }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["pr_url", "branch"],
+        "properties": {
+          "pr_url": { "type": "string" },
+          "branch": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "timeout_seconds": 60,
+      "retry": { "max_attempts": 1 },
+      "next": "attach_pr"
+    },
+    {
+      "id": "attach_pr",
+      "kind": "action",
+      "uses": "linear.attach_pr@1",
+      "inputs": {
+        "linear_issue": { "$ref": "run.input#/linear_issue" },
+        "pr_url": { "$ref": "nodes.publish_draft.output#/pr_url" }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["updated"],
+        "properties": {
+          "updated": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      },
+      "timeout_seconds": 30,
+      "retry": { "max_attempts": 1 },
+      "next": null
+    }
+  ]
+}

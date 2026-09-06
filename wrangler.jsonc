@@ -1,13 +1,13 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "ogenic-phase-vi",
-  "main": "worker/index.ts",
+  "main": "worker/entry.ts",
   "compatibility_date": "2026-09-06",
   "observability": { "enabled": true },
   "assets": {
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/workflows/*", "/runs/*", "/hooks/*"]
   },
   "vars": {
     "OGENIC_PHASE": "VI",

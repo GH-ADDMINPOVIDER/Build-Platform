@@ -1,0 +1,59 @@
+{
+  "id": "workflow-engine-smoke",
+  "version": 1,
+  "environment": "staging",
+  "start": "echo",
+  "budgets": {
+    "max_nodes": 3,
+    "max_agent_calls": 0,
+    "max_input_tokens": 0,
+    "max_output_tokens": 0,
+    "max_elapsed_seconds": 30
+  },
+  "nodes": [
+    {
+      "id": "echo",
+      "kind": "action",
+      "uses": "test.echo@1",
+      "inputs": {
+        "value": { "$ref": "run.input#/value" }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["value"],
+        "properties": { "value": {} },
+        "additionalProperties": false
+      },
+      "timeout_seconds": 5,
+      "retry": { "max_attempts": 1 },
+      "next": "has_value"
+    },
+    {
+      "id": "has_value",
+      "kind": "gate",
+      "uses": "gate.exists@1",
+      "inputs": {
+        "value": { "$ref": "nodes.echo.output#/value" }
+      },
+      "output_schema": { "type": "boolean" },
+      "timeout_seconds": 1,
+      "retry": { "max_attempts": 1 },
+      "next": { "true": "finish", "false": null }
+    },
+    {
+      "id": "finish",
+      "kind": "action",
+      "uses": "test.echo@1",
+      "inputs": { "value": "ok" },
+      "output_schema": {
+        "type": "object",
+        "required": ["value"],
+        "properties": { "value": { "type": "string" } },
+        "additionalProperties": false
+      },
+      "timeout_seconds": 5,
+      "retry": { "max_attempts": 1 },
+      "next": null
+    }
+  ]
+}

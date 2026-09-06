@@ -1,0 +1,27 @@
+{
+  "environment": "staging",
+  "max_inline_bytes": 32768,
+  "lease_seconds": 30,
+  "tick_limit": 4,
+  "server_budgets": {
+    "max_nodes": 16,
+    "max_agent_calls": 2,
+    "max_input_tokens": 12000,
+    "max_output_tokens": 4000,
+    "max_elapsed_seconds": 600
+  },
+  "allowed_operations": [
+    "test.echo@1",
+    "gate.equals@1",
+    "gate.exists@1",
+    "linear.repo_context@1",
+    "codex.patch@1",
+    "claude.analyze@1",
+    "github.publish_draft_pr@1",
+    "linear.attach_pr@1"
+  ],
+  "allowed_repositories": [
+    "Ogenicchocolate21debug/Build-Platform"
+  ],
+  "allowed_linear_projects": []
+}
