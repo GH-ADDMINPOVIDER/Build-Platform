@@ -1,0 +1,46 @@
+name: Fix Shared State Context Type
+
+on:
+  push:
+    branches: [phase-vi-unified-cloudflare]
+    paths:
+      - ".github/workflows/fix-shared-state-context-type.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase-vi-unified-cloudflare
+      - name: Patch Hono context typing
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('worker/index.ts')
+          text = path.read_text()
+          replacements = {
+              'import { Hono } from "hono";': 'import { Hono, type Context } from "hono";',
+              'const app = new Hono<{ Bindings: Bindings }>();': 'type AppEnv = { Bindings: Bindings };\nconst app = new Hono<AppEnv>();',
+              'async function requireOpsAuth(c: Parameters<Parameters<typeof app.use>[1]>[0]) {': 'async function requireOpsAuth(c: Context<AppEnv>) {',
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'expected source fragment not found: {old}')
+              text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+      - name: Commit deterministic type fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ogenic-phase-vi-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add worker/index.ts
+          git diff --cached --check
+          git commit -m "fix(phase-vi): type shared-state Hono context"
+          git push origin HEAD:phase-vi-unified-cloudflare
