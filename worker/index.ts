@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import providers from "../config/providers.json";
 import capabilities from "../config/capabilities.json";
 
@@ -117,7 +117,8 @@ const EVENT_STATUS: Record<string, TaskStatus> = {
   CANCELLED: "CANCELLED",
 };
 
-const app = new Hono<{ Bindings: Bindings }>();
+type AppEnv = { Bindings: Bindings };
+const app = new Hono<AppEnv>();
 
 const dbRequired = (db?: D1Like) =>
   db ? null : { ok: false as const, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" };
@@ -139,7 +140,7 @@ async function secureEqual(left: string, right: string) {
   return diff === 0;
 }
 
-async function requireOpsAuth(c: Parameters<Parameters<typeof app.use>[1]>[0]) {
+async function requireOpsAuth(c: Context<AppEnv>) {
   const configured = String(c.env.OGENIC_OPS_KEY ?? "");
   if (!configured) {
     return c.json(
