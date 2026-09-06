@@ -20,6 +20,7 @@ permissions:
 env:
   WORKER_NAME: ogenic-phase-vi-staging
   D1_DATABASE_NAME: ogenic-phase-vi-staging
+  STAGING_URL: https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev
 
 jobs:
   stage:
@@ -127,7 +128,18 @@ jobs:
       - name: Deploy staging Worker
         run: npx wrangler deploy --config dist/ogenic_phase_vi_staging/wrangler.json
 
+      - name: Verify staging health
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEALTH_URL="${STAGING_URL}/api/health"
+          echo "Checking ${HEALTH_URL}"
+          BODY="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 --retry-all-errors "$HEALTH_URL")"
+          echo "$BODY"
+          printf '%s' "$BODY" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
+          echo "Staging health verified."
+
       - name: Report staging endpoint
         shell: bash
         run: |
-          echo "Staging deployment completed for $WORKER_NAME. Verify /api/health before any production promotion."
+          echo "Staging deployment and health verification completed: ${STAGING_URL}"
