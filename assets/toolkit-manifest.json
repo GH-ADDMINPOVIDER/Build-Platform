@@ -4,6 +4,8 @@
   "command_prefix": "/OG",
   "mode": "cloudflare-main",
   "toolkit_count": 1,
+  "operator_harness": "Harness—Ammonite-OC-Ops",
+  "operator_identity": "Ammonite",
   "pipeline": ["intent", "capability", "provider", "execute", "verify", "persist", "report"],
   "primary_runtime": "Cloudflare Workers",
   "canonical_database": "Cloudflare D1",
