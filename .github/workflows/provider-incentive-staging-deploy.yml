@@ -1,0 +1,114 @@
+name: Provider Incentive Staging Deploy
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/provider-incentive-staging-deploy.yml"
+      - "src/**"
+      - "worker/**"
+      - "workflows/**"
+      - "database/**"
+      - "config/**"
+      - "package.json"
+      - "vite.config.ts"
+      - "wrangler.jsonc"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  WORKER_NAME: ogenic-phase-vi-staging
+  D1_DATABASE_NAME: ogenic-phase-vi-staging
+  STAGING_URL: https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev
+  OGENIC_GIT_SHA: ${{ github.sha }}
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG || 'staging' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Auto-discover Infisical project and Cloudflare credential source
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load Cloudflare credentials from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
+          secret-path: ${{ steps.infisical_project.outputs.secret_path }}
+
+      - name: Require Cloudflare authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "::error::missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "::error::missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Resolve staging D1 database
+        id: d1
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB_ID="$(npx wrangler d1 list --json | jq -r --arg NAME "$D1_DATABASE_NAME" '.[] | select(.name == $NAME) | .uuid' | head -n1)"
+          test -n "$DB_ID" && test "$DB_ID" != "null" || { echo "::error::staging D1 database not found"; exit 1; }
+          echo "database_id=$DB_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Generate staging binding
+        env:
+          D1_DATABASE_ID: ${{ steps.d1.outputs.database_id }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path('wrangler.jsonc')
+          cfg = json.loads(path.read_text())
+          cfg['name'] = os.environ['WORKER_NAME']
+          cfg.setdefault('vars', {})['OGENIC_GIT_SHA'] = os.environ['OGENIC_GIT_SHA']
+          cfg['d1_databases'] = [{
+              'binding': 'DB',
+              'database_name': os.environ['D1_DATABASE_NAME'],
+              'database_id': os.environ['D1_DATABASE_ID'],
+              'migrations_dir': 'database/migrations'
+          }]
+          path.write_text(json.dumps(cfg, indent=2) + '\n')
+          PY
+
+      - name: Apply D1 migrations
+        run: npx wrangler d1 migrations apply "$D1_DATABASE_NAME" --remote --config wrangler.jsonc
+
+      - name: Typecheck and build
+        run: npm run check
+
+      - name: Deploy staging Worker
+        run: npx wrangler deploy --config dist/ogenic_phase_vi_staging/wrangler.json
+
+      - name: Verify staging health
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 --retry-all-errors "${STAGING_URL}/api/health")"
+          echo "$BODY"
+          printf '%s' "$BODY" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
+          echo "Staging deploy verified: ${STAGING_URL}"
