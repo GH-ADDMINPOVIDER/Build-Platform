@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "environment": "staging",
+  "provider": "openai",
+  "program": "complimentary_daily_tokens",
+  "enabled": true,
+  "enrollment": "enrolled",
+  "tier": "unconfirmed",
+  "reset_at_utc": "00:00",
+  "routing_mode": "complimentary_first",
+  "paid_fallback": false,
+  "groups": [
+    {
+      "id": "standard",
+      "label": "Power Pool",
+      "usage_key": "openai_complimentary_standard_tokens",
+      "tier_1_2_cap": 250000,
+      "tier_3_5_cap": 1000000
+    },
+    {
+      "id": "high_volume",
+      "label": "Volume Pool",
+      "usage_key": "openai_complimentary_high_volume_tokens",
+      "tier_1_2_cap": 2500000,
+      "tier_3_5_cap": 10000000
+    }
+  ],
+  "ui": {
+    "gm_buff": true,
+    "label": "GM BUFF",
+    "subtitle": "Complimentary-first routing"
+  }
+}
