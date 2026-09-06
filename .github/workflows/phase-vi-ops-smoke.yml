@@ -104,3 +104,5 @@ jobs:
           STATE="$(curl --fail --silent --show-error -H "$AUTH_HEADER" "${STAGING_URL}/api/ops/state")"
           printf '%s' "$STATE" | jq -e --arg resource "$RESOURCE" '[.locks[]? | select(.resource_key == $resource)] | length == 0' >/dev/null
           echo "PASS: create -> claim -> checkpoint -> RUNNING -> DONE -> lock released."
+
+# trigger: secret-binding-verified
