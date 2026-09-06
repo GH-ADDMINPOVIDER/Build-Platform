@@ -23,7 +23,7 @@ env:
   D1_DATABASE_NAME: ogenic-phase-vi-staging
   STAGING_URL: https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev
   INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
-  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
   INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG || 'staging' }}
   INFISICAL_SECRET_PATH: ${{ vars.INFISICAL_SECRET_PATH || '/connectors/cloudflare' }}
 
