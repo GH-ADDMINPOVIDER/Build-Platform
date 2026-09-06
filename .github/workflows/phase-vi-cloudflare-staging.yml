@@ -1,0 +1,103 @@
+name: OGENIC Phase VI Cloudflare Staging
+
+on:
+  push:
+    branches: [phase-vi-unified-cloudflare]
+    paths:
+      - ".github/workflows/phase-vi-cloudflare-staging.yml"
+      - "src/**"
+      - "worker/**"
+      - "database/**"
+      - "config/**"
+      - "package.json"
+      - "vite.config.ts"
+      - "wrangler.jsonc"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  WORKER_NAME: ogenic-phase-vi-staging
+  D1_DATABASE_NAME: ogenic-phase-vi-staging
+
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Require Cloudflare authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "::error::REAUTH_REQUIRED: missing GitHub Actions secret CLOUDFLARE_API_TOKEN"
+            exit 1
+          fi
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "::error::REAUTH_REQUIRED: missing GitHub Actions secret CLOUDFLARE_ACCOUNT_ID"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Resolve or create staging D1 database
+        id: d1
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB_ID="$(npx wrangler d1 list --json | jq -r --arg NAME "$D1_DATABASE_NAME" '.[] | select(.name == $NAME) | .uuid' | head -n1)"
+          if [ -z "$DB_ID" ] || [ "$DB_ID" = "null" ]; then
+            echo "Creating staging D1 database: $D1_DATABASE_NAME"
+            npx wrangler d1 create "$D1_DATABASE_NAME" --location apac >/tmp/d1-create.txt
+            DB_ID="$(npx wrangler d1 list --json | jq -r --arg NAME "$D1_DATABASE_NAME" '.[] | select(.name == $NAME) | .uuid' | head -n1)"
+          fi
+          if [ -z "$DB_ID" ] || [ "$DB_ID" = "null" ]; then
+            echo "::error::Could not resolve staging D1 database UUID"
+            exit 1
+          fi
+          echo "database_id=$DB_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Generate staging Cloudflare binding
+        env:
+          D1_DATABASE_ID: ${{ steps.d1.outputs.database_id }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path('wrangler.jsonc')
+          cfg = json.loads(path.read_text())
+          cfg['name'] = os.environ['WORKER_NAME']
+          cfg['d1_databases'] = [{
+              'binding': 'DB',
+              'database_name': os.environ['D1_DATABASE_NAME'],
+              'database_id': os.environ['D1_DATABASE_ID'],
+              'migrations_dir': 'database/migrations'
+          }]
+          path.write_text(json.dumps(cfg, indent=2) + '\n')
+          PY
+
+      - name: Apply D1 migrations to staging
+        run: npx wrangler d1 migrations apply "$D1_DATABASE_NAME" --remote --config wrangler.jsonc
+
+      - name: Typecheck and build staging application
+        run: npm run check
+
+      - name: Deploy staging Worker
+        run: npx wrangler deploy --config dist/ogenic_phase_vi/wrangler.json
+
+      - name: Report staging endpoint
+        shell: bash
+        run: |
+          echo "Staging deployment completed for $WORKER_NAME. Verify /api/health before any production promotion."
