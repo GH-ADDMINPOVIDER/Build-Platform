@@ -125,7 +125,7 @@ jobs:
         run: npm run check
 
       - name: Deploy staging Worker
-        run: npx wrangler deploy --config dist/ogenic_phase_vi/wrangler.json
+        run: npx wrangler deploy --config dist/ogenic_phase_vi_staging/wrangler.json
 
       - name: Report staging endpoint
         shell: bash
