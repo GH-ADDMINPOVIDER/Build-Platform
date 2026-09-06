@@ -2,12 +2,13 @@ name: OGENIC Phase VI Cloudflare Staging
 
 on:
   push:
-    branches: [phase-vi-unified-cloudflare]
+    branches: [phase-vi-unified-cloudflare, phase-vi-workflow-engine-v0.1]
     paths:
       - ".github/workflows/phase-vi-cloudflare-staging.yml"
       - "scripts/infisical-discover-project.sh"
       - "src/**"
       - "worker/**"
+      - "workflows/**"
       - "database/**"
       - "config/**"
       - "package.json"
@@ -23,6 +24,7 @@ env:
   WORKER_NAME: ogenic-phase-vi-staging
   D1_DATABASE_NAME: ogenic-phase-vi-staging
   STAGING_URL: https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev
+  OGENIC_GIT_SHA: ${{ github.sha }}
   INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
   INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
   INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
@@ -161,6 +163,7 @@ jobs:
           path = Path('wrangler.jsonc')
           cfg = json.loads(path.read_text())
           cfg['name'] = os.environ['WORKER_NAME']
+          cfg.setdefault('vars', {})['OGENIC_GIT_SHA'] = os.environ['OGENIC_GIT_SHA']
           cfg['d1_databases'] = [{
               'binding': 'DB',
               'database_name': os.environ['D1_DATABASE_NAME'],
@@ -189,6 +192,16 @@ jobs:
           echo "$BODY"
           printf '%s' "$BODY" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
           echo "Staging health verified."
+
+      - name: Verify workflow-engine D1 schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          for TABLE in workflow_versions runs node_executions; do
+            BODY="$(npx wrangler d1 execute "$D1_DATABASE_NAME" --remote --config wrangler.jsonc --json --command "SELECT name FROM sqlite_master WHERE type='table' AND name='${TABLE}'")"
+            printf '%s' "$BODY" | jq -e --arg TABLE "$TABLE" 'any(.[]?.results[]?; .name == $TABLE)' >/dev/null
+            echo "D1 schema verified: ${TABLE}"
+          done
 
       - name: Report staging endpoint
         shell: bash
