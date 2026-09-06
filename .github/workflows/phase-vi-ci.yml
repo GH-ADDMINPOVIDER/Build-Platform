@@ -39,10 +39,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f dist/wrangler.json
+          test -f dist/ogenic_phase_vi/wrangler.json
           test -d dist/client
           test -f dist/client/index.html
-          grep -q 'ogenic-phase-vi' dist/wrangler.json
+          grep -q 'ogenic-phase-vi' dist/ogenic_phase_vi/wrangler.json
 
       - name: Upload staging build artifact
         uses: actions/upload-artifact@v4
