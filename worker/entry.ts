@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import legacyApp from "./index";
+import incentiveApi from "./incentive-api";
 import {
   createWorkflowEngine,
   type WorkflowBindings,
@@ -25,6 +26,7 @@ const engine = createWorkflowEngine({
 
 const root = new Hono<RootEnv>();
 root.route("/", engine.api);
+root.route("/", incentiveApi);
 root.route("/", legacyApp);
 
 export default {
