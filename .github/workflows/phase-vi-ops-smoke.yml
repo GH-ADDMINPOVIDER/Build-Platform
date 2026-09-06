@@ -1,0 +1,106 @@
+name: OGENIC Phase VI Ops Smoke
+
+on:
+  push:
+    branches: [phase-vi-unified-cloudflare]
+    paths:
+      - ".github/workflows/phase-vi-ops-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG || 'staging' }}
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auto-discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load OGENIC Ops key from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          secret-path: /
+
+      - name: Require Ops key without printing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${OGENIC_OPS_KEY:-}" ]; then
+            echo "::error::CONFIGURATION_REQUIRED: OGENIC_OPS_KEY not found in Infisical staging root"
+            exit 1
+          fi
+          echo "OGENIC_OPS_KEY loaded from Infisical (value hidden)."
+
+      - name: Verify Worker health and Ops auth binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(curl --fail --silent --show-error --retry 4 --retry-delay 2 --retry-all-errors "${STAGING_URL}/api/health")"
+          printf '%s' "$BODY" | jq -e '.ok == true and .shared_state == "D1_BOUND" and .ops_api_auth == "BOUND"' >/dev/null
+          echo "Worker health: D1_BOUND, Ops auth BOUND."
+
+      - name: Smoke shared-state lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUTH_HEADER="Authorization: Bearer ${OGENIC_OPS_KEY}"
+          CORR="smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          RESOURCE="smoke:${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}"
+
+          CREATE="$(curl --fail --silent --show-error \
+            -H "$AUTH_HEADER" -H 'content-type: application/json' \
+            -d "$(jq -nc --arg title 'Phase VI shared-state staging smoke' --arg capability 'shared-state-smoke' --arg resource "$RESOURCE" --arg corr "$CORR" '{title:$title,capability:$capability,priority:100,resource_key:$resource,correlation_id:$corr,source_ref:"github-actions"}')" \
+            "${STAGING_URL}/api/ops/tasks")"
+          TASK_ID="$(printf '%s' "$CREATE" | jq -r '.task.id // empty')"
+          [ -n "$TASK_ID" ] || { echo "::error::Smoke create task failed"; exit 1; }
+          echo "Task created: ${TASK_ID}"
+
+          CLAIM="$(curl --fail --silent --show-error \
+            -H "$AUTH_HEADER" -H 'content-type: application/json' \
+            -d "$(jq -nc --arg agent 'ammonite-smoke' --arg task "$TASK_ID" '{agent_id:$agent,task_id:$task,lock_ttl_seconds:300}')" \
+            "${STAGING_URL}/api/ops/claim")"
+          printf '%s' "$CLAIM" | jq -e '.ok == true and .task.status == "CLAIMED"' >/dev/null
+          echo "Task claimed."
+
+          CHECKPOINT="$(curl --fail --silent --show-error \
+            -H "$AUTH_HEADER" -H 'content-type: application/json' \
+            -d "$(jq -nc --arg task "$TASK_ID" --arg agent 'ammonite-smoke' --arg ref "github-actions:${GITHUB_RUN_ID}" '{task_id:$task,agent_id:$agent,checkpoint_ref:$ref,state_hash:"smoke-v1"}')" \
+            "${STAGING_URL}/api/ops/checkpoints")"
+          printf '%s' "$CHECKPOINT" | jq -e '.ok == true' >/dev/null
+          echo "Checkpoint saved."
+
+          RUNNING="$(curl --fail --silent --show-error \
+            -H "$AUTH_HEADER" -H 'content-type: application/json' \
+            -d "$(jq -nc --arg task "$TASK_ID" --arg actor 'ammonite-smoke' '{task_id:$task,event_type:"RUNNING",actor:$actor}')" \
+            "${STAGING_URL}/api/ops/events")"
+          printf '%s' "$RUNNING" | jq -e '.ok == true and .task.status == "RUNNING"' >/dev/null
+
+          DONE="$(curl --fail --silent --show-error \
+            -H "$AUTH_HEADER" -H 'content-type: application/json' \
+            -d "$(jq -nc --arg task "$TASK_ID" --arg actor 'ammonite-smoke' '{task_id:$task,event_type:"DONE",actor:$actor,external_ref:"github-actions-smoke"}')" \
+            "${STAGING_URL}/api/ops/events")"
+          printf '%s' "$DONE" | jq -e '.ok == true and .task.status == "DONE"' >/dev/null
+          echo "Task completed."
+
+          STATE="$(curl --fail --silent --show-error -H "$AUTH_HEADER" "${STAGING_URL}/api/ops/state")"
+          printf '%s' "$STATE" | jq -e --arg resource "$RESOURCE" '[.locks[]? | select(.resource_key == $resource)] | length == 0' >/dev/null
+          echo "PASS: create -> claim -> checkpoint -> RUNNING -> DONE -> lock released."
