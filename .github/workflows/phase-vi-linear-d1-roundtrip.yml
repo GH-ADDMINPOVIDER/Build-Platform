@@ -1,0 +1,115 @@
+name: OGENIC Phase VI Linear D1 Roundtrip
+
+on:
+  push:
+    branches: [phase-vi-unified-cloudflare]
+    paths:
+      - ".github/workflows/phase-vi-linear-d1-roundtrip.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG || 'staging' }}
+  LINEAR_ISSUE_ID: OGE-6
+  LINEAR_ISSUE_UUID: 16e61828-b1f1-40e7-b49c-6aa53d1151b0
+  LINEAR_TITLE: Phase VI API — Linear ↔ D1 Task Binding
+  LINEAR_URL: https://linear.app/ogenic-sio/issue/OGE-6/phase-vi-api-linear-d1-task-binding
+
+jobs:
+  roundtrip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auto-discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load Ops key from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          secret-path: /
+
+      - name: Require Ops key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::CONFIGURATION_REQUIRED: OGENIC_OPS_KEY missing"; exit 1; }
+          echo "Ops key loaded (value hidden)."
+
+      - name: Bind Linear issue to D1 task and verify lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUTH="Authorization: Bearer ${OGENIC_OPS_KEY}"
+          CORR="linear:${LINEAR_ISSUE_ID}"
+          RESOURCE="linear:${LINEAR_ISSUE_ID}"
+
+          TASKS="$(curl --fail --silent --show-error -H "$AUTH" "${STAGING_URL}/api/ops/tasks?limit=100")"
+          TASK_ID="$(printf '%s' "$TASKS" | jq -r --arg issue "$LINEAR_ISSUE_ID" '[.tasks[]? | select(.linear_issue_id == $issue)] | sort_by(.created_at) | last | .id // empty')"
+
+          if [ -z "$TASK_ID" ]; then
+            CREATE="$(curl --fail --silent --show-error \
+              -H "$AUTH" -H 'content-type: application/json' \
+              -d "$(jq -nc \
+                --arg title "$LINEAR_TITLE" \
+                --arg issue "$LINEAR_ISSUE_ID" \
+                --arg corr "$CORR" \
+                --arg resource "$RESOURCE" \
+                --arg source "$LINEAR_URL" \
+                '{title:$title,capability:"linear-d1-task-binding",priority:80,resource_key:$resource,correlation_id:$corr,linear_issue_id:$issue,github_repo:"Ogenicchocolate21debug/Build-Platform",source_ref:$source}')" \
+              "${STAGING_URL}/api/ops/tasks")"
+            TASK_ID="$(printf '%s' "$CREATE" | jq -r '.task.id // empty')"
+            test -n "$TASK_ID" || { echo "::error::Failed to create D1 task"; exit 1; }
+            echo "Created D1 task for ${LINEAR_ISSUE_ID}: ${TASK_ID}"
+          else
+            echo "Reusing existing D1 task for ${LINEAR_ISSUE_ID}: ${TASK_ID}"
+          fi
+
+          CURRENT="$(curl --fail --silent --show-error -H "$AUTH" "${STAGING_URL}/api/ops/tasks?limit=100")"
+          STATUS="$(printf '%s' "$CURRENT" | jq -r --arg id "$TASK_ID" '.tasks[]? | select(.id == $id) | .status')"
+
+          if [ "$STATUS" = "QUEUED" ]; then
+            CLAIM="$(curl --fail --silent --show-error \
+              -H "$AUTH" -H 'content-type: application/json' \
+              -d "$(jq -nc --arg agent 'Harness—Ammonite-OC-Ops' --arg task "$TASK_ID" '{agent_id:$agent,task_id:$task,lock_ttl_seconds:300}')" \
+              "${STAGING_URL}/api/ops/claim")"
+            printf '%s' "$CLAIM" | jq -e '.ok == true and .task.status == "CLAIMED"' >/dev/null
+          fi
+
+          RUNNING="$(curl --fail --silent --show-error \
+            -H "$AUTH" -H 'content-type: application/json' \
+            -d "$(jq -nc --arg task "$TASK_ID" --arg actor 'linear-bridge' --arg ref "$LINEAR_URL" '{task_id:$task,event_type:"RUNNING",actor:$actor,external_ref:$ref}')" \
+            "${STAGING_URL}/api/ops/events")"
+          printf '%s' "$RUNNING" | jq -e '.ok == true and .task.status == "RUNNING"' >/dev/null
+
+          CHECKPOINT="$(curl --fail --silent --show-error \
+            -H "$AUTH" -H 'content-type: application/json' \
+            -d "$(jq -nc --arg task "$TASK_ID" --arg agent 'Harness—Ammonite-OC-Ops' --arg ref "$LINEAR_URL" '{task_id:$task,agent_id:$agent,checkpoint_ref:$ref,state_hash:"linear-d1-v1"}')" \
+            "${STAGING_URL}/api/ops/checkpoints")"
+          printf '%s' "$CHECKPOINT" | jq -e '.ok == true' >/dev/null
+
+          DONE="$(curl --fail --silent --show-error \
+            -H "$AUTH" -H 'content-type: application/json' \
+            -d "$(jq -nc --arg task "$TASK_ID" --arg actor 'linear-bridge' --arg ref "$LINEAR_URL" '{task_id:$task,event_type:"DONE",actor:$actor,external_ref:$ref}')" \
+            "${STAGING_URL}/api/ops/events")"
+          printf '%s' "$DONE" | jq -e '.ok == true and .task.status == "DONE" and .task.linear_issue_id == "OGE-6" and .task.correlation_id == "linear:OGE-6"' >/dev/null
+
+          STATE="$(curl --fail --silent --show-error -H "$AUTH" "${STAGING_URL}/api/ops/state")"
+          printf '%s' "$STATE" | jq -e --arg resource "$RESOURCE" '[.locks[]? | select(.resource_key == $resource)] | length == 0' >/dev/null
+
+          echo "PASS: Linear ${LINEAR_ISSUE_ID} -> D1 task -> RUNNING -> checkpoint -> DONE -> lock released."
