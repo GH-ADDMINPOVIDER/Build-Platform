@@ -1,0 +1,54 @@
+name: OGENIC Phase VI CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate unified toolkit contract
+        run: python scripts/validate_toolkit.py
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build Cloudflare application
+        run: npm run build
+
+      - name: Verify generated Cloudflare deployment config
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/wrangler.json
+          test -d dist/client
+          test -f dist/client/index.html
+          grep -q 'ogenic-phase-vi' dist/wrangler.json
+
+      - name: Upload staging build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ogenic-phase-vi-staging-build
+          path: dist/
+          if-no-files-found: error
