@@ -1,346 +1,377 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Health = {
   ok: boolean;
-  phase: string;
-  runtime: string;
-  database: "BOUND" | "UNBOUND";
-  providers: number;
-  toolkit_count?: number;
-  operator_harness?: string;
+  phase?: string;
+  runtime?: string;
+  database?: string;
+  providers?: number;
   shared_state?: string;
-  ops_api_auth?: string;
 };
 
-type PublicState = {
-  ok: boolean;
-  meta: Array<{ key: string; value: string }>;
+type PoolSnapshot = {
+  id: "standard" | "high_volume" | string;
+  label: string;
+  used: number;
+  cap: number | null;
+  remaining: number | null;
+  percent: number | null;
+  state: "NORMAL" | "WATCH" | "THROTTLE" | "CRITICAL" | "EXHAUSTED";
+  telemetry: string;
 };
 
-type OpsTask = {
+type IncentiveSnapshot = {
+  ok: true;
+  enabled: boolean;
+  usage_tier: number | null;
+  policy_state: "ACTIVE" | "DISABLED" | "EXHAUSTED";
+  reset_at: string;
+  pools: PoolSnapshot[];
+};
+
+type ChatMode = "fast" | "balanced" | "power";
+
+type ChatMessage = {
   id: string;
-  title: string;
-  capability?: string | null;
-  status: string;
-  priority: number;
-  resource_key?: string | null;
-  claimed_by?: string | null;
-  correlation_id?: string | null;
-  linear_issue_id?: string | null;
-  github_repo?: string | null;
-  source_ref?: string | null;
-  updated_at?: string;
+  role: "assistant" | "user" | "system";
+  text: string;
+  meta?: string;
 };
 
-type OpsState = {
-  ok: boolean;
-  operator_harness: string;
-  shared_state_version: string;
-  status_counts: Array<{ status: string; count: number }>;
-  locks: Array<{
-    resource_key: string;
-    task_id?: string | null;
-    owner_agent?: string | null;
-    expires_at?: string;
-  }>;
-  checkpoints: Array<{
-    task_id: string;
-    agent_id: string;
-    checkpoint_ref: string;
-    updated_at?: string;
-  }>;
-  recent_events: Array<{
-    id: string;
-    task_id?: string | null;
-    event_type: string;
-    actor: string;
-    external_ref?: string | null;
-    created_at?: string;
-  }>;
+type ChatResponse = {
+  ok?: boolean;
+  text?: string;
+  model?: string;
+  mode?: string;
+  incentive_pool?: string;
+  fallback_reason?: string | null;
+  code?: string;
+  message?: string;
 };
 
-type OpsTasksResponse = { ok: boolean; tasks: OpsTask[] };
-
-type LoadState = "idle" | "loading" | "ready" | "error";
-
-const publicEndpoints = [
-  ["Health", "/api/health"],
-  ["System", "/api/system"],
-  ["State", "/api/state"],
-  ["Providers", "/api/providers"],
-  ["Capabilities", "/api/capabilities"],
+const modelCards = [
+  { id: "luna", name: "Luna", mode: "fast" as const, pool: "high_volume", glyph: "◉", tone: "luna" },
+  { id: "terra", name: "Terra", mode: "balanced" as const, pool: "high_volume", glyph: "◆", tone: "terra" },
+  { id: "sol", name: "Sol", mode: "power" as const, pool: "standard", glyph: "☀", tone: "sol" },
+  { id: "codex", name: "Codex", pool: "standard", glyph: "</>", tone: "codex" },
+  { id: "claude", name: "Claude", pool: null, glyph: "✺", tone: "claude" },
 ] as const;
 
-const lanes = [
-  { name: "Ammonite", role: "Supervisor", state: "ACTIVE", note: "Harness—Ammonite-OC-Ops" },
-  { name: "Codex", role: "Builder lane", state: "READY", note: "Code / patch / build" },
-  { name: "Claude", role: "Review lane", state: "READY", note: "Architecture / review" },
-  { name: "GitHub Actions", role: "Executor", state: "BOUND", note: "CI / smoke / staging" },
-] as const;
+const defaultMessages: ChatMessage[] = [
+  {
+    id: "welcome",
+    role: "assistant",
+    text: "สวัสดีครับ! ผมคือ OGENIC AI พร้อมช่วยคุณคิด วิเคราะห์ และลงมือทำ วันนี้ให้ช่วยอะไรดีครับ?",
+    meta: "OGENIC AI · ready",
+  },
+];
 
-async function getJson<T>(url: string, key?: string): Promise<T> {
-  const headers: HeadersInit = key ? { Authorization: `Bearer ${key}` } : {};
-  const response = await fetch(url, { headers, cache: "no-store" });
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-  return response.json() as Promise<T>;
+function clampPercent(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, value));
 }
 
-function displayTime(value?: string) {
-  if (!value) return "—";
-  const date = new Date(value.replace(" ", "T") + (value.includes("Z") ? "" : "Z"));
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+function compact(value: number | null | undefined) {
+  if (value === null || value === undefined) return "—";
+  if (value >= 1_000_000) return `${Number((value / 1_000_000).toFixed(2))}M`;
+  if (value >= 1_000) return `${Number((value / 1_000).toFixed(1))}K`;
+  return String(value);
 }
 
 export default function App() {
   const [health, setHealth] = useState<Health | null>(null);
-  const [publicState, setPublicState] = useState<PublicState | null>(null);
-  const [opsState, setOpsState] = useState<OpsState | null>(null);
-  const [tasks, setTasks] = useState<OpsTask[]>([]);
   const [opsKey, setOpsKey] = useState("");
-  const [loadState, setLoadState] = useState<LoadState>("idle");
-  const [message, setMessage] = useState("Public telemetry ready. Unlock Ops API to load tasks and events.");
+  const [accessInput, setAccessInput] = useState("");
+  const [showAccess, setShowAccess] = useState(false);
+  const [accessState, setAccessState] = useState<"locked" | "checking" | "ready" | "error">("locked");
+  const [snapshot, setSnapshot] = useState<IncentiveSnapshot | null>(null);
+  const [mode, setMode] = useState<ChatMode>("balanced");
+  const [messages, setMessages] = useState<ChatMessage[]>(defaultMessages);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [chatStatus, setChatStatus] = useState("Terra · balanced");
+  const endRef = useRef<HTMLDivElement | null>(null);
 
-  const loadPublic = useCallback(async () => {
+  const loadHealth = useCallback(async () => {
     try {
-      const [nextHealth, nextState] = await Promise.all([
-        getJson<Health>("/api/health"),
-        getJson<PublicState>("/api/state"),
-      ]);
-      setHealth(nextHealth);
-      setPublicState(nextState);
-    } catch (error) {
-      setMessage(`Public API error: ${(error as Error).message}`);
+      const response = await fetch("/api/health", { cache: "no-store" });
+      if (!response.ok) throw new Error(String(response.status));
+      setHealth(await response.json() as Health);
+    } catch {
+      setHealth({ ok: false });
     }
   }, []);
 
-  const loadOps = useCallback(async (key: string) => {
-    const trimmed = key.trim();
-    if (!trimmed) {
-      setMessage("Enter OGENIC_OPS_KEY to unlock protected Ops telemetry.");
-      return;
-    }
-
-    setLoadState("loading");
-    try {
-      const [nextOps, nextTasks] = await Promise.all([
-        getJson<OpsState>("/api/ops/state", trimmed),
-        getJson<OpsTasksResponse>("/api/ops/tasks?limit=30", trimmed),
-      ]);
-      setOpsState(nextOps);
-      setTasks(nextTasks.tasks ?? []);
-      sessionStorage.setItem("ogenic_ops_key", trimmed);
-      setLoadState("ready");
-      setMessage("Ops API unlocked for this browser session. Secret is not persisted by the app.");
-    } catch (error) {
-      setOpsState(null);
-      setTasks([]);
-      setLoadState("error");
-      setMessage(`Ops API: ${(error as Error).message}. Check the session key or Worker binding.`);
-    }
+  const loadIncentives = useCallback(async (key: string) => {
+    const response = await fetch("/api/ops/incentives", {
+      headers: { Authorization: `Bearer ${key}` },
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    const next = await response.json() as IncentiveSnapshot;
+    setSnapshot(next);
+    return next;
   }, []);
 
   useEffect(() => {
-    void loadPublic();
-    const saved = sessionStorage.getItem("ogenic_ops_key") ?? "";
+    void loadHealth();
+    const saved = sessionStorage.getItem("ogenic_ops_key")?.trim() ?? "";
     if (saved) {
       setOpsKey(saved);
-      void loadOps(saved);
+      setAccessInput(saved);
+      setAccessState("checking");
+      void loadIncentives(saved)
+        .then(() => setAccessState("ready"))
+        .catch(() => {
+          sessionStorage.removeItem("ogenic_ops_key");
+          setOpsKey("");
+          setAccessInput("");
+          setAccessState("locked");
+        });
     }
-  }, [loadOps, loadPublic]);
+  }, [loadHealth, loadIncentives]);
 
-  const meta = useMemo(
-    () => Object.fromEntries((publicState?.meta ?? []).map((item) => [item.key, item.value])),
-    [publicState],
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [messages, sending]);
+
+  const pools = useMemo(
+    () => new Map((snapshot?.pools ?? []).map((pool) => [pool.id, pool])),
+    [snapshot],
   );
 
-  const counts = useMemo(
-    () => Object.fromEntries((opsState?.status_counts ?? []).map((item) => [item.status, Number(item.count)])),
-    [opsState],
-  );
-
-  const activeTasks = (counts.QUEUED ?? 0) + (counts.CLAIMED ?? 0) + (counts.RUNNING ?? 0) + (counts.VERIFYING ?? 0);
-
-  const refresh = async () => {
-    await loadPublic();
-    if (opsKey.trim()) await loadOps(opsKey);
+  const unlock = async () => {
+    const key = accessInput.trim();
+    if (!key) return;
+    setAccessState("checking");
+    try {
+      await loadIncentives(key);
+      sessionStorage.setItem("ogenic_ops_key", key);
+      setOpsKey(key);
+      setAccessState("ready");
+      setShowAccess(false);
+      setChatStatus("GM Ops unlocked · ready to chat");
+    } catch {
+      setAccessState("error");
+    }
   };
 
-  const clearSessionKey = () => {
+  const lock = () => {
     sessionStorage.removeItem("ogenic_ops_key");
     setOpsKey("");
-    setOpsState(null);
-    setTasks([]);
-    setLoadState("idle");
-    setMessage("Ops session key cleared from this browser session.");
+    setAccessInput("");
+    setSnapshot(null);
+    setAccessState("locked");
+    setChatStatus("Ops locked");
   };
 
+  const sendMessage = async () => {
+    const prompt = draft.trim();
+    if (!prompt || sending) return;
+    if (!opsKey) {
+      setShowAccess(true);
+      setChatStatus("Unlock Ops once to enable live AI chat");
+      return;
+    }
+
+    const userMessage: ChatMessage = {
+      id: `u_${crypto.randomUUID()}`,
+      role: "user",
+      text: prompt,
+      meta: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    setMessages((current) => [...current, userMessage]);
+    setDraft("");
+    setSending(true);
+    setChatStatus(`${mode.toUpperCase()} · thinking…`);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${opsKey}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": `ui_${crypto.randomUUID()}`,
+        },
+        body: JSON.stringify({ prompt, mode }),
+      });
+      const body = await response.json().catch(() => ({})) as ChatResponse;
+      if (!response.ok || !body.ok || !body.text) {
+        throw new Error(body.message || body.code || `${response.status} ${response.statusText}`);
+      }
+      setMessages((current) => [
+        ...current,
+        {
+          id: `a_${crypto.randomUUID()}`,
+          role: "assistant",
+          text: body.text!,
+          meta: `${body.model ?? "OGENIC AI"}${body.incentive_pool ? ` · ${body.incentive_pool}` : ""}`,
+        },
+      ]);
+      setChatStatus(`${body.model ?? "OGENIC AI"} · ready`);
+      void loadIncentives(opsKey).catch(() => undefined);
+    } catch (error) {
+      setMessages((current) => [
+        ...current,
+        {
+          id: `e_${crypto.randomUUID()}`,
+          role: "system",
+          text: `ส่งไม่สำเร็จ: ${(error as Error).message}`,
+          meta: "Runtime",
+        },
+      ]);
+      setChatStatus("Runtime needs attention");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const chooseMode = (next: ChatMode) => {
+    setMode(next);
+    setChatStatus(`${next === "fast" ? "Luna" : next === "power" ? "Sol" : "Terra"} · ${next}`);
+  };
+
+  const scrollToChat = () => document.getElementById("ogenic-chat")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
   return (
-    <main className="shell">
-      <header className="hero panel">
-        <div>
-          <p className="eyebrow">OGENIC CORE · OPERATOR CONSOLE</p>
-          <h1>Phase VI</h1>
-          <p className="subtitle">One toolkit · D1 shared state · Linear task control · GitHub evidence · Infisical secrets</p>
+    <main className="siteShell">
+      <nav className="topNav">
+        <div className="brandLockup">
+          <span className="brandMark" aria-hidden="true"><i /></span>
+          <span><strong>OGENIC CORE</strong><small>AUTOMATE A HIGHER TOMORROW</small></span>
         </div>
-        <div className="heroActions">
-          <div className={`status ${health?.ok ? "good" : "pending"}`}>
-            <span className="pulse" />
-            {health?.ok ? "SYSTEM ONLINE" : "CHECKING"}
-          </div>
-          <button className="ghostButton" onClick={() => void refresh()}>Refresh</button>
+        <div className="navActions">
+          <button className={`startButton ${accessState === "ready" ? "ready" : ""}`} onClick={() => setShowAccess((value) => !value)}>
+            {accessState === "ready" ? "OPS READY" : "เริ่มใช้งาน"}
+          </button>
+          <button className="menuButton" aria-label="Menu"><span /><span /><span /></button>
         </div>
-      </header>
+      </nav>
 
-      <section className="metrics">
-        <article><span>Runtime</span><strong>{health?.runtime ?? "—"}</strong><small>Cloudflare Worker</small></article>
-        <article><span>Shared State</span><strong>{health?.shared_state ?? health?.database ?? "—"}</strong><small>D1 canonical state</small></article>
-        <article><span>Ops Auth</span><strong>{health?.ops_api_auth ?? "—"}</strong><small>Infisical-backed key</small></article>
-        <article><span>Active Tasks</span><strong>{opsState ? activeTasks : "LOCKED"}</strong><small>{opsState ? `${counts.DONE ?? 0} done` : "Unlock Ops API"}</small></article>
-      </section>
-
-      <section className="controlGrid">
-        <article className="panel unlockPanel">
-          <div className="sectionHeader">
-            <div>
-              <p className="sectionKicker">PROTECTED CONTROL</p>
-              <h2>Ops API Session</h2>
-            </div>
-            <span className={`miniBadge ${loadState === "ready" ? "success" : ""}`}>{loadState === "ready" ? "UNLOCKED" : "LOCKED"}</span>
+      {showAccess && (
+        <section className="accessBar" aria-label="Protected access">
+          <div>
+            <p>PROTECTED OPS SESSION</p>
+            <strong>Unlock once for live AI + GM metering</strong>
           </div>
-          <p className="muted">Enter <code>OGENIC_OPS_KEY</code>. The UI keeps it in sessionStorage only, so closing the browser session clears normal access.</p>
-          <div className="keyRow">
+          <div className="accessControls">
             <input
               type="password"
-              value={opsKey}
-              onChange={(event) => setOpsKey(event.target.value)}
-              onKeyDown={(event) => { if (event.key === "Enter") void loadOps(opsKey); }}
+              value={accessInput}
+              onChange={(event) => setAccessInput(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") void unlock(); }}
               placeholder="OGENIC_OPS_KEY"
               autoComplete="off"
-              spellCheck={false}
             />
-            <button className="primaryButton" onClick={() => void loadOps(opsKey)} disabled={loadState === "loading"}>
-              {loadState === "loading" ? "Checking…" : "Unlock"}
+            <button onClick={() => void unlock()} disabled={accessState === "checking"}>{accessState === "checking" ? "Checking…" : "Unlock"}</button>
+            {accessState === "ready" && <button className="quietButton" onClick={lock}>Lock</button>}
+          </div>
+          {accessState === "error" && <small>Key ไม่ผ่าน หรือ Worker binding ยังไม่พร้อม</small>}
+        </section>
+      )}
+
+      <section className="heroStage">
+        <div className="heroGlow" aria-hidden="true" />
+        <div className="heroPill"><span />AI-POWERED BUSINESS OPERATING SYSTEM</div>
+        <h1>OGENIC AI — <em>CHAT</em></h1>
+        <h2>แชท • สร้างเวิร์กโฟลว์ • ใช้เครื่องมือธุรกิจ ครบจบในที่เดียว</h2>
+        <p>ผสานพลังของ AI, Automation และ Business Tools เพื่อให้คุณทำงานได้เร็วขึ้น ฉลาดขึ้น และไปได้ไกลกว่าเดิม</p>
+        <div className="heroButtons">
+          <button className="heroPrimary" onClick={scrollToChat}>เริ่มสัมผัส OGENIC AI <span>→</span></button>
+          <button className="heroSecondary" onClick={scrollToChat}><span>▶</span> ดูตัวอย่าง</button>
+        </div>
+      </section>
+
+      <section className="chatCard" id="ogenic-chat">
+        <header className="chatHeader">
+          <div className="chatIdentity">
+            <span className="miniMark"><i /></span>
+            <div><strong>OGENIC AI — CHAT</strong><small>YOUR AI TEAM, ALWAYS ON.</small></div>
+          </div>
+          <span className={`gmBadge ${snapshot?.policy_state === "ACTIVE" ? "on" : ""}`}><b>ϟ</b> GM BUFF <i /></span>
+        </header>
+
+        <div className="chatStream">
+          {messages.map((message) => (
+            <div className={`messageRow ${message.role}`} key={message.id}>
+              {message.role === "assistant" && <span className="avatarMark"><i /></span>}
+              <div className="messageWrap">
+                <div className="bubble">{message.text}</div>
+                {message.meta && <small>{message.meta}</small>}
+              </div>
+              {message.role === "user" && <span className="userAvatar">●</span>}
+            </div>
+          ))}
+          {sending && (
+            <div className="messageRow assistant">
+              <span className="avatarMark"><i /></span>
+              <div className="typingBubble"><span /><span /><span /></div>
+            </div>
+          )}
+          <div ref={endRef} />
+        </div>
+
+        <div className="composer">
+          <button className="attachButton" aria-label="Attach">⌕</button>
+          <textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void sendMessage();
+              }
+            }}
+            placeholder="พิมพ์คำสั่งงานที่นี่…"
+            rows={1}
+          />
+          <button className="sendButton" onClick={() => void sendMessage()} disabled={!draft.trim() || sending} aria-label="Send">➤</button>
+        </div>
+        <div className="composerHint"><span>✦</span>{chatStatus} · Enter ส่ง / Shift+Enter ขึ้นบรรทัดใหม่</div>
+      </section>
+
+      <section className="modelStrip" aria-label="Model and limit meters">
+        {modelCards.map((card) => {
+          const pool = card.pool ? pools.get(card.pool) : undefined;
+          const percent = clampPercent(pool?.percent);
+          const interactive = "mode" in card;
+          const active = interactive && card.mode === mode;
+          return (
+            <button
+              key={card.id}
+              className={`modelCard ${card.tone} ${active ? "selected" : ""}`}
+              onClick={() => interactive && chooseMode(card.mode)}
+              disabled={!interactive}
+              type="button"
+            >
+              <div className="modelTop"><span className="modelGlyph">{card.glyph}</span><strong>{card.name}</strong><small>{card.pool ? (snapshot ? `${percent.toFixed(1)}%` : "LOCK") : "REVIEW"}</small></div>
+              <div className="tinyMeter"><span style={{ width: card.pool && snapshot ? `${Math.max(3, percent)}%` : "18%" }} /></div>
+              <div className="modelMeta">{pool ? `${compact(pool.remaining)} left` : card.id === "claude" ? "review lane" : "builder lane"}</div>
             </button>
-            <button className="ghostButton" onClick={clearSessionKey}>Clear</button>
-          </div>
-          <div className="notice">{message}</div>
-        </article>
-
-        <article className="panel architecturePanel">
-          <div className="sectionHeader">
-            <div>
-              <p className="sectionKicker">CANONICAL ROUTING</p>
-              <h2>Control Fabric</h2>
-            </div>
-            <span className="miniBadge success">v{opsState?.shared_state_version ?? "1"}</span>
-          </div>
-          <div className="fabricList">
-            <div><span>Supervisor</span><strong>{health?.operator_harness ?? meta.operator_harness ?? "Harness—Ammonite-OC-Ops"}</strong></div>
-            <div><span>Task Control</span><strong>{meta.agent_task_control_surface ?? "linear"}</strong></div>
-            <div><span>Code Evidence</span><strong>{meta.agent_code_evidence_surface ?? "github"}</strong></div>
-            <div><span>Secrets</span><strong>{meta.secret_source ?? "infisical"}</strong></div>
-          </div>
-        </article>
+          );
+        })}
       </section>
 
-      <section className="panel sectionPanel">
-        <div className="sectionHeader">
-          <div>
-            <p className="sectionKicker">MULTI-AGENT FABRIC</p>
-            <h2>Execution Lanes</h2>
-          </div>
-          <span className="miniBadge">STAGING</span>
-        </div>
-        <div className="laneGrid">
-          {lanes.map((lane) => (
-            <article className="lane" key={lane.name}>
-              <div className="laneTop"><span className="agentDot" /><span className="miniBadge success">{lane.state}</span></div>
-              <h3>{lane.name}</h3>
-              <p>{lane.role}</p>
-              <small>{lane.note}</small>
-            </article>
-          ))}
-        </div>
+      <section className="statusGrid">
+        <article><span className="statusIcon">⌘</span><div><strong>Workflow Engine</strong><small>Phase VI · ACTIVE</small></div><i className="liveDot" /></article>
+        <article><span className="statusIcon">◎</span><div><strong>Agent Fabric</strong><small>4 execution lanes</small></div><i className="liveDot" /></article>
+        <article><span className="statusIcon">⌁</span><div><strong>API Health</strong><small>{health?.ok ? "ONLINE" : "CHECKING"}</small></div><i className={`liveDot ${health?.ok ? "" : "dim"}`} /></article>
+        <article><span className="statusIcon">♛</span><div><strong>Usage Tier {snapshot?.usage_tier ?? 1}</strong><small>{snapshot?.policy_state ?? "GM policy"}</small></div></article>
       </section>
 
-      <section className="dashboardGrid">
-        <article className="panel sectionPanel taskPanel">
-          <div className="sectionHeader">
-            <div>
-              <p className="sectionKicker">D1 SHARED STATE</p>
-              <h2>Tasks</h2>
-            </div>
-            <span className="miniBadge">{tasks.length || 0}</span>
-          </div>
-          {tasks.length === 0 ? (
-            <div className="emptyState">Unlock Ops API to view agent tasks.</div>
-          ) : (
-            <div className="taskList">
-              {tasks.slice(0, 12).map((task) => (
-                <article className="taskRow" key={task.id}>
-                  <div>
-                    <div className="taskTitle"><span className={`taskState state-${task.status.toLowerCase()}`}>{task.status}</span>{task.title}</div>
-                    <p>{task.linear_issue_id ? `Linear ${task.linear_issue_id}` : task.capability ?? "Phase VI task"} · P{task.priority}</p>
-                  </div>
-                  <div className="taskMeta">
-                    <code>{task.correlation_id ?? task.id}</code>
-                    <small>{displayTime(task.updated_at)}</small>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </article>
-
-        <article className="panel sectionPanel eventPanel">
-          <div className="sectionHeader">
-            <div>
-              <p className="sectionKicker">EVENT FABRIC</p>
-              <h2>Recent Events</h2>
-            </div>
-            <span className="miniBadge">{opsState?.recent_events.length ?? 0}</span>
-          </div>
-          {!opsState ? (
-            <div className="emptyState">Protected event stream.</div>
-          ) : (
-            <div className="eventList">
-              {opsState.recent_events.slice(0, 10).map((event) => (
-                <div className="eventRow" key={event.id}>
-                  <span className="eventDot" />
-                  <div><strong>{event.event_type}</strong><p>{event.actor}</p></div>
-                  <small>{displayTime(event.created_at)}</small>
-                </div>
-              ))}
-            </div>
-          )}
-        </article>
-      </section>
-
-      <section className="panel sectionPanel">
-        <div className="sectionHeader">
-          <div>
-            <p className="sectionKicker">API SURFACE</p>
-            <h2>Quick Console</h2>
-          </div>
-          <span className="miniBadge success">LIVE</span>
+      <details className="systemDetails">
+        <summary>System console</summary>
+        <div className="detailGrid">
+          <div><span>Runtime</span><strong>{health?.runtime ?? "Cloudflare"}</strong></div>
+          <div><span>Shared state</span><strong>{health?.shared_state ?? health?.database ?? "D1"}</strong></div>
+          <div><span>GM policy</span><strong>{snapshot?.policy_state ?? "LOCKED"}</strong></div>
+          <div><span>Session</span><strong>{accessState.toUpperCase()}</strong></div>
         </div>
-        <div className="endpointGrid">
-          {publicEndpoints.map(([label, endpoint]) => (
-            <a className="endpoint" href={endpoint} target="_blank" rel="noreferrer" key={endpoint}>
-              <span>GET</span><strong>{label}</strong><code>{endpoint}</code>
-            </a>
-          ))}
-          <div className="endpoint protectedEndpoint">
-            <span>AUTH</span><strong>Ops State</strong><code>/api/ops/state</code>
-          </div>
-          <div className="endpoint protectedEndpoint">
-            <span>AUTH</span><strong>Ops Tasks</strong><code>/api/ops/tasks</code>
-          </div>
-        </div>
-      </section>
+      </details>
 
-      <footer>
-        <strong>Harness—Ammonite-OC-Ops</strong> · Production promotion remains explicit-approval only. Secrets stay outside Git/D1; this console never displays secret values.
+      <footer className="brandFooter">
+        <strong>UNIFIED. INTELLIGENT. YOURS.</strong>
+        <span>ทุกเครื่องมือที่คุณต้องการ เพื่อธุรกิจที่ก้าวไกลกว่า</span>
       </footer>
     </main>
   );
