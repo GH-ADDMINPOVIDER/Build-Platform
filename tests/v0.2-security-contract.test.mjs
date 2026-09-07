@@ -19,6 +19,14 @@ test("owner login produces a hardened HTTP-only session cookie", async () => {
   assert.match(auth, /validSignedSession/);
 });
 
+test("flattened v0.2 dashboard, tools and tasks routes require owner session", async () => {
+  const api = await read("worker/app-api.ts");
+  assert.match(api, /api\.use\("\/api\/dashboard", requireProtectedAppRoute\)/);
+  assert.match(api, /api\.use\("\/api\/tools", requireProtectedAppRoute\)/);
+  assert.match(api, /api\.use\("\/api\/tasks", requireProtectedAppRoute\)/);
+  assert.doesNotMatch(api, /api\.use\("\/api\/app\/\*"/);
+});
+
 test("live integrations exist only in server-side Worker adapters", async () => {
   const adapters = await read("worker/live-tools.ts");
   const app = await read("src/App.tsx");
