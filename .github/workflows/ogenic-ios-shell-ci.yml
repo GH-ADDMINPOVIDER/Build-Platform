@@ -1,0 +1,55 @@
+name: OGENIC iOS Shell CI
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/ogenic-ios-shell-ci.yml"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "index.html"
+      - "public/**"
+      - "src/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios-shell:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck and build web shell
+        run: npm run check
+
+      - name: Generate native iOS project
+        run: npx cap add ios
+
+      - name: Sync OGENIC web shell into iOS
+        run: npx cap sync ios
+
+      - name: Build unsigned iOS simulator app
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Verify native app bundle
+        run: |
+          test -d build/ios/Build/Products/Debug-iphonesimulator/App.app
+          echo "OGENIC AI native iOS shell built successfully (unsigned simulator build)."
