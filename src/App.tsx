@@ -162,7 +162,7 @@ export default function App() {
   const checkSession = useCallback(async () => {
     setAuthState("checking");
     try {
-      const response = await fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" });
+      const response = await fetch("/api/owner/session", { cache: "no-store", credentials: "same-origin" });
       const body = await response.json() as Session;
       setSession(body);
       setAuthState(body.authenticated ? "ready" : "signed_out");
@@ -188,7 +188,7 @@ export default function App() {
     setAuthState("signing_in");
     setAuthError("");
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("/api/owner/login", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
@@ -208,7 +208,7 @@ export default function App() {
   };
 
   const signOut = async () => {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
+    await fetch("/api/owner/logout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
     setDashboard(null);
     setSession({ authenticated: false, user: null });
     setAuthState("signed_out");
@@ -579,4 +579,3 @@ export default function App() {
     </main>
   );
 }
-
