@@ -55,12 +55,23 @@ jobs:
           env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
           secret-path: ${{ steps.infisical_project.outputs.secret_path }}
 
-      - name: Require Cloudflare authorization
+      - name: Load staging runtime secrets from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+
+      - name: Require staging authorization
         shell: bash
         run: |
           set -euo pipefail
           test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "::error::missing CLOUDFLARE_API_TOKEN"; exit 1; }
           test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "::error::missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          test -n "${OPENAI_API_KEY:-}" || { echo "::error::missing OPENAI_API_KEY"; exit 1; }
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::missing OGENIC_OPS_KEY"; exit 1; }
 
       - name: Install dependencies
         run: npm install --package-lock-only && npm ci
@@ -100,6 +111,14 @@ jobs:
 
       - name: Typecheck and build
         run: npm run check
+
+      - name: Bind protected runtime secrets to staging Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$OPENAI_API_KEY" | npx wrangler secret put OPENAI_API_KEY --name "$WORKER_NAME"
+          printf '%s' "$OGENIC_OPS_KEY" | npx wrangler secret put OGENIC_OPS_KEY --name "$WORKER_NAME"
+          echo "Protected runtime bindings updated without printing secret values."
 
       - name: Deploy staging Worker
         run: npx wrangler deploy --config dist/ogenic_phase_vi_staging/wrangler.json
