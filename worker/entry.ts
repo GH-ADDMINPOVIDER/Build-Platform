@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context, type Next } from "hono";
 import legacyApp from "./index";
 import incentiveApi from "./incentive-api";
 import {
@@ -62,7 +62,7 @@ const engine = createWorkflowEngine({
 const root = new Hono<RootEnv>();
 root.route("/", createAuthApi());
 
-const ownerOnly = async (c: Parameters<typeof root.use>[1] extends infer _ ? any : never, next: () => Promise<void>) => {
+const ownerOnly = async (c: Context<RootEnv>, next: Next) => {
   if (!(await hasOwnerSession(c.req.raw, c.env))) {
     return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);
   }
