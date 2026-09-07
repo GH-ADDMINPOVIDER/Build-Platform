@@ -19,7 +19,8 @@ env:
   CANDY_REPO: Ogenicchocolate21debug/ogenic-chocolate
   CANDY_REF: main
   CF_PROJECT: ogenic-chocolate
-  CF_URL: https://ogenic-chocolate.pages.dev/control-center.html
+  CF_CONTROL_URL: https://ogenic-chocolate.pages.dev/control-center.html
+  CF_STOREFRONT_URL: https://ogenic-chocolate.pages.dev/
 
 jobs:
   deploy:
@@ -69,12 +70,27 @@ jobs:
           set -euo pipefail
           cd candy
           mkdir -p dist/assets
-          cp index.html control-center.html chocolate-formulas.json dist/
+          cp index.html control-center.html chocolate-formulas.json storefront-enhance.js control-center-enhance.js dist/
           cp -R assets/. dist/assets/
           node scripts/build-cloudflare-backup.mjs
+          python - <<'PY'
+          from pathlib import Path
+          def inject(path, marker, tag):
+              p = Path(path)
+              text = p.read_text()
+              if marker not in text:
+                  text = text.replace('</body>', f'{tag}</body>')
+              p.write_text(text)
+          inject('dist/index.html', 'storefront-enhance.js', '<script src="/storefront-enhance.js?v=20260907"></script>')
+          inject('dist/control-center.html', 'control-center-enhance.js', '<script src="/control-center-enhance.js?v=20260907"></script>')
+          PY
           touch dist/.nojekyll
           test -s dist/control-center.html
-          echo "Candy bundle ready."
+          test -s dist/storefront-enhance.js
+          test -s dist/control-center-enhance.js
+          grep -q 'storefront-enhance.js' dist/index.html
+          grep -q 'control-center-enhance.js' dist/control-center.html
+          echo "Candy storefront + owner dashboards bundle ready."
 
       - name: Deploy Candy to Cloudflare Pages production
         shell: bash
@@ -85,20 +101,24 @@ jobs:
             --branch=main \
             --commit-dirty=true
 
-      - name: Verify Candy Control Center
+      - name: Verify Candy storefront and Control Center
         shell: bash
         run: |
           set -euo pipefail
-          BODY="$(mktemp)"
-          trap 'rm -f "$BODY"' EXIT
-          CODE=""
+          CONTROL="$(mktemp)"
+          STORE="$(mktemp)"
+          trap 'rm -f "$CONTROL" "$STORE"' EXIT
           for attempt in $(seq 1 15); do
-            CODE="$(curl -L --silent --show-error --output "$BODY" --write-out '%{http_code}' "$CF_URL")"
-            if test "$CODE" = "200" && grep -q 'CANDY CONTROL' "$BODY"; then
-              echo "Candy Control Center verified on attempt $attempt."
+            CONTROL_CODE="$(curl -L --silent --show-error --output "$CONTROL" --write-out '%{http_code}' "$CF_CONTROL_URL")"
+            STORE_CODE="$(curl -L --silent --show-error --output "$STORE" --write-out '%{http_code}' "$CF_STOREFRONT_URL")"
+            if test "$CONTROL_CODE" = "200" && test "$STORE_CODE" = "200" \
+              && grep -q 'control-center-enhance.js' "$CONTROL" \
+              && grep -q 'storefront-enhance.js' "$STORE"; then
+              curl -L --fail --silent --show-error "${CF_STOREFRONT_URL}bakery-products.json" | jq -e 'type == "array" and length > 0' >/dev/null
+              echo "Candy storefront + dual dashboards + live product catalog verified on attempt $attempt."
               exit 0
             fi
             sleep 2
           done
-          echo "::error::Candy Control Center verification failed; last HTTP $CODE"
+          echo "::error::Candy verification failed; control=$CONTROL_CODE storefront=$STORE_CODE"
           exit 1
