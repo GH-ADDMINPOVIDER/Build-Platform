@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="OGENIC AI">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#6f37b8"/><stop offset="1" stop-color="#07070b"/></radialGradient>
+    <linearGradient id="r" x1="0" x2="1"><stop stop-color="#b45cff"/><stop offset="1" stop-color="#d94696"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#g)"/>
+  <rect x="78" y="78" width="356" height="356" rx="104" fill="none" stroke="#a85bff" stroke-width="16"/>
+  <circle cx="256" cy="256" r="108" fill="none" stroke="#f4ecff" stroke-width="28"/>
+  <path d="M276 116 214 248h54l-34 148 94-184h-57z" fill="url(#r)"/>
+  <circle cx="372" cy="148" r="22" fill="#72ffb1"/>
+</svg>
