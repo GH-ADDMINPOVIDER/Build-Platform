@@ -39,12 +39,16 @@ function makeId(prefix: string) {
 export function createAppApi() {
   const api = new Hono<AppEnv>();
 
-  api.use("/api/app/*", async (c, next) => {
+  const requireProtectedAppRoute = async (c: Parameters<typeof requireOwnerSession>[0], next: () => Promise<void>) => {
     const denied = await requireOwnerSession(c);
     if (denied) return denied;
     if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
     await next();
-  });
+  };
+
+  api.use("/api/dashboard", requireProtectedAppRoute);
+  api.use("/api/tools", requireProtectedAppRoute);
+  api.use("/api/tasks", requireProtectedAppRoute);
 
   api.get("/api/dashboard", async (c) => {
     const db = c.env.DB!;
