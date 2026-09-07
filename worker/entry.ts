@@ -61,6 +61,19 @@ const engine = createWorkflowEngine({
 
 const root = new Hono<RootEnv>();
 root.route("/", createAuthApi());
+
+const ownerOnly = async (c: Parameters<typeof root.use>[1] extends infer _ ? any : never, next: () => Promise<void>) => {
+  if (!(await hasOwnerSession(c.req.raw, c.env))) {
+    return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);
+  }
+  await next();
+};
+
+// Register owner guards on the root router before mounting the v0.2 app API.
+// This keeps flattened routes protected even if sub-router path semantics change.
+root.use("/api/dashboard", ownerOnly);
+root.use("/api/tools", ownerOnly);
+root.use("/api/tasks", ownerOnly);
 root.route("/", createAppApi());
 
 root.use("/api/chat", async (c, next) => {
