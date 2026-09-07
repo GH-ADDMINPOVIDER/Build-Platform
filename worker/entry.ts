@@ -84,6 +84,12 @@ const ownerOnly = async (c: Context<RootEnv>, next: Next) => {
   await next();
 };
 
+function requireDb(env: RootBindings) {
+  const db = env.DB;
+  if (!db) throw new Error("CONFIGURATION_REQUIRED:D1");
+  return db;
+}
+
 function utf8Bytes(value: string) {
   return new TextEncoder().encode(value).byteLength;
 }
@@ -98,16 +104,18 @@ function clipUtf8(value: string, maxBytes: number) {
 }
 
 async function ensureSameMindConversation(env: RootBindings) {
+  const db = requireDb(env);
   const now = Date.now();
-  await env.DB.prepare(
+  await db.prepare(
     `INSERT OR IGNORE INTO chat_conversations (id, owner_id, title, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?)`,
   ).bind(SAME_MIND_CONVERSATION_ID, SAME_MIND_OWNER_ID, "OGENIC SAME MIND", now, now).run();
 }
 
 async function readSameMindHistory(env: RootBindings, limit = 24) {
+  const db = requireDb(env);
   await ensureSameMindConversation(env);
-  const result = await env.DB.prepare(
+  const result = await db.prepare(
     `SELECT id, role, content, model, run_id, created_at
      FROM chat_messages
      WHERE conversation_id = ?
@@ -122,9 +130,10 @@ async function saveSameMindMessage(
   env: RootBindings,
   message: { id: string; role: ChatHistoryRow["role"]; content: string; model?: string | null; runId?: string | null },
 ) {
+  const db = requireDb(env);
   const now = Date.now();
   await ensureSameMindConversation(env);
-  await env.DB.prepare(
+  await db.prepare(
     `INSERT OR IGNORE INTO chat_messages (id, conversation_id, role, content, model, run_id, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
@@ -136,7 +145,7 @@ async function saveSameMindMessage(
     message.runId ?? null,
     now,
   ).run();
-  await env.DB.prepare("UPDATE chat_conversations SET updated_at = ? WHERE id = ?")
+  await db.prepare("UPDATE chat_conversations SET updated_at = ? WHERE id = ?")
     .bind(now, SAME_MIND_CONVERSATION_ID)
     .run();
 }
