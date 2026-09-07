@@ -8,6 +8,10 @@ on:
         required: true
         type: boolean
         default: false
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".appstore/release.request"
 
 permissions:
   contents: read
@@ -161,7 +165,7 @@ jobs:
             --apiIssuer "$APPSTORE_CONNECT_ISSUER_ID"
 
       - name: Upload build to App Store Connect
-        if: ${{ inputs.upload }}
+        if: ${{ github.event_name == 'push' || inputs.upload }}
         shell: bash
         run: |
           set -euo pipefail
