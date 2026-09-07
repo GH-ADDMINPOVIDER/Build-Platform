@@ -61,7 +61,8 @@ const root = new Hono<RootEnv>();
 // Thin UI facade over the durable workflow engine. Auth, D1 metering, GM cap guard,
 // immutable workflow pinning and runtime credentials all stay inside the existing engine path.
 root.post("/api/chat", async (c) => {
-  const body = await c.req.json<{ prompt?: unknown; mode?: unknown }>().catch(() => ({}));
+  const body = await c.req.json<{ prompt?: unknown; mode?: unknown }>()
+    .catch(() => ({ prompt: undefined, mode: undefined }));
   const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
   const requestedMode = typeof body.mode === "string" ? body.mode.toLowerCase() : "balanced";
   const mode = requestedMode === "fast" || requestedMode === "power" || requestedMode === "balanced" ? requestedMode : "balanced";
