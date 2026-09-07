@@ -270,8 +270,9 @@ export function createOpenAIGenerateAdapter(env: WorkflowBindings): Adapter {
     uses: "openai.generate@1",
     kind: "agent",
     sideEffect: "read",
-    retrySafety: "safe",
-    reconciliationSupport: true,
+    // Responses API idempotent-replay/reconciliation is not assumed here. Ambiguous network failures must not auto-retry and risk duplicate token spend.
+    retrySafety: "unsafe",
+    reconciliationSupport: false,
     execute: (input, context) => invokeOpenAI(env, context, input, "chat"),
   };
 }
@@ -281,8 +282,9 @@ export function createCodexPatchAdapter(env: WorkflowBindings): Adapter {
     uses: "codex.patch@1",
     kind: "agent",
     sideEffect: "read",
-    retrySafety: "safe",
-    reconciliationSupport: true,
+    // Same conservative rule for Codex until a provider-supported reconciliation contract is explicit.
+    retrySafety: "unsafe",
+    reconciliationSupport: false,
     execute: (input, context) => invokeOpenAI(env, context, input, "codex", "codex"),
   };
 }
