@@ -121,6 +121,14 @@ jobs:
           set -euo pipefail
           printf '%s' "$OPENAI_API_KEY" | npx wrangler secret put OPENAI_API_KEY --name "$WORKER_NAME"
           printf '%s' "$OGENIC_OPS_KEY" | npx wrangler secret put OGENIC_OPS_KEY --name "$WORKER_NAME"
+          for key in GITHUB_TOKEN LINEAR_API_KEY N8N_API_KEY N8N_BASE_URL; do
+            if test -n "${!key:-}"; then
+              printf '%s' "${!key}" | npx wrangler secret put "$key" --name "$WORKER_NAME"
+              echo "Bound optional staging adapter: $key"
+            else
+              echo "::warning::optional staging adapter binding is missing: $key"
+            fi
+          done
           echo "Protected runtime bindings updated without printing secret values."
 
       - name: Deploy staging Worker
@@ -134,3 +142,27 @@ jobs:
           echo "$BODY"
           printf '%s' "$BODY" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
           echo "Staging deploy verified: ${STAGING_URL}"
+
+      - name: Verify owner auth and v0.2 dashboard
+        shell: bash
+        run: |
+          set -euo pipefail
+          COOKIE_JAR="$(mktemp)"
+          trap 'rm -f "$COOKIE_JAR"' EXIT
+          printf '{"owner_key":%s}' "$(jq -Rn --arg value "$OGENIC_OPS_KEY" '$value')" \
+            | curl --fail --silent --show-error --cookie-jar "$COOKIE_JAR" \
+                --header 'Content-Type: application/json' --data-binary @- "${STAGING_URL}/api/auth/login" \
+            | jq -e '.ok == true and .authenticated == true and .user.role == "owner"' >/dev/null
+          DASHBOARD="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" "${STAGING_URL}/api/app/dashboard")"
+          printf '%s' "$DASHBOARD" | jq -e '
+            .ok == true and
+            .app.version == "0.2" and
+            .runtime.branch == "phase-vi-provider-incentive-metering" and
+            ([.tools[].id] | sort) == (["github", "linear", "n8n"] | sort) and
+            ([.tools[].state] | all(. == "LIVE" or . == "CONFIGURATION_REQUIRED" or . == "ERROR"))
+          ' >/dev/null
+          if printf '%s' "$DASHBOARD" | grep -Eq 'OGENIC_OPS_KEY|OPENAI_API_KEY|LINEAR_API_KEY|N8N_API_KEY|GITHUB_TOKEN'; then
+            echo "::error::dashboard response leaked a protected binding name"
+            exit 1
+          fi
+          echo "Owner auth and OGENIC AI v0.2 dashboard verified on staging."

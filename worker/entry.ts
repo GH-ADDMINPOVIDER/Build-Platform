@@ -10,13 +10,16 @@ import {
   type WorkflowPolicy,
 } from "./workflow-engine";
 import { createCodexPatchAdapter, createOpenAIGenerateAdapter } from "./openai-runtime";
+import { createAuthApi, hasOwnerSession } from "./app-auth";
+import { createAppApi, type AppBindings } from "./app-api";
 import policyConfig from "../config/workflow-engine.staging.json";
 import linearCodexDraftPr from "../workflows/linear-codex-draft-pr.v1.json";
 import openaiChat from "../workflows/openai-chat.v1.json";
 import smokeWorkflow from "../workflows/workflow-engine-smoke.v1.json";
 
-type RootEnv = { Bindings: WorkflowBindings };
-type OpenAIRuntimeBindings = WorkflowBindings & { OPENAI_API_KEY?: string };
+type RootBindings = WorkflowBindings & AppBindings & { OPENAI_API_KEY?: string };
+type RootEnv = { Bindings: RootBindings };
+type OpenAIRuntimeBindings = RootBindings;
 
 type EngineRunResponse = {
   ok?: boolean;
@@ -57,6 +60,15 @@ const engine = createWorkflowEngine({
 });
 
 const root = new Hono<RootEnv>();
+root.route("/", createAuthApi());
+root.route("/", createAppApi());
+
+root.use("/api/chat", async (c, next) => {
+  if (!(await hasOwnerSession(c.req.raw, c.env))) {
+    return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);
+  }
+  await next();
+});
 
 // Thin UI facade over the durable workflow engine. Auth, D1 metering, GM cap guard,
 // immutable workflow pinning and runtime credentials all stay inside the existing engine path.
@@ -72,7 +84,9 @@ root.post("/api/chat", async (c) => {
     return c.json({ ok: false, code: "INPUT_TOO_LARGE", message: "chat prompt exceeds staging UI limit" }, 413);
   }
 
-  const authorization = c.req.header("authorization") ?? "";
+  const opsKey = String(c.env.OGENIC_OPS_KEY ?? "").trim();
+  if (!opsKey) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OGENIC_OPS_KEY" }, 503);
+  const authorization = `Bearer ${opsKey}`;
   const triggerKey = (c.req.header("idempotency-key") ?? `ui_${crypto.randomUUID()}`).slice(0, 240);
 
   const startResponse = await engine.api.request(
@@ -144,7 +158,7 @@ root.route("/", incentiveApi);
 root.route("/", legacyApp);
 
 export default {
-  fetch(request: Request, env: WorkflowBindings, ctx: unknown) {
+  fetch(request: Request, env: RootBindings, ctx: unknown) {
     return root.fetch(request, env, ctx as never);
   },
   scheduled(_controller: unknown, env: WorkflowBindings, ctx: { waitUntil(promise: Promise<unknown>): void }) {

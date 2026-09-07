@@ -1,0 +1,172 @@
+export type LiveToolBindings = {
+  GITHUB_TOKEN?: string;
+  LINEAR_API_KEY?: string;
+  N8N_API_KEY?: string;
+  N8N_BASE_URL?: string;
+  OGENIC_GITHUB_REPO?: string;
+  OGENIC_GITHUB_BRANCH?: string;
+};
+
+export type LiveToolState = "LIVE" | "CONFIGURATION_REQUIRED" | "ERROR";
+
+export type LiveToolSnapshot = {
+  id: "github" | "linear" | "n8n";
+  label: string;
+  state: LiveToolState;
+  latency_ms: number;
+  summary: string;
+  checked_at: string;
+  records: Array<Record<string, string | number | boolean | null>>;
+};
+
+function clean(value: unknown, max = 160) {
+  return String(value ?? "").trim().slice(0, max);
+}
+
+async function requestJson(url: string, init: RequestInit) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort("timeout"), 8_000);
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+    if (!response.ok) throw new Error(`HTTP_${response.status}`);
+    return body;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function configured(id: LiveToolSnapshot["id"], label: string, started: number): LiveToolSnapshot {
+  return {
+    id,
+    label,
+    state: "CONFIGURATION_REQUIRED",
+    latency_ms: Date.now() - started,
+    summary: "Waiting for a protected runtime binding",
+    checked_at: new Date().toISOString(),
+    records: [],
+  };
+}
+
+function failed(id: LiveToolSnapshot["id"], label: string, error: unknown, started: number): LiveToolSnapshot {
+  return {
+    id,
+    label,
+    state: "ERROR",
+    latency_ms: Date.now() - started,
+    summary: clean(error instanceof Error ? error.message : error, 80) || "Adapter request failed",
+    checked_at: new Date().toISOString(),
+    records: [],
+  };
+}
+
+async function github(env: LiveToolBindings): Promise<LiveToolSnapshot> {
+  const started = Date.now();
+  const token = clean(env.GITHUB_TOKEN, 500);
+  const repository = clean(env.OGENIC_GITHUB_REPO, 180) || "Ogenicchocolate21debug/Build-Platform";
+  const branch = clean(env.OGENIC_GITHUB_BRANCH, 180) || "phase-vi-provider-incentive-metering";
+  if (!token) return configured("github", "GitHub", started);
+  try {
+    const result = await requestJson(
+      `https://api.github.com/repos/${encodeURIComponent(repository.split("/")[0] ?? "")}/${encodeURIComponent(repository.split("/")[1] ?? "")}/actions/runs?branch=${encodeURIComponent(branch)}&per_page=5`,
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "ogenic-phase-vi-staging",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      },
+    );
+    const runs = Array.isArray(result.workflow_runs) ? result.workflow_runs as Array<Record<string, unknown>> : [];
+    return {
+      id: "github",
+      label: "GitHub",
+      state: "LIVE",
+      latency_ms: Date.now() - started,
+      summary: `${runs.length} recent CI runs on staging branch`,
+      checked_at: new Date().toISOString(),
+      records: runs.slice(0, 5).map((run) => ({
+        id: clean(run.id, 80),
+        name: clean(run.name),
+        status: clean(run.status, 40),
+        conclusion: clean(run.conclusion, 40) || null,
+        url: clean(run.html_url, 300),
+      })),
+    };
+  } catch (error) {
+    return failed("github", "GitHub", error, started);
+  }
+}
+
+async function linear(env: LiveToolBindings): Promise<LiveToolSnapshot> {
+  const started = Date.now();
+  const token = clean(env.LINEAR_API_KEY, 500);
+  if (!token) return configured("linear", "Linear", started);
+  try {
+    const result = await requestJson("https://api.linear.app/graphql", {
+      method: "POST",
+      headers: { Authorization: token, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: "query OgenicDashboard { viewer { id name } issues(first: 5, orderBy: updatedAt) { nodes { id identifier title url updatedAt state { name } } } }",
+      }),
+    });
+    if (Array.isArray(result.errors) && result.errors.length) throw new Error("LINEAR_GRAPHQL_ERROR");
+    const data = (result.data ?? {}) as Record<string, unknown>;
+    const viewer = (data.viewer ?? {}) as Record<string, unknown>;
+    const issueConnection = (data.issues ?? {}) as Record<string, unknown>;
+    const issues = Array.isArray(issueConnection.nodes) ? issueConnection.nodes as Array<Record<string, unknown>> : [];
+    return {
+      id: "linear",
+      label: "Linear",
+      state: "LIVE",
+      latency_ms: Date.now() - started,
+      summary: `${issues.length} recent issues · ${clean(viewer.name, 80) || "owner"}`,
+      checked_at: new Date().toISOString(),
+      records: issues.map((issue) => ({
+        id: clean(issue.id, 80),
+        key: clean(issue.identifier, 40),
+        title: clean(issue.title),
+        status: clean((issue.state as Record<string, unknown> | undefined)?.name, 60),
+        url: clean(issue.url, 300),
+      })),
+    };
+  } catch (error) {
+    return failed("linear", "Linear", error, started);
+  }
+}
+
+async function n8n(env: LiveToolBindings): Promise<LiveToolSnapshot> {
+  const started = Date.now();
+  const token = clean(env.N8N_API_KEY, 500);
+  const configuredUrl = clean(env.N8N_BASE_URL, 500).replace(/\/$/, "");
+  if (!token || !configuredUrl) return configured("n8n", "n8n", started);
+  try {
+    const base = new URL(configuredUrl);
+    if (base.protocol !== "https:") throw new Error("N8N_BASE_URL_REQUIRES_HTTPS");
+    const result = await requestJson(`${base.origin}${base.pathname.replace(/\/$/, "")}/api/v1/workflows?limit=5`, {
+      headers: { "X-N8N-API-KEY": token, Accept: "application/json" },
+    });
+    const workflows = Array.isArray(result.data) ? result.data as Array<Record<string, unknown>> : [];
+    return {
+      id: "n8n",
+      label: "n8n",
+      state: "LIVE",
+      latency_ms: Date.now() - started,
+      summary: `${workflows.length} workflows visible to the staging adapter`,
+      checked_at: new Date().toISOString(),
+      records: workflows.map((workflow) => ({
+        id: clean(workflow.id, 80),
+        name: clean(workflow.name),
+        active: Boolean(workflow.active),
+        updated_at: clean(workflow.updatedAt, 80) || null,
+      })),
+    };
+  } catch (error) {
+    return failed("n8n", "n8n", error, started);
+  }
+}
+
+export async function readLiveTools(env: LiveToolBindings) {
+  return Promise.all([github(env), linear(env), n8n(env)]);
+}

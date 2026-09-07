@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+type View = "overview" | "chat" | "tools" | "workflows" | "tasks";
+type AuthState = "checking" | "signed_out" | "signing_in" | "ready" | "error";
+
+type Session = {
+  authenticated: boolean;
+  user: { id: string; role: "owner"; label: string } | null;
+  method?: string | null;
+};
+
 type Health = {
   ok: boolean;
   phase?: string;
@@ -9,370 +18,565 @@ type Health = {
   shared_state?: string;
 };
 
-type PoolSnapshot = {
-  id: "standard" | "high_volume" | string;
+type ToolRecord = Record<string, string | number | boolean | null>;
+type ToolSnapshot = {
+  id: "github" | "linear" | "n8n";
+  label: string;
+  state: "LIVE" | "CONFIGURATION_REQUIRED" | "ERROR";
+  latency_ms: number;
+  summary: string;
+  checked_at: string;
+  records: ToolRecord[];
+};
+
+type Task = {
+  id: string;
+  title: string;
+  capability?: string | null;
+  status: string;
+  priority: number;
+  claimed_by?: string | null;
+  source_ref?: string | null;
+  updated_at?: string | null;
+  created_at?: string | null;
+};
+
+type Workflow = { workflow_id: string; version: number; created_at: number };
+type Run = {
+  id: string;
+  workflow_id: string;
+  workflow_version: number;
+  status: string;
+  current_node_id?: string | null;
+  updated_at: number;
+};
+
+type Pool = {
+  id: string;
   label: string;
   used: number;
   cap: number | null;
   remaining: number | null;
   percent: number | null;
-  state: "NORMAL" | "WATCH" | "THROTTLE" | "CRITICAL" | "EXHAUSTED";
-  telemetry: string;
+  state: string;
 };
 
-type IncentiveSnapshot = {
-  ok: true;
-  enabled: boolean;
-  usage_tier: number | null;
-  policy_state: "ACTIVE" | "DISABLED" | "EXHAUSTED";
-  reset_at: string;
-  pools: PoolSnapshot[];
+type Dashboard = {
+  app: { name: string; version: string; phase: string };
+  runtime: { provider: string; database: string; git_sha: string; branch: string };
+  tasks: Task[];
+  task_counts: Array<{ status: string; count: number }>;
+  runs: Run[];
+  run_counts: Array<{ status: string; count: number }>;
+  workflows: Workflow[];
+  events: Array<{ id: string; task_id?: string; event_type: string; actor: string; created_at: string }>;
+  incentives: { policy_state: string; usage_tier: number | null; pools: Pool[] };
+  tools: ToolSnapshot[];
 };
 
+type ChatMessage = { id: string; role: "assistant" | "user" | "system"; text: string; meta?: string };
 type ChatMode = "fast" | "balanced" | "power";
 
-type ChatMessage = {
-  id: string;
-  role: "assistant" | "user" | "system";
-  text: string;
-  meta?: string;
-};
-
-type ChatResponse = {
-  ok?: boolean;
-  text?: string;
-  model?: string;
-  mode?: string;
-  incentive_pool?: string;
-  fallback_reason?: string | null;
-  code?: string;
-  message?: string;
-};
-
-const modelCards = [
-  { id: "luna", name: "Luna", mode: "fast" as const, pool: "high_volume", glyph: "◉", tone: "luna" },
-  { id: "terra", name: "Terra", mode: "balanced" as const, pool: "high_volume", glyph: "◆", tone: "terra" },
-  { id: "sol", name: "Sol", mode: "power" as const, pool: "standard", glyph: "☀", tone: "sol" },
-  { id: "codex", name: "Codex", pool: "standard", glyph: "</>", tone: "codex" },
-  { id: "claude", name: "Claude", pool: null, glyph: "✺", tone: "claude" },
-] as const;
-
-const defaultMessages: ChatMessage[] = [
-  {
-    id: "welcome",
-    role: "assistant",
-    text: "สวัสดีครับ! ผมคือ OGENIC AI พร้อมช่วยคุณคิด วิเคราะห์ และลงมือทำ วันนี้ให้ช่วยอะไรดีครับ?",
-    meta: "OGENIC AI · ready",
-  },
+const nav: Array<{ id: View; label: string; icon: string }> = [
+  { id: "overview", label: "Overview", icon: "⌂" },
+  { id: "chat", label: "AI Chat", icon: "✦" },
+  { id: "tools", label: "Live Tools", icon: "⌘" },
+  { id: "workflows", label: "Workflows", icon: "◇" },
+  { id: "tasks", label: "Tasks", icon: "✓" },
 ];
 
-function clampPercent(value: number | null | undefined) {
-  if (value === null || value === undefined || !Number.isFinite(value)) return 0;
-  return Math.max(0, Math.min(100, value));
+const welcome: ChatMessage[] = [{
+  id: "welcome",
+  role: "assistant",
+  text: "OGENIC AI v0.2 พร้อมแล้ว เลือกโหมดแล้วส่งงานได้เลย ระบบจะรันผ่าน workflow engine บน staging เท่านั้น",
+  meta: "Phase VI · owner session",
+}];
+
+function statusTone(status: string) {
+  if (["LIVE", "DONE", "SUCCEEDED", "ACTIVE", "NORMAL"].includes(status.toUpperCase())) return "good";
+  if (["ERROR", "FAILED", "BLOCKED", "CRITICAL", "EXHAUSTED"].includes(status.toUpperCase())) return "bad";
+  if (["RUNNING", "CLAIMED", "VERIFYING", "WAITING", "WATCH", "THROTTLE"].includes(status.toUpperCase())) return "warn";
+  return "quiet";
 }
 
-function compact(value: number | null | undefined) {
-  if (value === null || value === undefined) return "—";
-  if (value >= 1_000_000) return `${Number((value / 1_000_000).toFixed(2))}M`;
-  if (value >= 1_000) return `${Number((value / 1_000).toFixed(1))}K`;
-  return String(value);
+function readableDate(value: string | number | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(typeof value === "number" ? value : value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString([], { dateStyle: "short", timeStyle: "short" });
+}
+
+function countOf(rows: Array<{ status: string; count: number }>, statuses: string[]) {
+  const accepted = new Set(statuses.map((status) => status.toUpperCase()));
+  return rows.reduce((total, row) => total + (accepted.has(row.status.toUpperCase()) ? Number(row.count) : 0), 0);
 }
 
 export default function App() {
+  const [view, setView] = useState<View>("overview");
+  const [session, setSession] = useState<Session | null>(null);
+  const [authState, setAuthState] = useState<AuthState>("checking");
+  const [ownerKey, setOwnerKey] = useState("");
+  const [authError, setAuthError] = useState("");
   const [health, setHealth] = useState<Health | null>(null);
-  const [opsKey, setOpsKey] = useState("");
-  const [accessInput, setAccessInput] = useState("");
-  const [showAccess, setShowAccess] = useState(false);
-  const [accessState, setAccessState] = useState<"locked" | "checking" | "ready" | "error">("locked");
-  const [snapshot, setSnapshot] = useState<IncentiveSnapshot | null>(null);
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskCapability, setTaskCapability] = useState("agent_delegate");
+  const [savingTask, setSavingTask] = useState(false);
   const [mode, setMode] = useState<ChatMode>("balanced");
-  const [messages, setMessages] = useState<ChatMessage[]>(defaultMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>(welcome);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
-  const [chatStatus, setChatStatus] = useState("Terra · balanced");
-  const endRef = useRef<HTMLDivElement | null>(null);
+  const chatEnd = useRef<HTMLDivElement | null>(null);
 
   const loadHealth = useCallback(async () => {
     try {
       const response = await fetch("/api/health", { cache: "no-store" });
-      if (!response.ok) throw new Error(String(response.status));
-      setHealth(await response.json() as Health);
+      setHealth(response.ok ? await response.json() as Health : { ok: false });
     } catch {
       setHealth({ ok: false });
     }
   }, []);
 
-  const loadIncentives = useCallback(async (key: string) => {
-    const response = await fetch("/api/ops/incentives", {
-      headers: { Authorization: `Bearer ${key}` },
-      cache: "no-store",
-    });
-    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-    const next = await response.json() as IncentiveSnapshot;
-    setSnapshot(next);
-    return next;
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setLoadError("");
+    try {
+      const response = await fetch("/api/app/dashboard", { cache: "no-store", credentials: "same-origin" });
+      if (response.status === 401) {
+        setSession({ authenticated: false, user: null });
+        setAuthState("signed_out");
+        return;
+      }
+      const body = await response.json().catch(() => ({})) as Dashboard & { message?: string; code?: string };
+      if (!response.ok) throw new Error(body.message || body.code || `HTTP_${response.status}`);
+      setDashboard(body);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Dashboard unavailable");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  const checkSession = useCallback(async () => {
+    setAuthState("checking");
+    try {
+      const response = await fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" });
+      const body = await response.json() as Session;
+      setSession(body);
+      setAuthState(body.authenticated ? "ready" : "signed_out");
+      if (body.authenticated) await loadDashboard();
+    } catch {
+      setSession({ authenticated: false, user: null });
+      setAuthState("signed_out");
+    }
+  }, [loadDashboard]);
 
   useEffect(() => {
     void loadHealth();
-    const saved = sessionStorage.getItem("ogenic_ops_key")?.trim() ?? "";
-    if (saved) {
-      setOpsKey(saved);
-      setAccessInput(saved);
-      setAccessState("checking");
-      void loadIncentives(saved)
-        .then(() => setAccessState("ready"))
-        .catch(() => {
-          sessionStorage.removeItem("ogenic_ops_key");
-          setOpsKey("");
-          setAccessInput("");
-          setAccessState("locked");
-        });
-    }
-  }, [loadHealth, loadIncentives]);
+    void checkSession();
+  }, [checkSession, loadHealth]);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages, sending]);
 
-  const pools = useMemo(
-    () => new Map((snapshot?.pools ?? []).map((pool) => [pool.id, pool])),
-    [snapshot],
-  );
-
-  const unlock = async () => {
-    const key = accessInput.trim();
+  const signIn = async () => {
+    const key = ownerKey.trim();
     if (!key) return;
-    setAccessState("checking");
+    setAuthState("signing_in");
+    setAuthError("");
     try {
-      await loadIncentives(key);
-      sessionStorage.setItem("ogenic_ops_key", key);
-      setOpsKey(key);
-      setAccessState("ready");
-      setShowAccess(false);
-      setChatStatus("GM Ops unlocked · ready to chat");
-    } catch {
-      setAccessState("error");
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ owner_key: key }),
+      });
+      const body = await response.json().catch(() => ({})) as Session & { message?: string; code?: string };
+      setOwnerKey("");
+      if (!response.ok || !body.authenticated) throw new Error(body.message || body.code || "Sign in failed");
+      setSession(body);
+      setAuthState("ready");
+      await loadDashboard();
+    } catch (error) {
+      setOwnerKey("");
+      setAuthState("error");
+      setAuthError(error instanceof Error ? error.message : "Sign in failed");
     }
   };
 
-  const lock = () => {
-    sessionStorage.removeItem("ogenic_ops_key");
-    setOpsKey("");
-    setAccessInput("");
-    setSnapshot(null);
-    setAccessState("locked");
-    setChatStatus("Ops locked");
+  const signOut = async () => {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
+    setDashboard(null);
+    setSession({ authenticated: false, user: null });
+    setAuthState("signed_out");
+  };
+
+  const refreshTools = async () => {
+    setLoading(true);
+    setLoadError("");
+    try {
+      const response = await fetch("/api/app/tools", { cache: "no-store", credentials: "same-origin" });
+      const body = await response.json() as { tools?: ToolSnapshot[]; code?: string };
+      if (!response.ok || !body.tools) throw new Error(body.code || `HTTP_${response.status}`);
+      setDashboard((current) => current ? { ...current, tools: body.tools! } : current);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Tool refresh failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createTask = async () => {
+    const title = taskTitle.trim();
+    if (!title || savingTask) return;
+    setSavingTask(true);
+    setLoadError("");
+    try {
+      const response = await fetch("/api/app/tasks", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, capability: taskCapability, priority: 60 }),
+      });
+      const body = await response.json().catch(() => ({})) as { task?: Task; code?: string };
+      if (!response.ok || !body.task) throw new Error(body.code || `HTTP_${response.status}`);
+      setTaskTitle("");
+      await loadDashboard();
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Task creation failed");
+    } finally {
+      setSavingTask(false);
+    }
   };
 
   const sendMessage = async () => {
     const prompt = draft.trim();
     if (!prompt || sending) return;
-    if (!opsKey) {
-      setShowAccess(true);
-      setChatStatus("Unlock Ops once to enable live AI chat");
-      return;
-    }
-
-    const userMessage: ChatMessage = {
+    setMessages((current) => [...current, {
       id: `u_${crypto.randomUUID()}`,
       role: "user",
       text: prompt,
       meta: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-    setMessages((current) => [...current, userMessage]);
+    }]);
     setDraft("");
     setSending(true);
-    setChatStatus(`${mode.toUpperCase()} · thinking…`);
-
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${opsKey}`,
-          "Content-Type": "application/json",
-          "Idempotency-Key": `ui_${crypto.randomUUID()}`,
-        },
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": `ui_${crypto.randomUUID()}` },
         body: JSON.stringify({ prompt, mode }),
       });
-      const body = await response.json().catch(() => ({})) as ChatResponse;
-      if (!response.ok || !body.ok || !body.text) {
-        throw new Error(body.message || body.code || `${response.status} ${response.statusText}`);
-      }
-      setMessages((current) => [
-        ...current,
-        {
-          id: `a_${crypto.randomUUID()}`,
-          role: "assistant",
-          text: body.text!,
-          meta: `${body.model ?? "OGENIC AI"}${body.incentive_pool ? ` · ${body.incentive_pool}` : ""}`,
-        },
-      ]);
-      setChatStatus(`${body.model ?? "OGENIC AI"} · ready`);
-      void loadIncentives(opsKey).catch(() => undefined);
+      const body = await response.json().catch(() => ({})) as {
+        ok?: boolean; text?: string; model?: string; incentive_pool?: string; code?: string; message?: string;
+      };
+      if (!response.ok || !body.ok || !body.text) throw new Error(body.message || body.code || `HTTP_${response.status}`);
+      setMessages((current) => [...current, {
+        id: `a_${crypto.randomUUID()}`,
+        role: "assistant",
+        text: body.text!,
+        meta: `${body.model ?? "OGENIC AI"}${body.incentive_pool ? ` · ${body.incentive_pool}` : ""}`,
+      }]);
+      void loadDashboard();
     } catch (error) {
-      setMessages((current) => [
-        ...current,
-        {
-          id: `e_${crypto.randomUUID()}`,
-          role: "system",
-          text: `ส่งไม่สำเร็จ: ${(error as Error).message}`,
-          meta: "Runtime",
-        },
-      ]);
-      setChatStatus("Runtime needs attention");
+      setMessages((current) => [...current, {
+        id: `e_${crypto.randomUUID()}`,
+        role: "system",
+        text: error instanceof Error ? error.message : "AI request failed",
+        meta: "Runtime",
+      }]);
     } finally {
       setSending(false);
     }
   };
 
-  const chooseMode = (next: ChatMode) => {
-    setMode(next);
-    setChatStatus(`${next === "fast" ? "Luna" : next === "power" ? "Sol" : "Terra"} · ${next}`);
-  };
+  const taskOpen = useMemo(
+    () => countOf(dashboard?.task_counts ?? [], ["QUEUED", "CLAIMED", "RUNNING", "VERIFYING"]),
+    [dashboard],
+  );
+  const runsActive = useMemo(
+    () => countOf(dashboard?.run_counts ?? [], ["queued", "running", "waiting"]),
+    [dashboard],
+  );
+  const liveTools = dashboard?.tools.filter((tool) => tool.state === "LIVE").length ?? 0;
 
-  const scrollToChat = () => document.getElementById("ogenic-chat")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (authState !== "ready" || !session?.authenticated) {
+    return (
+      <main className="authShell">
+        <section className="authCard">
+          <div className="brand">
+            <span className="brandMark" aria-hidden="true"><i /></span>
+            <div><strong>OGENIC AI</strong><small>PHASE VI · v0.2 STAGING</small></div>
+          </div>
+          <div className="authCopy">
+            <span className="eyebrow">OWNER-ONLY CONTROL PLANE</span>
+            <h1>Your AI operations, in one live workspace.</h1>
+            <p>เข้าสู่ระบบเพื่อเปิด Live Tools, Workflow Engine และ Task Dashboard โดยคีย์จะถูกตรวจสอบที่ Worker และไม่ถูกบันทึกใน browser storage</p>
+          </div>
+          <label className="fieldLabel" htmlFor="owner-key">Owner access key</label>
+          <div className="authForm">
+            <input
+              id="owner-key"
+              type="password"
+              value={ownerKey}
+              onChange={(event) => setOwnerKey(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") void signIn(); }}
+              placeholder="Enter access key"
+              autoComplete="current-password"
+              disabled={authState === "checking" || authState === "signing_in"}
+            />
+            <button onClick={() => void signIn()} disabled={!ownerKey.trim() || authState === "signing_in"}>
+              {authState === "checking" ? "Checking…" : authState === "signing_in" ? "Signing in…" : "Enter OGENIC"}
+            </button>
+          </div>
+          {authError && <p className="formError">{authError}</p>}
+          <div className="authFacts">
+            <span><i className={health?.ok ? "dot goodDot" : "dot"} /> Worker {health?.ok ? "online" : "checking"}</span>
+            <span>D1 {health?.database ?? "checking"}</span>
+            <span>No frontend secrets</span>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
-    <main className="siteShell">
-      <nav className="topNav">
-        <div className="brandLockup">
+    <main className="appShell">
+      <aside className="sideNav">
+        <div className="brand compactBrand">
           <span className="brandMark" aria-hidden="true"><i /></span>
-          <span><strong>OGENIC CORE</strong><small>AUTOMATE A HIGHER TOMORROW</small></span>
+          <div><strong>OGENIC AI</strong><small>v0.2 · STAGING</small></div>
         </div>
-        <div className="navActions">
-          <button className={`startButton ${accessState === "ready" ? "ready" : ""}`} onClick={() => setShowAccess((value) => !value)}>
-            {accessState === "ready" ? "OPS READY" : "เริ่มใช้งาน"}
-          </button>
-          <button className="menuButton" aria-label="Menu"><span /><span /><span /></button>
+        <nav aria-label="Primary navigation">
+          {nav.map((item) => (
+            <button
+              key={item.id}
+              className={view === item.id ? "active" : ""}
+              onClick={() => setView(item.id)}
+              aria-current={view === item.id ? "page" : undefined}
+            >
+              <span>{item.icon}</span>{item.label}
+            </button>
+          ))}
+        </nav>
+        <div className="sideFoot">
+          <span className="sessionPill"><i className="dot goodDot" /> Owner session</span>
+          <button onClick={() => void signOut()}>Sign out</button>
         </div>
-      </nav>
+      </aside>
 
-      {showAccess && (
-        <section className="accessBar" aria-label="Protected access">
+      <section className="workspace">
+        <header className="workspaceHeader">
           <div>
-            <p>PROTECTED OPS SESSION</p>
-            <strong>Unlock once for live AI + GM metering</strong>
+            <span className="eyebrow">OGENIC CONTROL PLANE</span>
+            <h1>{nav.find((item) => item.id === view)?.label}</h1>
           </div>
-          <div className="accessControls">
-            <input
-              type="password"
-              value={accessInput}
-              onChange={(event) => setAccessInput(event.target.value)}
-              onKeyDown={(event) => { if (event.key === "Enter") void unlock(); }}
-              placeholder="OGENIC_OPS_KEY"
-              autoComplete="off"
-            />
-            <button onClick={() => void unlock()} disabled={accessState === "checking"}>{accessState === "checking" ? "Checking…" : "Unlock"}</button>
-            {accessState === "ready" && <button className="quietButton" onClick={lock}>Lock</button>}
+          <div className="headerActions">
+            <span className="stagingPill">STAGING ONLY</span>
+            <button className="refreshButton" onClick={() => void loadDashboard()} disabled={loading}>
+              {loading ? "Syncing…" : "↻ Sync"}
+            </button>
           </div>
-          {accessState === "error" && <small>Key ไม่ผ่าน หรือ Worker binding ยังไม่พร้อม</small>}
-        </section>
-      )}
-
-      <section className="heroStage">
-        <div className="heroGlow" aria-hidden="true" />
-        <div className="heroPill"><span />AI-POWERED BUSINESS OPERATING SYSTEM</div>
-        <h1>OGENIC AI — <em>CHAT</em></h1>
-        <h2>แชท • สร้างเวิร์กโฟลว์ • ใช้เครื่องมือธุรกิจ ครบจบในที่เดียว</h2>
-        <p>ผสานพลังของ AI, Automation และ Business Tools เพื่อให้คุณทำงานได้เร็วขึ้น ฉลาดขึ้น และไปได้ไกลกว่าเดิม</p>
-        <div className="heroButtons">
-          <button className="heroPrimary" onClick={scrollToChat}>เริ่มสัมผัส OGENIC AI <span>→</span></button>
-          <button className="heroSecondary" onClick={scrollToChat}><span>▶</span> ดูตัวอย่าง</button>
-        </div>
-      </section>
-
-      <section className="chatCard" id="ogenic-chat">
-        <header className="chatHeader">
-          <div className="chatIdentity">
-            <span className="miniMark"><i /></span>
-            <div><strong>OGENIC AI — CHAT</strong><small>YOUR AI TEAM, ALWAYS ON.</small></div>
-          </div>
-          <span className={`gmBadge ${snapshot?.policy_state === "ACTIVE" ? "on" : ""}`}><b>ϟ</b> GM BUFF <i /></span>
         </header>
 
-        <div className="chatStream">
-          {messages.map((message) => (
-            <div className={`messageRow ${message.role}`} key={message.id}>
-              {message.role === "assistant" && <span className="avatarMark"><i /></span>}
-              <div className="messageWrap">
-                <div className="bubble">{message.text}</div>
-                {message.meta && <small>{message.meta}</small>}
+        {loadError && <div className="notice badNotice">{loadError}</div>}
+
+        {view === "overview" && (
+          <>
+            <section className="metricGrid">
+              <article><span>Runtime</span><strong>{health?.ok ? "Online" : "Checking"}</strong><small>Cloudflare Worker · D1</small></article>
+              <article><span>Live tools</span><strong>{liveTools}/3</strong><small>GitHub · Linear · n8n</small></article>
+              <article><span>Active runs</span><strong>{runsActive}</strong><small>{dashboard?.workflows.length ?? 0} immutable workflows</small></article>
+              <article><span>Open tasks</span><strong>{taskOpen}</strong><small>Shared agent queue</small></article>
+            </section>
+
+            <section className="twoColumn">
+              <article className="panel">
+                <div className="panelHead"><div><span className="eyebrow">PROVIDERS</span><h2>Live tools</h2></div><button onClick={() => setView("tools")}>Open tools →</button></div>
+                <div className="toolList compactList">
+                  {(dashboard?.tools ?? []).map((tool) => (
+                    <div className="toolRow" key={tool.id}>
+                      <span className="toolIcon">{tool.id === "github" ? "GH" : tool.id === "linear" ? "LI" : "N8"}</span>
+                      <div><strong>{tool.label}</strong><small>{tool.summary}</small></div>
+                      <span className={`status ${statusTone(tool.state)}`}>{tool.state}</span>
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className="panel">
+                <div className="panelHead"><div><span className="eyebrow">EXECUTION</span><h2>Recent workflow runs</h2></div><button onClick={() => setView("workflows")}>All runs →</button></div>
+                <div className="runList">
+                  {(dashboard?.runs ?? []).slice(0, 6).map((run) => (
+                    <div className="dataRow" key={run.id}>
+                      <div><strong>{run.workflow_id}</strong><small>{run.current_node_id ?? `version ${run.workflow_version}`}</small></div>
+                      <span className={`status ${statusTone(run.status)}`}>{run.status}</span>
+                    </div>
+                  ))}
+                  {!dashboard?.runs.length && <div className="emptyState">No runs yet. Start with AI Chat or a workflow trigger.</div>}
+                </div>
+              </article>
+            </section>
+
+            <section className="panel">
+              <div className="panelHead"><div><span className="eyebrow">GM METERING</span><h2>Provider incentive pools</h2></div><span className={`status ${statusTone(dashboard?.incentives.policy_state ?? "")}`}>{dashboard?.incentives.policy_state ?? "LOADING"}</span></div>
+              <div className="meterGrid">
+                {(dashboard?.incentives.pools ?? []).map((pool) => {
+                  const percent = Math.max(0, Math.min(100, pool.percent ?? 0));
+                  return (
+                    <div className="meterCard" key={pool.id}>
+                      <div><strong>{pool.label}</strong><span>{pool.remaining ?? "—"} remaining</span></div>
+                      <div className="meter"><i style={{ width: `${Math.max(2, percent)}%` }} /></div>
+                      <small>{pool.used} used · {pool.cap ?? "cap pending"} · {pool.state}</small>
+                    </div>
+                  );
+                })}
               </div>
-              {message.role === "user" && <span className="userAvatar">●</span>}
+            </section>
+          </>
+        )}
+
+        {view === "chat" && (
+          <section className="chatPanel panel">
+            <div className="panelHead chatPanelHead">
+              <div><span className="eyebrow">LIVE WORKFLOW CHAT</span><h2>OGENIC AI</h2></div>
+              <div className="modeSwitch" aria-label="AI mode">
+                {(["fast", "balanced", "power"] as ChatMode[]).map((item) => (
+                  <button key={item} className={mode === item ? "active" : ""} onClick={() => setMode(item)}>{item}</button>
+                ))}
+              </div>
             </div>
-          ))}
-          {sending && (
-            <div className="messageRow assistant">
-              <span className="avatarMark"><i /></span>
-              <div className="typingBubble"><span /><span /><span /></div>
+            <div className="chatStream">
+              {messages.map((message) => (
+                <div className={`message ${message.role}`} key={message.id}>
+                  <div>{message.text}</div>
+                  {message.meta && <small>{message.meta}</small>}
+                </div>
+              ))}
+              {sending && <div className="message assistant typing">Working through the durable engine…</div>}
+              <div ref={chatEnd} />
             </div>
-          )}
-          <div ref={endRef} />
-        </div>
+            <div className="composer">
+              <textarea
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void sendMessage();
+                  }
+                }}
+                placeholder="สั่งงาน OGENIC AI…"
+                rows={2}
+              />
+              <button onClick={() => void sendMessage()} disabled={!draft.trim() || sending}>Send</button>
+            </div>
+          </section>
+        )}
 
-        <div className="composer">
-          <button className="attachButton" aria-label="Attach">⌕</button>
-          <textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                void sendMessage();
-              }
-            }}
-            placeholder="พิมพ์คำสั่งงานที่นี่…"
-            rows={1}
-          />
-          <button className="sendButton" onClick={() => void sendMessage()} disabled={!draft.trim() || sending} aria-label="Send">➤</button>
-        </div>
-        <div className="composerHint"><span>✦</span>{chatStatus} · Enter ส่ง / Shift+Enter ขึ้นบรรทัดใหม่</div>
+        {view === "tools" && (
+          <section className="panel">
+            <div className="panelHead">
+              <div><span className="eyebrow">SERVER-SIDE ADAPTERS</span><h2>Live Tools</h2></div>
+              <button className="primarySmall" onClick={() => void refreshTools()} disabled={loading}>Refresh all</button>
+            </div>
+            <p className="panelIntro">Credentials stay inside the Worker runtime. The browser receives only sanitized status and records.</p>
+            <div className="toolCards">
+              {(dashboard?.tools ?? []).map((tool) => (
+                <article className="toolCard" key={tool.id}>
+                  <div className="toolCardTop">
+                    <span className="toolIcon large">{tool.id === "github" ? "GH" : tool.id === "linear" ? "LI" : "N8"}</span>
+                    <div><strong>{tool.label}</strong><small>{tool.latency_ms} ms · {readableDate(tool.checked_at)}</small></div>
+                    <span className={`status ${statusTone(tool.state)}`}>{tool.state}</span>
+                  </div>
+                  <p>{tool.summary}</p>
+                  <div className="recordList">
+                    {tool.records.slice(0, 5).map((record, index) => (
+                      <div className="recordRow" key={String(record.id ?? index)}>
+                        <strong>{String(record.name ?? record.title ?? record.key ?? record.id ?? "Record")}</strong>
+                        <small>{String(record.status ?? record.conclusion ?? (record.active === true ? "active" : record.active === false ? "inactive" : ""))}</small>
+                      </div>
+                    ))}
+                    {!tool.records.length && <div className="emptyState">No live records returned.</div>}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {view === "workflows" && (
+          <section className="twoColumn workflowLayout">
+            <article className="panel">
+              <div className="panelHead"><div><span className="eyebrow">VERSIONED DEFINITIONS</span><h2>Workflows</h2></div><span>{dashboard?.workflows.length ?? 0}</span></div>
+              <div className="dataList">
+                {(dashboard?.workflows ?? []).map((workflow) => (
+                  <div className="dataRow" key={workflow.workflow_id}>
+                    <div><strong>{workflow.workflow_id}</strong><small>Immutable version pinned in D1</small></div>
+                    <span className="versionPill">v{workflow.version}</span>
+                  </div>
+                ))}
+              </div>
+            </article>
+            <article className="panel">
+              <div className="panelHead"><div><span className="eyebrow">DURABLE EXECUTION</span><h2>Runs</h2></div><span>{dashboard?.runs.length ?? 0}</span></div>
+              <div className="dataList">
+                {(dashboard?.runs ?? []).map((run) => (
+                  <div className="dataRow runDetail" key={run.id}>
+                    <div><strong>{run.workflow_id}</strong><small>{run.id} · {run.current_node_id ?? "complete"} · {readableDate(run.updated_at)}</small></div>
+                    <span className={`status ${statusTone(run.status)}`}>{run.status}</span>
+                  </div>
+                ))}
+                {!dashboard?.runs.length && <div className="emptyState">No workflow runs in D1.</div>}
+              </div>
+            </article>
+          </section>
+        )}
+
+        {view === "tasks" && (
+          <section className="twoColumn taskLayout">
+            <article className="panel taskCreate">
+              <div><span className="eyebrow">OWNER ACTION</span><h2>Create task</h2></div>
+              <label className="fieldLabel" htmlFor="task-title">Task</label>
+              <textarea id="task-title" value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} placeholder="งานที่ต้องการให้ agent รับไปทำ" rows={4} />
+              <label className="fieldLabel" htmlFor="task-capability">Capability</label>
+              <select id="task-capability" value={taskCapability} onChange={(event) => setTaskCapability(event.target.value)}>
+                <option value="agent_delegate">Agent delegate</option>
+                <option value="workflow_run">Workflow run</option>
+                <option value="code_search">GitHub / code</option>
+                <option value="deploy_preview">Staging deploy</option>
+                <option value="runtime_verify">Runtime verify</option>
+              </select>
+              <button className="primaryButton" onClick={() => void createTask()} disabled={!taskTitle.trim() || savingTask}>
+                {savingTask ? "Creating…" : "Add to D1 queue"}
+              </button>
+            </article>
+            <article className="panel">
+              <div className="panelHead"><div><span className="eyebrow">SHARED AGENT STATE</span><h2>Task dashboard</h2></div><span>{dashboard?.tasks.length ?? 0}</span></div>
+              <div className="dataList taskList">
+                {(dashboard?.tasks ?? []).map((task) => (
+                  <div className="taskRow" key={task.id}>
+                    <div className="priority">{task.priority}</div>
+                    <div><strong>{task.title}</strong><small>{task.capability ?? "unassigned"} · {task.claimed_by ?? "queue"} · {readableDate(task.updated_at)}</small></div>
+                    <span className={`status ${statusTone(task.status)}`}>{task.status}</span>
+                  </div>
+                ))}
+                {!dashboard?.tasks.length && <div className="emptyState">No agent tasks in D1.</div>}
+              </div>
+            </article>
+          </section>
+        )}
+
+        <footer className="workspaceFooter">
+          <span><i className={`dot ${health?.ok ? "goodDot" : ""}`} /> {health?.runtime ?? "Cloudflare"} · {health?.shared_state ?? health?.database ?? "D1"}</span>
+          <span>{dashboard?.runtime.branch}</span>
+          <span>{dashboard?.runtime.git_sha.slice(0, 8)}</span>
+        </footer>
       </section>
-
-      <section className="modelStrip" aria-label="Model and limit meters">
-        {modelCards.map((card) => {
-          const pool = card.pool ? pools.get(card.pool) : undefined;
-          const percent = clampPercent(pool?.percent);
-          const interactive = "mode" in card;
-          const active = interactive && card.mode === mode;
-          return (
-            <button
-              key={card.id}
-              className={`modelCard ${card.tone} ${active ? "selected" : ""}`}
-              onClick={() => interactive && chooseMode(card.mode)}
-              disabled={!interactive}
-              type="button"
-            >
-              <div className="modelTop"><span className="modelGlyph">{card.glyph}</span><strong>{card.name}</strong><small>{card.pool ? (snapshot ? `${percent.toFixed(1)}%` : "LOCK") : "REVIEW"}</small></div>
-              <div className="tinyMeter"><span style={{ width: card.pool && snapshot ? `${Math.max(3, percent)}%` : "18%" }} /></div>
-              <div className="modelMeta">{pool ? `${compact(pool.remaining)} left` : card.id === "claude" ? "review lane" : "builder lane"}</div>
-            </button>
-          );
-        })}
-      </section>
-
-      <section className="statusGrid">
-        <article><span className="statusIcon">⌘</span><div><strong>Workflow Engine</strong><small>Phase VI · ACTIVE</small></div><i className="liveDot" /></article>
-        <article><span className="statusIcon">◎</span><div><strong>Agent Fabric</strong><small>4 execution lanes</small></div><i className="liveDot" /></article>
-        <article><span className="statusIcon">⌁</span><div><strong>API Health</strong><small>{health?.ok ? "ONLINE" : "CHECKING"}</small></div><i className={`liveDot ${health?.ok ? "" : "dim"}`} /></article>
-        <article><span className="statusIcon">♛</span><div><strong>Usage Tier {snapshot?.usage_tier ?? 1}</strong><small>{snapshot?.policy_state ?? "GM policy"}</small></div></article>
-      </section>
-
-      <details className="systemDetails">
-        <summary>System console</summary>
-        <div className="detailGrid">
-          <div><span>Runtime</span><strong>{health?.runtime ?? "Cloudflare"}</strong></div>
-          <div><span>Shared state</span><strong>{health?.shared_state ?? health?.database ?? "D1"}</strong></div>
-          <div><span>GM policy</span><strong>{snapshot?.policy_state ?? "LOCKED"}</strong></div>
-          <div><span>Session</span><strong>{accessState.toUpperCase()}</strong></div>
-        </div>
-      </details>
-
-      <footer className="brandFooter">
-        <strong>UNIFIED. INTELLIGENT. YOURS.</strong>
-        <span>ทุกเครื่องมือที่คุณต้องการ เพื่อธุรกิจที่ก้าวไกลกว่า</span>
-      </footer>
     </main>
   );
 }
+

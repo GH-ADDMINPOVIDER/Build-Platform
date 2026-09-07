@@ -11,7 +11,9 @@
   },
   "vars": {
     "OGENIC_PHASE": "VI",
-    "OGENIC_RUNTIME": "cloudflare"
+    "OGENIC_RUNTIME": "cloudflare",
+    "OGENIC_GITHUB_REPO": "Ogenicchocolate21debug/Build-Platform",
+    "OGENIC_GITHUB_BRANCH": "phase-vi-provider-incentive-metering"
   },
   "d1_databases": []
 }

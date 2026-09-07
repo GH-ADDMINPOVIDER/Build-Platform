@@ -190,6 +190,7 @@ app.get("/api/health", (c) =>
     ok: true,
     phase: c.env.OGENIC_PHASE ?? "VI",
     runtime: c.env.OGENIC_RUNTIME ?? "cloudflare",
+    app_version: "0.2",
     database: c.env.DB ? "BOUND" : "UNBOUND",
     toolkit: "OGENIC CORE",
     toolkit_count: 1,
@@ -197,6 +198,7 @@ app.get("/api/health", (c) =>
     operator_harness: "Harness—Ammonite-OC-Ops",
     shared_state: c.env.DB ? "D1_BOUND" : "UNBOUND",
     ops_api_auth: c.env.OGENIC_OPS_KEY ? "BOUND" : "CONFIGURATION_REQUIRED",
+    user_auth: c.env.OGENIC_OPS_KEY ? "HTTP_ONLY_OWNER_SESSION" : "CONFIGURATION_REQUIRED",
   }),
 );
 
