@@ -1,5 +1,5 @@
-const CACHE = "ogenic-ai-shell-v1";
-const SHELL = ["/", "/manifest.webmanifest", "/ogenic-icon-192.png", "/ogenic-icon-512.png", "/ogenic-icon-1024.png"];
+const CACHE = "ogenic-ai-shell-v2";
+const SHELL = ["/", "/manifest.webmanifest", "/ogenic-icon-180.png", "/ogenic-icon-192.png", "/ogenic-icon-512.png"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
