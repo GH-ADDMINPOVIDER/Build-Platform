@@ -151,9 +151,9 @@ jobs:
           trap 'rm -f "$COOKIE_JAR"' EXIT
           printf '{"owner_key":%s}' "$(jq -Rn --arg value "$OGENIC_OPS_KEY" '$value')" \
             | curl --fail --silent --show-error --cookie-jar "$COOKIE_JAR" \
-                --header 'Content-Type: application/json' --data-binary @- "${STAGING_URL}/api/owner/login" \
+                --header 'Content-Type: application/json' --data-binary @- "${STAGING_URL}/api/session" \
             | jq -e '.ok == true and .authenticated == true and .user.role == "owner"' >/dev/null
-          DASHBOARD="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" "${STAGING_URL}/api/app/dashboard")"
+          DASHBOARD="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" "${STAGING_URL}/api/dashboard")"
           printf '%s' "$DASHBOARD" | jq -e '
             .ok == true and
             .app.version == "0.2" and

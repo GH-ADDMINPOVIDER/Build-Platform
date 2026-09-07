@@ -46,7 +46,7 @@ export function createAppApi() {
     await next();
   });
 
-  api.get("/api/app/dashboard", async (c) => {
+  api.get("/api/dashboard", async (c) => {
     const db = c.env.DB!;
     const [tasks, taskCounts, runs, runCounts, versions, events, incentives, tools] = await Promise.all([
       db.prepare(
@@ -87,9 +87,9 @@ export function createAppApi() {
     }, 200, { "Cache-Control": "no-store" });
   });
 
-  api.get("/api/app/tools", async (c) => c.json({ ok: true, tools: await readLiveTools(c.env) }, 200, { "Cache-Control": "no-store" }));
+  api.get("/api/tools", async (c) => c.json({ ok: true, tools: await readLiveTools(c.env) }, 200, { "Cache-Control": "no-store" }));
 
-  api.post("/api/app/tasks", async (c) => {
+  api.post("/api/tasks", async (c) => {
     const body = await c.req.json<TaskCreate>().catch(() => ({} as TaskCreate));
     const title = clean(body.title, 160);
     if (!title) return c.json({ ok: false, code: "INVALID_REQUEST", message: "title is required" }, 400);

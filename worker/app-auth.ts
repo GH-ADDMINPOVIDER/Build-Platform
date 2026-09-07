@@ -104,7 +104,7 @@ function sameOrigin(request: Request) {
 export function createAuthApi() {
   const api = new Hono<AuthEnv>();
 
-  api.get("/api/owner/session", async (c) => {
+  api.get("/api/session", async (c) => {
     const authenticated = await hasOwnerSession(c.req.raw, c.env);
     return c.json({
       ok: true,
@@ -114,7 +114,7 @@ export function createAuthApi() {
     }, 200, { "Cache-Control": "no-store" });
   });
 
-  api.post("/api/owner/login", async (c) => {
+  api.post("/api/session", async (c) => {
     if (!sameOrigin(c.req.raw)) return c.json({ ok: false, code: "ORIGIN_DENIED" }, 403);
     const configured = String(c.env.OGENIC_OPS_KEY ?? "").trim();
     if (!configured) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OGENIC_OPS_KEY" }, 503);
@@ -134,7 +134,7 @@ export function createAuthApi() {
     );
   });
 
-  api.post("/api/owner/logout", (c) => c.json(
+  api.delete("/api/session", (c) => c.json(
     { ok: true, authenticated: false },
     200,
     {

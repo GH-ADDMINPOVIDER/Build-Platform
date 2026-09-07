@@ -143,7 +143,7 @@ export default function App() {
     setLoading(true);
     setLoadError("");
     try {
-      const response = await fetch("/api/app/dashboard", { cache: "no-store", credentials: "same-origin" });
+      const response = await fetch("/api/dashboard", { cache: "no-store", credentials: "same-origin" });
       if (response.status === 401) {
         setSession({ authenticated: false, user: null });
         setAuthState("signed_out");
@@ -162,7 +162,7 @@ export default function App() {
   const checkSession = useCallback(async () => {
     setAuthState("checking");
     try {
-      const response = await fetch("/api/owner/session", { cache: "no-store", credentials: "same-origin" });
+      const response = await fetch("/api/session", { cache: "no-store", credentials: "same-origin" });
       const body = await response.json() as Session;
       setSession(body);
       setAuthState(body.authenticated ? "ready" : "signed_out");
@@ -188,7 +188,7 @@ export default function App() {
     setAuthState("signing_in");
     setAuthError("");
     try {
-      const response = await fetch("/api/owner/login", {
+      const response = await fetch("/api/session", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
@@ -208,7 +208,7 @@ export default function App() {
   };
 
   const signOut = async () => {
-    await fetch("/api/owner/logout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
+    await fetch("/api/session", { method: "DELETE", credentials: "same-origin" }).catch(() => undefined);
     setDashboard(null);
     setSession({ authenticated: false, user: null });
     setAuthState("signed_out");
@@ -218,7 +218,7 @@ export default function App() {
     setLoading(true);
     setLoadError("");
     try {
-      const response = await fetch("/api/app/tools", { cache: "no-store", credentials: "same-origin" });
+      const response = await fetch("/api/tools", { cache: "no-store", credentials: "same-origin" });
       const body = await response.json() as { tools?: ToolSnapshot[]; code?: string };
       if (!response.ok || !body.tools) throw new Error(body.code || `HTTP_${response.status}`);
       setDashboard((current) => current ? { ...current, tools: body.tools! } : current);
@@ -235,7 +235,7 @@ export default function App() {
     setSavingTask(true);
     setLoadError("");
     try {
-      const response = await fetch("/api/app/tasks", {
+      const response = await fetch("/api/tasks", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
