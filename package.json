@@ -10,10 +10,14 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run build",
     "deploy": "npm run build && wrangler deploy",
+    "app:ios:add": "npx cap add ios",
+    "app:ios:sync": "npm run build && npx cap sync ios",
+    "app:ios:open": "npx cap open ios",
     "d1:migrate:local": "wrangler d1 migrations apply ogenic-phase-vi --local",
     "d1:migrate:remote": "wrangler d1 migrations apply ogenic-phase-vi --remote"
   },
   "dependencies": {
+    "@capacitor/core": "^7.4.0",
     "@hono/zod-validator": "^0.7.0",
     "hono": "^4.0.0",
     "react": "^19.0.0",
@@ -21,6 +25,8 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.4.0",
+    "@capacitor/ios": "^7.4.0",
     "@cloudflare/vite-plugin": "^1.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
