@@ -6,6 +6,9 @@ on:
     paths:
       - ".github/workflows/provider-incentive-staging-deploy.yml"
       - "src/**"
+      - "public/**"
+      - "index.html"
+      - "capacitor.config.ts"
       - "worker/**"
       - "workflows/**"
       - "database/**"
