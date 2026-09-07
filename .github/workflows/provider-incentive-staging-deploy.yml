@@ -151,9 +151,22 @@ jobs:
           UNAUTH_BODY="$(mktemp)"
           trap 'rm -f "$COOKIE_JAR" "$UNAUTH_BODY"' EXIT
 
-          UNAUTH_CODE="$(curl --silent --show-error --output "$UNAUTH_BODY" --write-out '%{http_code}' "${STAGING_URL}/api/dashboard")"
-          test "$UNAUTH_CODE" = "401" || { echo "::error::unauthenticated dashboard returned HTTP $UNAUTH_CODE"; cat "$UNAUTH_BODY"; exit 1; }
-          jq -e '.ok == false and .code == "REAUTH_REQUIRED"' "$UNAUTH_BODY" >/dev/null
+          # Cloudflare can briefly serve the prior Worker version after deploy. Poll until
+          # the new owner-only route contract is visible, but fail closed after 30 seconds.
+          UNAUTH_CODE=""
+          for attempt in $(seq 1 15); do
+            UNAUTH_CODE="$(curl --silent --show-error --output "$UNAUTH_BODY" --write-out '%{http_code}' "${STAGING_URL}/api/dashboard")"
+            if test "$UNAUTH_CODE" = "401" && jq -e '.ok == false and .code == "REAUTH_REQUIRED"' "$UNAUTH_BODY" >/dev/null 2>&1; then
+              echo "Protected dashboard rollout observed on attempt $attempt."
+              break
+            fi
+            if test "$attempt" = "15"; then
+              echo "::error::unauthenticated dashboard did not converge to HTTP 401; last HTTP $UNAUTH_CODE"
+              cat "$UNAUTH_BODY"
+              exit 1
+            fi
+            sleep 2
+          done
 
           UNAUTH_CODE="$(curl --silent --show-error --output "$UNAUTH_BODY" --write-out '%{http_code}' "${STAGING_URL}/api/tools")"
           test "$UNAUTH_CODE" = "401" || { echo "::error::unauthenticated tools returned HTTP $UNAUTH_CODE"; cat "$UNAUTH_BODY"; exit 1; }
