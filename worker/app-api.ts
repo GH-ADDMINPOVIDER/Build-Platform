@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context, type Next } from "hono";
 import { requireOwnerSession, type AuthBindings } from "./app-auth";
 import { readIncentiveSnapshot, type IncentiveD1 } from "./provider-incentives";
 import { readLiveTools, type LiveToolBindings } from "./live-tools";
@@ -39,7 +39,7 @@ function makeId(prefix: string) {
 export function createAppApi() {
   const api = new Hono<AppEnv>();
 
-  const requireProtectedAppRoute = async (c: Parameters<typeof requireOwnerSession>[0], next: () => Promise<void>) => {
+  const requireProtectedAppRoute = async (c: Context<AppEnv>, next: Next) => {
     const denied = await requireOwnerSession(c);
     if (denied) return denied;
     if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
