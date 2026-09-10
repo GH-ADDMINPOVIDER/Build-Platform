@@ -1,0 +1,111 @@
+name: Restore Candy 100-item Worker
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/candy-100-worker-restore.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  CANDY_REPO: Ogenicchocolate21debug/ogenic-chocolate
+  CANDY_REF: cf-preview-drive-a1-a6-20260908
+  WORKER_NAME: bitter-shadow-464a
+  LIVE_URL: https://bitter-shadow-464a.tawatchaisamornrum11.workers.dev/
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout OGENIC control repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Auto-discover Infisical project and Cloudflare credential source
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load Cloudflare credentials from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
+          secret-path: ${{ steps.infisical_project.outputs.secret_path }}
+
+      - name: Require Cloudflare authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "::error::missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "::error::missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          echo "Cloudflare credentials resolved via OIDC without printing secret values."
+
+      - name: Checkout Drive-canonical Candy catalog
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CANDY_REPO }}
+          ref: ${{ env.CANDY_REF }}
+          path: candy
+
+      - name: Validate exact 100-item catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd candy
+          node scripts/validate-wf-sequence.mjs
+          git diff --check
+
+      - name: Prepare Worker static assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd candy
+          rm -rf dist
+          mkdir -p dist/assets
+          cp index.html dist/
+          cp -R assets/. dist/assets/
+          test -s dist/index.html
+          test "$(find dist/assets/catalog -type f -name '*.jpg' | wc -l)" -eq 97
+          grep -q '<title>Candy Baked Factory — 100 รายการ</title>' dist/index.html
+          grep -q 'id="catalog-total">100' dist/index.html
+          echo "Static bundle ready: 100 records, 97 catalog media files."
+
+      - name: Deploy Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd candy
+          npx -y wrangler@4.129.1 deploy --config wrangler.worker.toml
+
+      - name: Verify live Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(mktemp)"
+          trap 'rm -f "$BODY"' EXIT
+          for attempt in $(seq 1 20); do
+            CODE="$(curl -L --silent --show-error --output "$BODY" --write-out '%{http_code}' "$LIVE_URL")"
+            if test "$CODE" = "200"               && grep -q '<title>Candy Baked Factory — 100 รายการ</title>' "$BODY"               && grep -q 'id="catalog-total">100' "$BODY"; then
+              echo "Worker $WORKER_NAME verified with the 100-item Drive catalog on attempt $attempt."
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::Live Worker verification failed; status=$CODE"
+          exit 1
