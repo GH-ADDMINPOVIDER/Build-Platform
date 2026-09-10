@@ -20,7 +20,7 @@ env:
   CANDY_REF: cf-preview-drive-a1-a6-20260908
   WORKER_NAME: bitter-shadow-464a
   LIVE_URL: https://candybaked.ogenicchocolate.com/
-  DEPLOY_REV: e04e2b7541588fd9827c5c326adad88f5ff5b4fa
+  DEPLOY_REV: 45756203f90dd11a9ef3a92202ceaa44a582dbb8
 
 jobs:
   deploy:
@@ -79,12 +79,15 @@ jobs:
           cd candy
           rm -rf dist
           mkdir -p dist/assets
-          cp index.html dist/
+          cp index.html catalog-cart.js dist/
           cp -R assets/. dist/assets/
           test -s dist/index.html
+          test -s dist/catalog-cart.js
           test "$(find dist/assets/catalog -type f -name '*.jpg' | wc -l)" -eq 97
           grep -q '<title>Candy Baked Factory — 100 รายการ</title>' dist/index.html
           grep -q 'id="catalog-total">100' dist/index.html
+          grep -q 'catalog-cart.js' dist/index.html
+          grep -q 'oaMessage/%40014refkl' dist/catalog-cart.js
           echo "Static bundle ready: 100 records, 97 catalog media files."
 
       - name: Deploy Worker
