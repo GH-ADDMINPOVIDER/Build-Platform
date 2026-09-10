@@ -20,7 +20,7 @@ env:
   CANDY_REF: cf-preview-drive-a1-a6-20260908
   WORKER_NAME: bitter-shadow-464a
   LIVE_URL: https://candybaked.ogenicchocolate.com/
-  DEPLOY_REV: fef6d22857282c809954ecb845de5fcf515a530b
+  DEPLOY_REV: 7cb8e82544550f364cf3fc222814aeb69a63e9b1
 
 jobs:
   deploy:
@@ -86,6 +86,7 @@ jobs:
           test "$(find dist/assets/catalog -type f -name '*.jpg' | wc -l)" -eq 100
           grep -q '<title>Candy Baked Factory — 100 รายการ</title>' dist/index.html
           grep -q 'id="catalog-total">100' dist/index.html
+          ! grep -Eq 'A1 · WEBSITE HEADER VIDEO|A2 · SECOND ROW · 4 IMAGES|A3 · PHOTO STORY|OUR MENU · A4 · GOOGLE DRIVE|CANDY BAKED MOMENTS · A5|THE END · A6' dist/index.html
           grep -q 'catalog-cart.js' dist/index.html
           grep -q 'oaMessage/%40014refkl' dist/catalog-cart.js
           test ! -e dist/assets/posters/PT11.png
