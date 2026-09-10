@@ -19,7 +19,8 @@ env:
   CANDY_REPO: Ogenicchocolate21debug/ogenic-chocolate
   CANDY_REF: cf-preview-drive-a1-a6-20260908
   WORKER_NAME: bitter-shadow-464a
-  LIVE_URL: https://bitter-shadow-464a.tawatchaisamornrum11.workers.dev/
+  LIVE_URL: https://candybaked.ogenicchocolate.com/
+  DEPLOY_REV: e04e2b7541588fd9827c5c326adad88f5ff5b4fa
 
 jobs:
   deploy:
@@ -99,7 +100,7 @@ jobs:
           set -euo pipefail
           BODY="$(mktemp)"
           trap 'rm -f "$BODY"' EXIT
-          for attempt in $(seq 1 20); do
+          for attempt in $(seq 1 40); do
             CODE="$(curl -L --silent --show-error --output "$BODY" --write-out '%{http_code}' "$LIVE_URL")"
             if test "$CODE" = "200"               && grep -q '<title>Candy Baked Factory — 100 รายการ</title>' "$BODY"               && grep -q 'id="catalog-total">100' "$BODY"; then
               echo "Worker $WORKER_NAME verified with the 100-item Drive catalog on attempt $attempt."
