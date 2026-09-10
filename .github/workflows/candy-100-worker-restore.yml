@@ -20,7 +20,7 @@ env:
   CANDY_REF: cf-preview-drive-a1-a6-20260908
   WORKER_NAME: bitter-shadow-464a
   LIVE_URL: https://candybaked.ogenicchocolate.com/
-  DEPLOY_REV: 7cb8e82544550f364cf3fc222814aeb69a63e9b1
+  DEPLOY_REV: 06bc9c3140030f9c89b525ebbe3fd6f6227bf4f3
 
 jobs:
   deploy:
