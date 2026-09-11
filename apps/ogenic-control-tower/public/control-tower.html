@@ -3,178 +3,173 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<meta name="theme-color" content="#0a0909" />
+<meta name="theme-color" content="#090909" />
 <title>OGENIC Control Tower</title>
 <style>
 :root{
-  --bg:#090909;--bg2:#11100f;--panel:#171513;--panel2:#1f1c19;--panel3:#26211d;
-  --cream:#f5eadb;--text:#fbf6ef;--muted:#a99d90;--line:#312b26;
-  --gold:#d9b36b;--gold2:#f0d39a;--purple:#8b4dff;--red:#ef5a78;--green:#4bc88d;--amber:#ffbd59;
-  --shadow:0 18px 60px rgba(0,0,0,.35);--r:22px;
+  color-scheme:dark;
+  --bg:#090909;--panel:#171513;--panel2:#201c19;--cream:#f3e7d6;--text:#fbf6ef;--muted:#a99e92;
+  --line:#352e28;--gold:#d7b06b;--gold2:#f1d59e;--purple:#8654ff;--red:#e95b78;--green:#58c792;--amber:#f2b85b;
+  --shadow:0 18px 60px rgba(0,0,0,.38);--radius:22px;
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Display","Noto Sans Thai",sans-serif;
 }
-*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:radial-gradient(circle at 85% -5%,rgba(139,77,255,.16),transparent 28%),radial-gradient(circle at 12% 18%,rgba(217,179,107,.10),transparent 26%),linear-gradient(180deg,#090909 0%,#0f0d0c 55%,#15100e 100%);color:var(--text);min-height:100vh}
-button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + env(safe-area-inset-top)) 14px calc(92px + env(safe-area-inset-bottom))}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 2px 16px}.brandWrap{min-width:0}.eyebrow{font-size:10px;color:var(--gold2);letter-spacing:.18em;font-weight:800}.brand{font-size:16px;line-height:1.2;font-weight:950;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.brand span{color:var(--gold)}.topActions{display:flex;gap:8px}.iconBtn,.env{height:38px;border:1px solid var(--line);background:rgba(27,24,22,.85);color:var(--text);border-radius:14px;display:flex;align-items:center;justify-content:center}.iconBtn{width:38px}.env{padding:0 11px;font-size:10px;font-weight:900;letter-spacing:.08em}.env::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:7px;box-shadow:0 0 12px rgba(75,200,141,.75)}
-.hero{position:relative;overflow:hidden;border-radius:28px;padding:18px;background:linear-gradient(135deg,#f6ecde 0%,#eee0cc 62%,#e4cfad 100%);color:#1c1612;box-shadow:var(--shadow)}.hero::after{content:"";position:absolute;right:-60px;top:-95px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(139,77,255,.20),transparent 70%)}
-.heroTop{display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1}.heroLabel{font-size:11px;font-weight:950;letter-spacing:.16em}.auto{font-size:10px;font-weight:900;padding:6px 9px;border-radius:999px;background:#1a1512;color:#f4e6d4}.askRow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:14px;position:relative;z-index:1}.askRow input{width:100%;min-width:0;border:1px solid rgba(45,34,27,.12);outline:none;background:rgba(255,251,245,.86);border-radius:16px;padding:14px 14px;font-size:15px;color:#201814;box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}.askRow button{border:0;border-radius:16px;padding:0 16px;background:#17120f;color:white;font-weight:900;min-width:78px}.askRow button:disabled{opacity:.55}.quick{display:flex;gap:7px;overflow-x:auto;padding-top:11px;scrollbar-width:none;position:relative;z-index:1}.quick::-webkit-scrollbar{display:none}.quick button{border:1px solid rgba(42,32,26,.12);background:rgba(255,250,243,.58);color:#2a201a;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:800;white-space:nowrap}
-.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.metric{background:rgba(24,21,19,.82);border:1px solid var(--line);border-radius:17px;padding:11px 12px}.metric small{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}.metric strong{display:block;margin-top:3px;font-size:16px}.metric strong.gold{color:var(--gold2)}.metric strong.green{color:var(--green)}
-.layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(260px,.65fr);gap:12px;margin-top:12px}.stack{display:grid;gap:12px}.panel{background:linear-gradient(180deg,rgba(25,22,20,.97),rgba(19,17,16,.97));border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:0 10px 35px rgba(0,0,0,.14)}.panelHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}.panelHead h2{margin:0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#f4e4cd}.panelHead .mini{font-size:10px;color:var(--muted)}
-.routeCard{position:relative;overflow:hidden;background:linear-gradient(135deg,#241c17,#1c1815);border:1px solid #4b392d;border-radius:18px;padding:14px}.routeCard::before{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,var(--gold),var(--purple),var(--red))}.routePrimary{font-size:15px;font-weight:900;color:#ffd48f}.routeGrid{display:grid;grid-template-columns:88px 1fr;gap:6px 9px;font-size:11px;margin-top:10px}.routeGrid span:nth-child(odd){color:var(--muted)}.routeGrid span:nth-child(even){color:#eee4d9}.routeSteps{display:flex;align-items:center;gap:6px;margin-top:12px;overflow-x:auto;scrollbar-width:none}.step{font-size:9px;font-weight:900;padding:6px 8px;border-radius:999px;background:#2b2521;color:#d9cdc1;white-space:nowrap;border:1px solid #3c332d}.arrow{color:#66584e;font-size:10px}
-.caps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.cap{border:1px solid #37302b;background:linear-gradient(180deg,#201d1a,#1b1816);border-radius:15px;padding:11px;min-height:74px;transition:.18s ease}.cap:active{transform:scale(.985)}.cap.hot{border-color:#806337;background:linear-gradient(180deg,#282018,#201a16)}.cap b{display:block;font-size:11px;line-height:1.3;margin-bottom:5px}.cap small{display:block;color:var(--muted);font-size:9px;line-height:1.35}.cap .num{display:inline-flex;width:25px;height:20px;border-radius:7px;background:#2e2823;align-items:center;justify-content:center;color:var(--gold2);margin-right:5px;font-size:9px}
-.lead{border:1px solid #4f3d31;background:linear-gradient(135deg,#261e19,#201917);border-radius:18px;padding:13px}.leadTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.intent{font-size:10px;font-weight:950;color:#1d130d;background:#ffb65a;border-radius:999px;padding:6px 8px}.lead h3{margin:2px 0 3px;font-size:14px}.lead p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}.leadActions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.btn{border:0;border-radius:12px;padding:9px 10px;font-size:10px;font-weight:900}.btn.secondary{background:#332b25;color:#f0e6dc}.btn.primary{background:linear-gradient(90deg,var(--purple),#ad4fc3);color:white}
-.status{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #2b2723}.status:last-child{border-bottom:0}.surface{display:flex;align-items:center;gap:9px;min-width:0}.surfaceIcon{width:30px;height:30px;flex:0 0 30px;border-radius:10px;background:#25211e;border:1px solid #37312c;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:var(--gold2)}.surfaceName{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.state{font-size:9px;font-weight:900;border-radius:999px;padding:5px 7px;border:1px solid #3a332e;background:#2b2622;color:#cbbfb5}.state.ready{color:#8ee6b8;border-color:#315741;background:#16261e}.state.unknown{color:#ffd189}.state.offline,.state.error{color:#ff98a5;border-color:#5b3037;background:#29191c}.state.rate_limited{color:#ffce83;border-color:#5d4930;background:#2a2318}
-.run{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;padding:9px 0;border-bottom:1px solid #2c2824}.run:last-child{border-bottom:0}.runDot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(75,200,141,.55)}.run b{font-size:10px}.run small{display:block;color:var(--muted);font-size:9px;margin-top:2px}.run time{font-size:9px;color:#756a62}
-.approval{display:flex;align-items:flex-start;gap:10px;border:1px solid #59333a;background:#27191c;border-radius:14px;padding:11px}.approvalIcon{width:30px;height:30px;border-radius:10px;background:#3b2026;display:flex;align-items:center;justify-content:center;color:#ff91a1;font-weight:950}.approval b{font-size:10px}.approval p{font-size:9px;color:var(--muted);margin:3px 0 0;line-height:1.45}
-.empty{font-size:11px;color:var(--muted);padding:5px 0}.footerNote{padding:14px 4px 6px;text-align:center;color:#776d64;font-size:9px;line-height:1.5}
-.bottomNav{position:fixed;left:50%;transform:translateX(-50%);bottom:max(10px,env(safe-area-inset-bottom));width:min(calc(100% - 24px),720px);height:64px;padding:7px;display:grid;grid-template-columns:repeat(5,1fr);gap:3px;background:rgba(21,18,17,.9);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid #342e29;border-radius:22px;box-shadow:0 16px 50px rgba(0,0,0,.48);z-index:20}.navItem{border:0;background:transparent;color:#8d8178;border-radius:15px;font-size:9px;font-weight:800}.navItem span{display:block;font-size:16px;line-height:1.2;margin-bottom:3px}.navItem.active{background:#26211e;color:var(--gold2)}
-.toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);bottom:92px;background:#f4e8d9;color:#1d1713;border-radius:14px;padding:10px 13px;font-size:11px;font-weight:800;opacity:0;pointer-events:none;transition:.22s ease;z-index:30;box-shadow:var(--shadow)}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-@media(max-width:760px){.layout{grid-template-columns:1fr}.summary{grid-template-columns:repeat(3,1fr)}.caps{grid-template-columns:1fr 1fr}}
-@media(max-width:480px){.app{padding-left:10px;padding-right:10px}.brand{font-size:14px}.hero{padding:14px;border-radius:24px}.askRow{grid-template-columns:1fr}.askRow button{height:44px}.summary{grid-template-columns:repeat(3,minmax(0,1fr))}.metric{padding:9px}.metric strong{font-size:14px}.caps{grid-template-columns:1fr}.routeGrid{grid-template-columns:78px 1fr}.leadActions{grid-template-columns:1fr 1fr}}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
+body{background:radial-gradient(circle at 88% -4%,rgba(134,84,255,.17),transparent 28%),radial-gradient(circle at 12% 14%,rgba(215,176,107,.09),transparent 24%),linear-gradient(180deg,#090909,#100e0d 58%,#16110f)}
+button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + env(safe-area-inset-top)) 12px calc(86px + env(safe-area-inset-bottom))}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:4px 2px 14px}.eyebrow{font-size:10px;letter-spacing:.18em;font-weight:900;color:var(--gold2)}.brand{font-weight:950;font-size:16px;letter-spacing:.035em}.brand em{font-style:normal;color:var(--gold)}
+.env{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 11px;border:1px solid var(--line);border-radius:13px;background:rgba(25,22,20,.88);font-size:10px;font-weight:900}.envDot{width:7px;height:7px;border-radius:50%;background:var(--amber)}
+.hero{border-radius:28px;padding:17px;background:linear-gradient(135deg,#f6ecdf,#ecddc8 62%,#dec69d);color:#1c1612;box-shadow:var(--shadow);position:relative;overflow:hidden}.hero:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:-75px;top:-105px;background:radial-gradient(circle,rgba(134,84,255,.2),transparent 68%)}
+.heroHead,.ask{position:relative;z-index:1}.heroHead{display:flex;justify-content:space-between;align-items:center;gap:8px}.heroLabel{font-size:11px;font-weight:950;letter-spacing:.15em}.mode{font-size:10px;font-weight:900;padding:6px 9px;border-radius:999px;background:#1b1612;color:#f4e9dc}.ask{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:13px}.ask input{min-width:0;border:1px solid rgba(45,34,27,.12);outline:none;background:rgba(255,252,247,.9);color:#1c1612;border-radius:16px;padding:14px}.ask button{border:0;border-radius:16px;padding:0 17px;background:linear-gradient(100deg,#1b1512,#2a1d28);color:#fff;font-weight:950}.ask button:disabled{opacity:.5}.chips{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin-top:10px;position:relative;z-index:1}.chips::-webkit-scrollbar{display:none}.chips button{white-space:nowrap;border:1px solid rgba(44,34,27,.13);background:rgba(255,250,244,.58);color:#241a15;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:800}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px}.metric{border:1px solid var(--line);border-radius:17px;padding:10px;background:rgba(24,21,19,.88)}.metric small{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em}.metric strong{display:block;margin-top:3px;font-size:14px}.unknown{color:var(--amber)}.verified{color:var(--green)}.protected{color:var(--gold2)}
+.layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(260px,.65fr);gap:12px;margin-top:12px}.stack{display:grid;gap:12px}.panel{border:1px solid var(--line);border-radius:var(--radius);padding:14px;background:linear-gradient(180deg,rgba(25,22,20,.98),rgba(18,16,15,.98));box-shadow:0 10px 35px rgba(0,0,0,.14)}.head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:11px}.head h2{margin:0;color:#f1e0ca;font-size:12px;letter-spacing:.08em;text-transform:uppercase}.mini{color:var(--muted);font-size:9px;text-align:right}
+.route{position:relative;overflow:hidden;border:1px solid #4d3b2e;border-radius:18px;padding:13px;background:linear-gradient(135deg,#251d18,#1c1815)}.route:before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--purple),var(--red))}.routePrimary{font-size:15px;font-weight:950;color:#ffd690}.routeGrid{display:grid;grid-template-columns:88px 1fr;gap:6px 9px;font-size:10px;margin-top:9px}.routeGrid span:nth-child(odd){color:var(--muted)}.steps{display:flex;gap:6px;align-items:center;overflow-x:auto;margin-top:11px;scrollbar-width:none}.step{white-space:nowrap;border:1px solid #40372f;border-radius:999px;padding:6px 8px;font-size:9px;font-weight:850;background:#2a2521}.arrow{color:#716157}
+.caps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.cap{border:1px solid #37302b;border-radius:15px;padding:11px;background:linear-gradient(180deg,#201d1a,#1a1816)}.cap b{display:block;font-size:11px;margin-bottom:5px}.cap small{display:block;color:var(--muted);font-size:9px;line-height:1.4}.num{display:inline-flex;width:25px;height:20px;align-items:center;justify-content:center;margin-right:5px;border-radius:7px;background:#2e2823;color:var(--gold2);font-size:9px}
+.statusRow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #2b2723}.statusRow:last-child{border-bottom:0}.surface{display:flex;align-items:center;gap:9px;min-width:0}.icon{width:30px;height:30px;flex:0 0 30px;border:1px solid #37312c;border-radius:10px;background:#25211e;display:grid;place-items:center;color:var(--gold2);font-size:10px;font-weight:900}.surfaceName{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.state{border:1px solid #514331;border-radius:999px;padding:5px 7px;color:#ffd28b;background:#2a2319;font-size:8px;font-weight:900;text-transform:uppercase}.state.ready{border-color:#315741;background:#16261e;color:#8ee6b8}.state.error,.state.offline{border-color:#5b3037;background:#29191c;color:#ff98a5}
+.radar{border:1px solid #493a30;border-radius:17px;padding:12px;background:#211b18}.radarTitle{display:flex;justify-content:space-between;align-items:center}.radarTitle b{font-size:12px}.badge{border:1px solid #5b482f;border-radius:999px;padding:5px 7px;color:#ffd18b;background:#2b241b;font-size:8px;font-weight:900}.radar p,.empty{margin:7px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
+.run{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #2c2824}.run:last-child{border-bottom:0}.dot{width:7px;height:7px;border-radius:50%;background:var(--green)}.run b{font-size:10px}.run small{display:block;color:var(--muted);font-size:8px;margin-top:2px}.run time{font-size:8px;color:#766b62}
+.approval{border:1px solid #55333a;border-radius:14px;padding:11px;background:#25191b;display:flex;gap:9px}.shield{width:30px;height:30px;border-radius:10px;background:#3a2025;display:grid;place-items:center;color:#ff91a1;font-weight:950}.approval b{font-size:10px}.approval p{font-size:9px;color:var(--muted);margin:3px 0 0;line-height:1.45}
+.obsGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.obs{border:1px solid #312b27;border-radius:13px;padding:9px;background:#1d1a18}.obs small{font-size:8px;color:var(--muted);display:block}.obs strong{font-size:13px;display:block;margin-top:3px}.footer{padding:14px 3px 2px;text-align:center;color:#786e66;font-size:9px;line-height:1.45}.toast{position:fixed;z-index:30;left:50%;bottom:24px;transform:translate(-50%,18px);opacity:0;pointer-events:none;transition:.2s;background:var(--cream);color:#1e1713;border-radius:13px;padding:10px 12px;font-size:10px;font-weight:850;box-shadow:var(--shadow)}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:760px){.layout{grid-template-columns:1fr}.caps{grid-template-columns:1fr 1fr}}@media(max-width:480px){.app{padding-left:10px;padding-right:10px}.brand{font-size:14px}.hero{padding:14px;border-radius:24px}.ask{grid-template-columns:1fr}.ask button{height:44px}.caps{grid-template-columns:1fr}.routeGrid{grid-template-columns:76px 1fr}.metric{padding:9px}.metric strong{font-size:12px}}
 </style>
 </head>
 <body>
 <div class="app">
-  <header class="topbar">
-    <div class="brandWrap"><div class="eyebrow">OGENIC CONTROL TOWER</div><div class="brand">GOD TOOLKIT <span>v1.3.0</span></div></div>
-    <div class="topActions"><div class="env">STAGING</div><button class="iconBtn" aria-label="notifications">◉</button></div>
+  <header class="top">
+    <div><div class="eyebrow">OGENIC CONTROL TOWER</div><div class="brand">GOD TOOLKIT <em>v1.3.0</em></div></div>
+    <div class="env"><span class="envDot"></span>STAGING · UNVERIFIED</div>
   </header>
 
   <section class="hero">
-    <div class="heroTop"><div class="heroLabel">ASK OGENIC</div><div class="auto">AUTO ROUTE ON</div></div>
-    <div class="askRow"><input id="request" placeholder="บอกผลลัพธ์ที่ต้องการ…" value="หาร้านที่กำลังหาซัพพลายเออร์เบเกอรี่ แล้วจัดอันดับ HOT lead"/><button id="routeBtn">Run</button></div>
-    <div class="quick">
-      <button data-q="build">Build</button><button data-q="automation">Automate</button><button data-q="website">Website</button><button data-q="data">Data</button><button data-q="sales">Sales</button><button data-q="media">Media</button><button data-q="status">Status</button>
+    <div class="heroHead"><div class="heroLabel">ASK OGENIC</div><div class="mode">AUTO ROUTER</div></div>
+    <div class="ask"><input id="request" aria-label="Ask OGENIC" placeholder="บอกผลลัพธ์ที่ต้องการ…"/><button id="routeBtn">Route</button></div>
+    <div class="chips">
+      <button data-q="Build and test this repo">Build</button><button data-q="Automate this workflow">Automate</button><button data-q="Inspect this website">Website</button><button data-q="Find the source-of-truth data">Data</button><button data-q="Find qualified buyer intent">Sales</button><button data-q="Create the UI design">Media</button><button data-q="Show runtime health and failures">Status</button>
     </div>
   </section>
 
-  <section class="summary">
-    <div class="metric"><small>Router</small><strong class="green">Online</strong></div>
-    <div class="metric"><small>Approval</small><strong class="gold">Protected</strong></div>
-    <div class="metric"><small>Mode</small><strong>Auto</strong></div>
+  <section class="metrics">
+    <div class="metric"><small>Router</small><strong id="routerState" class="unknown">Checking</strong></div>
+    <div class="metric"><small>Approval</small><strong class="protected">Protected</strong></div>
+    <div class="metric"><small>Verified Ready</small><strong id="readyCount" class="unknown">0</strong></div>
   </section>
 
   <div class="layout">
     <main class="stack">
-      <section class="panel">
-        <div class="panelHead"><h2>Selected Route</h2><span class="mini">live decision</span></div>
-        <div id="route" class="routeCard"><div class="empty">ยังไม่ได้เลือก route — พิมพ์งานด้านบนแล้วกด Run</div></div>
-      </section>
-
-      <section class="panel">
-        <div class="panelHead"><h2>Capability Index</h2><span class="mini">auto + manual</span></div>
-        <div id="caps" class="caps"></div>
-      </section>
-
-      <section class="panel">
-        <div class="panelHead"><h2>Buyer Intent Radar</h2><span class="mini">Business & Sales</span></div>
-        <div class="lead">
-          <div class="leadTop"><div><h3>HOT lead workspace</h3><p>ระบบจะแสดงเฉพาะ lead ที่มีหลักฐานต้นทาง และจะไม่ติดต่อออกไปก่อน Human Approval</p></div><div class="intent">HOT</div></div>
-          <div class="leadActions"><button class="btn secondary" id="scanBtn">Scan Leads</button><button class="btn primary" id="approvalBtn">Approval Inbox</button></div>
-        </div>
-      </section>
+      <section class="panel"><div class="head"><h2>Selected Route</h2><span class="mini">planning only</span></div><div id="route" class="route"><div class="empty">No route selected yet.</div></div></section>
+      <section class="panel"><div class="head"><h2>Capability Index</h2><span class="mini">00—10</span></div><div id="caps" class="caps"><div class="empty">Waiting for verified tool output…</div></div></section>
+      <section class="panel"><div class="head"><h2>Buyer Intent Radar</h2><span class="mini">source-backed only</span></div><div class="radar"><div class="radarTitle"><b>Lead workspace</b><span id="radarState" class="badge">UNKNOWN</span></div><p id="radarNote">No verified live Buyer Intent adapter state yet. No contacts or intent are fabricated.</p></div></section>
+      <section class="panel"><div class="head"><h2>Recent Runs</h2><span class="mini">this widget session</span></div><div id="runs"><div class="empty">No verified route calls in this session.</div></div></section>
     </main>
 
     <aside class="stack">
-      <section class="panel">
-        <div class="panelHead"><h2>Agents / Connectors</h2><span class="mini" id="surfaceCount">0 surfaces</span></div>
-        <div id="surfaces"><div class="empty">Loading runtime status…</div></div>
-      </section>
-
-      <section class="panel">
-        <div class="panelHead"><h2>Recent Runs</h2><span class="mini">verified only</span></div>
-        <div class="run"><span class="runDot"></span><div><b>Capability Router</b><small>ready for requests</small></div><time>now</time></div>
-        <div class="run"><span class="runDot" style="background:var(--gold)"></span><div><b>Human Approval</b><small>consequential actions protected</small></div><time>on</time></div>
-        <div class="run"><span class="runDot" style="background:var(--purple)"></span><div><b>Buyer Intent</b><small>public-source mode</small></div><time>watch</time></div>
-      </section>
-
-      <section class="panel">
-        <div class="panelHead"><h2>Approval Gate</h2><span class="mini">safe by default</span></div>
-        <div class="approval"><div class="approvalIcon">!</div><div><b>First outbound / production / destructive actions</b><p>ต้องได้รับการอนุมัติก่อน execute และต้อง verify หลัง action เสมอ</p></div></div>
-      </section>
+      <section class="panel"><div class="head"><h2>Agents / Connectors</h2><span class="mini">never guessed Ready</span></div><div id="surfaces"><div class="empty">Waiting for runtime status…</div></div></section>
+      <section class="panel"><div class="head"><h2>Approval Inbox</h2><span class="mini">Human Approval</span></div><div id="approvals" class="approval"><div class="shield">!</div><div><b>No pending approval loaded</b><p>First outbound contact, destructive actions, production deploys, permission/credential changes, and consequential financial/external actions remain gated.</p></div></div></section>
+      <section class="panel"><div class="head"><h2>Observability</h2><span class="mini">verified snapshot</span></div><div class="obsGrid"><div class="obs"><small>Surfaces</small><strong id="surfaceCount">0</strong></div><div class="obs"><small>Unknown</small><strong id="unknownCount">0</strong></div><div class="obs"><small>Local Runs</small><strong id="runCount">0</strong></div><div class="obs"><small>Approvals</small><strong id="approvalCount">0</strong></div></div></section>
     </aside>
   </div>
-
-  <div class="footerNote">READ → ROUTE → EXECUTE → VERIFY → AUDIT<br>Never simulate success • Never expose raw secrets</div>
+  <div class="footer">Status is evidence-based. “Ready” appears only after a live runtime adapter verifies a surface. Raw secrets are never rendered.</div>
 </div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  const pending = new Map();
+  let nextId = 1;
+  let snapshot = null;
+  const localRuns = [];
+  const $ = (id) => document.getElementById(id);
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-<nav class="bottomNav" aria-label="primary">
-  <button class="navItem active"><span>⌂</span>Home</button>
-  <button class="navItem"><span>⌘</span>Runs</button>
-  <button class="navItem"><span>◎</span>Sales</button>
-  <button class="navItem"><span>✓</span>Approve</button>
-  <button class="navItem"><span>⋯</span>More</button>
-</nav>
-<div id="toast" class="toast"></div>
-
-<script type="module">
-const routeEl=document.querySelector('#route');
-const capsEl=document.querySelector('#caps');
-const surfacesEl=document.querySelector('#surfaces');
-const surfaceCount=document.querySelector('#surfaceCount');
-const requestEl=document.querySelector('#request');
-const routeBtn=document.querySelector('#routeBtn');
-const toastEl=document.querySelector('#toast');
-let rpcId=0;const pending=new Map();let latest={};
-
-function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>toastEl.classList.remove('show'),1800)}
-function notify(method,params){window.parent.postMessage({jsonrpc:'2.0',method,params},'*')}
-function request(method,params){return new Promise((resolve,reject)=>{const id=++rpcId;pending.set(id,{resolve,reject});window.parent.postMessage({jsonrpc:'2.0',id,method,params},'*')})}
-window.addEventListener('message',(event)=>{if(event.source!==window.parent)return;const m=event.data;if(!m||m.jsonrpc!=='2.0')return;if(m.id!==undefined&&pending.has(m.id)){const p=pending.get(m.id);pending.delete(m.id);m.error?p.reject(m.error):p.resolve(m.result);return}if(m.method==='ui/notifications/tool-result'){const sc=m.params?.structuredContent;if(sc)update(sc)}},{passive:true});
-
-async function init(){
-  try{
-    await request('ui/initialize',{appInfo:{name:'ogenic-control-tower',version:'1.3.0'},appCapabilities:{},protocolVersion:'2026-01-26'});
-    notify('ui/notifications/initialized',{});
-    const [cap,status]=await Promise.all([
-      request('tools/call',{name:'list_capabilities',arguments:{}}),
-      request('tools/call',{name:'get_runtime_status',arguments:{}})
-    ]);
-    update(cap?.structuredContent||{});update(status?.structuredContent||{});
-  }catch(e){console.error(e);surfacesEl.innerHTML='<div class="empty">Runtime bridge ยังไม่พร้อม</div>'}
-}
-function update(sc){latest={...latest,...sc};render()}
-function render(){if(latest.route)renderRoute(latest.route);if(latest.capabilities)renderCaps(latest.capabilities);if(latest.surfaces)renderSurfaces(latest.surfaces)}
-function renderRoute(r){
-  const support=(r.support||[]).join(', ')||'—';
-  routeEl.innerHTML=`<div class="routePrimary">${esc(r.primary||'unrouted')}</div>
-  <div class="routeGrid"><span>Support</span><span>${esc(support)}</span><span>Approval</span><span>${esc(r.approval||'—')}</span><span>Verify</span><span>${r.verify?'required':'—'}</span></div>
-  <div class="routeSteps"><span class="step">Intent</span><span class="arrow">→</span><span class="step">Capability</span><span class="arrow">→</span><span class="step">Execution</span><span class="arrow">→</span><span class="step">Verify</span></div>`
-}
-function renderCaps(caps){
-  capsEl.innerHTML='';
-  for(const c of caps){
-    const div=document.createElement('div');div.className='cap'+(c.id==='06'?' hot':'');
-    div.innerHTML=`<b><span class="num">${esc(c.id)}</span>${esc(c.name)}</b><small>${esc((c.children||[]).slice(0,6).join(' · '))}</small>`;
-    div.addEventListener('click',()=>{requestEl.value=`ใช้หมวด ${c.name} เพื่อจัดการงานนี้`;requestEl.focus();toast(`Selected ${c.name}`)});
-    capsEl.appendChild(div)
+  function toast(text) {
+    const el = $("toast"); el.textContent = text; el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 1800);
   }
-}
-function renderSurfaces(items){
-  surfacesEl.innerHTML='';surfaceCount.textContent=`${items.length} surfaces`;
-  for(const s of items){
-    const div=document.createElement('div');div.className='status';
-    const initials=String(s.name||'?').split(/\s|\//).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase();
-    const state=String(s.status||'unknown').toLowerCase().replace(/\s+/g,'_');
-    div.innerHTML=`<div class="surface"><div class="surfaceIcon">${esc(initials)}</div><div class="surfaceName">${esc(s.name)}</div></div><span class="state ${esc(state)}">${esc(s.status||'unknown')}</span>`;
-    surfacesEl.appendChild(div)
+  function request(method, params) {
+    const id = nextId++;
+    window.parent.postMessage({ jsonrpc: "2.0", id, method, params }, "*");
+    return new Promise((resolve, reject) => {
+      pending.set(id, { resolve, reject });
+      setTimeout(() => { if (pending.has(id)) { pending.delete(id); reject(new Error("Host bridge timeout")); } }, 12000);
+    });
   }
-}
-function esc(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]))}
+  async function callTool(name, args) {
+    try {
+      return await request("tools/call", { name, arguments: args || {} });
+    } catch (bridgeError) {
+      if (window.openai?.callTool) return window.openai.callTool(name, args || {});
+      throw bridgeError;
+    }
+  }
 
-routeBtn.addEventListener('click',async()=>{
-  const text=requestEl.value.trim();if(!text)return;
-  routeBtn.disabled=true;routeBtn.textContent='Routing…';
-  try{const r=await request('tools/call',{name:'route_request',arguments:{request:text}});update({route:r?.structuredContent});toast('Route selected')}
-  catch(e){routeEl.innerHTML=`<div class="empty">Routing failed: ${esc(e?.message||String(e))}</div>`}
-  finally{routeBtn.disabled=false;routeBtn.textContent='Run'}
-});
+  function renderRoute(route) {
+    if (!route) { $("route").innerHTML = '<div class="empty">No route selected yet.</div>'; return; }
+    const support = route.support?.length ? route.support.join(", ") : "none";
+    const approval = route.approval === "human_approval_required_before_consequential_action" ? "Human Approval required" : "No approval for planning";
+    $("route").innerHTML = `<div class="routePrimary">${esc(route.primary)}</div><div class="routeGrid"><span>Request</span><span>${esc(route.request)}</span><span>Support</span><span>${esc(support)}</span><span>Approval</span><span>${esc(approval)}</span><span>Verify</span><span>${route.verify ? "required" : "not declared"}</span></div><div class="steps"><span class="step">Intent</span><span class="arrow">→</span><span class="step">Route</span><span class="arrow">→</span><span class="step">Approval gate</span><span class="arrow">→</span><span class="step">Execute</span><span class="arrow">→</span><span class="step">Verify</span></div>`;
+  }
+  function renderCaps(caps) {
+    if (!Array.isArray(caps) || !caps.length) return;
+    $("caps").innerHTML = caps.map((c) => `<div class="cap"><b><span class="num">${esc(c.id)}</span>${esc(c.name)}</b><small>${esc((c.children || []).slice(0,5).join(" · "))}</small></div>`).join("");
+  }
+  function renderSurfaces(surfaces) {
+    if (!Array.isArray(surfaces)) return;
+    $("surfaces").innerHTML = surfaces.map((s) => `<div class="statusRow"><div class="surface"><div class="icon">${esc(s.name.slice(0,2).toUpperCase())}</div><div class="surfaceName">${esc(s.name)}</div></div><span class="state ${esc(s.status)}">${esc(s.status)}</span></div>`).join("");
+    $("surfaceCount").textContent = surfaces.length;
+    $("unknownCount").textContent = surfaces.filter((s) => s.status === "unknown").length;
+    $("readyCount").textContent = surfaces.filter((s) => s.status === "ready").length;
+    $("readyCount").className = surfaces.some((s) => s.status === "ready") ? "verified" : "unknown";
+  }
+  function renderRuns() {
+    $("runCount").textContent = localRuns.length;
+    $("runs").innerHTML = localRuns.length ? localRuns.slice().reverse().map((r) => `<div class="run"><span class="dot"></span><div><b>${esc(r.primary)}</b><small>${esc(r.request)}</small></div><time>${esc(r.time)}</time></div>`).join("") : '<div class="empty">No verified route calls in this session.</div>';
+  }
+  function renderSnapshot(data) {
+    if (!data || typeof data !== "object") return;
+    snapshot = { ...(snapshot || {}), ...data };
+    if (snapshot.router?.status === "verified") { $("routerState").textContent = "Verified"; $("routerState").className = "verified"; }
+    renderRoute(snapshot.route);
+    renderCaps(snapshot.capabilities);
+    renderSurfaces(snapshot.surfaces);
+    if (snapshot.buyerIntentRadar) {
+      $("radarState").textContent = String(snapshot.buyerIntentRadar.status || "unknown").toUpperCase();
+      $("radarNote").textContent = snapshot.buyerIntentRadar.note || "No verified Buyer Intent status.";
+    }
+    const approvals = Array.isArray(snapshot.approvals) ? snapshot.approvals : [];
+    $("approvalCount").textContent = approvals.length;
+  }
 
-document.querySelectorAll('.quick button').forEach(b=>b.addEventListener('click',()=>{requestEl.value=b.dataset.q==='sales'?'วิเคราะห์ Buyer Intent และจัดอันดับ lead ที่ควรติดต่อ':`เปิดงานหมวด ${b.textContent}`;requestEl.focus()}));
-document.querySelector('#scanBtn').addEventListener('click',()=>{requestEl.value='สแกน buyer intent ล่าสุด แล้วแสดงเฉพาะ lead ที่มีหลักฐานต้นทาง';requestEl.focus();toast('Buyer Intent query ready')});
-document.querySelector('#approvalBtn').addEventListener('click',()=>toast('Approval Inbox is protected by Human Approval policy'));
-document.querySelectorAll('.navItem').forEach(n=>n.addEventListener('click',()=>{document.querySelectorAll('.navItem').forEach(x=>x.classList.remove('active'));n.classList.add('active');toast(`${n.textContent.trim()} view`)}));
-init();
+  window.addEventListener("message", (event) => {
+    if (event.source !== window.parent) return;
+    const message = event.data;
+    if (!message || message.jsonrpc !== "2.0") return;
+    if (message.id !== undefined && pending.has(message.id)) {
+      const p = pending.get(message.id); pending.delete(message.id);
+      if (message.error) p.reject(new Error(message.error.message || "Tool call failed")); else p.resolve(message.result);
+      return;
+    }
+    if (message.method === "ui/notifications/tool-result") renderSnapshot(message.params?.structuredContent);
+  }, { passive: true });
+
+  const compat = window.openai?.toolOutput;
+  if (compat && typeof compat === "object") renderSnapshot(compat);
+
+  $("routeBtn").addEventListener("click", async () => {
+    const requestText = $("request").value.trim();
+    if (!requestText) return toast("ใส่คำสั่งก่อน");
+    $("routeBtn").disabled = true;
+    try {
+      const result = await callTool("route_request", { request: requestText });
+      const route = result?.structuredContent || result;
+      if (!route?.primary) throw new Error("No route returned");
+      renderRoute(route);
+      localRuns.push({ request: requestText, primary: route.primary, time: new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) });
+      renderRuns();
+      toast("Route verified");
+    } catch (error) {
+      toast(`Blocked: ${error.message}`);
+    } finally { $("routeBtn").disabled = false; }
+  });
+  document.querySelectorAll("[data-q]").forEach((button) => button.addEventListener("click", () => { $("request").value = button.dataset.q; $("request").focus(); }));
+  renderRuns();
+})();
 </script>
 </body>
 </html>
