@@ -3,7 +3,7 @@
   "entry_point": "ogenic-god-toolkit",
   "groups": [
     {"id":"00","key":"core_router","name":"Core / Auto Router","children":["intent","decompose","tool_discovery","execution_selection","approval_classification","verification","audit"]},
-    {"id":"01","key":"code_build","name":"Code & Build","children":["repo_inspect","patch","git","branch","test","lint","typecheck","build","pr","codex_delegate"]},
+    {"id":"01","key":"code_build","name":"Code & Build","children":["repo_inspect","patch","git","branch","test","lint","typecheck","build","pr","codex_delegate","claude_review","agent_handoff"]},
     {"id":"02","key":"system_runtime","name":"System & Runtime","children":["filesystem","process","shell","diagnostics","dependencies","health"]},
     {"id":"03","key":"automation_delivery","name":"Automation & Delivery","children":["n8n","scheduler","webhook","ci_cd","retries","dead_letter","deploy","rollback"]},
     {"id":"04","key":"web_app","name":"Web / App / Cloudflare","children":["frontend","backend","browser","dom","cloudflare_workers","cloudflare_pages","d1","vercel","deploy_verify"]},
