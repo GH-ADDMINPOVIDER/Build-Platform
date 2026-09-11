@@ -1,0 +1,4 @@
+interface:
+  display_name: "OGENIC GOD TOOLKIT"
+  short_description: "Auto-route work across OGENIC capabilities, tools, connectors, and agents."
+  default_prompt: "Use $ogenic-god-toolkit to understand my requested outcome, choose the right capability and execution surface automatically, perform the authorized work, verify the result, and report Result / Blocked / Next."
