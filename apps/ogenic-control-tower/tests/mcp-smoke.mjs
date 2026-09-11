@@ -49,7 +49,8 @@ try {
   assert.equal(secretMetadata.structuredContent.approval, "auto");
 
   const internalReview = await client.callTool({ name: "route_request", arguments: { request: "Codex fix CI then Claude review the patch" } });
-  assert.equal(internalReview.structuredContent.primary, "01.code_build");
+  assert.equal(internalReview.structuredContent.primary, "03.automation_delivery");
+  assert.ok(internalReview.structuredContent.support.includes("01.code_build"));
   assert.equal(internalReview.structuredContent.approval, "auto_with_review");
 
   const stagingDeploy = await client.callTool({ name: "route_request", arguments: { request: "deploy staging preview" } });
