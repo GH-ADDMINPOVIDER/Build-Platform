@@ -171,6 +171,7 @@ export function createOgenicServer() {
       inputSchema: {},
       outputSchema: { capabilities: z.array(capabilitySchema) },
       annotations: READ_ONLY_ANNOTATIONS,
+      _meta: {},
     },
     async () => ({
       structuredContent: { capabilities: CAPABILITIES },
@@ -187,6 +188,7 @@ export function createOgenicServer() {
       inputSchema: { request: z.string().min(1).max(4000) },
       outputSchema: routeSchema.shape,
       annotations: READ_ONLY_ANNOTATIONS,
+      _meta: {},
     },
     async ({ request }) => {
       const route = routeRequest(request);
@@ -206,6 +208,7 @@ export function createOgenicServer() {
       inputSchema: {},
       outputSchema: { surfaces: z.array(surfaceSchema), verifiedReadyCount: z.number().int().nonnegative() },
       annotations: READ_ONLY_ANNOTATIONS,
+      _meta: {},
     },
     async () => {
       const surfaces = runtimeStatus();
