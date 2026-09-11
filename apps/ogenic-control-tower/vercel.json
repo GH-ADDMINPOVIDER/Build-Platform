@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/mcp", "destination": "/api/mcp" },
+    { "source": "/healthz", "destination": "/api/health" }
+  ],
+  "functions": {
+    "api/mcp.js": {
+      "includeFiles": "public/control-tower.html",
+      "maxDuration": 60
+    },
+    "api/health.js": {
+      "includeFiles": "public/control-tower.html"
+    }
+  }
+}
