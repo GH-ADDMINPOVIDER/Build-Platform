@@ -29,17 +29,41 @@ try {
 
   const caps = await client.callTool({ name: "list_capabilities", arguments: {} });
   assert.equal(caps.structuredContent.capabilities.length, 11);
+  const codeBuild = caps.structuredContent.capabilities.find((c) => c.key === "code_build");
+  assert.ok(codeBuild.children.includes("claude_review"));
+  assert.ok(codeBuild.children.includes("agent_handoff"));
 
   const route = await client.callTool({ name: "route_request", arguments: { request: "หาร้านที่กำลังหาซัพพลายเออร์เบเกอรี่" } });
   assert.equal(route.structuredContent.primary, "06.business_sales");
   assert.equal(route.structuredContent.verify, true);
+  assert.equal(route.structuredContent.approval, "auto");
 
   const risky = await client.callTool({ name: "route_request", arguments: { request: "deploy production now" } });
   assert.equal(risky.structuredContent.approval, "human_approval_required_before_consequential_action");
 
+  const rotateKey = await client.callTool({ name: "route_request", arguments: { request: "rotate API key" } });
+  assert.equal(rotateKey.structuredContent.approval, "human_approval_required_before_consequential_action");
+
+  const secretMetadata = await client.callTool({ name: "route_request", arguments: { request: "check Infisical secret metadata and permission status only" } });
+  assert.equal(secretMetadata.structuredContent.primary, "08.security_credentials");
+  assert.equal(secretMetadata.structuredContent.approval, "auto");
+
+  const internalReview = await client.callTool({ name: "route_request", arguments: { request: "Codex fix CI then Claude review the patch" } });
+  assert.equal(internalReview.structuredContent.primary, "01.code_build");
+  assert.equal(internalReview.structuredContent.approval, "auto_with_review");
+
+  const stagingDeploy = await client.callTool({ name: "route_request", arguments: { request: "deploy staging preview" } });
+  assert.equal(stagingDeploy.structuredContent.primary, "03.automation_delivery");
+  assert.equal(stagingDeploy.structuredContent.approval, "auto_with_review");
+
+  const productMaster = await client.callTool({ name: "route_request", arguments: { request: "check product master status" } });
+  assert.equal(productMaster.structuredContent.primary, "05.data_knowledge");
+  assert.equal(productMaster.structuredContent.approval, "auto");
+
   const status = await client.callTool({ name: "get_runtime_status", arguments: {} });
   assert.equal(status.structuredContent.verifiedReadyCount, 0);
   assert.ok(status.structuredContent.surfaces.every((s) => s.status === "unknown"));
+  assert.ok(status.structuredContent.surfaces.some((s) => s.name === "Claude / Anthropic"));
 
   const rendered = await client.callTool({ name: "render_control_tower", arguments: { request: "check status" } });
   assert.equal(rendered.structuredContent.router.status, "verified");
