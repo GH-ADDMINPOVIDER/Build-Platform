@@ -92,7 +92,14 @@ jobs:
           test ! -e dist/assets/posters/PT11.png
           test -s dist/assets/catalog/13/hotpot-small.jpg
           test -s dist/assets/catalog/13/hotpot-medium.jpg
-          test -s dist/assets/catalog/13/hotpot-large.jpg\n          test -s dist/assets/special-menu/special-menu-poster.jpg\n          test -s dist/assets/special-menu/thai-basil-chicken.jpg\n          test -s dist/assets/special-menu/all-day-breakfast.jpg\n          test -s dist/assets/special-menu/creamy-garden-salad.jpg\n          grep -q 'data-product-id="SP.1"' dist/index.html\n          grep -q 'data-product-id="SP.2"' dist/index.html\n          grep -q 'data-product-id="SP.3"' dist/index.html
+          test -s dist/assets/catalog/13/hotpot-large.jpg
+          test -s dist/assets/special-menu/special-menu-poster.jpg
+          test -s dist/assets/special-menu/thai-basil-chicken.jpg
+          test -s dist/assets/special-menu/all-day-breakfast.jpg
+          test -s dist/assets/special-menu/creamy-garden-salad.jpg
+          grep -q 'data-product-id="SP.1"' dist/index.html
+          grep -q 'data-product-id="SP.2"' dist/index.html
+          grep -q 'data-product-id="SP.3"' dist/index.html
           echo "Static bundle ready: 103 products, 100 Drive catalog media files, and 4 Special Menu assets."
 
       - name: Deploy Worker
