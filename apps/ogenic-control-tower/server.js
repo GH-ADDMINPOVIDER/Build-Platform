@@ -18,7 +18,7 @@ const controlTowerHtml = readFileSync(join(__dirname, "public", "control-tower.h
 
 export const CAPABILITIES = [
   { id: "00", key: "core_router", name: "Core / Auto Router", children: ["intent", "decompose", "tool_discovery", "execution_selection", "approval_classification", "verification", "audit"] },
-  { id: "01", key: "code_build", name: "Code & Build", children: ["repo_inspect", "patch", "git", "branch", "test", "lint", "typecheck", "build", "pr", "codex_delegate"] },
+  { id: "01", key: "code_build", name: "Code & Build", children: ["repo_inspect", "patch", "git", "branch", "test", "lint", "typecheck", "build", "pr", "codex_delegate", "claude_review", "agent_handoff"] },
   { id: "02", key: "system_runtime", name: "System & Runtime", children: ["filesystem", "process", "shell", "diagnostics", "dependencies", "health"] },
   { id: "03", key: "automation_delivery", name: "Automation & Delivery", children: ["n8n", "scheduler", "webhook", "ci_cd", "retries", "dead_letter", "deploy", "rollback"] },
   { id: "04", key: "web_app", name: "Web / App / Cloudflare", children: ["frontend", "backend", "browser", "dom", "cloudflare_workers", "cloudflare_pages", "d1", "vercel", "deploy_verify"] },
@@ -31,7 +31,7 @@ export const CAPABILITIES = [
 ];
 
 export const EXECUTION_SURFACES = [
-  "OpenAI / ChatGPT", "Codex", "GitHub", "n8n", "Notion", "Google Drive",
+  "OpenAI / ChatGPT", "Codex", "Claude / Anthropic", "GitHub", "n8n", "Notion", "Google Drive",
   "Gmail / Calendar", "Linear", "Figma", "Magnific", "Shopify", "Vercel",
   "Cloudflare", "Infisical", "Web / Public Search", "Image Generation",
 ];
@@ -47,12 +47,56 @@ function includesAny(text, terms) {
   return terms.some((term) => text.includes(term));
 }
 
+function matchesAny(text, patterns) {
+  return patterns.some((pattern) => pattern.test(text));
+}
+
+export function classifyApproval(text) {
+  const humanApprovalPatterns = [
+    /\bdeploy\s+(?:to\s+)?production\b/i,
+    /\bproduction\s+deploy\b/i,
+    /\bmerge\s+(?:into\s+)?main\b/i,
+    /\bmerge\s+main\b/i,
+    /\bpublish\s+public\b/i,
+    /\bgo\s+live\b/i,
+    /\b(delete|destroy|purge|wipe|drop)\b/i,
+    /ลบ|ทำลาย/,
+    /\b(grant|revoke|change|update|set|add|remove)\b.{0,40}\b(permission|privilege|role|access|scope)\b/i,
+    /\b(permission|privilege|role|access|scope)\b.{0,40}\b(grant|revoke|change|update|set|add|remove)\b/i,
+    /เปลี่ยนสิทธิ์|เพิ่มสิทธิ์|ถอนสิทธิ์|เปลี่ยน role|เปลี่ยน scope/i,
+    /\b(create|rotate|replace|revoke|delete|change|update)\b.{0,40}\b(secret|credential|token|api\s*key|key)\b/i,
+    /\b(secret|credential|token|api\s*key)\b.{0,40}\b(create|rotate|replace|revoke|delete|change|update)\b/i,
+    /เปลี่ยนคีย์|หมุนคีย์|ลบคีย์|สร้างคีย์ใหม่|เปลี่ยน secret|ลบ secret/i,
+    /\b(send\s+now|contact\s+now|send\s+email|send\s+message)\b/i,
+    /ส่งเลย|ทักไป|ส่งเมลเลย|ส่งข้อความเลย/,
+    /\b(payment|pay|transfer|purchase|refund|charge)\b/i,
+    /ชำระ|โอนเงิน|ซื้อ|คืนเงิน|เรียกเก็บเงิน/,
+  ];
+
+  if (matchesAny(text, humanApprovalPatterns)) {
+    return "human_approval_required_before_consequential_action";
+  }
+
+  const autoReviewPatterns = [
+    /\b(?:deploy|release)\b.{0,30}\b(?:staging|preview|sandbox)\b/i,
+    /\b(?:staging|preview|sandbox)\b.{0,30}\b(?:deploy|release)\b/i,
+    /\b(patch|commit|draft\s+pr|pull\s+request|ci\s+retry|retry\s+ci|codex|claude|code\s+review|review\s+code|fix\s+ci|fix\s+test)\b/i,
+    /แก้โค้ด|ตรวจโค้ด|รีวิวโค้ด|ดีพลอย staging|ดีพลอย preview|รัน ci ใหม่|แก้ test/i,
+  ];
+
+  if (matchesAny(text, autoReviewPatterns)) {
+    return "auto_with_review";
+  }
+
+  return "auto";
+}
+
 export function routeRequest(request) {
   const cleanRequest = String(request || "").trim();
   const text = cleanRequest.toLowerCase();
   let primary = "00.core_router";
   const support = [];
-  let approval = "not_required_for_planning";
+  const approval = classifyApproval(text);
 
   if (includesAny(text, ["supplier", "ซัพพลายเออร์", "หาขนม", "lead", "ขายส่ง", "wholesale", "ลูกค้า", "ร้านกาแฟ", "คาเฟ่"])) {
     primary = "06.business_sales";
@@ -66,7 +110,7 @@ export function routeRequest(request) {
   } else if (includesAny(text, ["n8n", "workflow", "schedule", "automation", "webhook", "deploy", "ci/cd", "ci "])) {
     primary = "03.automation_delivery";
     support.push("01.code_build");
-  } else if (includesAny(text, ["github", "repo", "code", "bug", "test", "build", "codex", "pr "])) {
+  } else if (includesAny(text, ["github", "repo", "code", "bug", "test", "build", "codex", "claude", "review", "ตรวจโค้ด", "pr "])) {
     primary = "01.code_build";
   } else if (includesAny(text, ["drive", "notion", "rag", "ไฟล์", "product master", "registry"])) {
     primary = "05.data_knowledge";
@@ -78,14 +122,6 @@ export function routeRequest(request) {
     primary = "10.observability_control";
   }
 
-  if (includesAny(text, [
-    "delete", "ลบ", "production", "prod", "ส่งเลย", "ทักไป", "send now",
-    "permission", "privilege", "secret", "credential", "deploy production",
-    "payment", "financial", "ชำระ", "โอนเงิน",
-  ])) {
-    approval = "human_approval_required_before_consequential_action";
-  }
-
   return {
     request: cleanRequest,
     primary,
@@ -93,7 +129,10 @@ export function routeRequest(request) {
     approval,
     executionPolicy: [
       "direct connected tool first",
+      "allowlisted internal model-to-model analysis/review without Human Approval",
       "authorized hosted agent/runtime for implementation-heavy work",
+      "auto-review feature-branch/staging changes before success",
+      "Human Approval only immediately before consequential external/production/security/financial actions",
       "orchestrator for repeatable multi-service flow",
       "never claim an unavailable execution surface ran",
     ],
@@ -134,7 +173,7 @@ export function createOgenicServer() {
     {
       capabilities: { tools: {}, resources: {} },
       instructions:
-        "Route outcomes through the OGENIC capability index. Read before write, apply Human Approval before consequential actions, verify writes/sends/deploys, preserve provenance, never expose raw secrets, and never simulate successful execution.",
+        "Route outcomes through the OGENIC capability index. Read before write. Allow approved internal agent/model review to run automatically. Use AUTO + REVIEW for feature-branch, CI and staging work. Apply Human Approval only immediately before consequential external sends, destructive mutations, production/merge, permission/credential mutations, financial actions or comparable irreversible effects. Verify writes/sends/deploys, preserve provenance, never expose raw secrets, and never simulate successful execution.",
     },
   );
 
