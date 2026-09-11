@@ -1,0 +1,57 @@
+name: OGENIC Toolkit Validate
+
+on:
+  pull_request:
+    paths:
+      - '.codex-plugin/**'
+      - 'skills/ogenic-god-toolkit/**'
+      - 'apps/ogenic-control-tower/**'
+      - 'CODEX_HANDOFF_OGENIC_GOD_TOOLKIT_v1.3.0.md'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate plugin manifest
+        run: node -e "JSON.parse(require('fs').readFileSync('.codex-plugin/plugin.json','utf8')); console.log('plugin.json OK')"
+
+      - name: Validate capability registries
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('skills/ogenic-god-toolkit/references/CAPABILITY_INDEX.json','utf8')); console.log('CAPABILITY_INDEX OK')"
+          node -e "JSON.parse(require('fs').readFileSync('skills/ogenic-god-toolkit/references/TOOL_REGISTRY.json','utf8')); console.log('TOOL_REGISTRY OK')"
+
+      - name: Check master skill files
+        run: |
+          test -s skills/ogenic-god-toolkit/SKILL.md
+          test -s skills/ogenic-god-toolkit/agents/openai.yaml
+          grep -q '^name: ogenic-god-toolkit' skills/ogenic-god-toolkit/SKILL.md
+          grep -q 'display_name: "OGENIC GOD TOOLKIT"' skills/ogenic-god-toolkit/agents/openai.yaml
+
+      - name: Install MCP app dependencies
+        working-directory: apps/ogenic-control-tower
+        run: npm install --ignore-scripts
+
+      - name: Syntax check MCP server
+        working-directory: apps/ogenic-control-tower
+        run: node --check server.js
+
+      - name: MCP health smoke test
+        working-directory: apps/ogenic-control-tower
+        run: |
+          node server.js > /tmp/ogenic-mcp.log 2>&1 &
+          PID=$!
+          trap 'kill $PID || true' EXIT
+          for i in {1..15}; do
+            if curl -fsS http://127.0.0.1:8787/ > /tmp/health.json; then break; fi
+            sleep 1
+          done
+          cat /tmp/health.json
+          node -e "const h=require('/tmp/health.json'); if(h.name!=='ogenic-god-toolkit'||h.status!=='ok') process.exit(1)"
