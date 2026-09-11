@@ -1,4 +1,4 @@
-name: Restore Candy 100-item Worker
+name: Restore Candy 103-item Worker
 
 on:
   push:
@@ -20,7 +20,7 @@ env:
   CANDY_REF: cf-preview-drive-a1-a6-20260908
   WORKER_NAME: bitter-shadow-464a
   LIVE_URL: https://candybaked.ogenicchocolate.com/
-  DEPLOY_REV: 06bc9c3140030f9c89b525ebbe3fd6f6227bf4f3
+  DEPLOY_REV: 75ac246488fe644e7e0223ea6060adffedff4337
 
 jobs:
   deploy:
@@ -64,7 +64,7 @@ jobs:
           ref: ${{ env.CANDY_REF }}
           path: candy
 
-      - name: Validate exact 100-item catalog
+      - name: Validate 100-item base catalog plus 3-item Special Menu
         shell: bash
         run: |
           set -euo pipefail
@@ -84,16 +84,16 @@ jobs:
           test -s dist/index.html
           test -s dist/catalog-cart.js
           test "$(find dist/assets/catalog -type f -name '*.jpg' | wc -l)" -eq 100
-          grep -q '<title>Candy Baked Factory — 100 รายการ</title>' dist/index.html
-          grep -q 'id="catalog-total">100' dist/index.html
+          grep -q '<title>Candy Baked Factory — 103 รายการ</title>' dist/index.html
+          grep -q 'id="catalog-total">103' dist/index.html
           ! grep -Eq 'A1 · WEBSITE HEADER VIDEO|A2 · SECOND ROW · 4 IMAGES|A3 · PHOTO STORY|OUR MENU · A4 · GOOGLE DRIVE|CANDY BAKED MOMENTS · A5|THE END · A6' dist/index.html
           grep -q 'catalog-cart.js' dist/index.html
           grep -q 'oaMessage/%40014refkl' dist/catalog-cart.js
           test ! -e dist/assets/posters/PT11.png
           test -s dist/assets/catalog/13/hotpot-small.jpg
           test -s dist/assets/catalog/13/hotpot-medium.jpg
-          test -s dist/assets/catalog/13/hotpot-large.jpg
-          echo "Static bundle ready: 100 records, 100 catalog media files."
+          test -s dist/assets/catalog/13/hotpot-large.jpg\n          test -s dist/assets/special-menu/special-menu-poster.jpg\n          test -s dist/assets/special-menu/thai-basil-chicken.jpg\n          test -s dist/assets/special-menu/all-day-breakfast.jpg\n          test -s dist/assets/special-menu/creamy-garden-salad.jpg\n          grep -q 'data-product-id="SP.1"' dist/index.html\n          grep -q 'data-product-id="SP.2"' dist/index.html\n          grep -q 'data-product-id="SP.3"' dist/index.html
+          echo "Static bundle ready: 103 products, 100 Drive catalog media files, and 4 Special Menu assets."
 
       - name: Deploy Worker
         shell: bash
@@ -110,8 +110,8 @@ jobs:
           trap 'rm -f "$BODY"' EXIT
           for attempt in $(seq 1 40); do
             CODE="$(curl -L --silent --show-error --output "$BODY" --write-out '%{http_code}' "$LIVE_URL")"
-            if test "$CODE" = "200"               && grep -q '<title>Candy Baked Factory — 100 รายการ</title>' "$BODY"               && grep -q 'id="catalog-total">100' "$BODY"; then
-              echo "Worker $WORKER_NAME verified with the 100-item Drive catalog on attempt $attempt."
+            if test "$CODE" = "200"               && grep -q '<title>Candy Baked Factory — 103 รายการ</title>' "$BODY"               && grep -q 'id="catalog-total">103' "$BODY"; then
+              echo "Worker $WORKER_NAME verified with the 103-item catalog on attempt $attempt."
               exit 0
             fi
             sleep 3
