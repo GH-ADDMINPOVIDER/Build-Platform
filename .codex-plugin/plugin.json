@@ -1,18 +1,27 @@
 {
-  "name": "developer-system-bootstrap-ops",
-  "version": "0.1.0",
-  "description": "Develop, audit, build, bootstrap, and synchronize OGENIC workflows across connected cloud services.",
+  "name": "ogenic-god-toolkit",
+  "version": "1.3.0",
+  "description": "Unified OGENIC capability router, execution broker, approval/verification layer, Control Tower UI, and Business/Sales workflows.",
   "author": {
     "name": "TAWATCHAI SAMORNRUM"
   },
   "skills": "./skills/",
   "interface": {
-    "displayName": "Developer System-Bootstrap Ops",
-    "shortDescription": "Build, audit, bootstrap, and sync OGENIC workflows.",
-    "longDescription": "Routes /WF commands across Drive, GitHub, Notion, Shopify, Cloudflare, and secret-management workflows. It reads before writing, preserves recoverable versions, separates secret metadata from secret values, and verifies builds before deployment.",
+    "displayName": "OGENIC GOD TOOLKIT",
+    "shortDescription": "Auto-route work across OGENIC capabilities, tools, connectors, and agents.",
+    "longDescription": "One OGENIC entry point that classifies the requested outcome, selects the minimum valid capability chain, delegates to connected tools or agents, applies approval gates, verifies results, and exposes a mobile-first Control Tower UX. Includes developer operations, data and knowledge, business and sales, communication, security, media, and observability.",
     "developerName": "TAWATCHAI SAMORNRUM",
     "category": "Developer Tools",
-    "capabilities": ["workflow orchestration", "repository operations", "asset synchronization"],
-    "defaultPrompt": "Use Developer System-Bootstrap Ops to inspect the target, build or synchronize the requested workflow, audit the result, and save a recoverable version."
+    "capabilities": [
+      "capability routing",
+      "agent delegation",
+      "workflow orchestration",
+      "repository operations",
+      "business and sales intelligence",
+      "asset and knowledge synchronization",
+      "approval and verification",
+      "control tower UI"
+    ],
+    "defaultPrompt": "Use OGENIC GOD TOOLKIT to understand my outcome, choose the right capability and execution surface automatically, perform the work when authorized, verify the result, and report Result / Blocked / Next."
   }
 }
