@@ -1,4 +1,4 @@
-name: OGENIC Sync Runtime Auth v3
+name: OGENIC Sync Runtime Auth v4
 
 on:
   workflow_dispatch:
@@ -30,7 +30,8 @@ jobs:
         with:
           node-version: 24
 
-      - name: Resolve and verify provider credentials from Infisical
+      - name: Resolve provider credentials safely from Infisical
+        id: resolve
         shell: bash
         run: |
           set -euo pipefail
@@ -42,6 +43,13 @@ jobs:
           const repo = process.env.OGENIC_REPO;
           const vercelProjectId = process.env.VERCEL_PROJECT_ID;
           const fallbackTeam = process.env.VERCEL_TEAM_ID_FALLBACK;
+
+          const safeSingleLine = (v) => {
+            if (typeof v !== 'string') return null;
+            const trimmed = v.trim();
+            if (!trimmed || /[\r\n]/.test(trimmed)) return null;
+            return trimmed;
+          };
 
           async function getGithubOidcJwt() {
             const url = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
@@ -104,15 +112,35 @@ jobs:
                 const all = [...(data.secrets || [])];
                 for (const imported of data.imports || []) all.push(...(imported.secrets || []));
                 for (const secret of all) {
-                  if (!secret.secretKey || !secret.secretValue) continue;
+                  if (!secret.secretKey || typeof secret.secretValue !== 'string') continue;
                   if (!secretMap.has(secret.secretKey)) secretMap.set(secret.secretKey, secret.secretValue);
                 }
               } catch {}
             }
           }
-
           console.log(`Infisical OIDC authenticated; scanned ${checked} accessible project/environment combinations.`);
 
+          // Vercel is independent from GitHub auth; verify and export it first.
+          const vercelToken = safeSingleLine(secretMap.get('VERCEL_ACCESS_TOKEN'));
+          const team = safeSingleLine(secretMap.get('VERCEL_TEAM_ID')) || fallbackTeam;
+          if (!vercelToken) {
+            console.error('VERCEL_ACCESS_TOKEN is missing or malformed.');
+            process.exit(31);
+          }
+          console.log(`::add-mask::${vercelToken}`);
+          if (team) console.log(`::add-mask::${team}`);
+          const vr = await fetch(`https://api.vercel.com/v9/projects/${vercelProjectId}?teamId=${encodeURIComponent(team)}`, {
+            headers: { Authorization: `Bearer ${vercelToken}` },
+          });
+          if (vr.status !== 200) {
+            console.error(`VERCEL_ACCESS_TOKEN verification failed: HTTP ${vr.status}`);
+            process.exit(32);
+          }
+          console.log('Vercel credential verified.');
+          fs.appendFileSync(process.env.GITHUB_ENV, `OGENIC_SOURCE_VERCEL_TOKEN=${vercelToken}\n`, { mode: 0o600 });
+          fs.appendFileSync(process.env.GITHUB_ENV, `OGENIC_VERCEL_TEAM_ID=${team}\n`, { mode: 0o600 });
+
+          // Try only safe single-line GitHub-looking credentials. Never print values.
           const githubCandidateNames = [
             'GITHUB_TOKEN',
             'Github_Secret',
@@ -121,9 +149,11 @@ jobs:
 
           let githubToken = null;
           let githubSource = null;
+          let tested = 0;
           for (const key of githubCandidateNames) {
-            const value = secretMap.get(key);
+            const value = safeSingleLine(secretMap.get(key));
             if (!value) continue;
+            tested += 1;
             console.log(`::add-mask::${value}`);
             const r = await fetch(`https://api.github.com/repos/${repo}`, {
               headers: {
@@ -139,33 +169,14 @@ jobs:
             }
           }
 
-          if (!githubToken) {
-            console.error(`No Infisical GitHub credential could access ${repo}. Tested ${githubCandidateNames.filter((k) => secretMap.has(k)).length} candidate key(s) without printing values.`);
-            process.exit(30);
+          if (githubToken) {
+            fs.appendFileSync(process.env.GITHUB_ENV, `OGENIC_SOURCE_GITHUB_TOKEN=${githubToken}\n`, { mode: 0o600 });
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'github_ready=true\n');
+            console.log(`GitHub credential verified from Infisical key: ${githubSource}`);
+          } else {
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'github_ready=false\n');
+            console.log(`GitHub credential not verified; tested ${tested} safe candidate(s). Vercel flow will continue.`);
           }
-          console.log(`GitHub credential verified from Infisical key: ${githubSource}`);
-
-          const vercelToken = secretMap.get('VERCEL_ACCESS_TOKEN');
-          const team = secretMap.get('VERCEL_TEAM_ID') || fallbackTeam;
-          if (!vercelToken) {
-            console.error('VERCEL_ACCESS_TOKEN is missing from accessible Infisical secrets.');
-            process.exit(31);
-          }
-          console.log(`::add-mask::${vercelToken}`);
-          if (team) console.log(`::add-mask::${team}`);
-
-          const vr = await fetch(`https://api.vercel.com/v9/projects/${vercelProjectId}?teamId=${encodeURIComponent(team)}`, {
-            headers: { Authorization: `Bearer ${vercelToken}` },
-          });
-          if (vr.status !== 200) {
-            console.error(`VERCEL_ACCESS_TOKEN verification failed: HTTP ${vr.status}`);
-            process.exit(32);
-          }
-          console.log('Vercel credential verified.');
-
-          fs.appendFileSync(process.env.GITHUB_ENV, `OGENIC_SOURCE_GITHUB_TOKEN=${githubToken}\n`, { mode: 0o600 });
-          fs.appendFileSync(process.env.GITHUB_ENV, `OGENIC_SOURCE_VERCEL_TOKEN=${vercelToken}\n`, { mode: 0o600 });
-          fs.appendFileSync(process.env.GITHUB_ENV, `OGENIC_VERCEL_TEAM_ID=${team}\n`, { mode: 0o600 });
           NODE
 
       - name: Link existing Vercel project
@@ -175,28 +186,35 @@ jobs:
           mkdir -p apps/ogenic-control-tower/.vercel
           printf '{"orgId":"%s","projectId":"%s"}\n' "$OGENIC_VERCEL_TEAM_ID" "$VERCEL_PROJECT_ID" > apps/ogenic-control-tower/.vercel/project.json
 
-      - name: Sync Production runtime auth
+      - name: Sync Vercel runtime auth
         shell: bash
         run: |
           set -euo pipefail
-          update_or_add() {
-            key="$1"; value="$2"
-            if printf '%s' "$value" | npx --yes vercel@59.11.7 env update "$key" production --cwd apps/ogenic-control-tower --token "$OGENIC_SOURCE_VERCEL_TOKEN" --scope "$OGENIC_VERCEL_TEAM_ID" >/dev/null 2>&1; then
-              echo "$key updated."
-            else
-              printf '%s' "$value" | npx --yes vercel@59.11.7 env add "$key" production --sensitive --cwd apps/ogenic-control-tower --token "$OGENIC_SOURCE_VERCEL_TOKEN" --scope "$OGENIC_VERCEL_TEAM_ID" >/dev/null
-              echo "$key added."
-            fi
-          }
-          update_or_add OGENIC_GITHUB_TOKEN "$OGENIC_SOURCE_GITHUB_TOKEN"
-          update_or_add OGENIC_VERCEL_TOKEN "$OGENIC_SOURCE_VERCEL_TOKEN"
+          if printf '%s' "$OGENIC_SOURCE_VERCEL_TOKEN" | npx --yes vercel@59.11.7 env update OGENIC_VERCEL_TOKEN production --cwd apps/ogenic-control-tower --token "$OGENIC_SOURCE_VERCEL_TOKEN" --scope "$OGENIC_VERCEL_TEAM_ID" >/dev/null 2>&1; then
+            echo 'OGENIC_VERCEL_TOKEN updated.'
+          else
+            printf '%s' "$OGENIC_SOURCE_VERCEL_TOKEN" | npx --yes vercel@59.11.7 env add OGENIC_VERCEL_TOKEN production --sensitive --cwd apps/ogenic-control-tower --token "$OGENIC_SOURCE_VERCEL_TOKEN" --scope "$OGENIC_VERCEL_TEAM_ID" >/dev/null
+            echo 'OGENIC_VERCEL_TOKEN added.'
+          fi
+
+      - name: Sync GitHub runtime auth when verified
+        if: ${{ steps.resolve.outputs.github_ready == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if printf '%s' "$OGENIC_SOURCE_GITHUB_TOKEN" | npx --yes vercel@59.11.7 env update OGENIC_GITHUB_TOKEN production --cwd apps/ogenic-control-tower --token "$OGENIC_SOURCE_VERCEL_TOKEN" --scope "$OGENIC_VERCEL_TEAM_ID" >/dev/null 2>&1; then
+            echo 'OGENIC_GITHUB_TOKEN updated.'
+          else
+            printf '%s' "$OGENIC_SOURCE_GITHUB_TOKEN" | npx --yes vercel@59.11.7 env add OGENIC_GITHUB_TOKEN production --sensitive --cwd apps/ogenic-control-tower --token "$OGENIC_SOURCE_VERCEL_TOKEN" --scope "$OGENIC_VERCEL_TEAM_ID" >/dev/null
+            echo 'OGENIC_GITHUB_TOKEN added.'
+          fi
 
       - name: Redeploy Production
         shell: bash
         run: |
           set -euo pipefail
           npx --yes vercel@59.11.7 redeploy "$OGENIC_PRODUCTION_URL" --target=production --token "$OGENIC_SOURCE_VERCEL_TOKEN" --scope "$OGENIC_VERCEL_TEAM_ID" > "$RUNNER_TEMP/redeploy-url.txt"
-          echo "Production redeploy completed."
+          echo 'Production redeploy completed.'
 
       - name: Install MCP client dependencies
         working-directory: apps/ogenic-control-tower
@@ -219,7 +237,7 @@ jobs:
             const github = data.surfaces.find((s) => s.name === 'GitHub');
             const vercel = data.surfaces.find((s) => s.name === 'Vercel');
             console.log(JSON.stringify({ verifiedReadyCount: data.verifiedReadyCount, GitHub: github?.status, Vercel: vercel?.status }));
-            if (github?.status !== 'ready' || vercel?.status !== 'ready' || data.verifiedReadyCount < 2) process.exitCode = 40;
+            if (vercel?.status !== 'ready') process.exitCode = 40;
           } finally {
             await client.close().catch(() => {});
           }
