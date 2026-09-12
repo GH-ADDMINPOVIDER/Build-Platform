@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   sync-runtime-auth:
@@ -17,6 +18,11 @@ jobs:
     env:
       INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
       INFISICAL_API_URL: ${{ secrets.INFISICAL_API }}
+      INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+      INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_MACHINE_IDENTITY_ID || vars.INFISICAL_IDENTITY_ID }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG }}
+      INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENVIRONMENT || 'prod' }}
       VERCEL_PROJECT_ID: prj_lOOm1o5AKF2bi0WfPFdCQ4jtGSqW
       VERCEL_TEAM_ID_FALLBACK: team_bSBITacYbWsQJPDk7VMZ51w6
       OGENIC_REPO: Ogenicchocolate21debug/Build-Platform
@@ -32,25 +38,39 @@ jobs:
         with:
           node-version: 24
 
-      - name: Resolve provider tokens from Infisical without printing values
+      - name: Pull Infisical secrets with existing OIDC machine identity when configured
+        if: ${{ env.INFISICAL_IDENTITY_ID != '' && env.INFISICAL_PROJECT_SLUG != '' }}
+        uses: Infisical/secrets-action@v1
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+
+      - name: Resolve provider tokens from existing Infisical auth without printing values
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${INFISICAL_TOKEN:-}" ]; then
-            echo "INFISICAL_TOKEN is not available in GitHub Actions runtime bridge."
-            exit 20
-          fi
 
           node <<'NODE'
           const fs = require('node:fs');
-          const path = require('node:path');
 
-          const token = process.env.INFISICAL_TOKEN;
           const preferred = String(process.env.INFISICAL_API_URL || '').trim().replace(/\/$/, '');
           const bases = [...new Set([preferred, 'https://app.infisical.com', 'https://us.infisical.com'].filter(Boolean))];
           const wanted = new Set(['GITHUB_TOKEN', 'VERCEL_ACCESS_TOKEN', 'VERCEL_TEAM_ID']);
 
-          async function infFetch(base, endpoint) {
+          async function loginUniversal(base, clientId, clientSecret) {
+            const r = await fetch(base + '/api/v1/auth/universal-auth/login', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({ clientId, clientSecret }),
+            });
+            if (!r.ok) throw new Error(`${base} universal-auth -> HTTP ${r.status}`);
+            const data = await r.json();
+            return data.accessToken || data.token || null;
+          }
+
+          async function infFetch(base, token, endpoint) {
             const r = await fetch(base + endpoint, {
               headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
             });
@@ -58,78 +78,115 @@ jobs:
             return r.json();
           }
 
-          let base = null;
-          let projects = null;
-          const errors = [];
-          for (const candidate of bases) {
-            try {
-              const data = await infFetch(candidate, '/api/v1/projects');
-              if (Array.isArray(data.projects)) {
-                base = candidate;
-                projects = data.projects;
-                break;
-              }
-            } catch (e) {
-              errors.push(String(e.message || e));
-            }
-          }
-          if (!base || !projects) {
-            console.error('Unable to authenticate to Infisical with the existing runtime bridge.');
-            console.error(errors.join(' | '));
-            process.exit(21);
-          }
+          // If the OIDC action already injected the provider secrets, use them directly.
+          let gh = process.env.GITHUB_TOKEN || null;
+          let vc = process.env.VERCEL_ACCESS_TOKEN || null;
+          let team = process.env.VERCEL_TEAM_ID || process.env.VERCEL_TEAM_ID_FALLBACK || null;
 
-          const found = new Map();
-          outer:
-          for (const project of projects) {
-            for (const env of project.environments || []) {
-              if (!project.id || !env.slug) continue;
-              const q = new URLSearchParams({
-                projectId: project.id,
-                environment: env.slug,
-                secretPath: '/',
-                recursive: 'true',
-                viewSecretValue: 'true',
-                expandSecretReferences: 'true',
-              });
-              try {
-                const data = await infFetch(base, `/api/v4/secrets?${q}`);
-                const all = [...(data.secrets || [])];
-                for (const imported of data.imports || []) all.push(...(imported.secrets || []));
-                for (const secret of all) {
-                  if (wanted.has(secret.secretKey) && secret.secretValue && !found.has(secret.secretKey)) {
-                    found.set(secret.secretKey, secret.secretValue);
+          if (!gh || !vc) {
+            let accessToken = process.env.INFISICAL_TOKEN || null;
+            let base = null;
+            const errors = [];
+
+            // Reuse the existing Universal Auth client when no static Infisical token is bridged.
+            if (!accessToken && process.env.INFISICAL_CLIENT_ID && process.env.INFISICAL_CLIENT_SECRET) {
+              for (const candidate of bases) {
+                try {
+                  accessToken = await loginUniversal(candidate, process.env.INFISICAL_CLIENT_ID, process.env.INFISICAL_CLIENT_SECRET);
+                  if (accessToken) {
+                    base = candidate;
+                    break;
                   }
+                } catch (e) {
+                  errors.push(String(e.message || e));
                 }
-                if (found.has('GITHUB_TOKEN') && found.has('VERCEL_ACCESS_TOKEN') && found.has('VERCEL_TEAM_ID')) break outer;
-              } catch {
-                // Continue scanning only environments this machine token can read.
               }
             }
+
+            if (!accessToken) {
+              console.error('No usable Infisical bootstrap reached GitHub Actions: OIDC metadata, INFISICAL_TOKEN, and Universal Auth credentials were all unavailable or unusable.');
+              process.exit(20);
+            }
+
+            let projects = null;
+            if (base) {
+              try {
+                const data = await infFetch(base, accessToken, '/api/v1/projects');
+                projects = data.projects;
+              } catch (e) {
+                errors.push(String(e.message || e));
+              }
+            }
+            if (!projects) {
+              for (const candidate of bases) {
+                try {
+                  const data = await infFetch(candidate, accessToken, '/api/v1/projects');
+                  if (Array.isArray(data.projects)) {
+                    base = candidate;
+                    projects = data.projects;
+                    break;
+                  }
+                } catch (e) {
+                  errors.push(String(e.message || e));
+                }
+              }
+            }
+
+            if (!base || !Array.isArray(projects)) {
+              console.error('Infisical authentication existed but project discovery failed.');
+              console.error(errors.join(' | '));
+              process.exit(21);
+            }
+
+            const found = new Map();
+            outer:
+            for (const project of projects) {
+              for (const env of project.environments || []) {
+                if (!project.id || !env.slug) continue;
+                const q = new URLSearchParams({
+                  projectId: project.id,
+                  environment: env.slug,
+                  secretPath: '/',
+                  recursive: 'true',
+                  viewSecretValue: 'true',
+                  expandSecretReferences: 'true',
+                });
+                try {
+                  const data = await infFetch(base, accessToken, `/api/v4/secrets?${q}`);
+                  const all = [...(data.secrets || [])];
+                  for (const imported of data.imports || []) all.push(...(imported.secrets || []));
+                  for (const secret of all) {
+                    if (wanted.has(secret.secretKey) && secret.secretValue && !found.has(secret.secretKey)) {
+                      found.set(secret.secretKey, secret.secretValue);
+                    }
+                  }
+                  if (found.has('GITHUB_TOKEN') && found.has('VERCEL_ACCESS_TOKEN') && found.has('VERCEL_TEAM_ID')) break outer;
+                } catch {
+                  // Continue scanning only environments this machine identity can read.
+                }
+              }
+            }
+
+            gh ||= found.get('GITHUB_TOKEN') || null;
+            vc ||= found.get('VERCEL_ACCESS_TOKEN') || null;
+            team = found.get('VERCEL_TEAM_ID') || team;
           }
 
-          for (const required of ['GITHUB_TOKEN', 'VERCEL_ACCESS_TOKEN']) {
-            if (!found.has(required)) {
-              console.error(`Required Infisical secret ${required} was not found in an accessible project/environment.`);
+          for (const [name, value] of [['GITHUB_TOKEN', gh], ['VERCEL_ACCESS_TOKEN', vc]]) {
+            if (!value) {
+              console.error(`Required Infisical secret ${name} was not available through the existing machine auth.`);
               process.exit(22);
             }
           }
 
-          const gh = found.get('GITHUB_TOKEN');
-          const vc = found.get('VERCEL_ACCESS_TOKEN');
-          const team = found.get('VERCEL_TEAM_ID') || process.env.VERCEL_TEAM_ID_FALLBACK;
-
-          // Mask dynamically-fetched values before exposing them to later steps.
           console.log(`::add-mask::${gh}`);
           console.log(`::add-mask::${vc}`);
           if (team) console.log(`::add-mask::${team}`);
 
-          const out = process.env.GITHUB_ENV;
-          fs.appendFileSync(out, `OGENIC_SOURCE_GITHUB_TOKEN=${gh}\n`, { mode: 0o600 });
-          fs.appendFileSync(out, `OGENIC_SOURCE_VERCEL_TOKEN=${vc}\n`, { mode: 0o600 });
-          fs.appendFileSync(out, `OGENIC_VERCEL_TEAM_ID=${team}\n`, { mode: 0o600 });
-
-          console.log('Infisical lookup succeeded for GitHub and Vercel runtime credentials. Values were not printed.');
+          fs.appendFileSync(process.env.GITHUB_ENV, `OGENIC_SOURCE_GITHUB_TOKEN=${gh}\n`, { mode: 0o600 });
+          fs.appendFileSync(process.env.GITHUB_ENV, `OGENIC_SOURCE_VERCEL_TOKEN=${vc}\n`, { mode: 0o600 });
+          fs.appendFileSync(process.env.GITHUB_ENV, `OGENIC_VERCEL_TEAM_ID=${team}\n`, { mode: 0o600 });
+          console.log('Infisical provider credentials resolved. Values were not printed.');
           NODE
 
       - name: Verify source credentials before syncing
