@@ -1,0 +1,50 @@
+name: OGENIC Host Runtime Migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ogenic-host-runtime-migrate.yml"
+      - ".github/scripts/patch_ogenic_host_runtime.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Patch Control Tower runtime mode
+        run: python .github/scripts/patch_ogenic_host_runtime.py
+
+      - name: Install dependencies
+        working-directory: apps/ogenic-control-tower
+        run: npm ci
+
+      - name: Run Control Tower test suite
+        working-directory: apps/ogenic-control-tower
+        run: npm test
+
+      - name: Commit migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- apps/ogenic-control-tower/server.js; then
+            echo "No runtime migration changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/ogenic-control-tower/server.js
+          git commit -m "feat: verify GitHub and Vercel through host runtime provenance"
+          git push origin HEAD:main
