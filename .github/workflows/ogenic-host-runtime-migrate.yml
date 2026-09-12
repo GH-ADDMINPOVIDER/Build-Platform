@@ -42,12 +42,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- apps/ogenic-control-tower/server.js apps/ogenic-control-tower/tests/mcp-smoke.mjs; then
+          if git diff --quiet -- apps/ogenic-control-tower/server.js apps/ogenic-control-tower/tests/mcp-smoke.mjs apps/ogenic-control-tower/tests/fastwork-dry-run.mjs; then
             echo "No runtime migration changes required."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/ogenic-control-tower/server.js apps/ogenic-control-tower/tests/mcp-smoke.mjs
+          git add apps/ogenic-control-tower/server.js apps/ogenic-control-tower/tests/mcp-smoke.mjs apps/ogenic-control-tower/tests/fastwork-dry-run.mjs
           git commit -m "feat: verify GitHub and Vercel through host runtime provenance"
           git push origin HEAD:main
