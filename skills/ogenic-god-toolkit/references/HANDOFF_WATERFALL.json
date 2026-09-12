@@ -1,0 +1,43 @@
+{
+  "version": "1.3.0",
+  "name": "OGENIC capability waterfall",
+  "policy": "Continue through authorized execution surfaces until one can complete the task; create a durable GitHub handoff for unresolved non-consequential developer work; publish secret-safe state to the Developer Control Panel.",
+  "states": ["ready", "handoff", "blocked", "human_approval", "unknown"],
+  "waterfall": [
+    "direct_connected_tool",
+    "native_connector_alternative",
+    "codex_implementation",
+    "claude_review_debug",
+    "github_handoff_queue",
+    "automation_ci",
+    "authorized_local_bridge",
+    "blocked"
+  ],
+  "handoff": {
+    "target": "GitHub",
+    "required_fields": [
+      "requested_outcome",
+      "target",
+      "attempted_surfaces",
+      "blocker",
+      "missing_capability",
+      "risk_class",
+      "verification_condition",
+      "provenance"
+    ],
+    "never_include": ["raw_secret", "password", "api_key_value", "token_value", "private_key", "hidden_reasoning"]
+  },
+  "developer_status": {
+    "destination": "OGENIC Developer Control Panel",
+    "fields": [
+      "capability",
+      "requested_action",
+      "selected_surface",
+      "state",
+      "handoff_target",
+      "reason",
+      "verification",
+      "updated_at"
+    ]
+  }
+}

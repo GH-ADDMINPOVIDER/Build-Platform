@@ -1,0 +1,17 @@
+{
+  "version": "1.3.0",
+  "entry_point": "ogenic-god-toolkit",
+  "groups": [
+    {"id":"00","key":"core_router","name":"Core / Auto Router","children":["intent","decompose","tool_discovery","execution_selection","approval_classification","verification","audit"]},
+    {"id":"01","key":"code_build","name":"Code & Build","children":["repo_inspect","patch","git","branch","test","lint","typecheck","build","pr","codex_delegate","claude_review","agent_handoff"]},
+    {"id":"02","key":"system_runtime","name":"System & Runtime","children":["filesystem","process","shell","diagnostics","dependencies","health"]},
+    {"id":"03","key":"automation_delivery","name":"Automation & Delivery","children":["n8n","scheduler","webhook","ci_cd","retries","dead_letter","deploy","rollback"]},
+    {"id":"04","key":"web_app","name":"Web / App / Cloudflare","children":["frontend","backend","browser","dom","cloudflare_workers","cloudflare_pages","d1","vercel","deploy_verify"]},
+    {"id":"05","key":"data_knowledge","name":"Data & Knowledge","children":["google_drive","notion","files","rag","registry","product_master","documents","provenance"]},
+    {"id":"06","key":"business_sales","name":"Business & Sales","children":["buyer_intent","retail_placement","lead_discovery","lead_enrichment","fit_score","product_match","commercial_calc","sample_pipeline","followup","reorder_learning"]},
+    {"id":"07","key":"communication","name":"Communication","children":["gmail","line_oa","notifications","outreach","followup_message"]},
+    {"id":"08","key":"security_credentials","name":"Security & Credentials","children":["infisical","auth","scopes","approval_gate","secret_safe_diagnostics","audit"]},
+    {"id":"09","key":"media_creative","name":"Media & Creative","children":["image_generate","image_edit","figma","magnific","poster","brand_assets","ux_ui"]},
+    {"id":"10","key":"observability_control","name":"Observability & Control","children":["runs","agent_status","connector_health","quota_signal","approvals","failures","retry_queue","audit_log"]}
+  ]
+}

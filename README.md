@@ -1,16 +1,17 @@
-# Developer System-Bootstrap Ops
+# OGENIC GOD TOOLKIT v1.3.0
 
-Cloud-first OGENIC toolkit for `/WF.*` commands, Drive asset synchronization, secret-aware workflow development, build auditing, bootstrap, deployment preparation, and verified version saving.
+Portable Agent Plugin + Skill and MCP Control Tower for evidence-based capability routing, Human Approval classification, and verified status reporting. Legacy `/WF.*` Developer System-Bootstrap Ops workflows remain available during migration.
 
-## Source chain
+## Components
 
-- Drive: `WorkFlow(Work) DATA BASE`
-- Notion: `OGENIC — Workflow Shortcut Command Center`
-- GitHub: `ogenic-chocolate`, `ogenic-registry-mcp`, `Core-Dv1`, and `Build-Platform`
-- Secret values: Infisical; runtime bridge: GitHub encrypted Actions secrets
+- `plugin.json` — portable Agent Plugins manifest
+- `.codex-plugin/plugin.json` — Codex compatibility manifest
+- `skills/ogenic-god-toolkit/` — single-entry routing and approval contract
+- `apps/ogenic-control-tower/` — Streamable HTTP MCP server and MCP Apps UI
+- `scripts/validate_toolkit.py` — package and migration-parity validator
 
 ## Pipeline
 
-`Inspect → Resolve → Secret check → Develop → Build → Audit → Deploy → Verify → Save`
+`Intent → Route → Approval gate → Execute on an authorized surface → Verify → Result`
 
-This repository stores no plaintext secret values.
+The MVP MCP tools are read-only planning/status/rendering tools. Execution surfaces stay `unknown` until a live adapter verifies them. This repository stores no plaintext secret values and must never report an unverified deployment, connector, or send as successful.

@@ -1,0 +1,59 @@
+name: OGENIC Toolkit Validate
+
+on:
+  pull_request:
+    paths:
+      - '.codex-plugin/**'
+      - 'plugin.json'
+      - 'docs/PLUGIN_SUBMISSION_TEST_CASES.md'
+      - 'skills/ogenic-god-toolkit/**'
+      - 'apps/ogenic-control-tower/**'
+      - 'scripts/validate_toolkit.py'
+      - 'CODEX_HANDOFF_OGENIC_GOD_TOOLKIT_v1.3.0.md'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate plugin, Skill, registries and compatibility
+        run: python scripts/validate_toolkit.py
+
+      - name: Install MCP app dependencies
+        working-directory: apps/ogenic-control-tower
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Syntax, UI and MCP end-to-end tests
+        working-directory: apps/ogenic-control-tower
+        run: npm test
+
+      - name: Build review package
+        run: |
+          zip -r ogenic-god-toolkit-v1.3.0-review.zip \
+            plugin.json \
+            .codex-plugin \
+            skills/ogenic-god-toolkit \
+            skills/developer-system-bootstrap-ops \
+            apps/ogenic-control-tower \
+            docs/PLUGIN_SUBMISSION_TEST_CASES.md \
+            CODEX_HANDOFF_OGENIC_GOD_TOOLKIT_v1.3.0.md \
+            PRIVACY.md TERMS.md \
+            -x '*/node_modules/*'
+
+      - name: Upload review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ogenic-god-toolkit-v1.3.0-review
+          path: ogenic-god-toolkit-v1.3.0-review.zip
+          if-no-files-found: error
