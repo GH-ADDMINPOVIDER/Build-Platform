@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { createHttpServer, TEMPLATE_URI } from "../server.js";
+import defaultHttpServer, { createHttpServer, TEMPLATE_URI } from "../server.js";
+
+assert.equal(typeof defaultHttpServer.listen, "function", "Vercel root entrypoint must export an HTTP server");
 
 const httpServer = createHttpServer();
 await new Promise((resolve, reject) => {
@@ -15,6 +17,18 @@ try {
   const health = await fetch(`${base}/healthz`).then((r) => r.json());
   assert.equal(health.name, "ogenic-god-toolkit");
   assert.equal(health.status, "ok");
+  const apiHealth = await fetch(`${base}/api/health`).then((r) => r.json());
+  assert.equal(apiHealth.status, "ok");
+
+  const aliasClient = new Client({ name: "ogenic-ci-vercel-alias", version: "1.0.0" });
+  try {
+    const aliasTransport = new StreamableHTTPClientTransport(new URL(`${base}/api/mcp`));
+    await aliasClient.connect(aliasTransport);
+    const aliasTools = await aliasClient.listTools();
+    assert.equal(aliasTools.tools.length, 4);
+  } finally {
+    await aliasClient.close().catch(() => {});
+  }
 
   const transport = new StreamableHTTPClientTransport(new URL(`${base}/mcp`));
   await client.connect(transport);

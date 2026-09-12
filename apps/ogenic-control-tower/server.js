@@ -329,7 +329,10 @@ export function createHttpServer() {
 
     const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
 
-    if (req.method === "OPTIONS" && url.pathname === "/mcp") {
+    const isMcpPath = url.pathname === "/mcp" || url.pathname === "/api/mcp";
+    const isHealthPath = ["/", "/healthz", "/api/health"].includes(url.pathname);
+
+    if (req.method === "OPTIONS" && isMcpPath) {
       res.writeHead(204, {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, GET, DELETE, OPTIONS",
@@ -340,7 +343,7 @@ export function createHttpServer() {
       return;
     }
 
-    if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/healthz")) {
+    if (req.method === "GET" && isHealthPath) {
       res.writeHead(200, { "content-type": "application/json; charset=utf-8" }).end(JSON.stringify({
         name: "ogenic-god-toolkit",
         version: VERSION,
@@ -352,7 +355,7 @@ export function createHttpServer() {
     }
 
     const MCP_METHODS = new Set(["POST", "GET", "DELETE"]);
-    if (url.pathname === "/mcp" && req.method && MCP_METHODS.has(req.method)) {
+    if (isMcpPath && req.method && MCP_METHODS.has(req.method)) {
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id, MCP-Protocol-Version");
       const server = createOgenicServer();
@@ -375,9 +378,12 @@ export function createHttpServer() {
   });
 }
 
+const httpServer = createHttpServer();
+export default httpServer;
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const port = Number(process.env.PORT ?? 8787);
-  createHttpServer().listen(port, () => {
+  httpServer.listen(port, () => {
     console.log(`OGENIC GOD TOOLKIT listening on http://localhost:${port}/mcp`);
   });
 }
