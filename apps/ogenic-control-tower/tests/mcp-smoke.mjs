@@ -3,6 +3,10 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import defaultHttpServer, { createHttpServer, TEMPLATE_URI } from "../server.js";
 
+for (const key of ["OGENIC_GITHUB_TOKEN", "GITHUB_TOKEN", "OGENIC_VERCEL_TOKEN", "VERCEL_TOKEN"]) {
+  delete process.env[key];
+}
+
 assert.equal(typeof defaultHttpServer.listen, "function", "Vercel root entrypoint must export an HTTP server");
 
 const httpServer = createHttpServer();
@@ -57,12 +61,20 @@ try {
 
   const productionStatus = await client.callTool({ name: "route_request", arguments: { request: "check production deploy status only" } });
   assert.equal(productionStatus.structuredContent.approval, "auto");
+  assert.equal(productionStatus.structuredContent.primary, "10.observability_control");
+
+  const readOnlyReadiness = await client.callTool({
+    name: "route_request",
+    arguments: { request: "Run a read-only readiness check. Do not deploy, delete, send messages, spend money, expose secrets, or modify external systems." },
+  });
+  assert.equal(readOnlyReadiness.structuredContent.primary, "10.observability_control");
+  assert.equal(readOnlyReadiness.structuredContent.approval, "auto");
 
   const rotateKey = await client.callTool({ name: "route_request", arguments: { request: "rotate API key" } });
   assert.equal(rotateKey.structuredContent.approval, "human_approval_required_before_consequential_action");
 
   const secretMetadata = await client.callTool({ name: "route_request", arguments: { request: "check Infisical secret metadata and permission status only" } });
-  assert.equal(secretMetadata.structuredContent.primary, "08.security_credentials");
+  assert.equal(secretMetadata.structuredContent.primary, "10.observability_control");
   assert.equal(secretMetadata.structuredContent.approval, "auto");
 
   const chargeStatus = await client.callTool({ name: "route_request", arguments: { request: "check the 46 USD charge status only" } });
@@ -90,12 +102,16 @@ try {
   assert.equal(stagingDeploy.structuredContent.approval, "auto_with_review");
 
   const productMaster = await client.callTool({ name: "route_request", arguments: { request: "check product master status" } });
-  assert.equal(productMaster.structuredContent.primary, "05.data_knowledge");
+  assert.equal(productMaster.structuredContent.primary, "10.observability_control");
   assert.equal(productMaster.structuredContent.approval, "auto");
 
   const status = await client.callTool({ name: "get_runtime_status", arguments: {} });
   assert.equal(status.structuredContent.verifiedReadyCount, 0);
-  assert.ok(status.structuredContent.surfaces.every((s) => s.status === "unknown"));
+  const github = status.structuredContent.surfaces.find((s) => s.name === "GitHub");
+  const vercel = status.structuredContent.surfaces.find((s) => s.name === "Vercel");
+  assert.equal(github.status, "needs_auth");
+  assert.equal(vercel.status, "needs_auth");
+  assert.ok(status.structuredContent.surfaces.filter((s) => !["GitHub", "Vercel"].includes(s.name)).every((s) => s.status === "unknown"));
   assert.ok(status.structuredContent.surfaces.some((s) => s.name === "Claude / Anthropic"));
 
   const rendered = await client.callTool({ name: "render_control_tower", arguments: { route: risky.structuredContent } });
