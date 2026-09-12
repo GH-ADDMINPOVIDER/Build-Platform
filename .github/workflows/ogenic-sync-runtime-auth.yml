@@ -1,0 +1,237 @@
+name: OGENIC Sync Runtime Auth from Infisical
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ogenic-sync-runtime-auth.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  sync-runtime-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
+      INFISICAL_API_URL: ${{ secrets.INFISICAL_API }}
+      VERCEL_PROJECT_ID: prj_lOOm1o5AKF2bi0WfPFdCQ4jtGSqW
+      VERCEL_TEAM_ID_FALLBACK: team_bSBITacYbWsQJPDk7VMZ51w6
+      OGENIC_REPO: Ogenicchocolate21debug/Build-Platform
+      OGENIC_MCP_URL: https://ogenic-control-tower.vercel.app/mcp
+      OGENIC_PRODUCTION_URL: https://ogenic-control-tower.vercel.app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Resolve provider tokens from Infisical without printing values
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${INFISICAL_TOKEN:-}" ]; then
+            echo "INFISICAL_TOKEN is not available in GitHub Actions runtime bridge."
+            exit 20
+          fi
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const token = process.env.INFISICAL_TOKEN;
+          const preferred = String(process.env.INFISICAL_API_URL || '').trim().replace(/\/$/, '');
+          const bases = [...new Set([preferred, 'https://app.infisical.com', 'https://us.infisical.com'].filter(Boolean))];
+          const wanted = new Set(['GITHUB_TOKEN', 'VERCEL_ACCESS_TOKEN', 'VERCEL_TEAM_ID']);
+
+          async function infFetch(base, endpoint) {
+            const r = await fetch(base + endpoint, {
+              headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+            });
+            if (!r.ok) throw new Error(`${base} ${endpoint} -> HTTP ${r.status}`);
+            return r.json();
+          }
+
+          let base = null;
+          let projects = null;
+          const errors = [];
+          for (const candidate of bases) {
+            try {
+              const data = await infFetch(candidate, '/api/v1/projects');
+              if (Array.isArray(data.projects)) {
+                base = candidate;
+                projects = data.projects;
+                break;
+              }
+            } catch (e) {
+              errors.push(String(e.message || e));
+            }
+          }
+          if (!base || !projects) {
+            console.error('Unable to authenticate to Infisical with the existing runtime bridge.');
+            console.error(errors.join(' | '));
+            process.exit(21);
+          }
+
+          const found = new Map();
+          outer:
+          for (const project of projects) {
+            for (const env of project.environments || []) {
+              if (!project.id || !env.slug) continue;
+              const q = new URLSearchParams({
+                projectId: project.id,
+                environment: env.slug,
+                secretPath: '/',
+                recursive: 'true',
+                viewSecretValue: 'true',
+                expandSecretReferences: 'true',
+              });
+              try {
+                const data = await infFetch(base, `/api/v4/secrets?${q}`);
+                const all = [...(data.secrets || [])];
+                for (const imported of data.imports || []) all.push(...(imported.secrets || []));
+                for (const secret of all) {
+                  if (wanted.has(secret.secretKey) && secret.secretValue && !found.has(secret.secretKey)) {
+                    found.set(secret.secretKey, secret.secretValue);
+                  }
+                }
+                if (found.has('GITHUB_TOKEN') && found.has('VERCEL_ACCESS_TOKEN') && found.has('VERCEL_TEAM_ID')) break outer;
+              } catch {
+                // Continue scanning only environments this machine token can read.
+              }
+            }
+          }
+
+          for (const required of ['GITHUB_TOKEN', 'VERCEL_ACCESS_TOKEN']) {
+            if (!found.has(required)) {
+              console.error(`Required Infisical secret ${required} was not found in an accessible project/environment.`);
+              process.exit(22);
+            }
+          }
+
+          const gh = found.get('GITHUB_TOKEN');
+          const vc = found.get('VERCEL_ACCESS_TOKEN');
+          const team = found.get('VERCEL_TEAM_ID') || process.env.VERCEL_TEAM_ID_FALLBACK;
+
+          // Mask dynamically-fetched values before exposing them to later steps.
+          console.log(`::add-mask::${gh}`);
+          console.log(`::add-mask::${vc}`);
+          if (team) console.log(`::add-mask::${team}`);
+
+          const out = process.env.GITHUB_ENV;
+          fs.appendFileSync(out, `OGENIC_SOURCE_GITHUB_TOKEN=${gh}\n`, { mode: 0o600 });
+          fs.appendFileSync(out, `OGENIC_SOURCE_VERCEL_TOKEN=${vc}\n`, { mode: 0o600 });
+          fs.appendFileSync(out, `OGENIC_VERCEL_TEAM_ID=${team}\n`, { mode: 0o600 });
+
+          console.log('Infisical lookup succeeded for GitHub and Vercel runtime credentials. Values were not printed.');
+          NODE
+
+      - name: Verify source credentials before syncing
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh_code=$(curl -sS -o /tmp/gh.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${OGENIC_SOURCE_GITHUB_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${OGENIC_REPO}")
+          if [ "$gh_code" != "200" ]; then
+            echo "Infisical GITHUB_TOKEN failed repository verification: HTTP $gh_code"
+            exit 30
+          fi
+
+          vc_code=$(curl -sS -o /tmp/vc.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${OGENIC_SOURCE_VERCEL_TOKEN}" \
+            "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}?teamId=${OGENIC_VERCEL_TEAM_ID}")
+          if [ "$vc_code" != "200" ]; then
+            echo "Infisical VERCEL_ACCESS_TOKEN failed project verification: HTTP $vc_code"
+            exit 31
+          fi
+
+          echo "Provider credential verification passed."
+
+      - name: Link local directory to existing Vercel project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p apps/ogenic-control-tower/.vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' \
+            "$OGENIC_VERCEL_TEAM_ID" "$VERCEL_PROJECT_ID" \
+            > apps/ogenic-control-tower/.vercel/project.json
+
+      - name: Sync OGENIC runtime auth into Vercel Production
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          update_or_add() {
+            key="$1"
+            value="$2"
+            if printf '%s' "$value" | npx --yes vercel@59.11.7 env update "$key" production \
+                --cwd apps/ogenic-control-tower \
+                --token "$OGENIC_SOURCE_VERCEL_TOKEN" \
+                --scope "$OGENIC_VERCEL_TEAM_ID" >/dev/null 2>&1; then
+              echo "$key updated for Production."
+            else
+              printf '%s' "$value" | npx --yes vercel@59.11.7 env add "$key" production --sensitive \
+                --cwd apps/ogenic-control-tower \
+                --token "$OGENIC_SOURCE_VERCEL_TOKEN" \
+                --scope "$OGENIC_VERCEL_TEAM_ID" >/dev/null
+              echo "$key added for Production."
+            fi
+          }
+
+          update_or_add OGENIC_GITHUB_TOKEN "$OGENIC_SOURCE_GITHUB_TOKEN"
+          update_or_add OGENIC_VERCEL_TOKEN "$OGENIC_SOURCE_VERCEL_TOKEN"
+
+      - name: Redeploy current Production with refreshed runtime auth
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes vercel@59.11.7 redeploy "$OGENIC_PRODUCTION_URL" \
+            --target=production \
+            --token "$OGENIC_SOURCE_VERCEL_TOKEN" \
+            --scope "$OGENIC_VERCEL_TEAM_ID" \
+            > "$RUNNER_TEMP/ogenic-redeploy-url.txt"
+          echo "Production redeploy completed."
+
+      - name: Install MCP client dependencies
+        working-directory: apps/ogenic-control-tower
+        run: npm ci
+
+      - name: Verify live MCP runtime status
+        working-directory: apps/ogenic-control-tower
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+          import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+
+          const client = new Client({ name: 'ogenic-runtime-auth-verifier', version: '1.0.0' });
+          try {
+            const transport = new StreamableHTTPClientTransport(new URL(process.env.OGENIC_MCP_URL));
+            await client.connect(transport);
+            const result = await client.callTool({ name: 'get_runtime_status', arguments: {} });
+            const data = result.structuredContent;
+            const github = data.surfaces.find((s) => s.name === 'GitHub');
+            const vercel = data.surfaces.find((s) => s.name === 'Vercel');
+            console.log(JSON.stringify({
+              verifiedReadyCount: data.verifiedReadyCount,
+              GitHub: github?.status || 'missing',
+              Vercel: vercel?.status || 'missing',
+            }));
+            if (github?.status !== 'ready' || vercel?.status !== 'ready' || data.verifiedReadyCount < 2) {
+              process.exitCode = 40;
+            }
+          } finally {
+            await client.close().catch(() => {});
+          }
+          NODE
