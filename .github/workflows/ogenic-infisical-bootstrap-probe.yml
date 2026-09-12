@@ -1,0 +1,40 @@
+name: OGENIC Infisical Bootstrap Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ogenic-infisical-bootstrap-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    env:
+      INFISICAL_TOKEN: ${{ secrets.INFISICAL_TOKEN }}
+      INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+      INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+      INFISICAL_MACHINE_IDENTITY_ID: ${{ vars.INFISICAL_MACHINE_IDENTITY_ID }}
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG }}
+      INFISICAL_ENVIRONMENT: ${{ vars.INFISICAL_ENVIRONMENT }}
+    steps:
+      - name: Report bootstrap presence only
+        shell: bash
+        run: |
+          set -euo pipefail
+          present() { if [ -n "${1:-}" ]; then printf 'yes'; else printf 'no'; fi; }
+          echo "INFISICAL_TOKEN_PRESENT=$(present "$INFISICAL_TOKEN")"
+          echo "UNIVERSAL_AUTH_CLIENT_ID_PRESENT=$(present "$INFISICAL_CLIENT_ID")"
+          echo "UNIVERSAL_AUTH_CLIENT_SECRET_PRESENT=$(present "$INFISICAL_CLIENT_SECRET")"
+          if [ -n "$INFISICAL_MACHINE_IDENTITY_ID" ] || [ -n "$INFISICAL_IDENTITY_ID" ]; then
+            echo "OIDC_IDENTITY_METADATA_PRESENT=yes"
+          else
+            echo "OIDC_IDENTITY_METADATA_PRESENT=no"
+          fi
+          echo "PROJECT_SLUG_PRESENT=$(present "$INFISICAL_PROJECT_SLUG")"
+          echo "ENVIRONMENT_METADATA_PRESENT=$(present "$INFISICAL_ENVIRONMENT")"
