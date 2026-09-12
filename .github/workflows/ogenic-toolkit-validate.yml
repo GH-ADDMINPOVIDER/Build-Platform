@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - '.codex-plugin/**'
+      - 'plugin.json'
+      - 'docs/PLUGIN_SUBMISSION_TEST_CASES.md'
       - 'skills/ogenic-god-toolkit/**'
       - 'apps/ogenic-control-tower/**'
       - 'scripts/validate_toolkit.py'
@@ -30,7 +32,7 @@ jobs:
 
       - name: Install MCP app dependencies
         working-directory: apps/ogenic-control-tower
-        run: npm install --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Syntax, UI and MCP end-to-end tests
         working-directory: apps/ogenic-control-tower
@@ -38,17 +40,20 @@ jobs:
 
       - name: Build review package
         run: |
-          tar -czf ogenic-god-toolkit-v1.3.0-review.tgz \
+          zip -r ogenic-god-toolkit-v1.3.0-review.zip \
+            plugin.json \
             .codex-plugin \
             skills/ogenic-god-toolkit \
             skills/developer-system-bootstrap-ops \
             apps/ogenic-control-tower \
+            docs/PLUGIN_SUBMISSION_TEST_CASES.md \
             CODEX_HANDOFF_OGENIC_GOD_TOOLKIT_v1.3.0.md \
-            PRIVACY.md TERMS.md
+            PRIVACY.md TERMS.md \
+            -x '*/node_modules/*'
 
       - name: Upload review package
         uses: actions/upload-artifact@v4
         with:
           name: ogenic-god-toolkit-v1.3.0-review
-          path: ogenic-god-toolkit-v1.3.0-review.tgz
+          path: ogenic-god-toolkit-v1.3.0-review.zip
           if-no-files-found: error

@@ -22,6 +22,10 @@
       "approval and verification",
       "control tower UI"
     ],
-    "defaultPrompt": "Use OGENIC GOD TOOLKIT to understand my outcome, choose the right capability and execution surface automatically, perform the work when authorized, verify the result, and report Result / Blocked / Next."
+    "defaultPrompt": [
+      "Route this outcome through OGENIC and show the verified result.",
+      "Open the OGENIC Control Tower and inspect runtime status.",
+      "Plan this task and flag any Human Approval gate before execution."
+    ]
   }
 }

@@ -41,12 +41,30 @@ try {
   const risky = await client.callTool({ name: "route_request", arguments: { request: "deploy production now" } });
   assert.equal(risky.structuredContent.approval, "human_approval_required_before_consequential_action");
 
+  const productionStatus = await client.callTool({ name: "route_request", arguments: { request: "check production deploy status only" } });
+  assert.equal(productionStatus.structuredContent.approval, "auto");
+
   const rotateKey = await client.callTool({ name: "route_request", arguments: { request: "rotate API key" } });
   assert.equal(rotateKey.structuredContent.approval, "human_approval_required_before_consequential_action");
 
   const secretMetadata = await client.callTool({ name: "route_request", arguments: { request: "check Infisical secret metadata and permission status only" } });
   assert.equal(secretMetadata.structuredContent.primary, "08.security_credentials");
   assert.equal(secretMetadata.structuredContent.approval, "auto");
+
+  const chargeStatus = await client.callTool({ name: "route_request", arguments: { request: "check the 46 USD charge status only" } });
+  assert.equal(chargeStatus.structuredContent.approval, "auto");
+
+  const thaiChargeStatus = await client.callTool({ name: "route_request", arguments: { request: "ตรวจสอบรายการเรียกเก็บเงิน 46 USD เท่านั้น" } });
+  assert.equal(thaiChargeStatus.structuredContent.approval, "auto");
+
+  const payment = await client.callTool({ name: "route_request", arguments: { request: "make a payment now" } });
+  assert.equal(payment.structuredContent.approval, "human_approval_required_before_consequential_action");
+
+  const contactLead = await client.callTool({ name: "route_request", arguments: { request: "contact the lead" } });
+  assert.equal(contactLead.structuredContent.approval, "human_approval_required_before_consequential_action");
+
+  const draftLeadEmail = await client.callTool({ name: "route_request", arguments: { request: "draft an email to the lead" } });
+  assert.equal(draftLeadEmail.structuredContent.approval, "auto");
 
   const internalReview = await client.callTool({ name: "route_request", arguments: { request: "Codex fix CI then Claude review the patch" } });
   assert.equal(internalReview.structuredContent.primary, "03.automation_delivery");
@@ -66,8 +84,11 @@ try {
   assert.ok(status.structuredContent.surfaces.every((s) => s.status === "unknown"));
   assert.ok(status.structuredContent.surfaces.some((s) => s.name === "Claude / Anthropic"));
 
-  const rendered = await client.callTool({ name: "render_control_tower", arguments: { request: "check status" } });
+  const rendered = await client.callTool({ name: "render_control_tower", arguments: { route: risky.structuredContent } });
   assert.equal(rendered.structuredContent.router.status, "verified");
+  assert.equal(rendered.structuredContent.route.request, "deploy production now");
+  assert.equal(rendered.structuredContent.approvals.length, 1);
+  assert.equal(rendered.structuredContent.approvals[0].status, "pending_human_approval");
   assert.equal(rendered.structuredContent.buyerIntentRadar.status, "unknown");
   assert.equal(rendered.structuredContent.buyerIntentRadar.leads.length, 0);
 
@@ -77,6 +98,9 @@ try {
   assert.ok(resource.contents[0].text.includes("ASK OGENIC"));
   assert.deepEqual(resource.contents[0]._meta?.ui?.csp?.connectDomains, []);
   assert.deepEqual(resource.contents[0]._meta?.ui?.csp?.resourceDomains, []);
+
+  const rootHealth = await fetch(`${base}/`).then((r) => r.json());
+  assert.equal(rootHealth.status, "ok");
 
   console.log("MCP smoke PASS");
 } finally {

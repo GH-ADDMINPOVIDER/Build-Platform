@@ -43,6 +43,12 @@ const READ_ONLY_ANNOTATIONS = {
   openWorldHint: false,
 };
 
+const APPROVAL_STATES = [
+  "auto",
+  "auto_with_review",
+  "human_approval_required_before_consequential_action",
+];
+
 function includesAny(text, terms) {
   return terms.some((term) => text.includes(term));
 }
@@ -53,11 +59,11 @@ function matchesAny(text, patterns) {
 
 export function classifyApproval(text) {
   const humanApprovalPatterns = [
-    /\bdeploy\s+(?:to\s+)?production\b/i,
-    /\bproduction\s+deploy\b/i,
+    /\bdeploy\s+(?:to\s+)?production(?:\s+(?:now|today|immediately|please))?\b/i,
     /\bmerge\s+(?:into\s+)?main\b/i,
     /\bmerge\s+main\b/i,
-    /\bpublish\s+public\b/i,
+    /\bpublish\s+(?:to\s+the\s+)?public(?:ly)?\b/i,
+    /\bpublic\s+publish\s+now\b/i,
     /\bgo\s+live\b/i,
     /\b(delete|destroy|purge|wipe|drop)\b/i,
     /ลบ|ทำลาย/,
@@ -68,9 +74,15 @@ export function classifyApproval(text) {
     /\b(secret|credential|token|api\s*key)\b.{0,40}\b(create|rotate|replace|revoke|delete|change|update)\b/i,
     /เปลี่ยนคีย์|หมุนคีย์|ลบคีย์|สร้างคีย์ใหม่|เปลี่ยน secret|ลบ secret/i,
     /\b(send\s+now|contact\s+now|send\s+email|send\s+message)\b/i,
+    /\b(?:contact|reach\s+out\s+to)\s+(?:a\s+|the\s+)?(?:lead|prospect|customer)\b/i,
     /ส่งเลย|ทักไป|ส่งเมลเลย|ส่งข้อความเลย/,
-    /\b(payment|pay|transfer|purchase|refund|charge)\b/i,
-    /ชำระ|โอนเงิน|ซื้อ|คืนเงิน|เรียกเก็บเงิน/,
+    /\b(?:make|send|execute|initiate|process|submit|approve)\s+(?:a\s+|the\s+)?(?:payment|transfer|purchase|refund|charge)\b/i,
+    /\b(?:pay|transfer|refund|charge)\s+(?:the\s+)?(?:customer|vendor|invoice|account|card|order|\$|usd|thb|baht|\d)/i,
+    /\b(?:buy|purchase)\s+(?:this|that|the)\b/i,
+    /\b(?:payment|transfer|purchase|refund|charge)\b.{0,30}\b(?:now|immediately|execute|initiate|process|submit|approve|send)\b/i,
+    /(?:ชำระเงิน|โอนเงิน|ซื้อสินค้า|คืนเงิน)(?:ให้|ไป|เลย|ตอนนี้|ทันที|จำนวน|ลูกค้า|บัญชี)/i,
+    /(?:ชำระเงิน|โอนเงิน|ซื้อสินค้า|คืนเงิน)\s*\d+/i,
+    /เรียกเก็บเงิน(?:จาก|ลูกค้า|เลย|ตอนนี้|ทันที|จำนวน)/i,
   ];
 
   if (matchesAny(text, humanApprovalPatterns)) {
@@ -144,7 +156,6 @@ export function runtimeStatus() {
   return EXECUTION_SURFACES.map((name) => ({
     name,
     status: "unknown",
-    verifiedAt: null,
     note: "No live health adapter has verified this surface in the MCP runtime.",
   }));
 }
@@ -156,14 +167,14 @@ const routeSchema = z.object({
   request: z.string(),
   primary: z.string(),
   support: z.array(z.string()),
-  approval: z.string(),
+  approval: z.enum(APPROVAL_STATES),
   executionPolicy: z.array(z.string()),
   verify: z.boolean(),
 });
 const surfaceSchema = z.object({
   name: z.string(),
   status: z.enum(["ready", "needs_auth", "rate_limited", "offline", "unknown", "error"]),
-  verifiedAt: z.string().nullable(),
+  verifiedAt: z.string().optional(),
   note: z.string(),
 });
 
@@ -263,8 +274,8 @@ export function createOgenicServer() {
     "render_control_tower",
     {
       title: "Render OGENIC Control Tower",
-      description: "Use this when the user wants the OGENIC Control Tower UI. It renders the current capability index and runtime snapshot; optionally pass a request to include a route preview.",
-      inputSchema: { request: z.string().max(4000).optional() },
+      description: "Use this when the user wants the OGENIC Control Tower UI. For a route preview, call route_request first and pass its complete structured route here; this render tool does not repeat routing or execute actions.",
+      inputSchema: { route: routeSchema.optional() },
       outputSchema: {
         version: z.string(),
         router: z.object({ status: z.literal("verified"), verifiedBy: z.string() }),
@@ -272,8 +283,8 @@ export function createOgenicServer() {
         capabilities: z.array(capabilitySchema),
         surfaces: z.array(surfaceSchema),
         buyerIntentRadar: z.object({ status: z.literal("unknown"), leads: z.array(z.object({ id: z.string(), sourceUrl: z.string(), sourceTimestamp: z.string(), score: z.number() })), note: z.string() }),
-        recentRuns: z.array(z.object({ id: z.string(), status: z.string(), verifiedAt: z.string().nullable() })),
-        approvals: z.array(z.object({ id: z.string(), action: z.string(), risk: z.string(), status: z.string() })),
+        recentRuns: z.array(z.object({ id: z.string(), status: z.string(), verifiedAt: z.string().optional() })),
+        approvals: z.array(z.object({ id: z.string(), action: z.string(), risk: z.string(), status: z.literal("pending_human_approval") })),
       },
       annotations: READ_ONLY_ANNOTATIONS,
       _meta: {
@@ -282,11 +293,15 @@ export function createOgenicServer() {
         "openai/toolInvocation/invoked": "OGENIC Control Tower rendered.",
       },
     },
-    async ({ request }) => ({
-      structuredContent: {
+    async ({ route }) => {
+      const approvals = route?.approval === "human_approval_required_before_consequential_action"
+        ? [{ id: "route-preview", action: route.request, risk: "consequential", status: "pending_human_approval" }]
+        : [];
+      return {
+        structuredContent: {
         version: VERSION,
         router: { status: "verified", verifiedBy: "render_control_tower tool invocation" },
-        route: request ? routeRequest(request) : null,
+        route: route ?? null,
         capabilities: CAPABILITIES,
         surfaces: runtimeStatus(),
         buyerIntentRadar: {
@@ -295,10 +310,11 @@ export function createOgenicServer() {
           note: "No live Buyer Intent source adapter is connected to this MCP runtime. No leads are fabricated.",
         },
         recentRuns: [],
-        approvals: [],
-      },
-      content: [{ type: "text", text: "Rendered OGENIC Control Tower. Router invocation is verified; connector readiness remains Unknown until live adapters verify it." }],
-    }),
+          approvals,
+        },
+        content: [{ type: "text", text: "Rendered OGENIC Control Tower. Connector readiness remains Unknown until live adapters verify it." }],
+      };
+    },
   );
 
   return server;

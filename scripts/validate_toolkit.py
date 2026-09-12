@@ -13,6 +13,7 @@ def load_json(path: Path):
 
 def main() -> None:
     required = [
+        ROOT / "plugin.json",
         ROOT / ".codex-plugin" / "plugin.json",
         ROOT / "skills" / "ogenic-god-toolkit" / "SKILL.md",
         ROOT / "skills" / "ogenic-god-toolkit" / "agents" / "openai.yaml",
@@ -24,11 +25,14 @@ def main() -> None:
         ROOT / "assets" / "toolkit-manifest.json",
         ROOT / "PRIVACY.md",
         ROOT / "TERMS.md",
+        ROOT / "docs" / "PLUGIN_SUBMISSION_TEST_CASES.md",
+        ROOT / "apps" / "ogenic-control-tower" / "package-lock.json",
     ]
     missing = [str(path.relative_to(ROOT)) for path in required if not path.is_file()]
     if missing:
         raise SystemExit(f"Missing required files: {', '.join(missing)}")
 
+    portable_plugin = load_json(ROOT / "plugin.json")
     plugin = load_json(ROOT / ".codex-plugin" / "plugin.json")
     capabilities = load_json(ROOT / "skills" / "ogenic-god-toolkit" / "references" / "CAPABILITY_INDEX.json")
     registry = load_json(ROOT / "skills" / "ogenic-god-toolkit" / "references" / "TOOL_REGISTRY.json")
@@ -36,6 +40,19 @@ def main() -> None:
 
     if plugin.get("name") != "ogenic-god-toolkit" or plugin.get("version") != "1.3.0":
         raise SystemExit("OGENIC plugin name/version mismatch")
+    if portable_plugin.get("$schema") != "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json":
+        raise SystemExit("Portable Agent Plugins schema is missing or unsupported")
+    if portable_plugin.get("name") != plugin.get("name") or portable_plugin.get("version") != plugin.get("version"):
+        raise SystemExit("Portable and compatibility plugin identity mismatch")
+    interface = portable_plugin.get("extensions", {}).get("com.openai", {}).get("interface", {})
+    prompts = interface.get("defaultPrompt", [])
+    if not isinstance(prompts, list) or not 1 <= len(prompts) <= 3:
+        raise SystemExit("Portable plugin must declare one to three starter prompts")
+    if any(not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 128 for prompt in prompts):
+        raise SystemExit("Portable plugin starter prompts must be non-empty strings of at most 128 characters")
+    compatibility_prompts = plugin.get("interface", {}).get("defaultPrompt", [])
+    if compatibility_prompts != prompts:
+        raise SystemExit("Portable and compatibility starter prompts must match")
     if capabilities.get("version") != "1.3.0" or capabilities.get("entry_point") != "ogenic-god-toolkit":
         raise SystemExit("Capability Index name/version mismatch")
     if registry.get("version") != "1.3.0":

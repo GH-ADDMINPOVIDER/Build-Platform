@@ -90,20 +90,51 @@ button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + e
       setTimeout(() => { if (pending.has(id)) { pending.delete(id); reject(new Error("Host bridge timeout")); } }, 12000);
     });
   }
-  async function callTool(name, args) {
+  function notify(method, params) {
+    window.parent.postMessage({ jsonrpc: "2.0", method, params }, "*");
+  }
+  const bridgeReady = (async () => {
     try {
-      return await request("tools/call", { name, arguments: args || {} });
-    } catch (bridgeError) {
-      if (window.openai?.callTool) return window.openai.callTool(name, args || {});
-      throw bridgeError;
+      await request("ui/initialize", {
+        appInfo: { name: "ogenic-control-tower", version: "1.3.0" },
+        appCapabilities: {},
+        protocolVersion: "2026-01-26",
+      });
+      notify("ui/notifications/initialized", {});
+      return true;
+    } catch {
+      return false;
     }
+  })();
+  async function callTool(name, args) {
+    const initialized = await bridgeReady;
+    if (initialized) {
+      return await request("tools/call", { name, arguments: args || {} });
+    }
+    if (window.openai?.callTool) return window.openai.callTool(name, args || {});
+    throw new Error("MCP Apps host bridge unavailable");
   }
 
   function renderRoute(route) {
     if (!route) { $("route").innerHTML = '<div class="empty">No route selected yet.</div>'; return; }
     const support = route.support?.length ? route.support.join(", ") : "none";
-    const approval = route.approval === "human_approval_required_before_consequential_action" ? "Human Approval required" : "No approval for planning";
+    const approval = route.approval === "human_approval_required_before_consequential_action"
+      ? "Human Approval required"
+      : route.approval === "auto_with_review" ? "Auto + Review" : "Auto";
     $("route").innerHTML = `<div class="routePrimary">${esc(route.primary)}</div><div class="routeGrid"><span>Request</span><span>${esc(route.request)}</span><span>Support</span><span>${esc(support)}</span><span>Approval</span><span>${esc(approval)}</span><span>Verify</span><span>${route.verify ? "required" : "not declared"}</span></div><div class="steps"><span class="step">Intent</span><span class="arrow">→</span><span class="step">Route</span><span class="arrow">→</span><span class="step">Approval gate</span><span class="arrow">→</span><span class="step">Execute</span><span class="arrow">→</span><span class="step">Verify</span></div>`;
+  }
+  function renderApprovals(approvals, route) {
+    const pendingApprovals = Array.isArray(approvals) ? approvals : [];
+    const routeNeedsApproval = route?.approval === "human_approval_required_before_consequential_action";
+    const pending = pendingApprovals[0] || (routeNeedsApproval ? {
+      action: route.request,
+      risk: "consequential",
+      status: "pending_human_approval",
+    } : null);
+    $("approvalCount").textContent = pending ? "1" : "0";
+    $("approvals").innerHTML = pending
+      ? `<div class="shield">!</div><div><b>Human Approval required</b><p>${esc(pending.action)} · ${esc(pending.risk)}. Execution remains blocked until approval is granted in an authorized execution flow.</p></div>`
+      : '<div class="shield">✓</div><div><b>No pending approval</b><p>Consequential actions remain gated before execution.</p></div>';
   }
   function renderCaps(caps) {
     if (!Array.isArray(caps) || !caps.length) return;
@@ -132,8 +163,7 @@ button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + e
       $("radarState").textContent = String(snapshot.buyerIntentRadar.status || "unknown").toUpperCase();
       $("radarNote").textContent = snapshot.buyerIntentRadar.note || "No verified Buyer Intent status.";
     }
-    const approvals = Array.isArray(snapshot.approvals) ? snapshot.approvals : [];
-    $("approvalCount").textContent = approvals.length;
+    renderApprovals(snapshot.approvals, snapshot.route);
   }
 
   window.addEventListener("message", (event) => {
@@ -146,6 +176,7 @@ button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + e
       return;
     }
     if (message.method === "ui/notifications/tool-result") renderSnapshot(message.params?.structuredContent);
+    if (message.method === "ui/notifications/tool-input" && message.params?.route) renderRoute(message.params.route);
   }, { passive: true });
 
   const compat = window.openai?.toolOutput;
@@ -160,6 +191,7 @@ button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + e
       const route = result?.structuredContent || result;
       if (!route?.primary) throw new Error("No route returned");
       renderRoute(route);
+      renderApprovals([], route);
       localRuns.push({ request: requestText, primary: route.primary, time: new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) });
       renderRuns();
       toast("Route verified");
