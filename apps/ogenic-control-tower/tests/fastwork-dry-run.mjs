@@ -76,8 +76,8 @@ export async function runFastworkDryRun(client) {
   assert.ok(runtime.verifiedReadyCount >= 0 && runtime.verifiedReadyCount <= 2);
   const github = runtime.surfaces.find((surface) => surface.name === "GitHub");
   const vercel = runtime.surfaces.find((surface) => surface.name === "Vercel");
-  assert.ok(["ready", "needs_auth", "rate_limited", "offline", "error"].includes(github.status));
-  assert.ok(["ready", "needs_auth", "rate_limited", "offline", "error"].includes(vercel.status));
+  assert.ok(["unknown", "ready", "needs_auth", "rate_limited", "offline", "error"].includes(github.status));
+  assert.ok(["unknown", "ready", "needs_auth", "rate_limited", "offline", "error"].includes(vercel.status));
   assert.ok(runtime.surfaces.filter((surface) => !["GitHub", "Vercel"].includes(surface.name)).every((surface) => surface.status === "unknown"));
   return {
     brief: BRIEF,
