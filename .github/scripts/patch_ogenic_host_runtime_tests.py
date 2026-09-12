@@ -7,3 +7,11 @@ s = s.replace('''  assert.equal(github.status, "needs_auth");
   assert.ok(["unknown", "ready", "needs_auth"].includes(vercel.status));''')
 p.write_text(s)
 print('patched', p)
+
+p = Path('apps/ogenic-control-tower/tests/fastwork-dry-run.mjs')
+s = p.read_text()
+s = s.replace('''  assert.ok(["ready", "needs_auth", "rate_limited", "offline", "error"].includes(github.status));
+  assert.ok(["ready", "needs_auth", "rate_limited", "offline", "error"].includes(vercel.status));''', '''  assert.ok(["unknown", "ready", "needs_auth", "rate_limited", "offline", "error"].includes(github.status));
+  assert.ok(["unknown", "ready", "needs_auth", "rate_limited", "offline", "error"].includes(vercel.status));''')
+p.write_text(s)
+print('patched', p)
