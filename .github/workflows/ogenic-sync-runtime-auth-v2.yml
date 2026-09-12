@@ -1,0 +1,194 @@
+name: OGENIC Sync Runtime Auth v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ogenic-sync-runtime-auth-v2.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  sync-runtime-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      INFISICAL_IDENTITY_ID: b0962d69-bd33-4ac3-b4f4-48589535ca38
+      VERCEL_PROJECT_ID: prj_lOOm1o5AKF2bi0WfPFdCQ4jtGSqW
+      VERCEL_TEAM_ID_FALLBACK: team_bSBITacYbWsQJPDk7VMZ51w6
+      OGENIC_REPO: Ogenicchocolate21debug/Build-Platform
+      OGENIC_MCP_URL: https://ogenic-control-tower.vercel.app/mcp
+      OGENIC_PRODUCTION_URL: https://ogenic-control-tower.vercel.app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: OIDC login to Infisical and resolve provider tokens
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const base = 'https://app.infisical.com';
+          const identityId = process.env.INFISICAL_IDENTITY_ID;
+
+          async function getGithubOidcJwt() {
+            const url = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+            const token = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+            if (!url || !token) throw new Error('GitHub OIDC request variables are unavailable.');
+            const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+            if (!r.ok) throw new Error(`GitHub OIDC token request failed: HTTP ${r.status}`);
+            const data = await r.json();
+            if (!data.value) throw new Error('GitHub OIDC response did not include a token.');
+            return data.value;
+          }
+
+          async function infisicalOidcLogin(jwt) {
+            const body = new URLSearchParams({ identityId, jwt });
+            const r = await fetch(base + '/api/v1/auth/oidc-auth/login', {
+              method: 'POST',
+              headers: { 'content-type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+              body,
+            });
+            if (!r.ok) {
+              let detail = '';
+              try { detail = JSON.stringify(await r.json()); } catch { detail = await r.text(); }
+              throw new Error(`Infisical OIDC login failed: HTTP ${r.status} ${detail.slice(0, 500)}`);
+            }
+            const data = await r.json();
+            if (!data.accessToken) throw new Error('Infisical OIDC login returned no access token.');
+            return data.accessToken;
+          }
+
+          async function infFetch(token, endpoint) {
+            const r = await fetch(base + endpoint, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
+            if (!r.ok) throw new Error(`${endpoint} -> HTTP ${r.status}`);
+            return r.json();
+          }
+
+          const jwt = await getGithubOidcJwt();
+          const accessToken = await infisicalOidcLogin(jwt);
+          console.log(`::add-mask::${accessToken}`);
+
+          const projectData = await infFetch(accessToken, '/api/v1/projects');
+          const projects = Array.isArray(projectData.projects) ? projectData.projects : [];
+          if (!projects.length) throw new Error('Master Secret Data Gateway authenticated but has no accessible Infisical projects.');
+
+          const wanted = new Set(['GITHUB_TOKEN', 'VERCEL_ACCESS_TOKEN', 'VERCEL_TEAM_ID']);
+          const found = new Map();
+          let checked = 0;
+          outer:
+          for (const project of projects) {
+            for (const env of project.environments || []) {
+              if (!project.id || !env.slug) continue;
+              checked += 1;
+              const q = new URLSearchParams({
+                projectId: project.id,
+                environment: env.slug,
+                secretPath: '/',
+                recursive: 'true',
+                viewSecretValue: 'true',
+                expandSecretReferences: 'true',
+              });
+              try {
+                const data = await infFetch(accessToken, `/api/v4/secrets?${q}`);
+                const all = [...(data.secrets || [])];
+                for (const imported of data.imports || []) all.push(...(imported.secrets || []));
+                for (const secret of all) {
+                  if (wanted.has(secret.secretKey) && secret.secretValue && !found.has(secret.secretKey)) found.set(secret.secretKey, secret.secretValue);
+                }
+                if (found.has('GITHUB_TOKEN') && found.has('VERCEL_ACCESS_TOKEN') && found.has('VERCEL_TEAM_ID')) break outer;
+              } catch {}
+            }
+          }
+
+          const gh = found.get('GITHUB_TOKEN');
+          const vc = found.get('VERCEL_ACCESS_TOKEN');
+          const team = found.get('VERCEL_TEAM_ID') || process.env.VERCEL_TEAM_ID_FALLBACK;
+          if (!gh || !vc) {
+            console.error(`Infisical OIDC auth succeeded, but provider tokens were incomplete after ${checked} project/environment checks.`);
+            console.error(`GITHUB_TOKEN=${gh ? 'found' : 'missing'} VERCEL_ACCESS_TOKEN=${vc ? 'found' : 'missing'} VERCEL_TEAM_ID=${team ? 'found/fallback' : 'missing'}`);
+            process.exit(22);
+          }
+
+          console.log(`::add-mask::${gh}`);
+          console.log(`::add-mask::${vc}`);
+          if (team) console.log(`::add-mask::${team}`);
+          fs.appendFileSync(process.env.GITHUB_ENV, `OGENIC_SOURCE_GITHUB_TOKEN=${gh}\n`, { mode: 0o600 });
+          fs.appendFileSync(process.env.GITHUB_ENV, `OGENIC_SOURCE_VERCEL_TOKEN=${vc}\n`, { mode: 0o600 });
+          fs.appendFileSync(process.env.GITHUB_ENV, `OGENIC_VERCEL_TEAM_ID=${team}\n`, { mode: 0o600 });
+          console.log(`Master Secret Data Gateway OIDC authenticated; provider credentials resolved after ${checked} checks. Secret values were not printed.`);
+          NODE
+
+      - name: Verify provider credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh_code=$(curl -sS -o /tmp/gh.json -w '%{http_code}' -H "Authorization: Bearer ${OGENIC_SOURCE_GITHUB_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${OGENIC_REPO}")
+          [ "$gh_code" = "200" ] || { echo "GITHUB_TOKEN verification failed: HTTP $gh_code"; exit 30; }
+          vc_code=$(curl -sS -o /tmp/vc.json -w '%{http_code}' -H "Authorization: Bearer ${OGENIC_SOURCE_VERCEL_TOKEN}" "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}?teamId=${OGENIC_VERCEL_TEAM_ID}")
+          [ "$vc_code" = "200" ] || { echo "VERCEL_ACCESS_TOKEN verification failed: HTTP $vc_code"; exit 31; }
+          echo "Provider credential verification passed."
+
+      - name: Link local directory to Vercel project
+        shell: bash
+        run: |
+          mkdir -p apps/ogenic-control-tower/.vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$OGENIC_VERCEL_TEAM_ID" "$VERCEL_PROJECT_ID" > apps/ogenic-control-tower/.vercel/project.json
+
+      - name: Sync Production runtime auth
+        shell: bash
+        run: |
+          set -euo pipefail
+          update_or_add() {
+            key="$1"; value="$2"
+            if printf '%s' "$value" | npx --yes vercel@59.11.7 env update "$key" production --cwd apps/ogenic-control-tower --token "$OGENIC_SOURCE_VERCEL_TOKEN" --scope "$OGENIC_VERCEL_TEAM_ID" >/dev/null 2>&1; then
+              echo "$key updated."
+            else
+              printf '%s' "$value" | npx --yes vercel@59.11.7 env add "$key" production --sensitive --cwd apps/ogenic-control-tower --token "$OGENIC_SOURCE_VERCEL_TOKEN" --scope "$OGENIC_VERCEL_TEAM_ID" >/dev/null
+              echo "$key added."
+            fi
+          }
+          update_or_add OGENIC_GITHUB_TOKEN "$OGENIC_SOURCE_GITHUB_TOKEN"
+          update_or_add OGENIC_VERCEL_TOKEN "$OGENIC_SOURCE_VERCEL_TOKEN"
+
+      - name: Redeploy Production
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes vercel@59.11.7 redeploy "$OGENIC_PRODUCTION_URL" --target=production --token "$OGENIC_SOURCE_VERCEL_TOKEN" --scope "$OGENIC_VERCEL_TEAM_ID" > "$RUNNER_TEMP/redeploy-url.txt"
+          echo "Production redeploy completed."
+
+      - name: Install MCP client dependencies
+        working-directory: apps/ogenic-control-tower
+        run: npm ci
+
+      - name: Verify live MCP runtime status
+        working-directory: apps/ogenic-control-tower
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+          import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+          const client = new Client({ name: 'ogenic-runtime-auth-verifier', version: '1.0.0' });
+          try {
+            const transport = new StreamableHTTPClientTransport(new URL(process.env.OGENIC_MCP_URL));
+            await client.connect(transport);
+            const result = await client.callTool({ name: 'get_runtime_status', arguments: {} });
+            const data = result.structuredContent;
+            const github = data.surfaces.find((s) => s.name === 'GitHub');
+            const vercel = data.surfaces.find((s) => s.name === 'Vercel');
+            console.log(JSON.stringify({ verifiedReadyCount: data.verifiedReadyCount, GitHub: github?.status, Vercel: vercel?.status }));
+            if (github?.status !== 'ready' || vercel?.status !== 'ready' || data.verifiedReadyCount < 2) process.exitCode = 40;
+          } finally {
+            await client.close().catch(() => {});
+          }
+          NODE
