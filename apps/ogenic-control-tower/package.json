@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check api/mcp.js && node --check api/health.js && node --check tests/mcp-smoke.mjs && node --check tests/ui-sanity.mjs",
+    "check": "node --check server.js && node --check api/mcp.js && node --check api/health.js && node --check tests/mcp-smoke.mjs && node --check tests/ui-sanity.mjs && node --check tests/fastwork-dry-run.mjs && node --check tests/fastwork-e2e.mjs",
     "test:mcp": "node tests/mcp-smoke.mjs",
     "test:ui": "node tests/ui-sanity.mjs",
-    "test": "npm run check && npm run test:ui && npm run test:mcp"
+    "test:e2e": "node tests/fastwork-e2e.mjs",
+    "test:remote": "node tests/fastwork-e2e.mjs --remote",
+    "test": "npm run check && npm run test:ui && npm run test:mcp && npm run test:e2e"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.20.2",

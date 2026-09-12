@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   });
   try {
     await server.connect(transport);
-    await transport.handleRequest(req, res);
+    await transport.handleRequest(req, res, req.body);
   } catch (error) {
     console.error("Vercel MCP request failed:", error);
     if (!res.headersSent) {
