@@ -11,7 +11,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 
-export const VERSION = "1.3.0";
+export const VERSION = "1.3.1";
 export const TEMPLATE_URI = "ui://ogenic/control-tower-v1.3.0.html";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const controlTowerHtml = readFileSync(join(__dirname, "public", "control-tower.html"), "utf8");
@@ -57,7 +57,20 @@ function matchesAny(text, patterns) {
   return patterns.some((pattern) => pattern.test(text));
 }
 
+function isDiagnosticIntent(text) {
+  return /\b(?:read[- ]only|analysis[- ]only|diagnostic|readiness|check|verify|inspect|status|health|observe|observation)\b|ตรวจ|เช็ก|สถานะ|ตรวจสอบ/i.test(text);
+}
+
+function stripNegatedSafetyConstraints(text) {
+  return String(text)
+    .replace(/\b(?:do\s+not|don't|never)\b[^.!?;\n]{0,180}/gi, " ")
+    .replace(/\bwithout\b[^.!?;\n]{0,140}/gi, " ")
+    .replace(/(?:ห้าม|อย่า|ไม่ให้)[^.!?;\n]{0,140}/gi, " ");
+}
+
 export function classifyApproval(text) {
+  const raw = String(text || "");
+  const candidate = isDiagnosticIntent(raw) ? stripNegatedSafetyConstraints(raw) : raw;
   const humanApprovalPatterns = [
     /\bdeploy\s+(?:to\s+)?production(?:\s+(?:now|today|immediately|please))?\b/i,
     /\bmerge\s+(?:into\s+)?main\b/i,
@@ -85,7 +98,7 @@ export function classifyApproval(text) {
     /เรียกเก็บเงิน(?:จาก|ลูกค้า|เลย|ตอนนี้|ทันที|จำนวน)/i,
   ];
 
-  if (matchesAny(text, humanApprovalPatterns)) {
+  if (matchesAny(candidate, humanApprovalPatterns)) {
     return "human_approval_required_before_consequential_action";
   }
 
@@ -96,7 +109,7 @@ export function classifyApproval(text) {
     /แก้โค้ด|ตรวจโค้ด|รีวิวโค้ด|ดีพลอย staging|ดีพลอย preview|รัน ci ใหม่|แก้ test/i,
   ];
 
-  if (matchesAny(text, autoReviewPatterns)) {
+  if (matchesAny(candidate, autoReviewPatterns)) {
     return "auto_with_review";
   }
 
@@ -106,32 +119,35 @@ export function classifyApproval(text) {
 export function routeRequest(request) {
   const cleanRequest = String(request || "").trim();
   const text = cleanRequest.toLowerCase();
+  const routingText = isDiagnosticIntent(text) ? stripNegatedSafetyConstraints(text).toLowerCase() : text;
   let primary = "00.core_router";
   const support = [];
   const approval = classifyApproval(text);
 
-  if (includesAny(text, ["supplier", "ซัพพลายเออร์", "หาขนม", "lead", "ขายส่ง", "wholesale", "ลูกค้า", "ร้านกาแฟ", "คาเฟ่"])) {
+  if (isDiagnosticIntent(text)) {
+    primary = "10.observability_control";
+    if (includesAny(routingText, ["github", "repo", "code", "pr "])) support.push("01.code_build");
+    if (includesAny(routingText, ["vercel", "website", "web", "เว็บ", "deploy"])) support.push("04.web_app");
+  } else if (includesAny(routingText, ["supplier", "ซัพพลายเออร์", "หาขนม", "lead", "ขายส่ง", "wholesale", "ลูกค้า", "ร้านกาแฟ", "คาเฟ่"])) {
     primary = "06.business_sales";
     support.push("05.data_knowledge");
-  } else if (includesAny(text, ["figma", "poster", "โปสเตอร์", "image", "รูป", "ux", "ui", "design"])) {
+  } else if (includesAny(routingText, ["figma", "poster", "โปสเตอร์", "image", "รูป", "ux", "ui", "design"])) {
     primary = "09.media_creative";
     support.push("05.data_knowledge");
-  } else if (includesAny(text, ["cloudflare", "website", "เว็บ", "frontend", "backend", "vercel", "d1"])) {
+  } else if (includesAny(routingText, ["cloudflare", "website", "เว็บ", "frontend", "backend", "vercel", "d1"])) {
     primary = "04.web_app";
     support.push("01.code_build");
-  } else if (includesAny(text, ["n8n", "workflow", "schedule", "automation", "webhook", "deploy", "ci/cd", "ci "])) {
+  } else if (includesAny(routingText, ["n8n", "workflow", "schedule", "automation", "webhook", "deploy", "ci/cd", "ci "])) {
     primary = "03.automation_delivery";
     support.push("01.code_build");
-  } else if (includesAny(text, ["github", "repo", "code", "bug", "test", "build", "codex", "claude", "review", "ตรวจโค้ด", "pr "])) {
+  } else if (includesAny(routingText, ["github", "repo", "code", "bug", "test", "build", "codex", "claude", "review", "ตรวจโค้ด", "pr "])) {
     primary = "01.code_build";
-  } else if (includesAny(text, ["drive", "notion", "rag", "ไฟล์", "product master", "registry"])) {
+  } else if (includesAny(routingText, ["drive", "notion", "rag", "ไฟล์", "product master", "registry"])) {
     primary = "05.data_knowledge";
-  } else if (includesAny(text, ["gmail", "email", "line", "ข้อความ", "ทัก", "ส่งเมล", "outreach"])) {
+  } else if (includesAny(routingText, ["gmail", "email", "line", "ข้อความ", "ทัก", "ส่งเมล", "outreach"])) {
     primary = "07.communication";
-  } else if (includesAny(text, ["secret", "infisical", "auth", "permission", "credential", "token", "api key"])) {
+  } else if (includesAny(routingText, ["secret", "infisical", "auth", "permission", "credential", "token", "api key"])) {
     primary = "08.security_credentials";
-  } else if (includesAny(text, ["status", "health", "quota", "limit", "log", "error", "failure", "observability"])) {
-    primary = "10.observability_control";
   }
 
   return {
@@ -152,12 +168,85 @@ export function routeRequest(request) {
   };
 }
 
-export function runtimeStatus() {
-  return EXECUTION_SURFACES.map((name) => ({
+function baseSurface(name) {
+  return {
     name,
     status: "unknown",
     note: "No live health adapter has verified this surface in the MCP runtime.",
-  }));
+  };
+}
+
+function responseToStatus(response) {
+  if (response.status === 401 || response.status === 403) return "needs_auth";
+  if (response.status === 429) return "rate_limited";
+  if (response.status >= 500) return "offline";
+  return "error";
+}
+
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6000);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal, redirect: "error" });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function verifyGitHubSurface() {
+  const token = process.env.OGENIC_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
+  const repo = process.env.OGENIC_GITHUB_REPO || "Ogenicchocolate21debug/Build-Platform";
+  if (!token) {
+    return { name: "GitHub", status: "needs_auth", note: "Live GitHub adapter is installed; configure OGENIC_GITHUB_TOKEN in the MCP runtime to verify repository access." };
+  }
+  try {
+    const response = await fetchWithTimeout(`https://api.github.com/repos/${repo}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "ogenic-god-toolkit",
+      },
+    });
+    if (!response.ok) {
+      return { name: "GitHub", status: responseToStatus(response), verifiedAt: new Date().toISOString(), note: `GitHub adapter reached the API but repository verification returned HTTP ${response.status}.` };
+    }
+    const data = await response.json();
+    return { name: "GitHub", status: "ready", verifiedAt: new Date().toISOString(), note: `Verified read access to ${data.full_name || repo}.` };
+  } catch (error) {
+    return { name: "GitHub", status: "offline", verifiedAt: new Date().toISOString(), note: `GitHub adapter could not reach the API: ${error?.name || "network_error"}.` };
+  }
+}
+
+async function verifyVercelSurface() {
+  const token = process.env.OGENIC_VERCEL_TOKEN || process.env.VERCEL_TOKEN;
+  const projectId = process.env.OGENIC_VERCEL_PROJECT_ID || "prj_lOOm1o5AKF2bi0WfPFdCQ4jtGSqW";
+  const teamId = process.env.OGENIC_VERCEL_TEAM_ID || "team_bSBITacYbWsQJPDk7VMZ51w6";
+  if (!token) {
+    return { name: "Vercel", status: "needs_auth", note: "Live Vercel adapter is installed; configure OGENIC_VERCEL_TOKEN in the MCP runtime to verify project access." };
+  }
+  try {
+    const response = await fetchWithTimeout(`https://api.vercel.com/v9/projects/${projectId}?teamId=${encodeURIComponent(teamId)}`, {
+      headers: { Authorization: `Bearer ${token}`, "User-Agent": "ogenic-god-toolkit" },
+    });
+    if (!response.ok) {
+      return { name: "Vercel", status: responseToStatus(response), verifiedAt: new Date().toISOString(), note: `Vercel adapter reached the API but project verification returned HTTP ${response.status}.` };
+    }
+    const data = await response.json();
+    return { name: "Vercel", status: "ready", verifiedAt: new Date().toISOString(), note: `Verified read access to Vercel project ${data.name || projectId}.` };
+  } catch (error) {
+    return { name: "Vercel", status: "offline", verifiedAt: new Date().toISOString(), note: `Vercel adapter could not reach the API: ${error?.name || "network_error"}.` };
+  }
+}
+
+export async function runtimeStatus() {
+  const surfaces = EXECUTION_SURFACES.map(baseSurface);
+  const verified = await Promise.all([verifyGitHubSurface(), verifyVercelSurface()]);
+  for (const result of verified) {
+    const index = surfaces.findIndex((item) => item.name === result.name);
+    if (index >= 0) surfaces[index] = result;
+  }
+  return surfaces;
 }
 
 const capabilitySchema = z.object({
@@ -194,21 +283,16 @@ export function createOgenicServer() {
     TEMPLATE_URI,
     {},
     async () => ({
-      contents: [
-        {
-          uri: TEMPLATE_URI,
-          mimeType: RESOURCE_MIME_TYPE,
-          text: controlTowerHtml,
-          _meta: {
-            ui: {
-              prefersBorder: false,
-              csp: { connectDomains: [], resourceDomains: [] },
-            },
-            "openai/widgetDescription": "Mobile-first OGENIC Control Tower for routing, capability inspection, runtime status, approval state, Buyer Intent Radar state, recent local runs, and observability. Runtime surfaces remain Unknown until a live adapter verifies them.",
-            "openai/widgetPrefersBorder": false,
-          },
+      contents: [{
+        uri: TEMPLATE_URI,
+        mimeType: RESOURCE_MIME_TYPE,
+        text: controlTowerHtml,
+        _meta: {
+          ui: { prefersBorder: false, csp: { connectDomains: [], resourceDomains: [] } },
+          "openai/widgetDescription": "Mobile-first OGENIC Control Tower for routing, capability inspection, runtime status, approval state, Buyer Intent Radar state, recent local runs, and observability. Runtime surfaces are evidence-based and only become Ready after a live adapter verifies them.",
+          "openai/widgetPrefersBorder": false,
         },
-      ],
+      }],
     }),
   );
 
@@ -254,17 +338,18 @@ export function createOgenicServer() {
     "get_runtime_status",
     {
       title: "Get OGENIC runtime status",
-      description: "Use this when the user wants execution-surface status. A surface stays Unknown until a live health adapter verifies it; this tool never infers Ready from configuration alone.",
+      description: "Use this when the user wants execution-surface status. GitHub and Vercel have live read-only health adapters; other surfaces stay Unknown until an adapter verifies them.",
       inputSchema: {},
       outputSchema: { surfaces: z.array(surfaceSchema), verifiedReadyCount: z.number().int().nonnegative() },
       annotations: READ_ONLY_ANNOTATIONS,
       _meta: {},
     },
     async () => {
-      const surfaces = runtimeStatus();
+      const surfaces = await runtimeStatus();
+      const verifiedReadyCount = surfaces.filter((item) => item.status === "ready").length;
       return {
-        structuredContent: { surfaces, verifiedReadyCount: surfaces.filter((item) => item.status === "ready").length },
-        content: [{ type: "text", text: "No live connector health adapters are wired yet, so execution-surface statuses are intentionally Unknown." }],
+        structuredContent: { surfaces, verifiedReadyCount },
+        content: [{ type: "text", text: verifiedReadyCount > 0 ? `Verified ${verifiedReadyCount} live execution surface(s).` : "Live GitHub/Vercel adapters are installed but no surface has verified Ready in this runtime yet." }],
       };
     },
   );
@@ -297,22 +382,23 @@ export function createOgenicServer() {
       const approvals = route?.approval === "human_approval_required_before_consequential_action"
         ? [{ id: "route-preview", action: route.request, risk: "consequential", status: "pending_human_approval" }]
         : [];
+      const surfaces = await runtimeStatus();
       return {
         structuredContent: {
-        version: VERSION,
-        router: { status: "verified", verifiedBy: "render_control_tower tool invocation" },
-        route: route ?? null,
-        capabilities: CAPABILITIES,
-        surfaces: runtimeStatus(),
-        buyerIntentRadar: {
-          status: "unknown",
-          leads: [],
-          note: "No live Buyer Intent source adapter is connected to this MCP runtime. No leads are fabricated.",
-        },
-        recentRuns: [],
+          version: VERSION,
+          router: { status: "verified", verifiedBy: "render_control_tower tool invocation" },
+          route: route ?? null,
+          capabilities: CAPABILITIES,
+          surfaces,
+          buyerIntentRadar: {
+            status: "unknown",
+            leads: [],
+            note: "No live Buyer Intent source adapter is connected to this MCP runtime. No leads are fabricated.",
+          },
+          recentRuns: [],
           approvals,
         },
-        content: [{ type: "text", text: "Rendered OGENIC Control Tower. Connector readiness remains Unknown until live adapters verify it." }],
+        content: [{ type: "text", text: "Rendered OGENIC Control Tower with evidence-based runtime status." }],
       };
     },
   );
@@ -328,7 +414,6 @@ export function createHttpServer() {
     }
 
     const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
-
     const isMcpPath = url.pathname === "/mcp" || url.pathname === "/api/mcp";
     const isHealthPath = ["/", "/healthz", "/api/health"].includes(url.pathname);
 
