@@ -1,76 +1,52 @@
 # Codex Handoff — OGENIC GOD TOOLKIT v1.3.0
 
-## Target
+## Current baseline
 Repository: `Ogenicchocolate21debug/Build-Platform`
-Branch: `ogenic-god-toolkit-v1.3.0`
-Do not merge to `main` without explicit user approval.
+Canonical branch: `main`
+Verified runtime head before this metadata reconciliation: `44bf20e3a1cf71aced70d664b45825a255bcb99d`
+
+PR #4 (OGENIC GOD TOOLKIT v1.3.0 + Control Tower) and PR #6 (runtime health adapters + read-only routing fix) are already merged. Do not treat the old pre-merge branch acceptance checklist as current state.
 
 ## Mission
-Finish OGENIC GOD TOOLKIT as one OpenAI Plugin/Skill + MCP Control Tower UI. Preserve the single-entry auto-router model and connect only execution surfaces that can be verified.
+Operate and evolve OGENIC GOD TOOLKIT as one OpenAI Plugin/Skill + MCP Control Tower UI. Preserve the single-entry auto-router model and connect only execution surfaces whose availability can be verified.
 
-Use `$build-chatgpt-app` with `$openai-docs` before changing Apps SDK/MCP code.
+Use current OpenAI documentation and the applicable build/plugin skills before changing Apps SDK/MCP code.
 
-## Already implemented on this branch
-- `.codex-plugin/plugin.json` promoted to OGENIC GOD TOOLKIT v1.3.0
-- `skills/ogenic-god-toolkit/SKILL.md`
-- `skills/ogenic-god-toolkit/agents/openai.yaml`
-- capability index, execution registry, router/approval policy
-- Buyer Intent Radar / Retail Placement module
-- mobile-first UX/UI specification
-- `apps/ogenic-control-tower/` MCP server scaffold
-- `public/control-tower.html` MCP Apps UI widget
+## Verified current runtime
+- `.codex-plugin/plugin.json`, `skills/ogenic-god-toolkit/SKILL.md`, capability/router/approval policy, and `apps/ogenic-control-tower/` are present on `main`.
+- Vercel project: `ogenic-control-tower`.
+- Production deployment for runtime head `44bf20e3a1cf71aced70d664b45825a255bcb99d`: `dpl_6m4zpVK4LWvqUjZuHM3M2ns9yBvR` — `READY`.
+- GitHub Actions run `34723659449` (`OGENIC Remote Runtime Verify`) completed successfully against `https://ogenic-control-tower.vercel.app`.
+- Audit/Bundle completed successfully on the same runtime head.
+- Runtime health now uses evidence-based GitHub/Vercel adapters and host/connected execution provenance rather than fake readiness states.
 
-## Required validation / completion
-1. Fetch current OpenAI Plugin, Skills, MCP server, UI, test/publish docs.
-2. Review the current branch against the latest plugin and Skill schema.
-3. In `apps/ogenic-control-tower`:
-   - run `npm install`
-   - run static/syntax checks
-   - run `npm start`
-   - verify `GET /` health
-   - verify `/mcp` with MCP Inspector
-   - inspect all tool descriptors, schemas and annotations
-   - render the Control Tower widget through the MCP Apps bridge
-4. Keep the app decoupled:
-   - data/routing tools return reusable `structuredContent`
-   - UI render tool owns the widget resource
-   - no secret values in UI/model outputs
-5. Add live adapter interfaces only where a connected execution surface actually exists. Never hard-code fake Ready states.
-6. Keep Human Approval gates for first outbound lead contact, destructive deletes, production deploys, privilege/credential changes and consequential external/financial actions.
-7. Buyer Intent Radar must use source-backed public business intent, dedupe leads, preserve source URL/time, and never fabricate contact details or intent.
-8. Preserve the existing Developer System-Bootstrap Ops capability inside the new toolkit; do not delete its useful references until migration parity is verified.
-9. Build a review-ready package/ZIP and validate it.
-10. Use the OpenAI Skills API or current supported upload flow to create/update the `ogenic-god-toolkit` skill only after validation.
-11. Connect the MCP endpoint in ChatGPT Developer Mode and test the plugin end to end.
-12. Do not publish publicly or merge `main` without explicit user approval.
+## Agent operating contract
+1. Reuse canonical context before asking the user to repeat known project state.
+2. Discover actual tool/connector/runtime access before choosing a concrete execution surface.
+3. Use the direct connected tool first, then fall through authorized alternatives; never claim a fallback ran without verified evidence.
+4. Report missing execution or authorization as `CAPABILITY_REQUIRED`, `UNBOUND_CAPABILITY`, `BLOCKED`, or the explicit auth-needed state rather than inventing readiness.
+5. Read before write; make the smallest reversible change; verify after execution.
+6. Keep Human Approval immediately before destructive deletion, privilege/credential changes, consequential financial/external actions, protected production-branch merge, and un-preauthorized production/public publish actions.
+7. Do not expose passwords, API keys, tokens, cookies, private keys, or secret values in prompts, handoffs, UI, status records, or logs.
+8. Preserve Developer System-Bootstrap Ops compatibility until migration parity is verified.
+9. Keep Candy resources outside Control Tower maintenance unless the task explicitly scopes Candy in.
 
-## Recommended MVP tool surface
+## Runtime / deployment drift
+- Historical deployment `dpl_BgBKm8zhGxuw8z6tyUm8PtjGQwwa` still exists and is production-targeted. Deleting it is a destructive action: use an authenticated Vercel action/browser surface, verify the exact deployment ID, and stop for fresh Human Approval immediately before final deletion. Do not bypass browser/OAuth policy.
+- Control Tower runtime verification does not prove Candy/CN data lineage or website source-of-truth reconciliation.
+
+## Recommended read-only / bounded tool surface
 - `list_capabilities` — read only
-- `route_request` — read only route plan
-- `get_runtime_status` — read only; Unknown unless verified
+- `route_request` — read-only route plan
+- `get_runtime_status` — evidence-based; unknown/auth-needed when not verified
 - `render_control_tower` — UI render tool
 
-Do not add broad write tools until authorization, idempotency and audit behavior are explicit.
+Add or use broad write tools only when authorization, idempotency, audit behavior, and verification are explicit.
 
-## OpenAI architecture rules
-- one user-facing entry point
-- model chooses capability chain automatically
-- direct connected tool first
-- Codex/agent for implementation-heavy work when connected
-- orchestrator for repeatable multi-service flows
-- Result / Blocked / Next output contract
-- read before write
-- verify before success
-- secret-safe logging
+## Result contract
+Return:
+- **Result** — what was actually completed and verified.
+- **Blocked** — exact missing capability/authorization or unresolved drift.
+- **Next** — smallest required next action.
 
-## Staging-first
-Deploy/test staging only. Do not modify Candy production, Candy Cloudflare, or unrelated repositories as part of this task.
-
-## Final report expected from Codex
-- files changed
-- validation/tests run
-- MCP endpoint / staging URL if deployed
-- ChatGPT plugin connection status
-- OpenAI Skill ID/version if created
-- blockers/missing credentials
-- exact items requiring user approval
+Never simulate success or persist hidden model reasoning.
