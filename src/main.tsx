@@ -3,8 +3,10 @@ import { createRoot } from "react-dom/client";
 import ControlPlaneV2 from "./ControlPlaneV2";
 import AppEnhancements from "./AppEnhancements";
 import ConnectorPanel from "./ConnectorPanel";
+import ProviderConnectWizard from "./ProviderConnectWizard";
 import "./control-plane-v2.css";
 import "./connector-panel.css";
+import "./provider-connect.css";
 import "./mobile-fixes.css";
 
 if ("serviceWorker" in navigator) {
@@ -18,5 +20,6 @@ createRoot(document.getElementById("root")!).render(
     <ControlPlaneV2 />
     <AppEnhancements />
     <ConnectorPanel />
+    <ProviderConnectWizard />
   </React.StrictMode>,
 );
