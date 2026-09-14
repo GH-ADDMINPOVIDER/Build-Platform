@@ -3,12 +3,14 @@ import { createConnectorAppApi, type ConnectorAppBindings } from "./connector-ap
 import { createProviderConnectApi } from "./provider-connect-api";
 import { createPublicHookApi, type ConnectorBindings } from "./connector-runtime";
 import { createLiveAssistApi, type LiveAssistBindings } from "./live-assist-api";
+import { createBrowserSessionApi, type BrowserSessionBindings } from "./browser-session-api";
 
-type Bindings = ConnectorAppBindings & ConnectorBindings & LiveAssistBindings;
+type Bindings = ConnectorAppBindings & ConnectorBindings & LiveAssistBindings & BrowserSessionBindings;
 
 const connectorApi = createConnectorAppApi();
 const providerConnectApi = createProviderConnectApi();
 const liveAssistApi = createLiveAssistApi();
+const browserSessionApi = createBrowserSessionApi();
 const publicHooks = createPublicHookApi();
 
 export default {
@@ -19,6 +21,9 @@ export default {
     }
     if (pathname === "/api/live-assist") {
       return liveAssistApi.fetch(request, env, ctx as never);
+    }
+    if (pathname === "/api/browser-session" || pathname.startsWith("/api/browser-session/")) {
+      return browserSessionApi.fetch(request, env, ctx as never);
     }
     if (
       pathname === "/api/connectors" ||
