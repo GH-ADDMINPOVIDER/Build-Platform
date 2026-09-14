@@ -38,8 +38,37 @@ type ChatHistoryRow = {
   created_at: number;
 };
 
+type ChatAttachmentRow = {
+  id: string;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  created_at: number;
+};
+
+type ChatAttachmentUpload = {
+  filename?: unknown;
+  mime_type?: unknown;
+  data_url?: unknown;
+};
+
 const SAME_MIND_CONVERSATION_ID = "owner-main";
 const SAME_MIND_OWNER_ID = "owner";
+const MAX_CHAT_ATTACHMENTS = 4;
+const MAX_ATTACHMENT_BYTES = 4_000_000;
+const MAX_ATTACHMENT_DATA_URL_CHARS = 5_500_000;
+const ATTACHMENT_TTL_MS = 24 * 60 * 60 * 1000;
+const ALLOWED_ATTACHMENT_MIME = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+  "application/json",
+]);
 const SAME_MIND_CORE = `You are OGENIC AI, the continuous owner copilot for OGENIC Phase VI. Maintain continuity from the supplied recent conversation instead of behaving like a blank new assistant.
 Canonical operating context: staging only; active branch is phase-vi-provider-incentive-metering; never touch main or production unless the owner explicitly approves it; OGENIC_OPS_KEY is owner-only and secrets must stay server-side; Cloudflare Worker plus D1 are the durable control plane; GitHub, Linear and n8n access must stay behind server-side adapters; the current product surfaces are Overview, AI Chat, Live Tools, Workflows and Tasks.
 Interpret short follow-ups using recent context when it resolves the reference. Do not ask the owner to repeat information that is already present in the supplied conversation. If context is genuinely insufficient, state exactly what is missing. Reply in the user's language and natural tone. This model call has no tools, so never claim an external action was performed unless the supplied context says it was already completed. Never reveal credentials or secrets.`;
@@ -103,6 +132,25 @@ function clipUtf8(value: string, maxBytes: number) {
   return `${clipped.trimEnd()}…`;
 }
 
+function cleanAttachmentName(value: unknown) {
+  return String(value ?? "").trim().replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 180);
+}
+
+function normalizeAttachmentMime(value: unknown) {
+  return String(value ?? "").trim().toLowerCase().slice(0, 120);
+}
+
+function parseBase64DataUrl(value: unknown) {
+  if (typeof value !== "string" || value.length === 0 || value.length > MAX_ATTACHMENT_DATA_URL_CHARS) return null;
+  const match = /^data:([^;,]+);base64,([A-Za-z0-9+/=\r\n]+)$/.exec(value);
+  if (!match) return null;
+  const mime = match[1].toLowerCase();
+  const data = match[2].replace(/[\r\n]/g, "");
+  const padding = data.endsWith("==") ? 2 : data.endsWith("=") ? 1 : 0;
+  const bytes = Math.max(0, Math.floor(data.length * 3 / 4) - padding);
+  return { mime, data, bytes };
+}
+
 async function ensureSameMindConversation(env: RootBindings) {
   const db = requireDb(env);
   const now = Date.now();
@@ -124,6 +172,20 @@ async function readSameMindHistory(env: RootBindings, limit = 24) {
   ).bind(SAME_MIND_CONVERSATION_ID, limit).all();
   const rows = (result.results ?? []) as unknown as ChatHistoryRow[];
   return rows.reverse();
+}
+
+async function readAttachmentRows(env: RootBindings, ids: string[]) {
+  const db = requireDb(env);
+  const rows: ChatAttachmentRow[] = [];
+  for (const id of ids) {
+    const row = await db.prepare(
+      `SELECT id, filename, mime_type, size_bytes, created_at
+       FROM chat_attachments
+       WHERE id = ? AND conversation_id = ?`,
+    ).bind(id, SAME_MIND_CONVERSATION_ID).first<ChatAttachmentRow>();
+    if (row) rows.push(row);
+  }
+  return rows;
 }
 
 async function saveSameMindMessage(
@@ -192,19 +254,64 @@ root.get("/api/chat/history", async (c) => {
   });
 });
 
+root.post("/api/chat/attachments", async (c) => {
+  const body = await c.req.json<ChatAttachmentUpload>().catch(() => ({} as ChatAttachmentUpload));
+  const filename = cleanAttachmentName(body.filename);
+  const requestedMime = normalizeAttachmentMime(body.mime_type);
+  const parsed = parseBase64DataUrl(body.data_url);
+
+  if (!filename || !parsed) {
+    return c.json({ ok: false, code: "INVALID_ATTACHMENT", message: "filename and base64 data_url are required" }, 400);
+  }
+  if (!ALLOWED_ATTACHMENT_MIME.has(parsed.mime) || (requestedMime && requestedMime !== parsed.mime)) {
+    return c.json({ ok: false, code: "UNSUPPORTED_ATTACHMENT_TYPE", mime_type: parsed.mime }, 415);
+  }
+  if (parsed.bytes > MAX_ATTACHMENT_BYTES) {
+    return c.json({ ok: false, code: "ATTACHMENT_TOO_LARGE", max_bytes: MAX_ATTACHMENT_BYTES }, 413);
+  }
+
+  await ensureSameMindConversation(c.env);
+  const db = requireDb(c.env);
+  const now = Date.now();
+  await db.prepare("DELETE FROM chat_attachments WHERE created_at < ?")
+    .bind(now - ATTACHMENT_TTL_MS)
+    .run();
+
+  const id = `att_${crypto.randomUUID()}`;
+  await db.prepare(
+    `INSERT INTO chat_attachments(id, conversation_id, filename, mime_type, data_base64, size_bytes, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(id, SAME_MIND_CONVERSATION_ID, filename, parsed.mime, parsed.data, parsed.bytes, now).run();
+
+  return c.json({ ok: true, attachment: { id, filename, mime_type: parsed.mime, size_bytes: parsed.bytes } }, 201);
+});
+
 // Thin UI facade over the durable workflow engine. Auth, D1 metering, GM cap guard,
 // immutable workflow pinning and runtime credentials all stay inside the existing engine path.
 root.post("/api/chat", async (c) => {
-  const body = await c.req.json<{ prompt?: unknown; mode?: unknown }>()
-    .catch(() => ({ prompt: undefined, mode: undefined }));
+  const body = await c.req.json<{ prompt?: unknown; mode?: unknown; attachment_ids?: unknown }>()
+    .catch(() => ({ prompt: undefined, mode: undefined, attachment_ids: undefined }));
   const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
   const requestedMode = typeof body.mode === "string" ? body.mode.toLowerCase() : "balanced";
   const mode = requestedMode === "fast" || requestedMode === "power" || requestedMode === "balanced" ? requestedMode : "balanced";
+  const attachmentIds = Array.isArray(body.attachment_ids)
+    ? body.attachment_ids.map((value) => String(value ?? "").trim()).filter(Boolean).slice(0, MAX_CHAT_ATTACHMENTS)
+    : [];
 
-  if (!prompt) return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt is required" }, 400);
+  if (!prompt && attachmentIds.length === 0) return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt or attachment is required" }, 400);
   if (utf8Bytes(prompt) > 7_000) {
     return c.json({ ok: false, code: "INPUT_TOO_LARGE", message: "chat prompt exceeds SAME MIND staging limit" }, 413);
   }
+
+  const attachmentRows = attachmentIds.length ? await readAttachmentRows(c.env, attachmentIds) : [];
+  if (attachmentRows.length !== attachmentIds.length) {
+    return c.json({ ok: false, code: "ATTACHMENT_NOT_FOUND", message: "one or more attachments expired or are unavailable" }, 404);
+  }
+
+  const attachmentNote = attachmentRows.length
+    ? `\n\n[Attached: ${attachmentRows.map((row) => `${row.filename} (${row.mime_type})`).join(", ")}]`
+    : "";
+  const ownerPrompt = `${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}${attachmentNote}`;
 
   const opsKey = String(c.env.OGENIC_OPS_KEY ?? "").trim();
   if (!opsKey) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OGENIC_OPS_KEY" }, 503);
@@ -216,9 +323,9 @@ root.post("/api/chat", async (c) => {
   await saveSameMindMessage(c.env, {
     id: `u_${safeTriggerKey}`,
     role: "user",
-    content: prompt,
+    content: ownerPrompt,
   });
-  const compiledPrompt = sameMindPrompt(history, prompt);
+  const compiledPrompt = sameMindPrompt(history, ownerPrompt);
 
   const startResponse = await engine.api.request(
     "/workflows/openai-chat/runs",
@@ -229,7 +336,7 @@ root.post("/api/chat", async (c) => {
         "Content-Type": "application/json",
         "Idempotency-Key": triggerKey,
       },
-      body: JSON.stringify({ input: { prompt: compiledPrompt, mode } satisfies Json }),
+      body: JSON.stringify({ input: { prompt: compiledPrompt, mode, attachment_ids: attachmentIds } satisfies Json }),
     },
     c.env,
   );
