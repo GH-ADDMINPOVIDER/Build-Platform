@@ -3,7 +3,8 @@
 ## Current baseline
 Repository: `Ogenicchocolate21debug/Build-Platform`
 Canonical branch: `main`
-Verified runtime head before this metadata reconciliation: `44bf20e3a1cf71aced70d664b45825a255bcb99d`
+Repository tip observed before this metadata reconciliation: `abcb4a2a9772b5639316008748e0f37ade3922a8`
+Last fully verified runtime head: `44bf20e3a1cf71aced70d664b45825a255bcb99d`
 
 PR #4 (OGENIC GOD TOOLKIT v1.3.0 + Control Tower) and PR #6 (runtime health adapters + read-only routing fix) are already merged. Do not treat the old pre-merge branch acceptance checklist as current state.
 
@@ -15,10 +16,9 @@ Use current OpenAI documentation and the applicable build/plugin skills before c
 ## Verified current runtime
 - `.codex-plugin/plugin.json`, `skills/ogenic-god-toolkit/SKILL.md`, capability/router/approval policy, and `apps/ogenic-control-tower/` are present on `main`.
 - Vercel project: `ogenic-control-tower`.
-- Production deployment for runtime head `44bf20e3a1cf71aced70d664b45825a255bcb99d`: `dpl_6m4zpVK4LWvqUjZuHM3M2ns9yBvR` — `READY`.
-- GitHub Actions run `34723659449` (`OGENIC Remote Runtime Verify`) completed successfully against `https://ogenic-control-tower.vercel.app`.
-- Audit/Bundle completed successfully on the same runtime head.
-- Runtime health now uses evidence-based GitHub/Vercel adapters and host/connected execution provenance rather than fake readiness states.
+- Current `main` production deployment observed for repository tip `abcb4a2a9772b5639316008748e0f37ade3922a8`: `dpl_DtVDG6w6rrsvcLEmsXYGMAfUAUb8` — `READY`.
+- The last dedicated successful remote-runtime verification remains GitHub Actions run `34723659449` on head `44bf20e3a1cf71aced70d664b45825a255bcb99d`, against `https://ogenic-control-tower.vercel.app`; Audit/Bundle also completed successfully on that same head.
+- Do not infer equivalent full runtime verification for later heads solely from `READY` deployment state. Runtime health remains evidence-based and must report unknown/auth-needed when not independently verified.
 
 ## Agent operating contract
 1. Reuse canonical context before asking the user to repeat known project state.
@@ -32,7 +32,9 @@ Use current OpenAI documentation and the applicable build/plugin skills before c
 9. Keep Candy resources outside Control Tower maintenance unless the task explicitly scopes Candy in.
 
 ## Runtime / deployment drift
-- Historical deployment `dpl_BgBKm8zhGxuw8z6tyUm8PtjGQwwa` still exists and is production-targeted. Deleting it is a destructive action: use an authenticated Vercel action/browser surface, verify the exact deployment ID, and stop for fresh Human Approval immediately before final deletion. Do not bypass browser/OAuth policy.
+- `main` advanced after the last fully verified runtime head via Money Control changes at `d43831b3330611544d33ff83e31f03d384b878c9` and `abcb4a2a9772b5639316008748e0f37ade3922a8`. Their latest production deployment is `READY`, but no equivalent dedicated remote-runtime verification for the exact latest head is established here.
+- Recent Vercel previews from `phase-vi-provider-incentive-metering` are failing before build. Latest observed error: `NOW_SANDBOX_WORKER_ROOTDIR_NOT_EXIST` — configured Root Directory `apps/ogenic-control-tower` does not exist on that branch. Treat this as branch/project-layout drift; do not rewrite global project Root Directory based on the staging branch without verifying main compatibility.
+- Historical deployment `dpl_BgBKm8zhGxuw8z6tyUm8PtjGQwwa` remains a destructive-delete concern. Deleting it requires an authenticated Vercel action/browser surface, exact deployment-ID verification, and fresh Human Approval immediately before final deletion. Do not bypass browser/OAuth policy.
 - Control Tower runtime verification does not prove Candy/CN data lineage or website source-of-truth reconciliation.
 
 ## Recommended read-only / bounded tool surface
