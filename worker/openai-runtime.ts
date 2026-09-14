@@ -24,6 +24,14 @@ type OpenAIResponse = {
   usage?: { input_tokens?: number; output_tokens?: number; total_tokens?: number } | null;
 };
 
+type ChatAttachmentRow = {
+  id: string;
+  filename: string;
+  mime_type: string;
+  data_base64: string;
+  size_bytes: number;
+};
+
 const ROUTES: Record<OpenAIMode, Route> = {
   fast: {
     mode: "fast",
@@ -53,6 +61,7 @@ const ROUTES: Record<OpenAIMode, Route> = {
 
 const MAX_OUTPUT_TOKENS = 4000;
 const RESPONSE_OVERHEAD_RESERVE = 4096;
+const SAME_MIND_CONVERSATION_ID = "owner-main";
 
 function object(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -105,6 +114,44 @@ function promptFor(input: Json, operation: "chat" | "codex") {
   if (typeof input === "string") return input;
   if (object(input) && typeof input.prompt === "string") return input.prompt;
   return JSON.stringify(input);
+}
+
+async function attachmentRows(env: WorkflowBindings, input: Json) {
+  if (!env.DB || !object(input) || !Array.isArray(input.attachment_ids)) return [];
+  const ids = input.attachment_ids.map((value) => String(value ?? "").trim()).filter(Boolean).slice(0, 4);
+  const rows: ChatAttachmentRow[] = [];
+  for (const id of ids) {
+    const row = await env.DB.prepare(
+      `SELECT id, filename, mime_type, data_base64, size_bytes
+       FROM chat_attachments
+       WHERE id = ? AND conversation_id = ?`,
+    ).bind(id, SAME_MIND_CONVERSATION_ID).first<ChatAttachmentRow>();
+    if (row) rows.push(row);
+  }
+  return rows;
+}
+
+async function responsesInputFor(env: WorkflowBindings, input: Json, operation: "chat" | "codex") {
+  if (operation === "codex") return promptFor(input, operation);
+
+  const content: Array<Record<string, unknown>> = [{ type: "input_text", text: promptFor(input, operation) }];
+  for (const attachment of await attachmentRows(env, input)) {
+    if (attachment.mime_type.startsWith("image/")) {
+      content.push({
+        type: "input_image",
+        detail: "auto",
+        image_url: `data:${attachment.mime_type};base64,${attachment.data_base64}`,
+      });
+    } else {
+      content.push({
+        type: "input_file",
+        filename: attachment.filename,
+        file_data: attachment.data_base64,
+      });
+    }
+  }
+
+  return [{ role: "user", content }];
 }
 
 async function resolveRoute(
@@ -185,10 +232,10 @@ async function invokeOpenAI(
     },
     body: JSON.stringify({
       model: routed.route.model,
-      input: promptFor(input, operation),
+      input: await responsesInputFor(env, input, operation),
       instructions: structured
         ? "Return only a concise implementation summary and a unified diff patch. Do not call tools. Do not include credentials or secrets."
-        : "Answer the user request directly. Do not call tools. Keep secrets and credentials out of the response.",
+        : "Answer the user request directly. Use attached images/files when present. Do not call tools. Keep secrets and credentials out of the response.",
       max_output_tokens: maxOutputTokens,
       store: false,
       ...(structured
