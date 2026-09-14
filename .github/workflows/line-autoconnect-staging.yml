@@ -64,7 +64,7 @@ jobs:
         run: |
           set -euo pipefail
           SECRET="${LINE_SECRET_CHANNEL:-${LINE_CHANNEL_SECRET:-}}"
-          CHANNEL_ID="${LINE_CHANNEL_ID:-${LINE_ID_USE:-}}"
+          CHANNEL_ID="${LINE_CHANNEL_ID:-${LINE_ID:-${LINE_ID_USE:-}}}"
           ACTIVE="${LINE_CHANNEL_ACCESS_TOKEN:-}"
 
           if test -z "$SECRET"; then
@@ -89,7 +89,7 @@ jobs:
           fi
 
           if ! printf '%s' "$CHANNEL_ID" | grep -Eq '^[0-9]{5,20}$'; then
-            echo "::warning::LINE_CHANNEL_ID_REQUIRED: stored LINE_ID_USE is not a Messaging API Channel ID. Add canonical LINE_CHANNEL_ID to Infisical."
+            echo "::warning::LINE_CHANNEL_ID_REQUIRED: LINE_CHANNEL_ID/LINE_ID is not a numeric Messaging API Channel ID."
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "blocker=LINE_CHANNEL_ID_REQUIRED" >> "$GITHUB_OUTPUT"
             exit 0
