@@ -82,6 +82,7 @@ jobs:
               https://api.line.me/v2/oauth/verify || true)"
           fi
           if test "$VERIFY_CODE" = "200"; then
+            echo "::add-mask::$ACTIVE"
             echo "Existing LINE channel access token is valid."
             echo "ready=true" >> "$GITHUB_OUTPUT"
             echo "source=existing_token" >> "$GITHUB_OUTPUT"
@@ -116,10 +117,11 @@ jobs:
             echo "blocker=LINE_TOKEN_ISSUANCE_EMPTY" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          echo "::add-mask::$ACTIVE"
           printf 'LINE_CHANNEL_ACCESS_TOKEN=%s\n' "$ACTIVE" >> "$GITHUB_ENV"
           echo "ready=true" >> "$GITHUB_OUTPUT"
           echo "source=rotated_token" >> "$GITHUB_OUTPUT"
-          echo "Fresh LINE token issued without printing its value."
+          echo "Fresh LINE token issued and masked."
 
       - name: Report LINE blocker
         if: steps.token.outputs.ready != 'true'
