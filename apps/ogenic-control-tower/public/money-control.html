@@ -6,80 +6,71 @@
 <meta name="theme-color" content="#0b0c10" />
 <title>OGENIC Money Control</title>
 <style>
-:root{color-scheme:dark;--bg:#0b0c10;--panel:#14161d;--panel2:#1a1d26;--text:#f7f8fb;--muted:#9ca3af;--line:#2b303b;--green:#59d98e;--amber:#f6c75b;--red:#ff7b86;--blue:#77a7ff;--radius:18px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Display","Noto Sans Thai",sans-serif}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}body{background:radial-gradient(circle at 92% -5%,rgba(78,113,255,.16),transparent 28%),linear-gradient(180deg,#0b0c10,#11131a)}.app{max-width:760px;margin:auto;padding:calc(16px + env(safe-area-inset-top)) 12px calc(36px + env(safe-area-inset-bottom))}.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.eyebrow{font-size:10px;letter-spacing:.16em;font-weight:900;color:var(--blue)}h1{font-size:22px;margin:4px 0 0}.tag{font-size:10px;border:1px solid var(--line);border-radius:999px;padding:7px 9px;color:var(--muted);background:#12141a}.notice{border:1px solid #284a39;background:#11271d;color:#aef0c9;border-radius:15px;padding:10px 12px;font-size:11px;line-height:1.5;margin-bottom:12px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.card{border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg,var(--panel),#101218);padding:13px}.card.full{grid-column:1/-1}.label{font-size:10px;color:var(--muted);font-weight:800;letter-spacing:.05em;text-transform:uppercase}.value{font-size:25px;font-weight:950;margin-top:4px}.value.green{color:var(--green)}.value.amber{color:var(--amber)}.value.red{color:var(--red)}.value.blue{color:var(--blue)}.row{display:grid;grid-template-columns:1fr 128px;gap:8px;align-items:center;margin-top:9px}.row.three{grid-template-columns:1fr 110px 42px}.row input,.row textarea,.row select{width:100%;border:1px solid var(--line);border-radius:12px;background:#0d0f14;color:var(--text);padding:10px;outline:none}.row textarea{min-height:64px;resize:vertical}.btn{border:1px solid var(--line);border-radius:12px;background:#202431;color:var(--text);padding:10px 12px;font-weight:850}.btn.primary{background:linear-gradient(100deg,#3158d4,#684ed6);border:0}.btn.danger{color:#ffadb5;background:#25171a;border-color:#4a282d}.list{display:grid;gap:8px;margin-top:10px}.item{border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:10px}.itemTop{display:flex;justify-content:space-between;gap:8px;align-items:center}.item b{font-size:12px}.item small{display:block;color:var(--muted);margin-top:4px;line-height:1.45}.amt{font-weight:950;color:var(--amber);white-space:nowrap}.actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.mini{font-size:9px;color:var(--muted);margin-top:8px}.footer{font-size:9px;color:#717784;text-align:center;margin-top:16px;line-height:1.5}.empty{font-size:11px;color:var(--muted);padding:8px 0}.pill{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:5px 7px;font-size:9px;color:var(--muted);margin-top:7px}.divider{height:1px;background:var(--line);margin:11px 0}@media(max-width:520px){.grid{grid-template-columns:1fr 1fr}.row,.row.three{grid-template-columns:1fr}.row.three .btn{width:100%}.value{font-size:22px}}
+:root{color-scheme:dark;--bg:#0b0c10;--panel:#14161d;--panel2:#1a1d26;--text:#f7f8fb;--muted:#9ca3af;--line:#2b303b;--green:#59d98e;--amber:#f6c75b;--red:#ff7b86;--blue:#77a7ff;--radius:18px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Display","Noto Sans Thai",sans-serif}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}body{background:radial-gradient(circle at 92% -5%,rgba(78,113,255,.16),transparent 28%),linear-gradient(180deg,#0b0c10,#11131a)}.app{max-width:760px;margin:auto;padding:calc(16px + env(safe-area-inset-top)) 12px calc(36px + env(safe-area-inset-bottom))}.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.eyebrow{font-size:10px;letter-spacing:.16em;font-weight:900;color:var(--blue)}h1{font-size:22px;margin:4px 0 0}.tag{font-size:10px;border:1px solid var(--line);border-radius:999px;padding:7px 9px;color:var(--muted);background:#12141a}.notice{border:1px solid #284a39;background:#11271d;color:#aef0c9;border-radius:15px;padding:10px 12px;font-size:11px;line-height:1.5;margin-bottom:12px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.card{border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg,var(--panel),#101218);padding:13px}.card.full{grid-column:1/-1}.label{font-size:10px;color:var(--muted);font-weight:800;letter-spacing:.05em;text-transform:uppercase}.value{font-size:25px;font-weight:950;margin-top:4px}.value.green{color:var(--green)}.value.amber{color:var(--amber)}.value.red{color:var(--red)}.value.blue{color:var(--blue)}.row{display:grid;grid-template-columns:1fr 128px;gap:8px;align-items:center;margin-top:9px}.row.three{grid-template-columns:1fr 110px 42px}.row input{width:100%;border:1px solid var(--line);border-radius:12px;background:#0d0f14;color:var(--text);padding:10px;outline:none}.btn{border:1px solid var(--line);border-radius:12px;background:#202431;color:var(--text);padding:10px 12px;font-weight:850}.btn.primary{background:linear-gradient(100deg,#3158d4,#684ed6);border:0}.btn.danger{color:#ffadb5;background:#25171a;border-color:#4a282d}.list{display:grid;gap:8px;margin-top:10px}.item{border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:10px}.itemTop{display:flex;justify-content:space-between;gap:8px;align-items:center}.item b{font-size:12px}.item small{display:block;color:var(--muted);margin-top:4px;line-height:1.45}.amt{font-weight:950;color:var(--amber);white-space:nowrap}.income .amt{color:var(--green)}.actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.mini{font-size:9px;color:var(--muted);margin-top:8px}.footer{font-size:9px;color:#717784;text-align:center;margin-top:16px;line-height:1.5}.empty{font-size:11px;color:var(--muted);padding:8px 0}.pill{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:5px 7px;font-size:9px;color:var(--muted);margin-top:7px}@media(max-width:520px){.grid{grid-template-columns:1fr 1fr}.row,.row.three{grid-template-columns:1fr}.row.three .btn{width:100%}.value{font-size:22px}}
 </style>
 </head>
 <body>
 <div class="app">
   <div class="top"><div><div class="eyebrow">OGENIC • PERSONAL MONEY ARCHITECT</div><h1>MONEY CONTROL • CASHFLOW</h1></div><div class="tag">NO AI · NO WORKFLOW</div></div>
   <div class="notice">ข้อมูลหน้านี้เก็บในเครื่องนี้ด้วย <b>localStorage</b> เท่านั้น ไม่มี AI call, ไม่มี workflow, ไม่มี backend และไม่มีตัวเลขการเงินฝังอยู่ในเว็บ</div>
-
   <div class="grid">
     <section class="card"><div class="label">Money Now</div><div id="moneyNow" class="value green">฿0</div></section>
     <section class="card"><div class="label">Spendable</div><div id="spendable" class="value blue">฿0</div></section>
     <section class="card"><div class="label">Locked</div><div id="lockedTotal" class="value amber">฿0</div></section>
     <section class="card"><div class="label">Daily Budget</div><div id="dailyBudget" class="value">฿0</div><div class="pill" id="daysLabel">0 days</div></section>
 
-    <section class="card full">
-      <div class="label">Current Snapshot</div>
-      <div class="row"><input id="cashInput" inputmode="decimal" placeholder="เงินสด/ยอดใช้ได้ตอนนี้"/><button class="btn primary" id="saveCash">Save</button></div>
-      <div class="row"><input id="nextCashDate" type="date"/><button class="btn" id="saveDate">Next cash date</button></div>
-      <div class="mini">Spendable = Money Now − Locked. Daily Budget คิดจาก Spendable ÷ จำนวนวันถึง Next Cash Date.</div>
-    </section>
+    <section class="card full"><div class="label">Current Snapshot</div><div class="row"><input id="cashInput" inputmode="decimal" placeholder="เงินสด/ยอดใช้ได้ตอนนี้"/><button class="btn primary" id="saveCash">Save</button></div><div class="row"><input id="nextCashDate" type="date"/><button class="btn" id="saveDate">Next cash date</button></div><div class="mini">Spendable = Money Now − Locked. Daily Budget = Spendable ÷ จำนวนวันถึง Next Cash Date.</div></section>
 
-    <section class="card full">
-      <div class="label">Locked Money</div>
-      <div class="row three"><input id="lockName" placeholder="เช่น ค่าโทรศัพท์ / ค่าห้อง"/><input id="lockAmount" inputmode="decimal" placeholder="จำนวน"/><button class="btn primary" id="addLock">+</button></div>
-      <div id="locks" class="list"></div>
-    </section>
+    <section class="card full"><div class="label">Locked Money</div><div class="row three"><input id="lockName" placeholder="เช่น ค่าโทรศัพท์ / ค่าห้อง"/><input id="lockAmount" inputmode="decimal" placeholder="จำนวน"/><button class="btn primary" id="addLock">+</button></div><div id="locks" class="list"></div></section>
 
-    <section class="card full">
-      <div class="label">Debt / Due Schedule</div>
-      <div class="row"><input id="dueName" placeholder="ชื่อรายการ / เจ้าหนี้"/><input id="dueAmount" inputmode="decimal" placeholder="ยอดชำระ"/></div>
-      <div class="row"><input id="dueDate" type="date"/><input id="dueNote" placeholder="รายละเอียดสั้น ๆ"/></div>
-      <div class="actions"><button class="btn primary" id="addDue">Add due</button></div>
-      <div id="dues" class="list"></div>
-    </section>
+    <section class="card full"><div class="label">Expected Income</div><div class="row"><input id="incomeName" placeholder="ชื่อรายรับ"/><input id="incomeAmount" inputmode="decimal" placeholder="จำนวน"/></div><div class="row"><input id="incomeDate" type="date"/><input id="incomeNote" placeholder="หมายเหตุ / ยังไม่ยืนยันได้"/></div><div class="actions"><button class="btn primary" id="addIncome">Add income</button></div><div class="mini">รายรับที่ยังไม่เข้าเงินจริงจะไม่ถูกรวมใน Money Now หรือ Spendable.</div><div id="incomes" class="list"></div></section>
 
-    <section class="card full">
-      <div class="label">Quick Snapshot</div>
-      <div class="actions"><button class="btn primary" id="copySnapshot">Copy snapshot</button><button class="btn" id="exportData">Export JSON</button><button class="btn" id="importData">Import JSON</button><button class="btn danger" id="clearAll">Clear local data</button></div>
-      <div class="mini">เอา Snapshot ไปแปะในห้อง Cashflow ได้ทันทีเมื่ออยากให้ช่วยคิดต่อ โดยไม่ต้องเปิด workflow ใด ๆ</div>
-    </section>
+    <section class="card full"><div class="label">Debt / Due Schedule</div><div class="row"><input id="dueName" placeholder="ชื่อรายการ / เจ้าหนี้"/><input id="dueAmount" inputmode="decimal" placeholder="ยอดชำระ"/></div><div class="row"><input id="dueDate" type="date"/><input id="dueNote" placeholder="รายละเอียดสั้น ๆ"/></div><div class="actions"><button class="btn primary" id="addDue">Add due</button></div><div id="dues" class="list"></div></section>
+
+    <section class="card full"><div class="label">Quick Snapshot</div><div class="actions"><button class="btn primary" id="copySnapshot">Copy snapshot</button><button class="btn" id="exportData">Export JSON</button><button class="btn" id="importData">Import JSON</button><button class="btn danger" id="clearAll">Clear local data</button></div><div class="mini">เอา Snapshot ไปแปะในห้อง Cashflow ได้ทันทีเมื่ออยากให้ช่วยคิดต่อ โดยไม่เปิด workflow ใด ๆ</div></section>
   </div>
   <div class="footer">PAY FIRST → SURVIVE → DEBT → BUFFER → SPEND<br/>เงินที่ LOCKED = ถือว่าใช้ไปแล้ว แม้ยังอยู่ในบัญชี</div>
 </div>
 <script>
 (() => {
-  const KEY = 'ogenic-money-control-v1';
-  const $ = id => document.getElementById(id);
-  const fmt = n => new Intl.NumberFormat('th-TH',{maximumFractionDigits:2}).format(Number(n)||0);
-  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
-  let state = Object.assign({cash:0,nextCashDate:'',locks:[],dues:[]}, load());
-  const save = () => { localStorage.setItem(KEY, JSON.stringify(state)); render(); };
-  const money = v => Math.max(0, Number(String(v).replace(/,/g,'')) || 0);
-  const esc = s => String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  function daysUntil(date){ if(!date) return 0; const a=new Date(); a.setHours(0,0,0,0); const b=new Date(date+'T00:00:00'); return Math.max(0,Math.ceil((b-a)/86400000)); }
-  function render(){
-    const locked = state.locks.reduce((s,x)=>s+money(x.amount),0);
-    const spendable = Math.max(0,money(state.cash)-locked);
-    const days = daysUntil(state.nextCashDate);
-    $('moneyNow').textContent='฿'+fmt(state.cash); $('lockedTotal').textContent='฿'+fmt(locked); $('spendable').textContent='฿'+fmt(spendable); $('dailyBudget').textContent='฿'+fmt(days?spendable/days:0); $('daysLabel').textContent=days+' days';
-    $('cashInput').value=state.cash||''; $('nextCashDate').value=state.nextCashDate||'';
-    $('locks').innerHTML = state.locks.length ? state.locks.map((x,i)=>`<div class="item"><div class="itemTop"><b>${esc(x.name)}</b><span class="amt">฿${fmt(x.amount)}</span></div><div class="actions"><button class="btn danger" data-del-lock="${i}">Remove</button></div></div>`).join('') : '<div class="empty">No locked money.</div>';
-    const dues=[...state.dues].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
-    $('dues').innerHTML = dues.length ? dues.map(x=>{ const idx=state.dues.indexOf(x); return `<div class="item"><div class="itemTop"><b>${esc(x.name)}</b><span class="amt">฿${fmt(x.amount)}</span></div><small>${esc(x.date||'No date')}${x.note?' · '+esc(x.note):''}</small><div class="actions"><button class="btn danger" data-del-due="${idx}">Remove</button></div></div>`; }).join('') : '<div class="empty">No due schedule.</div>';
+  const KEY='ogenic-money-control-v2', $=id=>document.getElementById(id);
+  const empty={cash:0,nextCashDate:'',locks:[],incomes:[],dues:[]};
+  const fmt=n=>new Intl.NumberFormat('th-TH',{maximumFractionDigits:2}).format(Number(n)||0);
+  const money=v=>Math.max(0,Number(String(v??'').replace(/,/g,''))||0);
+  const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch{return{}}};
+  let state=Object.assign({},empty,load());
+  const save=()=>{localStorage.setItem(KEY,JSON.stringify(state));render()};
+  function decodeHash(){
+    if(!location.hash.startsWith('#import=')) return;
+    try{
+      let raw=location.hash.slice(8).replace(/-/g,'+').replace(/_/g,'/'); while(raw.length%4) raw+='=';
+      const bytes=Uint8Array.from(atob(raw),c=>c.charCodeAt(0));
+      const incoming=JSON.parse(new TextDecoder().decode(bytes));
+      state=Object.assign({},empty,incoming); localStorage.setItem(KEY,JSON.stringify(state));
+      history.replaceState(null,'',location.pathname+location.search); alert('Loaded Money Control snapshot on this device');
+    }catch(e){alert('Import link invalid')}
   }
-  $('saveCash').onclick=()=>{state.cash=money($('cashInput').value);save()};
-  $('saveDate').onclick=()=>{state.nextCashDate=$('nextCashDate').value;save()};
-  $('addLock').onclick=()=>{const name=$('lockName').value.trim(); const amount=money($('lockAmount').value); if(!name||!amount)return; state.locks.push({name,amount}); $('lockName').value=''; $('lockAmount').value=''; save()};
-  $('addDue').onclick=()=>{const name=$('dueName').value.trim(); const amount=money($('dueAmount').value); if(!name||!amount)return; state.dues.push({name,amount,date:$('dueDate').value,note:$('dueNote').value.trim()}); ['dueName','dueAmount','dueDate','dueNote'].forEach(id=>$(id).value=''); save()};
-  document.addEventListener('click',e=>{const a=e.target.dataset.delLock,b=e.target.dataset.delDue;if(a!==undefined){state.locks.splice(Number(a),1);save()}if(b!==undefined){state.dues.splice(Number(b),1);save()}});
-  $('copySnapshot').onclick=async()=>{const locked=state.locks.reduce((s,x)=>s+money(x.amount),0);const spendable=Math.max(0,money(state.cash)-locked);const days=daysUntil(state.nextCashDate);const lines=[`MONEY NOW: ${fmt(state.cash)}`,`LOCKED: ${fmt(locked)}`,`SPENDABLE: ${fmt(spendable)}`,`NEXT CASH: ${state.nextCashDate||'-'}`,`DAILY LIMIT: ${days?fmt(spendable/days):'-'}`,'','LOCKED ITEMS:',...state.locks.map(x=>`- ${x.name}: ${fmt(x.amount)}`),'','NEXT DUE:',...state.dues.sort((a,b)=>String(a.date).localeCompare(String(b.date))).map(x=>`- ${x.date||'-'} | ${x.name} | ${fmt(x.amount)}${x.note?' | '+x.note:''}`)];try{await navigator.clipboard.writeText(lines.join('\n'));alert('Copied snapshot')}catch{prompt('Copy snapshot',lines.join('\n'))}};
-  $('exportData').onclick=()=>prompt('Copy JSON',JSON.stringify(state));
-  $('importData').onclick=()=>{const raw=prompt('Paste JSON'); if(!raw)return; try{state=Object.assign({cash:0,nextCashDate:'',locks:[],dues:[]},JSON.parse(raw));save()}catch{alert('Invalid JSON')}};
-  $('clearAll').onclick=()=>{if(confirm('Clear local Money Control data on this device?')){localStorage.removeItem(KEY);state={cash:0,nextCashDate:'',locks:[],dues:[]};render()}};
-  render();
+  function daysUntil(date){if(!date)return 0;const a=new Date();a.setHours(0,0,0,0);const b=new Date(date+'T00:00:00');return Math.max(0,Math.ceil((b-a)/86400000))}
+  function renderList(items,type){
+    const cls=type==='income'?'item income':'item';
+    return items.length?items.map(x=>{const idx=state[type==='income'?'incomes':'dues'].indexOf(x);return `<div class="${cls}"><div class="itemTop"><b>${esc(x.name)}</b><span class="amt">฿${fmt(x.amount)}</span></div><small>${esc(x.date||'No date')}${x.note?' · '+esc(x.note):''}</small><div class="actions"><button class="btn danger" data-del-${type}="${idx}">Remove</button></div></div>`}).join(''):`<div class="empty">No ${type} schedule.</div>`;
+  }
+  function render(){
+    const locked=state.locks.reduce((s,x)=>s+money(x.amount),0),spendable=Math.max(0,money(state.cash)-locked),days=daysUntil(state.nextCashDate);
+    $('moneyNow').textContent='฿'+fmt(state.cash);$('lockedTotal').textContent='฿'+fmt(locked);$('spendable').textContent='฿'+fmt(spendable);$('dailyBudget').textContent='฿'+fmt(days?spendable/days:0);$('daysLabel').textContent=days+' days';$('cashInput').value=state.cash||'';$('nextCashDate').value=state.nextCashDate||'';
+    $('locks').innerHTML=state.locks.length?state.locks.map((x,i)=>`<div class="item"><div class="itemTop"><b>${esc(x.name)}</b><span class="amt">฿${fmt(x.amount)}</span></div><div class="actions"><button class="btn danger" data-del-lock="${i}">Remove</button></div></div>`).join(''):'<div class="empty">No locked money.</div>';
+    $('incomes').innerHTML=renderList([...state.incomes].sort((a,b)=>String(a.date).localeCompare(String(b.date))),'income');
+    $('dues').innerHTML=renderList([...state.dues].sort((a,b)=>String(a.date).localeCompare(String(b.date))),'due');
+  }
+  $('saveCash').onclick=()=>{state.cash=money($('cashInput').value);save()};$('saveDate').onclick=()=>{state.nextCashDate=$('nextCashDate').value;save()};
+  $('addLock').onclick=()=>{const name=$('lockName').value.trim(),amount=money($('lockAmount').value);if(!name||!amount)return;state.locks.push({name,amount});$('lockName').value='';$('lockAmount').value='';save()};
+  $('addIncome').onclick=()=>{const name=$('incomeName').value.trim(),amount=money($('incomeAmount').value);if(!name||!amount)return;state.incomes.push({name,amount,date:$('incomeDate').value,note:$('incomeNote').value.trim()});['incomeName','incomeAmount','incomeDate','incomeNote'].forEach(id=>$(id).value='');save()};
+  $('addDue').onclick=()=>{const name=$('dueName').value.trim(),amount=money($('dueAmount').value);if(!name||!amount)return;state.dues.push({name,amount,date:$('dueDate').value,note:$('dueNote').value.trim()});['dueName','dueAmount','dueDate','dueNote'].forEach(id=>$(id).value='');save()};
+  document.addEventListener('click',e=>{const l=e.target.dataset.delLock,i=e.target.dataset.delIncome,d=e.target.dataset.delDue;if(l!==undefined){state.locks.splice(Number(l),1);save()}if(i!==undefined){state.incomes.splice(Number(i),1);save()}if(d!==undefined){state.dues.splice(Number(d),1);save()}});
+  $('copySnapshot').onclick=async()=>{const locked=state.locks.reduce((s,x)=>s+money(x.amount),0),spendable=Math.max(0,money(state.cash)-locked),days=daysUntil(state.nextCashDate),sortedIncome=[...state.incomes].sort((a,b)=>String(a.date).localeCompare(String(b.date))),sortedDue=[...state.dues].sort((a,b)=>String(a.date).localeCompare(String(b.date)));const lines=[`MONEY NOW: ${fmt(state.cash)}`,`LOCKED: ${fmt(locked)}`,`SPENDABLE: ${fmt(spendable)}`,`NEXT CASH: ${state.nextCashDate||'-'}`,`DAILY LIMIT: ${days?fmt(spendable/days):'-'}`,'','LOCKED ITEMS:',...state.locks.map(x=>`- ${x.name}: ${fmt(x.amount)}`),'','EXPECTED INCOME:',...sortedIncome.map(x=>`- ${x.date||'-'} | ${x.name} | ${fmt(x.amount)}${x.note?' | '+x.note:''}`),'','NEXT DUE:',...sortedDue.map(x=>`- ${x.date||'-'} | ${x.name} | ${fmt(x.amount)}${x.note?' | '+x.note:''}`)];try{await navigator.clipboard.writeText(lines.join('\n'));alert('Copied snapshot')}catch{prompt('Copy snapshot',lines.join('\n'))}};
+  $('exportData').onclick=()=>prompt('Copy JSON',JSON.stringify(state));$('importData').onclick=()=>{const raw=prompt('Paste JSON');if(!raw)return;try{state=Object.assign({},empty,JSON.parse(raw));save()}catch{alert('Invalid JSON')}};$('clearAll').onclick=()=>{if(confirm('Clear local Money Control data on this device?')){localStorage.removeItem(KEY);state=Object.assign({},empty);render()}};
+  decodeHash(); render();
 })();
 </script>
 </body>
