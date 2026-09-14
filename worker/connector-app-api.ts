@@ -115,7 +115,7 @@ export function createConnectorAppApi() {
   });
 
   api.post("/api/connectors/test", async (c) => {
-    const body = await c.req.json<{ connector?: unknown }>().catch(() => ({}));
+    const body: { connector?: unknown } = await c.req.json<{ connector?: unknown }>().catch(() => ({ connector: undefined }));
     const connector = clean(body.connector, 60);
     if (!connector) return c.json({ ok: false, code: "INVALID_REQUEST", message: "connector is required" }, 400);
     const result = await testConnector(c.env, connector);
@@ -125,7 +125,7 @@ export function createConnectorAppApi() {
   api.post("/api/chat/functions", async (c) => {
     const apiKey = clean(c.env.OPENAI_API_KEY, 4000);
     if (!apiKey) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OPENAI_API_KEY" }, 503);
-    const body = await c.req.json<{ prompt?: unknown; model?: unknown }>().catch(() => ({}));
+    const body: { prompt?: unknown; model?: unknown } = await c.req.json<{ prompt?: unknown; model?: unknown }>().catch(() => ({ prompt: undefined, model: undefined }));
     const prompt = clean(body.prompt, 7000);
     if (!prompt) return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt is required" }, 400);
     const requestedModel = clean(body.model, 80);
