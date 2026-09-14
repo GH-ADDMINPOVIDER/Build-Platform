@@ -18,6 +18,7 @@
       "inputs": {
         "prompt": { "$ref": "run.input#/prompt" },
         "mode": { "$ref": "run.input#/mode" },
+        "attachment_ids": { "$ref": "run.input#/attachment_ids" },
         "max_output_tokens": 1200
       },
       "output_schema": {
