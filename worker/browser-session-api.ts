@@ -19,13 +19,13 @@ function safeHttpUrl(value: unknown) {
   const raw = clean(value, 2000);
   if (!raw) return "about:blank";
   const url = new URL(raw);
-  if (!['http:', 'https:'].includes(url.protocol)) throw new Error('UNSUPPORTED_URL_SCHEME');
+  if (!["http:", "https:"].includes(url.protocol)) throw new Error("UNSUPPORTED_URL_SCHEME");
   const host = url.hostname.toLowerCase();
   if (
-    host === 'localhost' || host === '0.0.0.0' || host === '::1' ||
+    host === "localhost" || host === "0.0.0.0" || host === "::1" ||
     /^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) ||
     /^169\.254\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host)
-  ) throw new Error('PRIVATE_NETWORK_URL_BLOCKED');
+  ) throw new Error("PRIVATE_NETWORK_URL_BLOCKED");
   return url.toString();
 }
 
@@ -62,6 +62,17 @@ export function createBrowserSessionApi() {
 
   api.use("/api/browser-session", requireBrowser);
   api.use("/api/browser-session/*", requireBrowser);
+
+  api.get("/api/browser-session", async (c) => c.json({
+    ok: true,
+    state: "READY",
+    provider: "cloudflare_browser_run",
+    live_view: true,
+    human_in_the_loop: true,
+    session_reuse: true,
+    max_idle_keep_alive_ms: KEEP_ALIVE_MS,
+    note: "Starting a browser session consumes Browser Run quota; this readiness check does not launch one.",
+  }, 200, { "Cache-Control": "no-store" }));
 
   api.post("/api/browser-session", async (c) => {
     const body = await c.req.json<StartBody>().catch(() => ({} as StartBody));
