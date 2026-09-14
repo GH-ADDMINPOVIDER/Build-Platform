@@ -15,6 +15,7 @@ permissions:
 
 env:
   STAGING_URL: https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev
+  WORKER_NAME: ogenic-phase-vi-staging
   INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
   INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
   INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
@@ -27,6 +28,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Discover Infisical project
         id: infisical_project
@@ -59,8 +64,50 @@ jobs:
           if test -z "${LINE_SECRET_CHANNEL:-}" && test -n "${LINE_CHANNEL_SECRET:-}"; then
             printf 'LINE_SECRET_CHANNEL=%s\n' "$LINE_CHANNEL_SECRET" >> "$GITHUB_ENV"
           fi
-          test -n "${LINE_CHANNEL_ACCESS_TOKEN:-}" || { echo "::error::missing LINE_CHANNEL_ACCESS_TOKEN"; exit 1; }
           test -n "${LINE_SECRET_CHANNEL:-}" || { echo "::error::missing LINE channel secret"; exit 1; }
+          test -n "${LINE_ID_USE:-}" || { echo "::error::missing LINE_ID_USE (Messaging API channel ID)"; exit 1; }
+
+      - name: Verify or issue LINE channel access token
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTIVE="${LINE_CHANNEL_ACCESS_TOKEN:-}"
+          VERIFY_CODE=000
+          if test -n "$ACTIVE"; then
+            VERIFY_CODE="$(curl --silent --show-error --output /tmp/line-verify.json --write-out '%{http_code}' \
+              -X POST -H 'Content-Type: application/x-www-form-urlencoded' \
+              --data-urlencode "access_token=${ACTIVE}" \
+              https://api.line.me/v2/oauth/verify || true)"
+          fi
+          if test "$VERIFY_CODE" = "200"; then
+            echo "Existing LINE channel access token is valid."
+          else
+            echo "Stored LINE token is missing/expired; issuing a fresh 30-day token from channel ID + channel secret."
+            ISSUE_CODE="$(curl --silent --show-error --output /tmp/line-issue.json --write-out '%{http_code}' \
+              -X POST -H 'Content-Type: application/x-www-form-urlencoded' \
+              --data-urlencode 'grant_type=client_credentials' \
+              --data-urlencode "client_id=${LINE_ID_USE}" \
+              --data-urlencode "client_secret=${LINE_SECRET_CHANNEL}" \
+              https://api.line.me/v2/oauth/accessToken || true)"
+            if test "$ISSUE_CODE" != "200"; then
+              SAFE_MESSAGE="$(jq -r '.message // "LINE token issuance failed"' /tmp/line-issue.json 2>/dev/null | head -c 240)"
+              echo "::error::LINE token issuance failed (HTTP ${ISSUE_CODE}): ${SAFE_MESSAGE}"
+              exit 1
+            fi
+            ACTIVE="$(jq -r '.access_token // empty' /tmp/line-issue.json)"
+            test -n "$ACTIVE" || { echo "::error::LINE token issuance returned no access_token"; exit 1; }
+            printf 'LINE_CHANNEL_ACCESS_TOKEN=%s\n' "$ACTIVE" >> "$GITHUB_ENV"
+            echo "Fresh LINE channel access token issued without printing its value."
+          fi
+
+      - name: Bind active LINE token to staging Worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "::error::missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "::error::missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          printf '%s' "$LINE_CHANNEL_ACCESS_TOKEN" | npx --yes wrangler@4 secret put LINE_CHANNEL_ACCESS_TOKEN --name "$WORKER_NAME" >/dev/null
+          echo "Active LINE token bound to staging Worker."
 
       - name: Wait for staging health
         shell: bash
@@ -88,7 +135,6 @@ jobs:
           echo "LINE Messaging API credential verified for bot: $(printf '%s' "$INFO" | jq -r '.displayName')"
 
       - name: Read existing LINE webhook endpoint
-        id: before
         shell: bash
         run: |
           set -euo pipefail
@@ -99,7 +145,6 @@ jobs:
           ENDPOINT="$(printf '%s' "$CURRENT" | jq -r '.endpoint // ""')"
           ACTIVE="$(printf '%s' "$CURRENT" | jq -r '.active // false')"
           echo "Existing LINE webhook endpoint: ${ENDPOINT:-<empty>} (active=${ACTIVE})"
-          printf 'endpoint=%s\n' "$ENDPOINT" >> "$GITHUB_OUTPUT"
 
       - name: Connect LINE webhook to OGENIC staging
         shell: bash
