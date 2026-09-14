@@ -1,10 +1,8 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App";
+import ControlPlaneV2 from "./ControlPlaneV2";
 import AppEnhancements from "./AppEnhancements";
-import QuickLimitMeter from "./QuickLimitMeter";
-import "./styles.css";
-import "./quick-limit.css";
+import "./control-plane-v2.css";
 import "./mobile-fixes.css";
 
 if ("serviceWorker" in navigator) {
@@ -15,8 +13,7 @@ if ("serviceWorker" in navigator) {
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <ControlPlaneV2 />
     <AppEnhancements />
-    <QuickLimitMeter />
   </React.StrictMode>,
 );
