@@ -8,7 +8,11 @@ import {
   type ConnectorBindings,
 } from "./connector-runtime";
 
-export type ConnectorAppBindings = AuthBindings & ConnectorBindings & { OPENAI_API_KEY?: string };
+export type ConnectorAppBindings = AuthBindings & ConnectorBindings & {
+  OPENAI_API_KEY?: string;
+  OPENAI_ADMIN_API_KEY?: string;
+  OPENAI_VECTOR_STORE_ID?: string;
+};
 type Env = { Bindings: ConnectorAppBindings };
 
 type ResponseItem = {
@@ -27,7 +31,20 @@ type ResponseBody = {
   usage?: { total_tokens?: number };
   error?: { code?: string; message?: string } | null;
 };
+type OpenAIListBody = {
+  data?: Array<Record<string, unknown>>;
+  error?: { code?: string; message?: string } | null;
+  has_more?: boolean;
+};
 
+type OpenAIRequestResult = {
+  ok: boolean;
+  status: number;
+  body: OpenAIListBody & Record<string, unknown>;
+};
+
+const OPENAI_API_BASE = "https://api.openai.com/v1";
+const KNOWLEDGE_STORE_NAME = "OGENIC Knowledge";
 const clean = (value: unknown, max = 500) => String(value ?? "").trim().slice(0, max);
 
 function extractText(body: ResponseBody) {
@@ -42,7 +59,54 @@ function extractText(body: ResponseBody) {
   return out.join("\n").trim();
 }
 
-const tools = [
+async function openAIRequest(apiKey: string, path: string, init: RequestInit = {}): Promise<OpenAIRequestResult> {
+  const response = await fetch(`${OPENAI_API_BASE}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      ...(init.headers ?? {}),
+    },
+  });
+  const body = await response.json().catch(() => ({})) as OpenAIRequestResult["body"];
+  return { ok: response.ok, status: response.status, body };
+}
+
+function openAIError(result: OpenAIRequestResult) {
+  return clean(result.body.error?.message || result.body.error?.code || `OpenAI HTTP ${result.status}`, 300);
+}
+
+function vectorStoreIdFrom(body: OpenAIListBody, preferredId = "") {
+  if (preferredId) return preferredId;
+  const store = (body.data ?? []).find((item) => clean(item.name, 200) === KNOWLEDGE_STORE_NAME);
+  return clean(store?.id, 200);
+}
+
+async function knowledgeStore(env: ConnectorAppBindings, apiKey: string, createIfMissing: boolean) {
+  const configuredId = clean(env.OPENAI_VECTOR_STORE_ID, 200);
+  if (configuredId) return { state: "LIVE", id: configuredId, created: false, source: "runtime_binding" };
+
+  const listed = await openAIRequest(apiKey, "/vector_stores?limit=100");
+  if (!listed.ok) return { state: "ERROR", id: "", created: false, source: "openai", error: openAIError(listed) };
+  const existing = vectorStoreIdFrom(listed.body);
+  if (existing) return { state: "LIVE", id: existing, created: false, source: "openai" };
+  if (!createIfMissing) return { state: "CONFIGURATION_REQUIRED", id: "", created: false, source: "openai" };
+
+  const created = await openAIRequest(apiKey, "/vector_stores", {
+    method: "POST",
+    body: JSON.stringify({
+      name: KNOWLEDGE_STORE_NAME,
+      metadata: { owner: "ogenic-web-dev", environment: "staging", purpose: "same-mind-knowledge" },
+    }),
+  });
+  if (!created.ok) return { state: "ERROR", id: "", created: false, source: "openai", error: openAIError(created) };
+  const id = clean(created.body.id, 200);
+  return id
+    ? { state: "LIVE", id, created: true, source: "openai" }
+    : { state: "ERROR", id: "", created: false, source: "openai", error: "OpenAI returned no vector store id" };
+}
+
+const functionTools = [
   {
     type: "function",
     name: "connector_status",
@@ -91,6 +155,30 @@ const tools = [
   },
 ];
 
+function safeModel(item: Record<string, unknown>) {
+  return { id: clean(item.id, 160), owned_by: clean(item.owned_by, 100), created: Number(item.created ?? 0) };
+}
+function safeFile(item: Record<string, unknown>) {
+  return {
+    id: clean(item.id, 160),
+    filename: clean(item.filename, 240),
+    bytes: Number(item.bytes ?? 0),
+    purpose: clean(item.purpose, 80),
+    created_at: Number(item.created_at ?? 0),
+  };
+}
+function safeStore(item: Record<string, unknown>) {
+  const fileCounts = item.file_counts && typeof item.file_counts === "object" ? item.file_counts as Record<string, unknown> : {};
+  return {
+    id: clean(item.id, 160),
+    name: clean(item.name, 240),
+    status: clean(item.status, 80),
+    usage_bytes: Number(item.usage_bytes ?? 0),
+    created_at: Number(item.created_at ?? 0),
+    files_total: Number(fileCounts.total ?? 0),
+  };
+}
+
 export function createConnectorAppApi() {
   const api = new Hono<Env>();
   const ownerOnly = async (c: Context<Env>, next: Next) => {
@@ -102,6 +190,7 @@ export function createConnectorAppApi() {
   api.use("/api/connectors", ownerOnly);
   api.use("/api/connectors/*", ownerOnly);
   api.use("/api/chat/functions", ownerOnly);
+  api.use("/api/openai/*", ownerOnly);
 
   api.get("/api/connectors", async (c) => {
     const connectors = await readConnectorRegistry(c.env);
@@ -122,6 +211,54 @@ export function createConnectorAppApi() {
     return c.json({ ok: true, test: result }, 200, { "Cache-Control": "no-store" });
   });
 
+  api.get("/api/openai/platform", async (c) => {
+    const apiKey = clean(c.env.OPENAI_API_KEY, 4000);
+    if (!apiKey) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OPENAI_API_KEY" }, 503);
+
+    const [modelsResult, filesResult, storesResult] = await Promise.all([
+      openAIRequest(apiKey, "/models"),
+      openAIRequest(apiKey, "/files?limit=50"),
+      openAIRequest(apiKey, "/vector_stores?limit=50"),
+    ]);
+    const storeId = storesResult.ok ? vectorStoreIdFrom(storesResult.body, clean(c.env.OPENAI_VECTOR_STORE_ID, 200)) : clean(c.env.OPENAI_VECTOR_STORE_ID, 200);
+    const models = (modelsResult.body.data ?? []).map(safeModel).filter((item) => item.id).sort((a, b) => a.id.localeCompare(b.id));
+    const files = (filesResult.body.data ?? []).map(safeFile).filter((item) => item.id).sort((a, b) => b.created_at - a.created_at);
+    const stores = (storesResult.body.data ?? []).map(safeStore).filter((item) => item.id).sort((a, b) => b.created_at - a.created_at);
+
+    const tools = [
+      { id: "web_search", label: "Web Search", state: "LIVE", risk: "READ_ONLY", note: "OpenAI-hosted web search; metered per API usage." },
+      { id: "file_search", label: "File Search", state: storeId ? "LIVE" : "CONFIGURATION_REQUIRED", risk: "READ_ONLY", note: storeId ? "Connected to OGENIC Knowledge vector store." : "Create the OGENIC Knowledge store to enable." },
+      { id: "functions", label: "Function Calling", state: "LIVE", risk: "APPROVAL_GATED", note: "OGENIC connector functions; side effects stop at Human Approval." },
+      { id: "mcp", label: "Remote MCP", state: "REGISTERED", risk: "APPROVAL_GATED", note: "OGENIC Registry MCP is registered; execution remains explicitly approval-gated." },
+      { id: "computer_use", label: "Computer Use", state: "AVAILABLE", risk: "HIGH_RISK", note: "Not auto-enabled in web dev; requires explicit owner action policy." },
+      { id: "code_interpreter", label: "Code Interpreter / Hosted Shell", state: "AVAILABLE", risk: "METERED", note: "Available through supported models; not auto-enabled for routine chat." },
+    ];
+
+    return c.json({
+      ok: true,
+      api_key_state: "BOUND",
+      checked_at: new Date().toISOString(),
+      models: { state: modelsResult.ok ? "LIVE" : "ERROR", count: models.length, data: models.slice(0, 80), error: modelsResult.ok ? null : openAIError(modelsResult) },
+      files: { state: filesResult.ok ? "LIVE" : "ERROR", count: files.length, data: files.slice(0, 50), error: filesResult.ok ? null : openAIError(filesResult) },
+      vector_stores: { state: storesResult.ok ? "LIVE" : "ERROR", count: stores.length, data: stores.slice(0, 50), knowledge_store_id: storeId || null, error: storesResult.ok ? null : openAIError(storesResult) },
+      admin: {
+        state: c.env.OPENAI_ADMIN_API_KEY ? "BOUND" : "CONFIGURATION_REQUIRED",
+        note: c.env.OPENAI_ADMIN_API_KEY ? "Admin credential is bound; organization usage/cost wiring can be enabled." : "Organization-wide usage/cost endpoints require an OpenAI Admin API key, not the project API key.",
+      },
+      tools,
+      mcp: { state: "REGISTERED", endpoint: "https://ogenic-registry-mcp.vercel.app/mcp", auto_execute: false },
+      policy: "OWNER_ONLY · SERVER_SIDE_SECRETS · SIDE_EFFECTS_REQUIRE_APPROVAL",
+    }, 200, { "Cache-Control": "no-store" });
+  });
+
+  api.post("/api/openai/vector-stores/ensure", async (c) => {
+    const apiKey = clean(c.env.OPENAI_API_KEY, 4000);
+    if (!apiKey) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OPENAI_API_KEY" }, 503);
+    const store = await knowledgeStore(c.env, apiKey, true);
+    if (store.state !== "LIVE") return c.json({ ok: false, code: store.state, message: store.error ?? "Vector store unavailable" }, 502);
+    return c.json({ ok: true, store: { id: store.id, name: KNOWLEDGE_STORE_NAME, created: store.created, state: store.state } }, 200, { "Cache-Control": "no-store" });
+  });
+
   api.post("/api/chat/functions", async (c) => {
     const apiKey = clean(c.env.OPENAI_API_KEY, 4000);
     if (!apiKey) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OPENAI_API_KEY" }, 503);
@@ -130,6 +267,10 @@ export function createConnectorAppApi() {
     if (!prompt) return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt is required" }, 400);
     const requestedModel = clean(body.model, 80);
     const model = requestedModel === "gpt-6-astra" ? requestedModel : "gpt-5.6-sol";
+    const store = await knowledgeStore(c.env, apiKey, false);
+    const hostedTools: Array<Record<string, unknown>> = [{ type: "web_search" }];
+    if (store.state === "LIVE" && store.id) hostedTools.push({ type: "file_search", vector_store_ids: [store.id], max_num_results: 8 });
+    const requestTools: Array<Record<string, unknown>> = [...functionTools, ...hostedTools];
 
     let input: Array<Record<string, unknown>> = [{
       role: "user",
@@ -149,10 +290,13 @@ export function createConnectorAppApi() {
         body: JSON.stringify({
           model,
           reasoning: { effort: "low" },
-          instructions: "You are the OGENIC connector supervisor. Use tools to inspect live connector state when relevant. Never claim an external action was executed when a tool returns HUMAN_APPROVAL_REQUIRED. LINE/Meta/n8n credentials remain server-side. Prefer direct connector status facts over guesses. Reply in the user's language.",
+          instructions: "You are the OGENIC connector supervisor. Use OpenAI hosted read-only tools and OGENIC functions when relevant. Never claim an external action was executed when a function returns HUMAN_APPROVAL_REQUIRED. LINE/Meta/n8n credentials remain server-side. Prefer live tool facts over guesses. Reply in the user's language.",
           input,
-          tools,
+          tools: requestTools,
+          tool_choice: "auto",
           parallel_tool_calls: true,
+          max_tool_calls: 6,
+          include: store.state === "LIVE" ? ["web_search_call.action.sources", "file_search_call.results"] : ["web_search_call.action.sources"],
           max_output_tokens: 1800,
           store: false,
         }),
@@ -185,6 +329,10 @@ export function createConnectorAppApi() {
       text: text || "Function inspection completed.",
       model: final.model ?? model,
       function_calls: calls,
+      hosted_tools: {
+        web_search: "LIVE",
+        file_search: store.state === "LIVE" ? "LIVE" : store.state,
+      },
       usage_tokens: Number(final.usage?.total_tokens ?? 0),
       policy: "SIDE_EFFECTS_REQUIRE_SEPARATE_OWNER_APPROVAL",
     }, 200, { "Cache-Control": "no-store" });
