@@ -37,6 +37,17 @@ type OpenAIStatusSummary = {
   incidents?: Array<{ name?: string; status?: string; impact?: string }>;
 };
 
+type DirectChatBody = { prompt?: unknown; attachment_ids?: unknown };
+type ChatRow = { role: string; content: string };
+type AttachmentPayload = { filename: string; mime_type: string; data_base64: string };
+type ResponsesBody = {
+  output?: Array<{ content?: Array<{ type?: string; text?: string; refusal?: string }> }>;
+  error?: { code?: string; message?: string } | null;
+  usage?: { total_tokens?: number } | null;
+};
+
+const SAME_MIND_CONVERSATION_ID = "owner-main";
+
 function clean(value: unknown, max: number) {
   return String(value ?? "").trim().slice(0, max);
 }
@@ -47,6 +58,17 @@ function makeId(prefix: string) {
 
 function componentStatus(components: OpenAIStatusSummary["components"], name: string) {
   return components?.find((component) => component.name?.toLowerCase() === name.toLowerCase())?.status ?? "unknown";
+}
+
+function responseText(body: ResponsesBody) {
+  const out: string[] = [];
+  for (const item of body.output ?? []) {
+    for (const part of item.content ?? []) {
+      if (part.type === "output_text" && typeof part.text === "string") out.push(part.text);
+      if (part.type === "refusal" && typeof part.refusal === "string") out.push(part.refusal);
+    }
+  }
+  return out.join("\n").trim();
 }
 
 export function createAppApi() {
@@ -65,6 +87,7 @@ export function createAppApi() {
   api.use("/api/openai-status", requireProtectedAppRoute);
   api.use("/api/toolkit-status", requireProtectedAppRoute);
   api.use("/api/chat/transcribe", requireProtectedAppRoute);
+  api.use("/api/chat/api", requireProtectedAppRoute);
 
   api.get("/api/dashboard", async (c) => {
     const db = c.env.DB!;
@@ -189,9 +212,90 @@ export function createAppApi() {
         ok: false,
         code: body.error?.code ? `OPENAI_${String(body.error.code).toUpperCase()}` : `OPENAI_HTTP_${response.status}`,
         message: clean(body.error?.message ?? "Transcription failed", 240),
-      }, response.status >= 400 && response.status < 600 ? response.status as 400 : 502);
+      }, 502);
     }
     return c.json({ ok: true, text: body.text, model: "gpt-4o-mini-transcribe", billing: "OPENAI_API" }, 200, { "Cache-Control": "no-store" });
+  });
+
+  api.post("/api/chat/api", async (c) => {
+    const apiKey = String(c.env.OPENAI_API_KEY ?? "").trim();
+    if (!apiKey) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OPENAI_API_KEY" }, 503);
+    const db = c.env.DB!;
+    const body = await c.req.json<DirectChatBody>().catch(() => ({} as DirectChatBody));
+    const prompt = clean(body.prompt, 7000);
+    const attachmentIds = Array.isArray(body.attachment_ids)
+      ? body.attachment_ids.map((value) => clean(value, 120)).filter(Boolean).slice(0, 4)
+      : [];
+    if (!prompt && !attachmentIds.length) return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt or attachment is required" }, 400);
+
+    const historyResult = await db.prepare(
+      `SELECT role, content FROM chat_messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 18`,
+    ).bind(SAME_MIND_CONVERSATION_ID).all<ChatRow>();
+    const history = [...(historyResult.results ?? [])].reverse()
+      .map((row) => `${String(row.role).toUpperCase()}: ${clean(row.content, 900)}`)
+      .join("\n");
+
+    const content: Array<Record<string, unknown>> = [{
+      type: "input_text",
+      text: `You are OGENIC AI in paid OpenAI API mode. Preserve continuity using the recent website conversation below. Never claim access to the user's separate ChatGPT App conversation or memory. Reply in the user's language.\n\nRECENT WEBSITE CHAT:\n${history || "No prior website messages."}\n\nCURRENT OWNER MESSAGE:\n${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
+    }];
+
+    for (const id of attachmentIds) {
+      const row = await db.prepare(
+        `SELECT filename, mime_type, data_base64 FROM chat_attachments WHERE id = ? AND conversation_id = ?`,
+      ).bind(id, SAME_MIND_CONVERSATION_ID).first<AttachmentPayload>();
+      if (!row) return c.json({ ok: false, code: "ATTACHMENT_NOT_FOUND", id }, 404);
+      if (row.mime_type.startsWith("image/")) {
+        content.push({ type: "input_image", detail: "auto", image_url: `data:${row.mime_type};base64,${row.data_base64}` });
+      } else {
+        content.push({ type: "input_file", filename: row.filename, file_data: row.data_base64 });
+      }
+    }
+
+    const userText = `${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}${attachmentIds.length ? `\n\n[${attachmentIds.length} attachment(s)]` : ""}`;
+    const now = Date.now();
+    await db.prepare(
+      `INSERT INTO chat_messages(id, conversation_id, role, content, model, run_id, created_at) VALUES (?, ?, 'user', ?, NULL, NULL, ?)`,
+    ).bind(makeId("api_u"), SAME_MIND_CONVERSATION_ID, userText, now).run();
+
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": c.req.header("idempotency-key") ?? makeId("api"),
+      },
+      body: JSON.stringify({
+        model: "gpt-5.6-sol",
+        input: [{ role: "user", content }],
+        max_output_tokens: 1500,
+        store: false,
+      }),
+    });
+    const result = await response.json().catch(() => ({})) as ResponsesBody;
+    if (!response.ok) {
+      return c.json({
+        ok: false,
+        code: result.error?.code ? `OPENAI_${String(result.error.code).toUpperCase()}` : `OPENAI_HTTP_${response.status}`,
+        message: clean(result.error?.message ?? "OpenAI API request failed", 300),
+      }, 502);
+    }
+    const text = responseText(result);
+    if (!text) return c.json({ ok: false, code: "OPENAI_EMPTY_OUTPUT" }, 502);
+
+    await db.prepare(
+      `INSERT INTO chat_messages(id, conversation_id, role, content, model, run_id, created_at) VALUES (?, ?, 'assistant', ?, ?, NULL, ?)`,
+    ).bind(makeId("api_a"), SAME_MIND_CONVERSATION_ID, text, "gpt-5.6-sol", Date.now()).run();
+
+    return c.json({
+      ok: true,
+      text,
+      model: "gpt-5.6-sol",
+      mode: "api",
+      incentive_pool: "api_billing",
+      billing: "OPENAI_API",
+      usage_tokens: Number(result.usage?.total_tokens ?? 0),
+    }, 200, { "Cache-Control": "no-store" });
   });
 
   api.post("/api/tasks", async (c) => {
