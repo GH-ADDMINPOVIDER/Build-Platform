@@ -121,7 +121,12 @@ jobs:
           set -euo pipefail
           printf '%s' "$OPENAI_API_KEY" | npx wrangler secret put OPENAI_API_KEY --name "$WORKER_NAME"
           printf '%s' "$OGENIC_OPS_KEY" | npx wrangler secret put OGENIC_OPS_KEY --name "$WORKER_NAME"
-          for key in GITHUB_TOKEN LINEAR_API_KEY N8N_API_KEY N8N_BASE_URL; do
+          for key in \
+            GITHUB_TOKEN LINEAR_API_KEY \
+            N8N_API_KEY N8N_BASE_URL \
+            LINE_CHANNEL_ACCESS_TOKEN LINE_SECRET_CHANNEL LINE_ID_USE \
+            META_PAGE_ACCESS_TOKEN META_APP_SECRET META_VERIFY_TOKEN \
+            OPENAI_WEBHOOK_SECRET OGENIC_GENERIC_HOOK_SECRET; do
             if test -n "${!key:-}"; then
               printf '%s' "${!key}" | npx wrangler secret put "$key" --name "$WORKER_NAME"
               echo "Bound optional staging adapter: $key"
@@ -143,7 +148,7 @@ jobs:
           printf '%s' "$BODY" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
           echo "Staging deploy verified: ${STAGING_URL}"
 
-      - name: Verify owner auth and v0.2 dashboard
+      - name: Verify owner auth, dashboard, and connector hub
         shell: bash
         run: |
           set -euo pipefail
@@ -151,8 +156,6 @@ jobs:
           UNAUTH_BODY="$(mktemp)"
           trap 'rm -f "$COOKIE_JAR" "$UNAUTH_BODY"' EXIT
 
-          # Cloudflare can briefly serve the prior Worker version after deploy. Poll until
-          # the new owner-only route contract is visible, but fail closed after 30 seconds.
           UNAUTH_CODE=""
           for attempt in $(seq 1 15); do
             UNAUTH_CODE="$(curl --silent --show-error --output "$UNAUTH_BODY" --write-out '%{http_code}' "${STAGING_URL}/api/dashboard")"
@@ -168,14 +171,14 @@ jobs:
             sleep 2
           done
 
-          UNAUTH_CODE="$(curl --silent --show-error --output "$UNAUTH_BODY" --write-out '%{http_code}' "${STAGING_URL}/api/tools")"
-          test "$UNAUTH_CODE" = "401" || { echo "::error::unauthenticated tools returned HTTP $UNAUTH_CODE"; cat "$UNAUTH_BODY"; exit 1; }
-          jq -e '.ok == false and .code == "REAUTH_REQUIRED"' "$UNAUTH_BODY" >/dev/null
+          UNAUTH_CODE="$(curl --silent --show-error --output "$UNAUTH_BODY" --write-out '%{http_code}' "${STAGING_URL}/api/connectors")"
+          test "$UNAUTH_CODE" = "401" || { echo "::error::unauthenticated connectors returned HTTP $UNAUTH_CODE"; cat "$UNAUTH_BODY"; exit 1; }
 
           printf '{"owner_key":%s}' "$(jq -Rn --arg value "$OGENIC_OPS_KEY" '$value')" \
             | curl --fail --silent --show-error --cookie-jar "$COOKIE_JAR" \
                 --header 'Content-Type: application/json' --data-binary @- "${STAGING_URL}/api/session" \
             | jq -e '.ok == true and .authenticated == true and .user.role == "owner"' >/dev/null
+
           DASHBOARD="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" "${STAGING_URL}/api/dashboard")"
           printf '%s' "$DASHBOARD" | jq -e '
             .ok == true and
@@ -184,8 +187,18 @@ jobs:
             ([.tools[].id] | sort) == (["github", "linear", "n8n"] | sort) and
             ([.tools[].state] | all(. == "LIVE" or . == "CONFIGURATION_REQUIRED" or . == "ERROR"))
           ' >/dev/null
-          if printf '%s' "$DASHBOARD" | grep -Eq 'OGENIC_OPS_KEY|OPENAI_API_KEY|LINEAR_API_KEY|N8N_API_KEY|GITHUB_TOKEN'; then
-            echo "::error::dashboard response leaked a protected binding name"
+
+          CONNECTORS="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" "${STAGING_URL}/api/connectors")"
+          printf '%s' "$CONNECTORS" | jq -e '
+            .ok == true and
+            ([.connectors[].id] | index("line") != null) and
+            ([.connectors[].id] | index("meta") != null) and
+            ([.connectors[].id] | index("n8n") != null) and
+            ([.connectors[].id] | index("openai_hooks") != null)
+          ' >/dev/null
+
+          if printf '%s\n%s' "$DASHBOARD" "$CONNECTORS" | grep -Eq 'OPENAI_API_KEY|OGENIC_OPS_KEY|LINE_CHANNEL_ACCESS_TOKEN|LINE_SECRET_CHANNEL|META_APP_SECRET|META_PAGE_ACCESS_TOKEN|N8N_API_KEY|GITHUB_TOKEN'; then
+            echo "::error::control plane response leaked a protected binding name"
             exit 1
           fi
-          echo "Owner auth and OGENIC AI v0.2 dashboard verified on staging."
+          echo "Owner auth, OGENIC AI dashboard, and connector hub verified on staging."
