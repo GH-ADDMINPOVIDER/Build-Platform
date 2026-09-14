@@ -2,8 +2,8 @@ import incentives from "../config/provider-incentives.staging.json";
 import { readIncentiveSnapshot } from "./provider-incentives";
 import type { Adapter, AdapterContext, AdapterResult, Json, WorkflowBindings } from "./workflow-engine";
 
-type OpenAIMode = "fast" | "balanced" | "power" | "codex";
-type IncentivePoolId = "standard" | "high_volume";
+type OpenAIMode = "fast" | "balanced" | "power" | "api" | "codex";
+type IncentivePoolId = "standard" | "high_volume" | "api_billing";
 
 type Route = {
   mode: OpenAIMode;
@@ -50,6 +50,12 @@ const ROUTES: Record<OpenAIMode, Route> = {
     model: "gpt-5.6-sol",
     pool: "standard",
     usageKey: "openai_complimentary_standard_tokens",
+  },
+  api: {
+    mode: "api",
+    model: "gpt-5.6-sol",
+    pool: "api_billing",
+    usageKey: "openai_paid_api_tokens",
   },
   codex: {
     mode: "codex",
@@ -102,7 +108,7 @@ function selectMode(input: Json, forced?: OpenAIMode): OpenAIMode {
   if (forced) return forced;
   if (!object(input)) return "balanced";
   const requested = String(input.mode ?? "balanced").toLowerCase();
-  return requested === "fast" || requested === "power" || requested === "balanced" ? requested : "balanced";
+  return requested === "fast" || requested === "power" || requested === "balanced" || requested === "api" ? requested : "balanced";
 }
 
 function promptFor(input: Json, operation: "chat" | "codex") {
@@ -161,6 +167,10 @@ async function resolveRoute(
   maxOutputTokens: number,
   allowVolumeFallback: boolean,
 ): Promise<{ route: Route; fallbackReason?: string } | { blocked: AdapterResult }> {
+  if (requested.mode === "api") {
+    return { route: requested, fallbackReason: "PAID_API_MODE" };
+  }
+
   const snapshot = await readIncentiveSnapshot(env.DB);
   const reserve = inputBytes(input) + maxOutputTokens + RESPONSE_OVERHEAD_RESERVE;
 
