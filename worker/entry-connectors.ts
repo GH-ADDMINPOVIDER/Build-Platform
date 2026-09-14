@@ -10,7 +10,12 @@ const publicHooks = createPublicHookApi();
 export default {
   fetch(request: Request, env: Bindings, ctx: unknown) {
     const pathname = new URL(request.url).pathname;
-    if (pathname === "/api/connectors" || pathname.startsWith("/api/connectors/") || pathname === "/api/chat/functions") {
+    if (
+      pathname === "/api/connectors" ||
+      pathname.startsWith("/api/connectors/") ||
+      pathname === "/api/chat/functions" ||
+      pathname.startsWith("/api/openai/")
+    ) {
       return connectorApi.fetch(request, env, ctx as never);
     }
     if (pathname.startsWith("/hooks/")) {
