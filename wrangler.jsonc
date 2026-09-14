@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "ogenic-phase-vi",
-  "main": "worker/entry.ts",
+  "main": "worker/entry-connectors.ts",
   "compatibility_date": "2026-09-06",
   "observability": { "enabled": true },
   "assets": {
