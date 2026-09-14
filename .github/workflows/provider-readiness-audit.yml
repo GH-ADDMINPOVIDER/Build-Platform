@@ -1,0 +1,102 @@
+name: Provider Readiness Audit
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/provider-readiness-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load canonical credentials from Infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
+          secret-path: ${{ steps.infisical_project.outputs.secret_path }}
+
+      - name: Load staging connector credentials
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Audit LINE, Meta and n8n without side effects
+        shell: bash
+        run: |
+          set -euo pipefail
+          LINE_TOKEN="${LINE_CHANNEL_ACCESS_TOKEN:-}"
+          LINE_CHANNEL="${LINE_CHANNEL_ID:-${LINE_ID_USE:-}}"
+          META_TOKEN="${META_PAGE_ACCESS_TOKEN:-${META_ACCESS_TOKEN:-}}"
+          N8N_URL_RESOLVED="${N8N_BASE_URL:-${N8N_URL:-https://ogenic-registry.app.n8n.cloud}}"
+
+          LINE_STATE=TOKEN_MISSING
+          if test -n "$LINE_TOKEN"; then
+            LINE_HTTP="$(curl --silent --show-error --output /tmp/line.json --write-out '%{http_code}' \
+              -X POST -H 'Content-Type: application/x-www-form-urlencoded' \
+              --data-urlencode "access_token=${LINE_TOKEN}" https://api.line.me/v2/oauth/verify || true)"
+            if test "$LINE_HTTP" = "200"; then LINE_STATE=LIVE; else LINE_STATE=TOKEN_INVALID_OR_EXPIRED; fi
+          fi
+          if test "$LINE_STATE" != "LIVE" && ! printf '%s' "$LINE_CHANNEL" | grep -Eq '^[0-9]{5,20}$'; then
+            LINE_STATE=LINE_CHANNEL_ID_REQUIRED
+          fi
+
+          META_STATE=TOKEN_MISSING
+          if test -n "$META_TOKEN"; then
+            META_HTTP="$(curl --silent --show-error --output /tmp/meta.json --write-out '%{http_code}' \
+              -H "Authorization: Bearer ${META_TOKEN}" -H 'Accept: application/json' \
+              'https://graph.facebook.com/me?fields=id,name' || true)"
+            if test "$META_HTTP" = "200"; then META_STATE=TOKEN_LIVE; else META_STATE=TOKEN_INVALID; fi
+          fi
+          if test "$META_STATE" = "TOKEN_LIVE" && test -z "${META_APP_SECRET:-}"; then META_STATE=META_APP_SECRET_REQUIRED; fi
+          if test "$META_STATE" = "TOKEN_LIVE" && test -n "${META_APP_SECRET:-}" && test -z "${META_VERIFY_TOKEN:-}"; then META_STATE=META_VERIFY_TOKEN_REQUIRED; fi
+          if test "$META_STATE" = "TOKEN_LIVE" && test -n "${META_APP_SECRET:-}" && test -n "${META_VERIFY_TOKEN:-}"; then META_STATE=LIVE; fi
+
+          N8N_STATE=CONFIGURATION_REQUIRED
+          if test -n "${N8N_API_KEY:-}"; then
+            N8N_HTTP="$(curl --silent --show-error --output /tmp/n8n.json --write-out '%{http_code}' \
+              -H "X-N8N-API-KEY: ${N8N_API_KEY}" -H 'Accept: application/json' \
+              "${N8N_URL_RESOLVED%/}/api/v1/workflows?limit=1" || true)"
+            if test "$N8N_HTTP" = "200"; then N8N_STATE=LIVE; elif test "$N8N_HTTP" = "401" || test "$N8N_HTTP" = "403"; then N8N_STATE=REAUTH_REQUIRED; else N8N_STATE=DEGRADED_HTTP_${N8N_HTTP}; fi
+          fi
+
+          echo "PROVIDER_READINESS LINE=${LINE_STATE} META=${META_STATE} N8N=${N8N_STATE}"
+          {
+            echo '### OGENIC Provider Readiness'
+            echo ''
+            echo "- LINE: \`${LINE_STATE}\`"
+            echo "- Meta: \`${META_STATE}\`"
+            echo "- n8n: \`${N8N_STATE}\`"
+            echo '- GrabFood: `PARTNER_ACCESS_REQUIRED`'
+            echo '- ShopeeFood: `PARTNER_ACCESS_REQUIRED`'
+            echo '- LINE MAN: `PARTNER_ACCESS_REQUIRED`'
+            echo ''
+            echo 'No raw credential values were printed and no customer-visible action was executed.'
+          } >> "$GITHUB_STEP_SUMMARY"
