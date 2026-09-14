@@ -4,9 +4,11 @@ import ControlPlaneV2 from "./ControlPlaneV2";
 import AppEnhancements from "./AppEnhancements";
 import ConnectorPanel from "./ConnectorPanel";
 import ProviderConnectWizard from "./ProviderConnectWizard";
+import LiveAssist from "./LiveAssist";
 import "./control-plane-v2.css";
 import "./connector-panel.css";
 import "./provider-connect.css";
+import "./live-assist.css";
 import "./mobile-fixes.css";
 
 if ("serviceWorker" in navigator) {
@@ -21,5 +23,6 @@ createRoot(document.getElementById("root")!).render(
     <AppEnhancements />
     <ConnectorPanel />
     <ProviderConnectWizard />
+    <LiveAssist />
   </React.StrictMode>,
 );
