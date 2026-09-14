@@ -33,6 +33,15 @@ jobs:
         shell: bash
         run: bash scripts/infisical-discover-project.sh
 
+      - name: Load canonical credentials from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
+          secret-path: ${{ steps.infisical_project.outputs.secret_path }}
+
       - name: Load staging secrets from Infisical
         uses: Infisical/secrets-action@v1.0.9
         with:
