@@ -1,0 +1,124 @@
+name: LINE Staging Auto-Connect
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/line-autoconnect-staging.yml"
+      - "worker/connector-runtime.ts"
+      - "worker/connector-app-api.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  connect-line:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging secrets from Infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Normalize LINE secret names
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -z "${LINE_SECRET_CHANNEL:-}" && test -n "${LINE_CHANNEL_SECRET:-}"; then
+            printf 'LINE_SECRET_CHANNEL=%s\n' "$LINE_CHANNEL_SECRET" >> "$GITHUB_ENV"
+          fi
+          test -n "${LINE_CHANNEL_ACCESS_TOKEN:-}" || { echo "::error::missing LINE_CHANNEL_ACCESS_TOKEN"; exit 1; }
+          test -n "${LINE_SECRET_CHANNEL:-}" || { echo "::error::missing LINE channel secret"; exit 1; }
+
+      - name: Wait for staging health
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --show-error "${STAGING_URL}/api/health" >/dev/null; then
+              echo "Staging is healthy."
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::staging did not become healthy"
+          exit 1
+
+      - name: Verify LINE Messaging API credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          INFO="$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
+            -H 'Accept: application/json' \
+            https://api.line.me/v2/bot/info)"
+          printf '%s' "$INFO" | jq -e '.userId and .basicId and .displayName' >/dev/null
+          echo "LINE Messaging API credential verified for bot: $(printf '%s' "$INFO" | jq -r '.displayName')"
+
+      - name: Read existing LINE webhook endpoint
+        id: before
+        shell: bash
+        run: |
+          set -euo pipefail
+          CURRENT="$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
+            -H 'Accept: application/json' \
+            https://api.line.me/v2/bot/channel/webhook/endpoint)"
+          ENDPOINT="$(printf '%s' "$CURRENT" | jq -r '.endpoint // ""')"
+          ACTIVE="$(printf '%s' "$CURRENT" | jq -r '.active // false')"
+          echo "Existing LINE webhook endpoint: ${ENDPOINT:-<empty>} (active=${ACTIVE})"
+          printf 'endpoint=%s\n' "$ENDPOINT" >> "$GITHUB_OUTPUT"
+
+      - name: Connect LINE webhook to OGENIC staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET="${STAGING_URL}/hooks/line"
+          jq -n --arg endpoint "$TARGET" '{endpoint:$endpoint}' > /tmp/line-webhook.json
+          curl --fail --silent --show-error \
+            -X PUT \
+            -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/line-webhook.json \
+            https://api.line.me/v2/bot/channel/webhook/endpoint >/dev/null
+          echo "LINE webhook endpoint configured to OGENIC staging."
+
+      - name: Verify LINE webhook endpoint and official test
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET="${STAGING_URL}/hooks/line"
+          AFTER="$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
+            -H 'Accept: application/json' \
+            https://api.line.me/v2/bot/channel/webhook/endpoint)"
+          printf '%s' "$AFTER" | jq -e --arg target "$TARGET" '.endpoint == $target' >/dev/null
+          TEST="$(curl --fail --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            -d '{}' \
+            https://api.line.me/v2/bot/channel/webhook/test)"
+          printf '%s' "$TEST" | jq -e '.success == true' >/dev/null
+          echo "LINE official webhook test succeeded."
+          echo "No customer message was sent."
