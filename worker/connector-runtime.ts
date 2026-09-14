@@ -76,8 +76,10 @@ function timingSafeString(a: string, b: string) {
 
 async function hmacBytes(secret: string | Uint8Array, body: string) {
   const keyData = typeof secret === "string" ? enc.encode(secret) : secret;
-  const key = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(body)));
+  const keyBuffer = keyData.slice().buffer as ArrayBuffer;
+  const bodyBuffer = enc.encode(body).slice().buffer as ArrayBuffer;
+  const key = await crypto.subtle.importKey("raw", keyBuffer, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, bodyBuffer));
 }
 function hex(bytes: Uint8Array) { return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join(""); }
 function b64(bytes: Uint8Array) {
