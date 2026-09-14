@@ -2,11 +2,13 @@ import base from "./entry";
 import { createConnectorAppApi, type ConnectorAppBindings } from "./connector-app-api";
 import { createProviderConnectApi } from "./provider-connect-api";
 import { createPublicHookApi, type ConnectorBindings } from "./connector-runtime";
+import { createLiveAssistApi, type LiveAssistBindings } from "./live-assist-api";
 
-type Bindings = ConnectorAppBindings & ConnectorBindings;
+type Bindings = ConnectorAppBindings & ConnectorBindings & LiveAssistBindings;
 
 const connectorApi = createConnectorAppApi();
 const providerConnectApi = createProviderConnectApi();
+const liveAssistApi = createLiveAssistApi();
 const publicHooks = createPublicHookApi();
 
 export default {
@@ -14,6 +16,9 @@ export default {
     const pathname = new URL(request.url).pathname;
     if (pathname === "/api/provider-connect" || pathname.startsWith("/api/provider-connect/")) {
       return providerConnectApi.fetch(request, env, ctx as never);
+    }
+    if (pathname === "/api/live-assist") {
+      return liveAssistApi.fetch(request, env, ctx as never);
     }
     if (
       pathname === "/api/connectors" ||
