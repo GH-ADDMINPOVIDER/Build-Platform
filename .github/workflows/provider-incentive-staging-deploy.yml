@@ -32,6 +32,7 @@ env:
   INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
   INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
   INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG || 'staging' }}
+  N8N_BASE_URL: ${{ vars.N8N_BASE_URL || 'https://ogenic-registry.app.n8n.cloud' }}
 
 jobs:
   deploy:
@@ -66,6 +67,27 @@ jobs:
           project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
           env-slug: staging
           secret-path: /
+          recursive: true
+
+      - name: Normalize canonical connector secret names
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -z "${LINE_SECRET_CHANNEL:-}" && test -n "${LINE_CHANNEL_SECRET:-}"; then
+            printf 'LINE_SECRET_CHANNEL=%s\n' "$LINE_CHANNEL_SECRET" >> "$GITHUB_ENV"
+            echo "Mapped LINE_CHANNEL_SECRET -> LINE_SECRET_CHANNEL"
+          fi
+          if test -z "${META_PAGE_ACCESS_TOKEN:-}" && test -n "${META_ACCESS_TOKEN:-}"; then
+            printf 'META_PAGE_ACCESS_TOKEN=%s\n' "$META_ACCESS_TOKEN" >> "$GITHUB_ENV"
+            echo "Mapped META_ACCESS_TOKEN -> META_PAGE_ACCESS_TOKEN"
+          fi
+          if test -z "${N8N_API_KEY:-}" && test -n "${N8N_REGISTRY_API_KEY:-}"; then
+            printf 'N8N_API_KEY=%s\n' "$N8N_REGISTRY_API_KEY" >> "$GITHUB_ENV"
+            echo "Mapped N8N_REGISTRY_API_KEY -> N8N_API_KEY"
+          elif test -z "${N8N_API_KEY:-}" && test -n "${N8N_CORE_API_KEY:-}"; then
+            printf 'N8N_API_KEY=%s\n' "$N8N_CORE_API_KEY" >> "$GITHUB_ENV"
+            echo "Mapped N8N_CORE_API_KEY -> N8N_API_KEY"
+          fi
 
       - name: Require staging authorization
         shell: bash
