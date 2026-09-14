@@ -1,0 +1,116 @@
+name: Meta Staging Token Repair
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/meta-token-repair-staging.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  WORKER_NAME: ogenic-phase-vi-staging
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load canonical credentials from Infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
+          secret-path: ${{ steps.infisical_project.outputs.secret_path }}
+
+      - name: Load staging credentials from Infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Find a valid stored Meta token without exposing it
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          FOUND=""
+          SOURCE=""
+          check_token() {
+            local source="$1"
+            local token="$2"
+            test -n "$token" || return 1
+            local code
+            code="$(curl --silent --show-error --output /tmp/meta-check.json --write-out '%{http_code}' \
+              -H "Authorization: Bearer ${token}" -H 'Accept: application/json' \
+              'https://graph.facebook.com/me?fields=id,name' || true)"
+            if test "$code" = "200"; then
+              FOUND="$token"
+              SOURCE="$source"
+              return 0
+            fi
+            return 1
+          }
+
+          check_token META_PAGE_ACCESS_TOKEN "${META_PAGE_ACCESS_TOKEN:-}" || \
+          check_token META_ACCESS_TOKEN "${META_ACCESS_TOKEN:-}" || \
+          check_token META_ACCESS_AOUTH_TOKEN "${META_ACCESS_AOUTH_TOKEN:-}" || true
+
+          if test -z "$FOUND"; then
+            echo "::warning::META_TOKEN_INVALID: none of the stored Meta token aliases passed Graph API verification."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "blocker=META_TOKEN_INVALID" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          printf 'META_ACTIVE_TOKEN=%s\n' "$FOUND" >> "$GITHUB_ENV"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "source=$SOURCE" >> "$GITHUB_OUTPUT"
+          echo "Valid Meta token found in stored alias: $SOURCE"
+
+      - name: Bind valid Meta Page token to staging Worker
+        if: steps.meta.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "::error::missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "::error::missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          printf '%s' "$META_ACTIVE_TOKEN" | npx --yes wrangler@4 secret put META_PAGE_ACCESS_TOKEN --name "$WORKER_NAME" >/dev/null
+          echo "Valid Meta token rebound to staging Worker without printing its value."
+
+      - name: Report exact remaining Meta blocker
+        shell: bash
+        run: |
+          if test "${{ steps.meta.outputs.ready }}" != "true"; then
+            echo "Meta remains blocked: ${{ steps.meta.outputs.blocker }}"
+          elif test -z "${META_APP_SECRET:-}"; then
+            echo "Meta token is live. Remaining blocker: META_APP_SECRET_REQUIRED"
+          elif test -z "${META_VERIFY_TOKEN:-}"; then
+            echo "Meta token + App Secret are present. Remaining blocker: META_VERIFY_TOKEN_REQUIRED"
+          else
+            echo "Meta token and webhook credentials are present."
+          fi
+          echo "No post, message, campaign, or customer-visible action was executed."
