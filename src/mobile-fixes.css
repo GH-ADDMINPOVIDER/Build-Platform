@@ -21,20 +21,37 @@
   white-space: nowrap;
 }
 
+.modeSwitch .apiModeButton {
+  border-left: 1px solid #28232d;
+  color: #7fe6aa;
+}
+.modeSwitch .apiModeButton.active {
+  color: #07120c;
+  background: linear-gradient(135deg, #7fe6aa, #b8ffd4);
+}
+
 .composer.enhancedComposer {
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: stretch;
 }
 
-.composer .attachmentButton {
+.composer .attachmentButton,
+.composer .voiceButton {
   min-width: 46px;
   width: 46px;
   padding: 0;
   border: 1px solid #342b3c;
   color: #d8bcff;
   background: #151019;
-  font-size: 24px;
   line-height: 1;
+}
+.composer .attachmentButton { font-size: 24px; }
+.composer .voiceButton { font-size: 17px; }
+.composer .voiceButton.recording {
+  color: #fff;
+  border-color: rgba(255, 73, 112, .55);
+  background: rgba(128, 24, 48, .58);
+  box-shadow: 0 0 0 3px rgba(255, 73, 112, .08);
 }
 
 .pendingAttachments,
@@ -86,6 +103,24 @@
 }
 .attachmentStatus[data-tone="error"] { color: #ff91aa; }
 
+.externalMetricCard[data-state="ready"],
+.externalMetricCard[data-state="none"] {
+  border-color: rgba(77, 220, 139, .26);
+}
+.externalMetricCard[data-state="degraded"],
+.externalMetricCard[data-state="minor"] {
+  border-color: rgba(232, 154, 52, .32);
+}
+.externalMetricCard[data-state="major"],
+.externalMetricCard[data-state="critical"] {
+  border-color: rgba(255, 82, 118, .34);
+}
+.externalMetricCard small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @supports (height: 100dvh) {
   .chatPanel { min-height: calc(100dvh - 152px); }
   .chatStream { max-height: calc(100dvh - 340px); }
@@ -99,13 +134,23 @@
     pointer-events: auto;
     padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
     touch-action: pan-x;
+    overflow: visible;
+  }
+  .sideNav::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: rgba(8, 8, 12, .96);
+    pointer-events: none;
   }
   .sideNav nav {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     pointer-events: auto;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
+    padding-inline: 2px;
   }
   .sideNav nav button {
     flex: 0 0 auto;
@@ -124,18 +169,49 @@
     align-items: center;
   }
   .chatPanelHead > div:first-child { grid-column: 1; }
-  .chatPanelHead .modeSwitch { grid-column: 1 / -1; }
+  .chatPanelHead .modeSwitch {
+    grid-column: 1 / -1;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .chatPanelHead .modeSwitch::-webkit-scrollbar { display: none; }
   .sameMindBadge { grid-column: 2; grid-row: 1; }
 
   .composer.enhancedComposer {
-    grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
   }
-  .composer.enhancedComposer > button:not(.attachmentButton) {
+  .composer.enhancedComposer .attachmentButton {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .composer.enhancedComposer textarea {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .composer.enhancedComposer .voiceButton {
+    grid-column: 3;
+    grid-row: 2;
+  }
+  .composer.enhancedComposer > button:not(.attachmentButton):not(.voiceButton) {
     grid-column: 1 / -1;
+    grid-row: 3;
     min-height: 46px;
   }
-  .composer .attachmentButton {
+  .pendingAttachments { grid-row: 1; }
+  .attachmentStatus { grid-row: 4; }
+
+  .composer .attachmentButton,
+  .composer .voiceButton {
     width: 44px;
     min-width: 44px;
+  }
+
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .externalMetricCard > strong {
+    font-size: 20px !important;
+    line-height: 1.05;
   }
 }
