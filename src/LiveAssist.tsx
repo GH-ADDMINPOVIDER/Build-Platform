@@ -11,10 +11,24 @@ type LiveAssistResponse = {
   message?: string;
   usage_tokens?: number;
 };
+type BrowserSessionResponse = {
+  ok?: boolean;
+  state?: string;
+  session_id?: string;
+  live_view_url?: string;
+  current_url?: string;
+  provider?: string;
+  human_in_the_loop?: boolean;
+  code?: string;
+  message?: string;
+};
 
 const AUTO_SAMPLE_MS = 1500;
 const AUTO_MIN_SEND_MS = 4500;
 const CHANGE_THRESHOLD = 10;
+const CLOUD_KEEPALIVE_MS = 240_000;
+const CLOUD_SESSION_KEY = "ogenic.liveassist.browser-session.v1";
+const CLOUD_TARGET_KEY = "ogenic.liveassist.browser-target.v1";
 
 function nowLabel() {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -31,8 +45,14 @@ export default function LiveAssist() {
   const [status, setStatus] = useState("พร้อมแชร์หน้าจอ");
   const [draft, setDraft] = useState("");
   const [target, setTarget] = useState<Target>(null);
+  const [browserReady, setBrowserReady] = useState(false);
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const [cloudTarget, setCloudTarget] = useState("https://developers.facebook.com/apps/");
+  const [cloudSessionId, setCloudSessionId] = useState("");
+  const [cloudLiveUrl, setCloudLiveUrl] = useState("");
+  const [cloudStatus, setCloudStatus] = useState("Cloud Browser ยังไม่เปิด");
   const [messages, setMessages] = useState<GuideMessage[]>([
-    { id: "welcome", role: "assistant", text: "LIVE ASSIST พร้อมแล้ว · แชร์หน้าจอแล้วกูจะพาไปทีละจุด และจะหยุดก่อนหน้าที่เปิด/คัดลอก Secret" },
+    { id: "welcome", role: "assistant", text: "LIVE ASSIST พร้อมแล้ว · แชร์หน้าจอหรือเปิด Cloud Browser จากมือถือได้ และจะหยุดก่อนหน้าที่เปิด/คัดลอก Secret" },
   ]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -40,6 +60,8 @@ export default function LiveAssist() {
   const fingerprintRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<number | null>(null);
+  const cloudKeepAliveRef = useRef<number | null>(null);
+  const cloudWindowRef = useRef<Window | null>(null);
   const previousFingerprintRef = useRef<Uint8Array | null>(null);
   const lastSentAtRef = useRef(0);
   const busyRef = useRef(false);
@@ -52,6 +74,22 @@ export default function LiveAssist() {
       .catch(() => setOwnerReady(false));
   }, []);
 
+  useEffect(() => {
+    if (!ownerReady) return;
+    void fetch("/api/browser-session", { cache: "no-store", credentials: "same-origin" })
+      .then(async (response) => response.ok ? await response.json() as BrowserSessionResponse : null)
+      .then((body) => setBrowserReady(Boolean(body?.ok && body.state === "READY")))
+      .catch(() => setBrowserReady(false));
+
+    const savedSession = sessionStorage.getItem(CLOUD_SESSION_KEY) ?? "";
+    const savedTarget = sessionStorage.getItem(CLOUD_TARGET_KEY) ?? "";
+    if (savedTarget) setCloudTarget(savedTarget);
+    if (savedSession) {
+      setCloudSessionId(savedSession);
+      void refreshCloudSession(savedSession, false);
+    }
+  }, [ownerReady]);
+
   useEffect(() => { busyRef.current = busy; }, [busy]);
   useEffect(() => { autoWatchRef.current = autoWatch; }, [autoWatch]);
 
@@ -61,8 +99,22 @@ export default function LiveAssist() {
     void videoRef.current.play().catch(() => undefined);
   }, [sharing, open, previewCollapsed]);
 
+  useEffect(() => {
+    if (cloudKeepAliveRef.current) window.clearInterval(cloudKeepAliveRef.current);
+    cloudKeepAliveRef.current = null;
+    if (!cloudSessionId) return;
+    cloudKeepAliveRef.current = window.setInterval(() => {
+      void refreshCloudSession(cloudSessionId, false, true);
+    }, CLOUD_KEEPALIVE_MS);
+    return () => {
+      if (cloudKeepAliveRef.current) window.clearInterval(cloudKeepAliveRef.current);
+      cloudKeepAliveRef.current = null;
+    };
+  }, [cloudSessionId]);
+
   useEffect(() => () => {
     if (intervalRef.current) window.clearInterval(intervalRef.current);
+    if (cloudKeepAliveRef.current) window.clearInterval(cloudKeepAliveRef.current);
     streamRef.current?.getTracks().forEach((track) => track.stop());
   }, []);
 
@@ -87,7 +139,7 @@ export default function LiveAssist() {
   async function startShare() {
     const getDisplayMedia = navigator.mediaDevices?.getDisplayMedia?.bind(navigator.mediaDevices);
     if (!getDisplayMedia) {
-      setStatus("เบราว์เซอร์นี้ยังไม่รองรับ Screen Share");
+      setStatus("Safari/เบราว์เซอร์นี้ไม่มี Screen Share API · ใช้ Cloud Browser ด้านล่างแทนได้เลย");
       return;
     }
     try {
@@ -116,6 +168,99 @@ export default function LiveAssist() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "เริ่มแชร์หน้าจอไม่ได้");
     }
+  }
+
+  async function startCloudBrowser() {
+    if (cloudBusy) return;
+    const targetUrl = cloudTarget.trim();
+    if (!targetUrl) return;
+
+    // Must open synchronously from the tap so iOS/Safari does not block the takeover tab.
+    const takeover = window.open("about:blank", "_blank");
+    cloudWindowRef.current = takeover;
+    if (takeover) {
+      takeover.document.title = "OGENIC Cloud Browser";
+      takeover.document.body.innerHTML = "<p style='font-family:system-ui;padding:24px'>OGENIC กำลังเปิด Cloud Browser…</p>";
+    }
+
+    setCloudBusy(true);
+    setCloudStatus("กำลังสร้าง Browser Run session…");
+    try {
+      const response = await fetch("/api/browser-session", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: targetUrl }),
+      });
+      const body = await response.json().catch(() => ({})) as BrowserSessionResponse;
+      if (!response.ok || !body.ok || !body.session_id || !body.live_view_url) {
+        throw new Error(body.message || body.code || `BROWSER_HTTP_${response.status}`);
+      }
+      setCloudSessionId(body.session_id);
+      setCloudLiveUrl(body.live_view_url);
+      setCloudStatus("LIVE · Cloud Browser พร้อม Take Over จากมือถือ");
+      sessionStorage.setItem(CLOUD_SESSION_KEY, body.session_id);
+      sessionStorage.setItem(CLOUD_TARGET_KEY, targetUrl);
+      addMessage("assistant", "Cloud Browser เปิดแล้ว · ถ้าเจอ Login / MFA / CAPTCHA / Secret ให้มึงทำในหน้า Take Over เอง แล้วกลับมาคุยต่อได้เลย");
+      if (takeover && !takeover.closed) takeover.location.href = body.live_view_url;
+    } catch (error) {
+      if (takeover && !takeover.closed) takeover.close();
+      cloudWindowRef.current = null;
+      setCloudStatus(error instanceof Error ? error.message : "Cloud Browser เปิดไม่ได้");
+    } finally {
+      setCloudBusy(false);
+    }
+  }
+
+  async function refreshCloudSession(sessionId = cloudSessionId, openTab = true, quiet = false) {
+    if (!sessionId) return;
+    if (!quiet) {
+      setCloudBusy(true);
+      setCloudStatus("กำลังต่อกลับ session เดิม…");
+    }
+    let takeover: Window | null = null;
+    if (openTab) {
+      takeover = window.open("about:blank", "_blank");
+      cloudWindowRef.current = takeover;
+    }
+    try {
+      const response = await fetch(`/api/browser-session/${encodeURIComponent(sessionId)}`, {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      const body = await response.json().catch(() => ({})) as BrowserSessionResponse;
+      if (!response.ok || !body.ok || !body.live_view_url) throw new Error(body.message || body.code || `BROWSER_HTTP_${response.status}`);
+      setCloudLiveUrl(body.live_view_url);
+      setCloudStatus("LIVE · ใช้ session เดิมต่อได้");
+      if (takeover && !takeover.closed) takeover.location.href = body.live_view_url;
+    } catch (error) {
+      if (takeover && !takeover.closed) takeover.close();
+      if (!quiet) setCloudStatus(error instanceof Error ? error.message : "ต่อ Cloud Browser ไม่ได้");
+      sessionStorage.removeItem(CLOUD_SESSION_KEY);
+      setCloudSessionId("");
+      setCloudLiveUrl("");
+    } finally {
+      if (!quiet) setCloudBusy(false);
+    }
+  }
+
+  async function stopCloudSession() {
+    if (!cloudSessionId || cloudBusy) return;
+    setCloudBusy(true);
+    setCloudStatus("กำลังปิด Cloud Browser…");
+    try {
+      await fetch(`/api/browser-session/${encodeURIComponent(cloudSessionId)}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+      });
+    } catch { /* closing locally is still safe */ }
+    if (cloudWindowRef.current && !cloudWindowRef.current.closed) cloudWindowRef.current.close();
+    cloudWindowRef.current = null;
+    sessionStorage.removeItem(CLOUD_SESSION_KEY);
+    setCloudSessionId("");
+    setCloudLiveUrl("");
+    setCloudStatus("Cloud Browser ปิดแล้ว");
+    setCloudBusy(false);
   }
 
   function getFingerprint() {
@@ -233,21 +378,43 @@ export default function LiveAssist() {
 
     {open && <aside className="liveAssistDrawer" aria-label="OGENIC Live Assist">
       <header className="liveAssistHead">
-        <div><strong>LIVE ASSIST</strong><small>{sharing ? "Screen + AI Guide" : "Owner screen guide"}</small></div>
+        <div><strong>LIVE ASSIST</strong><small>{sharing ? "Screen + AI Guide" : cloudSessionId ? "Cloud Browser + Take Over" : "Owner screen guide"}</small></div>
         <div className="liveAssistHeadActions">
           {sharing && <button onClick={() => setPreviewCollapsed((value) => !value)}>{previewCollapsed ? "▣" : "▁"}</button>}
           <button onClick={() => setOpen(false)}>×</button>
         </div>
       </header>
 
-      <div className="liveAssistStatus" data-live={sharing ? "1" : "0"} data-shield={secretShield ? "1" : "0"}>
-        <span className="liveDot" /> {status}
+      <div className="liveAssistStatus" data-live={sharing || Boolean(cloudSessionId) ? "1" : "0"} data-shield={secretShield ? "1" : "0"}>
+        <span className="liveDot" /> {sharing ? status : cloudSessionId ? cloudStatus : status}
       </div>
 
       {!sharing && <section className="liveAssistStart">
-        <h3>แชร์หน้าจอให้ AI ดูไปพร้อมกับมึง</h3>
-        <p>AI จะเห็นเป็นเฟรมภาพเมื่อหน้าจอเปลี่ยน ไม่ใช่วิดีโอดิบทั้งสาย และจะหยุดก่อนขั้นตอนเปิด/คัดลอก Secret</p>
-        <button className="primary" onClick={() => void startShare()}>แชร์หน้าจอ</button>
+        <h3>LIVE ASSIST บนมือถือ</h3>
+        <p>ใช้ Share Screen ถ้าเบราว์เซอร์รองรับ หรือเปิด Cloud Browser แล้ว Take Over เองเมื่อเจอ Login, MFA, CAPTCHA หรือ Secret โดย AI ไม่ต้องรับค่าลับ</p>
+        <button className="primary" onClick={() => void startShare()}>แชร์หน้าจอเครื่องนี้</button>
+
+        <div className="cloudBrowserBox" data-ready={browserReady ? "1" : "0"}>
+          <div className="cloudBrowserTitle"><strong>☁ Cloud Browser</strong><span>{browserReady ? "READY" : "CHECKING"}</span></div>
+          <input
+            value={cloudTarget}
+            onChange={(event) => setCloudTarget(event.target.value)}
+            placeholder="https://developers.facebook.com/apps/"
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
+            disabled={cloudBusy || Boolean(cloudSessionId)}
+          />
+          {!cloudSessionId ? <button className="cloudPrimary" disabled={!browserReady || cloudBusy || !cloudTarget.trim()} onClick={() => void startCloudBrowser()}>
+            {cloudBusy ? "กำลังเปิด…" : "เปิด Cloud Browser + Take Over"}
+          </button> : <div className="cloudBrowserActions">
+            <button disabled={cloudBusy} onClick={() => void refreshCloudSession()}>{cloudBusy ? "…" : "เปิด Session เดิม"}</button>
+            {cloudLiveUrl && <button onClick={() => window.open(cloudLiveUrl, "_blank")}>Live View</button>}
+            <button className="danger" disabled={cloudBusy} onClick={() => void stopCloudSession()}>ปิด</button>
+          </div>}
+          <small>{cloudStatus}</small>
+          <small className="cloudSafety">CAPTCHA ไม่ได้ถูก bypass — ระบบคืนมือให้มึงทำเอง แล้วค่อยกลับมาให้ AI ทำต่อ · Browser Run quota applies</small>
+        </div>
       </section>}
 
       {sharing && <>
