@@ -49,12 +49,14 @@ function configured(id: LiveToolSnapshot["id"], label: string, started: number):
 }
 
 function failed(id: LiveToolSnapshot["id"], label: string, error: unknown, started: number): LiveToolSnapshot {
+  const raw = clean(error instanceof Error ? error.message : error, 80) || "Adapter request failed";
+  const authFailure = raw === "HTTP_401" || raw === "HTTP_403";
   return {
     id,
     label,
-    state: "ERROR",
+    state: authFailure ? "CONFIGURATION_REQUIRED" : "ERROR",
     latency_ms: Date.now() - started,
-    summary: clean(error instanceof Error ? error.message : error, 80) || "Adapter request failed",
+    summary: authFailure ? `REAUTH_REQUIRED · ${label} Worker credential rejected (${raw.replace("HTTP_", "HTTP ")})` : raw,
     checked_at: new Date().toISOString(),
     records: [],
   };
