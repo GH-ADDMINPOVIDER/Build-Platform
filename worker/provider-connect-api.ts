@@ -145,7 +145,7 @@ export function createProviderConnectApi() {
   api.get("/api/provider-connect/capabilities", (c) => c.json({ ok: true, delivery: deliveryMatrix(), openai: { function_calling: true, remote_mcp: true, provider_specific_line_connector: false, provider_specific_delivery_connector: false } }, 200, { "Cache-Control": "no-store" }));
 
   api.post("/api/provider-connect/action", async (c) => {
-    const body = await c.req.json<{ provider?: unknown; action?: unknown }>().catch(() => ({}));
+    const body: { provider?: unknown; action?: unknown } = await c.req.json<{ provider?: unknown; action?: unknown }>().catch(() => ({}));
     const provider = clean(body.provider, 60).toLowerCase();
     const action = clean(body.action, 60).toLowerCase();
     if (!provider || !action) return c.json({ ok: false, code: "INVALID_REQUEST", message: "provider and action are required" }, 400);
