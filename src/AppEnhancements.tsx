@@ -323,7 +323,11 @@ export default function AppEnhancements() {
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = requestUrl(input);
       const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
-      const isChatSend = method === "POST" && /\/api\/chat(?:\?|$)/.test(url) && !url.includes("/attachments") && !url.includes("/history") && !url.includes("/transcribe") && !url.includes("/api");
+      const isChatSend = method === "POST" && /\/api\/chat(?:\?|$)/.test(url)
+        && !url.includes("/attachments")
+        && !url.includes("/history")
+        && !url.includes("/transcribe")
+        && !url.includes("/chat/api");
       if (!isChatSend || typeof init?.body !== "string") return originalFetch(input, init);
       try {
         const body = JSON.parse(init.body) as Record<string, unknown>;
