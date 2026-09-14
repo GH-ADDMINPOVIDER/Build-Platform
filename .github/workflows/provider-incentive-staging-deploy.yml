@@ -137,29 +137,42 @@ jobs:
       - name: Typecheck and build
         run: npm run check
 
-      - name: Bind protected runtime secrets to staging Worker
+      - name: Prepare protected runtime secret bundle
+        id: runtime_secrets
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s' "$OPENAI_API_KEY" | npx wrangler secret put OPENAI_API_KEY --name "$WORKER_NAME"
-          printf '%s' "$OGENIC_OPS_KEY" | npx wrangler secret put OGENIC_OPS_KEY --name "$WORKER_NAME"
-          for key in \
-            GITHUB_TOKEN LINEAR_API_KEY \
-            N8N_API_KEY N8N_BASE_URL \
-            LINE_CHANNEL_ACCESS_TOKEN LINE_SECRET_CHANNEL LINE_ID_USE \
-            META_PAGE_ACCESS_TOKEN META_APP_SECRET META_VERIFY_TOKEN \
-            OPENAI_WEBHOOK_SECRET OGENIC_GENERIC_HOOK_SECRET; do
-            if test -n "${!key:-}"; then
-              printf '%s' "${!key}" | npx wrangler secret put "$key" --name "$WORKER_NAME"
-              echo "Bound optional staging adapter: $key"
-            else
-              echo "::warning::optional staging adapter binding is missing: $key"
-            fi
-          done
-          echo "Protected runtime bindings updated without printing secret values."
+          SECRETS_FILE="$(mktemp)"
+          chmod 600 "$SECRETS_FILE"
+          export SECRETS_FILE
+          python - <<'PY'
+          import json, os
+          keys = [
+              'OPENAI_API_KEY', 'OGENIC_OPS_KEY',
+              'GITHUB_TOKEN', 'LINEAR_API_KEY',
+              'N8N_API_KEY', 'N8N_BASE_URL',
+              'LINE_CHANNEL_ACCESS_TOKEN', 'LINE_SECRET_CHANNEL', 'LINE_ID_USE',
+              'META_PAGE_ACCESS_TOKEN', 'META_APP_SECRET', 'META_VERIFY_TOKEN',
+              'OPENAI_WEBHOOK_SECRET', 'OGENIC_GENERIC_HOOK_SECRET',
+          ]
+          payload = {key: os.environ[key] for key in keys if os.environ.get(key)}
+          if not payload.get('OPENAI_API_KEY') or not payload.get('OGENIC_OPS_KEY'):
+              raise SystemExit('required Worker runtime secret missing')
+          with open(os.environ['SECRETS_FILE'], 'w', encoding='utf-8') as f:
+              json.dump(payload, f)
+          print(f"Prepared {len(payload)} protected runtime bindings; values not printed.")
+          PY
+          echo "file=$SECRETS_FILE" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy staging Worker
-        run: npx wrangler deploy --config dist/ogenic_phase_vi_staging/wrangler.json
+      - name: Deploy staging Worker with protected bindings
+        shell: bash
+        env:
+          SECRETS_FILE: ${{ steps.runtime_secrets.outputs.file }}
+        run: |
+          set -euo pipefail
+          trap 'rm -f "$SECRETS_FILE"' EXIT
+          npx wrangler deploy --config dist/ogenic_phase_vi_staging/wrangler.json --secrets-file "$SECRETS_FILE"
+          echo "Staging code + protected bindings deployed atomically."
 
       - name: Verify staging health
         shell: bash
@@ -170,7 +183,7 @@ jobs:
           printf '%s' "$BODY" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
           echo "Staging deploy verified: ${STAGING_URL}"
 
-      - name: Verify owner auth, dashboard, and connector hub
+      - name: Verify owner auth, dashboard, connector hub, and Browser Run bridge
         shell: bash
         run: |
           set -euo pipefail
@@ -196,6 +209,9 @@ jobs:
           UNAUTH_CODE="$(curl --silent --show-error --output "$UNAUTH_BODY" --write-out '%{http_code}' "${STAGING_URL}/api/connectors")"
           test "$UNAUTH_CODE" = "401" || { echo "::error::unauthenticated connectors returned HTTP $UNAUTH_CODE"; cat "$UNAUTH_BODY"; exit 1; }
 
+          UNAUTH_CODE="$(curl --silent --show-error --output "$UNAUTH_BODY" --write-out '%{http_code}' "${STAGING_URL}/api/browser-session")"
+          test "$UNAUTH_CODE" = "401" || { echo "::error::unauthenticated browser session returned HTTP $UNAUTH_CODE"; cat "$UNAUTH_BODY"; exit 1; }
+
           printf '{"owner_key":%s}' "$(jq -Rn --arg value "$OGENIC_OPS_KEY" '$value')" \
             | curl --fail --silent --show-error --cookie-jar "$COOKIE_JAR" \
                 --header 'Content-Type: application/json' --data-binary @- "${STAGING_URL}/api/session" \
@@ -219,8 +235,17 @@ jobs:
             ([.connectors[].id] | index("openai_hooks") != null)
           ' >/dev/null
 
-          if printf '%s\n%s' "$DASHBOARD" "$CONNECTORS" | grep -Eq 'OPENAI_API_KEY|OGENIC_OPS_KEY|LINE_CHANNEL_ACCESS_TOKEN|LINE_SECRET_CHANNEL|META_APP_SECRET|META_PAGE_ACCESS_TOKEN|N8N_API_KEY|GITHUB_TOKEN'; then
+          BROWSER_BRIDGE="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" "${STAGING_URL}/api/browser-session")"
+          printf '%s' "$BROWSER_BRIDGE" | jq -e '
+            .ok == true and
+            .state == "READY" and
+            .provider == "cloudflare_browser_run" and
+            .live_view == true and
+            .human_in_the_loop == true
+          ' >/dev/null
+
+          if printf '%s\n%s\n%s' "$DASHBOARD" "$CONNECTORS" "$BROWSER_BRIDGE" | grep -Eq 'OPENAI_API_KEY|OGENIC_OPS_KEY|LINE_CHANNEL_ACCESS_TOKEN|LINE_SECRET_CHANNEL|META_APP_SECRET|META_PAGE_ACCESS_TOKEN|N8N_API_KEY|GITHUB_TOKEN'; then
             echo "::error::control plane response leaked a protected binding name"
             exit 1
           fi
-          echo "Owner auth, OGENIC AI dashboard, and connector hub verified on staging."
+          echo "Owner auth, connector hub, and Browser Run mobile bridge verified on staging without starting a billable browser session."
