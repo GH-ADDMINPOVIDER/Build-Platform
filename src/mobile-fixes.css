@@ -1,0 +1,141 @@
+.ogenicAttachmentInput {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sameMindBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(117, 225, 171, .22);
+  border-radius: 999px;
+  color: #82eab1;
+  background: rgba(29, 92, 59, .12);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.composer.enhancedComposer {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+}
+
+.composer .attachmentButton {
+  min-width: 46px;
+  width: 46px;
+  padding: 0;
+  border: 1px solid #342b3c;
+  color: #d8bcff;
+  background: #151019;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.pendingAttachments,
+.attachmentStatus {
+  grid-column: 1 / -1;
+}
+
+.pendingAttachments {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.pendingAttachments::-webkit-scrollbar { display: none; }
+
+.attachmentChip {
+  min-width: 0;
+  max-width: 240px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid #332a39;
+  border-radius: 999px;
+  color: #cfc5d5;
+  background: #0f0c12;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.attachmentChip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.attachmentChip button {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+  color: #a89faf;
+  background: #211a25;
+}
+
+.attachmentStatus {
+  min-height: 14px;
+  color: #7fba9b;
+  font-size: 9px;
+}
+.attachmentStatus[data-tone="error"] { color: #ff91aa; }
+
+@supports (height: 100dvh) {
+  .chatPanel { min-height: calc(100dvh - 152px); }
+  .chatStream { max-height: calc(100dvh - 340px); }
+}
+
+@media (max-width: 820px) {
+  .sideNav {
+    top: 0;
+    z-index: 120;
+    isolation: isolate;
+    pointer-events: auto;
+    padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
+    touch-action: pan-x;
+  }
+  .sideNav nav {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sideNav nav button {
+    flex: 0 0 auto;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(196, 96, 255, .14);
+  }
+  .workspace {
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 560px) {
+  .chatPanelHead {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+  .chatPanelHead > div:first-child { grid-column: 1; }
+  .chatPanelHead .modeSwitch { grid-column: 1 / -1; }
+  .sameMindBadge { grid-column: 2; grid-row: 1; }
+
+  .composer.enhancedComposer {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+  .composer.enhancedComposer > button:not(.attachmentButton) {
+    grid-column: 1 / -1;
+    min-height: 46px;
+  }
+  .composer .attachmentButton {
+    width: 44px;
+    min-width: 44px;
+  }
+}
