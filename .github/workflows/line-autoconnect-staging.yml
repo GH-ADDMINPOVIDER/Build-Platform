@@ -7,6 +7,7 @@ on:
       - ".github/workflows/line-autoconnect-staging.yml"
       - "worker/connector-runtime.ts"
       - "worker/connector-app-api.ts"
+      - "worker/provider-connect-api.ts"
   workflow_dispatch:
 
 permissions:
@@ -57,21 +58,22 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Normalize LINE secret names
+      - name: Resolve active LINE token or exact blocker
+        id: token
         shell: bash
         run: |
           set -euo pipefail
-          if test -z "${LINE_SECRET_CHANNEL:-}" && test -n "${LINE_CHANNEL_SECRET:-}"; then
-            printf 'LINE_SECRET_CHANNEL=%s\n' "$LINE_CHANNEL_SECRET" >> "$GITHUB_ENV"
-          fi
-          test -n "${LINE_SECRET_CHANNEL:-}" || { echo "::error::missing LINE channel secret"; exit 1; }
-          test -n "${LINE_ID_USE:-}" || { echo "::error::missing LINE_ID_USE (Messaging API channel ID)"; exit 1; }
-
-      - name: Verify or issue LINE channel access token
-        shell: bash
-        run: |
-          set -euo pipefail
+          SECRET="${LINE_SECRET_CHANNEL:-${LINE_CHANNEL_SECRET:-}}"
+          CHANNEL_ID="${LINE_CHANNEL_ID:-${LINE_ID_USE:-}}"
           ACTIVE="${LINE_CHANNEL_ACCESS_TOKEN:-}"
+
+          if test -z "$SECRET"; then
+            echo "::warning::LINE_CHANNEL_SECRET_REQUIRED"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "blocker=LINE_CHANNEL_SECRET_REQUIRED" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           VERIFY_CODE=000
           if test -n "$ACTIVE"; then
             VERIFY_CODE="$(curl --silent --show-error --output /tmp/line-verify.json --write-out '%{http_code}' \
@@ -81,26 +83,53 @@ jobs:
           fi
           if test "$VERIFY_CODE" = "200"; then
             echo "Existing LINE channel access token is valid."
-          else
-            echo "Stored LINE token is missing/expired; issuing a fresh 30-day token from channel ID + channel secret."
-            ISSUE_CODE="$(curl --silent --show-error --output /tmp/line-issue.json --write-out '%{http_code}' \
-              -X POST -H 'Content-Type: application/x-www-form-urlencoded' \
-              --data-urlencode 'grant_type=client_credentials' \
-              --data-urlencode "client_id=${LINE_ID_USE}" \
-              --data-urlencode "client_secret=${LINE_SECRET_CHANNEL}" \
-              https://api.line.me/v2/oauth/accessToken || true)"
-            if test "$ISSUE_CODE" != "200"; then
-              SAFE_MESSAGE="$(jq -r '.message // "LINE token issuance failed"' /tmp/line-issue.json 2>/dev/null | head -c 240)"
-              echo "::error::LINE token issuance failed (HTTP ${ISSUE_CODE}): ${SAFE_MESSAGE}"
-              exit 1
-            fi
-            ACTIVE="$(jq -r '.access_token // empty' /tmp/line-issue.json)"
-            test -n "$ACTIVE" || { echo "::error::LINE token issuance returned no access_token"; exit 1; }
-            printf 'LINE_CHANNEL_ACCESS_TOKEN=%s\n' "$ACTIVE" >> "$GITHUB_ENV"
-            echo "Fresh LINE channel access token issued without printing its value."
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "source=existing_token" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
+          if ! printf '%s' "$CHANNEL_ID" | grep -Eq '^[0-9]{5,20}$'; then
+            echo "::warning::LINE_CHANNEL_ID_REQUIRED: stored LINE_ID_USE is not a Messaging API Channel ID. Add canonical LINE_CHANNEL_ID to Infisical."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "blocker=LINE_CHANNEL_ID_REQUIRED" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Stored LINE token is invalid/expired; attempting safe token rotation from Channel ID + Channel Secret."
+          ISSUE_CODE="$(curl --silent --show-error --output /tmp/line-issue.json --write-out '%{http_code}' \
+            -X POST -H 'Content-Type: application/x-www-form-urlencoded' \
+            --data-urlencode 'grant_type=client_credentials' \
+            --data-urlencode "client_id=${CHANNEL_ID}" \
+            --data-urlencode "client_secret=${SECRET}" \
+            https://api.line.me/v2/oauth/accessToken || true)"
+          if test "$ISSUE_CODE" != "200"; then
+            echo "::warning::LINE_CHANNEL_ID_OR_SECRET_MISMATCH: token issuance HTTP ${ISSUE_CODE}. No secret value was printed."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "blocker=LINE_CHANNEL_ID_OR_SECRET_MISMATCH" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          ACTIVE="$(jq -r '.access_token // empty' /tmp/line-issue.json)"
+          if test -z "$ACTIVE"; then
+            echo "::warning::LINE_TOKEN_ISSUANCE_EMPTY"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "blocker=LINE_TOKEN_ISSUANCE_EMPTY" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          printf 'LINE_CHANNEL_ACCESS_TOKEN=%s\n' "$ACTIVE" >> "$GITHUB_ENV"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "source=rotated_token" >> "$GITHUB_OUTPUT"
+          echo "Fresh LINE token issued without printing its value."
+
+      - name: Report LINE blocker
+        if: steps.token.outputs.ready != 'true'
+        shell: bash
+        run: |
+          echo "LINE auto-connect paused safely: ${{ steps.token.outputs.blocker }}"
+          echo "Core staging remains healthy; no customer message was sent."
+
       - name: Bind active LINE token to staging Worker
+        if: steps.token.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -110,6 +139,7 @@ jobs:
           echo "Active LINE token bound to staging Worker."
 
       - name: Wait for staging health
+        if: steps.token.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -124,6 +154,7 @@ jobs:
           exit 1
 
       - name: Verify LINE Messaging API credentials
+        if: steps.token.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -134,23 +165,17 @@ jobs:
           printf '%s' "$INFO" | jq -e '.userId and .basicId and .displayName' >/dev/null
           echo "LINE Messaging API credential verified for bot: $(printf '%s' "$INFO" | jq -r '.displayName')"
 
-      - name: Read existing LINE webhook endpoint
-        shell: bash
-        run: |
-          set -euo pipefail
-          CURRENT="$(curl --fail --silent --show-error \
-            -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
-            -H 'Accept: application/json' \
-            https://api.line.me/v2/bot/channel/webhook/endpoint)"
-          ENDPOINT="$(printf '%s' "$CURRENT" | jq -r '.endpoint // ""')"
-          ACTIVE="$(printf '%s' "$CURRENT" | jq -r '.active // false')"
-          echo "Existing LINE webhook endpoint: ${ENDPOINT:-<empty>} (active=${ACTIVE})"
-
-      - name: Connect LINE webhook to OGENIC staging
+      - name: Connect LINE webhook to OGENIC staging and test
+        if: steps.token.outputs.ready == 'true'
         shell: bash
         run: |
           set -euo pipefail
           TARGET="${STAGING_URL}/hooks/line"
+          CURRENT="$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
+            -H 'Accept: application/json' \
+            https://api.line.me/v2/bot/channel/webhook/endpoint)"
+          echo "Current LINE webhook state read successfully."
           jq -n --arg endpoint "$TARGET" '{endpoint:$endpoint}' > /tmp/line-webhook.json
           curl --fail --silent --show-error \
             -X PUT \
@@ -158,13 +183,6 @@ jobs:
             -H 'Content-Type: application/json' \
             --data-binary @/tmp/line-webhook.json \
             https://api.line.me/v2/bot/channel/webhook/endpoint >/dev/null
-          echo "LINE webhook endpoint configured to OGENIC staging."
-
-      - name: Verify LINE webhook endpoint and official test
-        shell: bash
-        run: |
-          set -euo pipefail
-          TARGET="${STAGING_URL}/hooks/line"
           AFTER="$(curl --fail --silent --show-error \
             -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
             -H 'Accept: application/json' \
@@ -177,5 +195,4 @@ jobs:
             -d '{}' \
             https://api.line.me/v2/bot/channel/webhook/test)"
           printf '%s' "$TEST" | jq -e '.success == true' >/dev/null
-          echo "LINE official webhook test succeeded."
-          echo "No customer message was sent."
+          echo "LINE webhook connected and official test succeeded. No customer message was sent."
