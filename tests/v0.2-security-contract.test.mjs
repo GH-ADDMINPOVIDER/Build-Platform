@@ -48,3 +48,25 @@ test("deployment remains locked to the staging feature branch", async () => {
   assert.match(wrangler, /phase-vi-provider-incentive-metering/);
   assert.doesNotMatch(workflow, /wrangler deploy[^\n]*--env prod/);
 });
+
+test("SAME MIND is locked to one canonical owner session line", async () => {
+  const entry = await read("worker/entry.ts");
+  const modelApi = await read("worker/chat-model-api.ts");
+  const liveAssist = await read("worker/live-assist-api.ts");
+  const connectorEntry = await read("worker/entry-connectors.ts");
+  const mobile = await read("src/MobileApp.tsx");
+
+  assert.match(entry, /SAME_MIND_CONVERSATION_ID = "owner-main"/);
+  assert.match(modelApi, /CONVERSATION_ID = "owner-main"/);
+  assert.match(liveAssist, /SAME_MIND_CONVERSATION_ID = "owner-main"/);
+  assert.match(entry, /\/api\/chat\/history/);
+  assert.match(mobile, /fetch\("\/api\/chat\/history"/);
+
+  assert.match(connectorEntry, /pathname === "\/api\/chat\/model" \|\| pathname === "\/api\/chat\/api"/);
+  assert.match(connectorEntry, /canonicalChatModelRequest/);
+  assert.match(modelApi, /ORDER BY created_at DESC, rowid DESC/);
+  assert.match(modelApi, /HISTORY_LIMIT = 60/);
+  assert.match(modelApi, /Temporal references/);
+  assert.match(modelApi, /Distinguish "last interaction\/conversation" from "latest project state\/status"/);
+  assert.match(modelApi, /session_line: "CANONICAL_OWNER_MAIN"/);
+});

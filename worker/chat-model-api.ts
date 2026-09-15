@@ -24,7 +24,7 @@ type Body = {
   token_boost?: unknown;
   mode?: unknown;
 };
-type ChatRow = { role: string; content: string };
+type ChatRow = { role: string; content: string; created_at: number };
 type AttachmentRow = { filename: string; mime_type: string; data_base64: string };
 type ResponsesBody = {
   output?: Array<{ content?: Array<{ type?: string; text?: string; refusal?: string }> }>;
@@ -33,6 +33,8 @@ type ResponsesBody = {
 };
 
 const CONVERSATION_ID = "owner-main";
+const HISTORY_LIMIT = 60;
+const HISTORY_CHAR_BUDGET = 22_000;
 const MODELS = new Set(["gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-4.1-mini", "gpt-6-astra"]);
 const EFFORTS = new Set(["low", "medium", "high", "xhigh", "max"]);
 const BOOSTS = new Set([1, 10, 20]);
@@ -52,6 +54,22 @@ function outputText(body: ResponsesBody) {
     }
   }
   return out.join("\n").trim();
+}
+
+function canonicalSessionLine(rows: ChatRow[]) {
+  const selected: string[] = [];
+  let used = 0;
+  for (const row of rows) {
+    const timestamp = Number.isFinite(Number(row.created_at))
+      ? new Date(Number(row.created_at)).toISOString()
+      : "unknown-time";
+    const line = `[${timestamp}] ${String(row.role).toUpperCase()}: ${clean(row.content, 1600)}`;
+    const next = line.length + 1;
+    if (selected.length >= 12 && used + next > HISTORY_CHAR_BUDGET) break;
+    selected.push(line);
+    used += next;
+  }
+  return selected.reverse().join("\n");
 }
 
 export function createChatModelApi() {
@@ -86,15 +104,31 @@ export function createChatModelApi() {
     ).bind(CONVERSATION_ID, seedNow, seedNow).run();
 
     const historyResult = await db.prepare(
-      `SELECT role, content FROM chat_messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 18`,
-    ).bind(CONVERSATION_ID).all<ChatRow>();
-    const history = [...(historyResult.results ?? [])].reverse()
-      .map((row) => `${String(row.role).toUpperCase()}: ${clean(row.content, 900)}`)
-      .join("\n");
+      `SELECT role, content, created_at
+       FROM chat_messages
+       WHERE conversation_id = ?
+       ORDER BY created_at DESC, rowid DESC
+       LIMIT ?`,
+    ).bind(CONVERSATION_ID, HISTORY_LIMIT).all<ChatRow>();
+    const history = canonicalSessionLine(historyResult.results ?? []);
 
     const content: Array<Record<string, unknown>> = [{
       type: "input_text",
-      text: `You are OGENIC AI, the owner's continuous copilot. Preserve continuity from the recent website conversation. Never claim access to a separate ChatGPT App conversation unless it was explicitly imported. Reply in the user's language and natural tone.\n\nRECENT WEBSITE CHAT:\n${history || "No prior website messages."}\n\nCURRENT OWNER MESSAGE:\n${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
+      text: `You are OGENIC AI, the owner's continuous copilot.
+
+SESSION INVARIANT:
+- Treat the persisted D1 conversation id "owner-main" as ONE canonical SAME MIND session line across desktop chat, mobile chat, API mode, and manual Live Assist whenever those surfaces persist messages to this conversation.
+- The timeline below is chronological evidence. Do not replace it with a project's latest deployment, commit, runtime, or status unless the owner explicitly asks for project/system status.
+- Temporal references such as "ล่าสุด", "เมื่อกี้", "ก่อนหน้านี้", "last time", "earlier", and "previously" refer first to the newest relevant persisted interaction in this session line.
+- Distinguish "last interaction/conversation" from "latest project state/status". If the wording could mean either, prefer the conversation timeline unless the owner names a project/system/status.
+- Never claim access to a separate ChatGPT App conversation unless it was explicitly imported into this D1 session.
+- Reply in the user's language and natural tone.
+
+CANONICAL SAME MIND SESSION LINE (oldest to newest):
+${history || "No prior persisted messages."}
+
+CURRENT OWNER MESSAGE:
+${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
     }];
 
     for (const id of attachmentIds) {
@@ -154,6 +188,9 @@ export function createChatModelApi() {
     return c.json({
       ok: true,
       text,
+      conversation_id: CONVERSATION_ID,
+      memory: "D1_SAME_MIND",
+      session_line: "CANONICAL_OWNER_MAIN",
       model,
       reasoning_effort: model === "gpt-4.1-mini" ? "n/a" : effort,
       token_boost: boost,
