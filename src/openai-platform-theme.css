@@ -1,0 +1,158 @@
+:root{
+  --og-bg:#f7f7f8;
+  --og-sidebar:#ffffff;
+  --og-surface:#ffffff;
+  --og-surface-2:#f3f4f6;
+  --og-surface-3:#eceef1;
+  --og-border:#e5e7eb;
+  --og-border-strong:#d8dbe0;
+  --og-text:#171717;
+  --og-muted:#6b7280;
+  --og-subtle:#8b9098;
+  --og-accent:#10a37f;
+  --og-accent-soft:rgba(16,163,127,.10);
+  --og-danger:#c2415d;
+  --og-warning:#a16207;
+  --og-shadow:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.03);
+  --og-code:#f1f3f5;
+}
+:root[data-og-theme="dark"]{
+  --og-bg:#171717;
+  --og-sidebar:#101010;
+  --og-surface:#1f1f1f;
+  --og-surface-2:#272727;
+  --og-surface-3:#303030;
+  --og-border:#303030;
+  --og-border-strong:#3c3c3c;
+  --og-text:#f2f2f2;
+  --og-muted:#a1a1aa;
+  --og-subtle:#77777f;
+  --og-accent:#19c37d;
+  --og-accent-soft:rgba(25,195,125,.12);
+  --og-danger:#ff6b86;
+  --og-warning:#f3bf64;
+  --og-shadow:none;
+  --og-code:#272727;
+}
+
+html,body,#root{background:var(--og-bg)!important;color:var(--og-text)!important}
+body{background:var(--og-bg)!important}
+*{scrollbar-color:var(--og-border-strong) transparent}
+::selection{background:var(--og-accent-soft)}
+
+/* Shell — flatter, quieter, closer to the current OpenAI Platform rhythm. */
+.cpShell{background:var(--og-bg)!important;grid-template-columns:238px minmax(0,1fr)!important}
+.cpSide{background:var(--og-sidebar)!important;border-right:1px solid var(--og-border)!important;padding:18px 12px!important}
+.cpSide>.cpBrand{padding:0 8px 18px!important}
+.cpBrand strong{color:var(--og-text)!important;letter-spacing:.06em!important;font-size:13px}
+.cpBrand small{color:var(--og-muted)!important;letter-spacing:.06em!important}
+.cpLogo{width:34px!important;height:34px!important;border-radius:10px!important;background:var(--og-text)!important}
+.cpLogo:after{inset:7px!important;border-radius:8px!important;background:var(--og-sidebar)!important}
+.cpLogo i{width:9px!important;height:9px!important;right:1px!important;top:1px!important;background:var(--og-accent)!important}
+.cpSide nav{gap:2px!important}
+.cpSide nav button{min-height:38px!important;border:0!important;border-radius:8px!important;color:var(--og-muted)!important;font-weight:560!important;padding:0 10px!important}
+.cpSide nav button span{color:var(--og-subtle)!important}
+.cpSide nav button:hover{background:var(--og-surface-2)!important;color:var(--og-text)!important}
+.cpSide nav button.active{background:var(--og-surface-2)!important;color:var(--og-text)!important;box-shadow:inset 2px 0 0 var(--og-accent)!important}
+.cpSideFoot{border-top:1px solid var(--og-border)!important;color:var(--og-muted)!important}
+.cpSideFoot button{background:var(--og-surface-2)!important;color:var(--og-text)!important;border:1px solid var(--og-border)!important}
+.cpOnlineDot{background:var(--og-accent)!important;box-shadow:none!important}
+.cpWorkspace{width:min(1280px,100%)!important;padding:24px clamp(18px,3vw,42px) 40px!important}
+.cpHeader{margin-bottom:22px!important;align-items:center!important}
+.cpHeader .eyebrow{display:none}
+.cpHeader h1{margin:0!important;font-size:clamp(26px,3vw,36px)!important;letter-spacing:-.025em!important;font-weight:620!important}
+.cpHeaderActions{gap:7px!important}
+.cpHeaderActions button,.cpPanelHead button,.cpThemeToggle{border:1px solid var(--og-border)!important;background:var(--og-surface)!important;color:var(--og-text)!important;border-radius:8px!important;padding:8px 11px!important;box-shadow:none!important}
+.cpStage{border-color:var(--og-border)!important;background:var(--og-surface-2)!important;color:var(--og-muted)!important;border-radius:7px!important;letter-spacing:.04em!important}
+.eyebrow{color:var(--og-muted)!important;letter-spacing:.10em!important;font-weight:650!important}
+
+.cpThemeToggle{display:inline-flex;align-items:center;gap:6px;min-height:34px;font-size:12px;font-weight:600;white-space:nowrap}
+.cpThemeToggle span{font-size:14px;line-height:1}.cpThemeToggle b{font-size:11px}.cpThemeFallback{position:fixed;right:14px;top:14px;z-index:120}
+
+/* Cards and content */
+.metricGrid,.cpMetrics{gap:10px!important;margin-bottom:14px!important}
+.metricGrid article,.cpCards article,.cpCashSummary article,.cpGmGrid article{background:var(--og-surface)!important;border:1px solid var(--og-border)!important;border-radius:10px!important;box-shadow:var(--og-shadow)!important}
+.metricGrid article{min-height:82px!important;padding:14px!important}
+.metricGrid article>span,.cpCards span,.cpCashSummary span{color:var(--og-muted)!important}
+.metricGrid article>strong,.cpCards strong,.cpCashSummary strong{color:var(--og-text)!important;font-weight:600!important}
+.metricGrid article>small,.cpCards small{color:var(--og-subtle)!important}
+.cpStatusChip{min-height:82px!important}
+.cpPanel{background:var(--og-surface)!important;border:1px solid var(--og-border)!important;border-radius:12px!important;box-shadow:var(--og-shadow)!important;padding:18px!important}
+.cpPanelHead{margin-bottom:14px!important}
+.cpPanelHead h2,.panelHead h2{color:var(--og-text)!important;font-size:18px!important;font-weight:620!important;letter-spacing:-.015em!important}
+.cpPanelHead>button{color:var(--og-muted)!important}
+.cpGrid2{gap:12px!important}
+
+/* De-emphasize the decorative hero so the first viewport is useful, not busy. */
+.cpHero{min-height:136px!important;background:var(--og-surface)!important;border:1px solid var(--og-border)!important;border-radius:12px!important;margin-bottom:12px!important;box-shadow:var(--og-shadow)!important}
+.cpHero img{display:none!important}.cpHero:after{display:none!important}
+.cpHeroCopy{width:100%!important;padding:22px 24px!important}
+.cpHeroCopy h2{color:var(--og-text)!important;font-size:23px!important;font-weight:620!important;margin:4px 0 6px!important}
+.cpHeroCopy p{color:var(--og-muted)!important;margin:0!important}
+.cpHeroCopy div{margin-top:14px!important}
+.cpHeroCopy button{background:var(--og-surface)!important;border:1px solid var(--og-border-strong)!important;color:var(--og-text)!important;border-radius:8px!important;padding:8px 11px!important}
+.cpHeroCopy button:first-child{background:var(--og-text)!important;color:var(--og-sidebar)!important;border-color:var(--og-text)!important}
+
+.cpRow,.cpTool,.cpCashRow{background:transparent!important;border:0!important;border-top:1px solid var(--og-border)!important;border-radius:0!important;margin-top:0!important;padding:11px 2px!important;color:var(--og-text)!important}
+.cpRow:first-of-type,.cpTool:first-of-type{border-top:0!important}
+.cpRow small,.cpTool small,.cpCashRow small{color:var(--og-muted)!important}
+.cpStatus,.connectorState,.pcState{background:var(--og-surface-2)!important;border-color:var(--og-border)!important;color:var(--og-muted)!important}
+.cpStatus.good,.connectorState.good,.pcGood{color:var(--og-accent)!important;border-color:color-mix(in srgb,var(--og-accent) 36%,var(--og-border))!important}
+.cpStatus.bad,.connectorState.bad,.pcBad{color:var(--og-danger)!important;border-color:color-mix(in srgb,var(--og-danger) 35%,var(--og-border))!important}
+
+.cpQuickApps,.cpAppGrid{gap:8px!important}
+.cpQuickApps button,.cpAppGrid button{background:var(--og-surface)!important;border:1px solid var(--og-border)!important;border-radius:9px!important;color:var(--og-text)!important;padding:10px!important}
+.cpQuickApps button:hover,.cpAppGrid button:hover{background:var(--og-surface-2)!important}
+.cpQuickApps i,.cpAppGrid i{background:var(--og-surface-2)!important;border:1px solid var(--og-border)!important;color:var(--og-text)!important;border-radius:8px!important}
+.cpQuickApps small,.cpAppGrid small,.cpAppGrid em{color:var(--og-muted)!important}
+
+/* Inputs and chat */
+.cpAuth{background:var(--og-bg)!important}.cpAuthCard{background:var(--og-surface)!important;border:1px solid var(--og-border)!important;border-radius:14px!important;box-shadow:var(--og-shadow)!important}
+.cpAuthCard p,.cpHint,.cpEmpty{color:var(--og-muted)!important}
+.cpAuthForm input,.cpInput,.cpTextarea,.composer textarea{background:var(--og-surface)!important;border:1px solid var(--og-border-strong)!important;color:var(--og-text)!important;border-radius:8px!important}
+.cpAuthForm button,.cpPrimary,.composer>button{background:var(--og-text)!important;color:var(--og-sidebar)!important;border-radius:8px!important;background-image:none!important}
+.cpChat{height:calc(100vh - 126px)!important}
+.modeSwitch{background:var(--og-surface-2)!important;border-radius:9px!important;padding:3px!important;gap:2px!important}
+.modeSwitch button{border:0!important;background:transparent!important;color:var(--og-muted)!important;border-radius:7px!important;padding:6px 9px!important}
+.modeSwitch button.active{background:var(--og-surface)!important;color:var(--og-text)!important;box-shadow:0 1px 2px rgba(0,0,0,.08)!important}
+.chatStream{gap:12px!important}.message{background:transparent!important;color:var(--og-text)!important;padding:9px 2px!important;border-radius:0!important;line-height:1.55}.message.user{background:var(--og-surface-2)!important;border-radius:12px!important;padding:10px 12px!important}.message.system{border:1px solid color-mix(in srgb,var(--og-danger) 45%,var(--og-border))!important;border-radius:10px!important;padding:10px!important}.message small{color:var(--og-muted)!important}.composer{border-top:1px solid var(--og-border)!important}
+.cpError{background:color-mix(in srgb,var(--og-danger) 9%,var(--og-surface))!important;border-color:color-mix(in srgb,var(--og-danger) 35%,var(--og-border))!important;color:var(--og-danger)!important}
+.cpMeter{background:var(--og-surface-3)!important}.cpMeter i{background:var(--og-accent)!important}
+.cpCandy iframe{border-color:var(--og-border)!important;border-radius:10px!important}
+
+/* Connector / OpenAI platform overlays */
+.connectorPanelShell,.providerConnectShell{background:var(--og-bg)!important;color:var(--og-text)!important}
+.connectorPanelHeader h1,.providerConnectHeader h1{font-size:clamp(27px,3vw,36px)!important;font-weight:620!important;letter-spacing:-.025em!important;color:var(--og-text)!important}
+.connectorPanelHeader p,.providerConnectHeader p,.openAIPlatformHead p{color:var(--og-muted)!important}
+.connectorPanelHeader button,.connectorCard button,.connectorFunctionActions button,.openAIPlatformPanel button,.providerConnectHeader button,.pcActions button,.pcDeliveryCard button{background:var(--og-surface)!important;border:1px solid var(--og-border)!important;color:var(--og-text)!important;border-radius:8px!important;background-image:none!important}
+.openAIPlatformPanel,.connectorCard,.connectorFunctionPanel,.connectorEventsPanel,.pcCard,.pcDeliveryCard{background:var(--og-surface)!important;border:1px solid var(--og-border)!important;border-radius:12px!important;box-shadow:var(--og-shadow)!important}
+.platformMetrics>div,.platformToolCard,.platformDetailCard,.pcTopNote,.pcNotice,.pcBot,.pcCredentials>div,.connectorEvents>div,.connectorResult{background:var(--og-surface-2)!important;border-color:var(--og-border)!important;color:var(--og-text)!important}
+.platformMetrics small,.platformToolCard p,.platformDetailCard>small,.platformDetailCard>span,.connectorCard p,.connectorCardTop small,.connectorCardFoot small,.connectorResult small,.connectorFunctionPanel>p,.pcCardHead small,.pcDeliveryCard small,.pcCredentials small,.pcCard>p,.pcDeliveryCard>p,.pcFooter{color:var(--og-muted)!important}
+.platformTagRow code,.hookEndpoints code{background:var(--og-code)!important;border-color:var(--og-border)!important;color:var(--og-text)!important}
+.connectorFunctionPanel textarea,.connectorFunctionActions select{background:var(--og-surface)!important;border-color:var(--og-border-strong)!important;color:var(--og-text)!important}
+.pcDeliverySection{border-color:var(--og-border)!important}
+
+/* Live Assist follows the same surface palette. */
+.liveAssistDrawer{background:var(--og-surface)!important;color:var(--og-text)!important;border:1px solid var(--og-border)!important;box-shadow:0 18px 60px rgba(0,0,0,.18)!important}
+.liveAssistLauncher{background:var(--og-text)!important;color:var(--og-sidebar)!important;border:1px solid var(--og-border)!important}
+.liveAssistHead,.liveAssistControls,.liveAssistComposer{background:var(--og-surface)!important;border-color:var(--og-border)!important}
+.liveAssistStatus{background:var(--og-surface-2)!important;color:var(--og-muted)!important}
+.liveAssistHead button,.liveAssistControls button,.liveAssistComposer textarea{background:var(--og-surface-2)!important;border-color:var(--og-border)!important;color:var(--og-text)!important}
+.liveAssistChat .liveMsg p{background:var(--og-surface-2)!important;color:var(--og-text)!important}.liveAssistChat .liveMsg.user p{background:var(--og-surface-3)!important}
+.liveAssistStart p,.liveMsg>span{color:var(--og-muted)!important}.liveAssistStart button.primary,.liveAssistComposer button{background:var(--og-text)!important;color:var(--og-sidebar)!important}
+
+@media(max-width:900px){
+  .cpShell{grid-template-columns:1fr!important}
+  .cpSide{background:var(--og-sidebar)!important;border-bottom:1px solid var(--og-border)!important;padding:8px 10px!important}
+  .cpSide nav button.active{box-shadow:none!important;background:var(--og-surface-2)!important}
+  .cpWorkspace{padding:16px 12px 28px!important}
+  .cpHeader{margin:4px 2px 16px!important}
+  .cpHeader h1{font-size:27px!important}
+  .connectorPanelShell,.providerConnectShell{top:56px!important;background:var(--og-bg)!important}
+}
+@media(max-width:560px){
+  .cpHeaderActions{gap:5px!important}.cpThemeToggle b{display:none}.cpThemeToggle{width:34px;justify-content:center;padding:0!important}
+  .metricGrid,.cpMetrics{grid-template-columns:1fr 1fr!important}.metricGrid article{min-height:74px!important;padding:12px!important}
+  .cpHero{min-height:126px!important}.cpHeroCopy{padding:18px!important}.cpHeroCopy h2{font-size:20px!important}.cpHeroCopy p{font-size:11px!important}
+  .cpPanel{padding:14px!important}.cpAppGrid{grid-template-columns:1fr 1fr!important}.cpChat{height:calc(100vh - 150px)!important}
+}
