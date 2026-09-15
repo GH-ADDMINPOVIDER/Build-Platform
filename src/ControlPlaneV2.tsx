@@ -19,7 +19,8 @@ type Dashboard = {
   tools?: Tool[];
 };
 type CashRow = { id: string; type: CashType; amount: number; note: string; category: string; date: string };
-
+type ChatMessage = { id: string; role: "assistant" | "user" | "system"; text: string; meta?: string };
+type PersistedChatMessage = { id?: unknown; role?: unknown; text?: unknown; model?: unknown; created_at?: unknown };
 type AppLink = { id: string; label: string; sub: string; url: string; icon: string; internal?: View };
 
 const nav: Array<{ id: View; label: string; icon: string }> = [
@@ -51,6 +52,9 @@ const apps: AppLink[] = [
 ];
 
 const cashKey = "ogenic.webdev.cashflow.v1";
+const WELCOME_MESSAGES: ChatMessage[] = [
+  { id: "welcome", role: "assistant", text: "OGENIC AI พร้อมแล้ว · SAME MIND staging", meta: "Owner session" },
+];
 
 function count(rows: Array<{ status: string; count: number }> | undefined, wanted: string[]) {
   const set = new Set(wanted.map((s) => s.toUpperCase()));
@@ -63,6 +67,15 @@ function tone(value = "") {
   return "quiet";
 }
 function baht(n: number) { return new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }).format(n); }
+function persistedRole(value: unknown): ChatMessage["role"] {
+  return value === "user" || value === "system" ? value : "assistant";
+}
+function persistedMeta(message: PersistedChatMessage) {
+  const model = typeof message.model === "string" && message.model ? message.model : "SAME MIND";
+  const timestamp = Number(message.created_at);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return model;
+  return `${model} · ${new Date(timestamp).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}`;
+}
 
 export default function ControlPlaneV2() {
   const [session, setSession] = useState<Session | null>(null);
@@ -73,9 +86,7 @@ export default function ControlPlaneV2() {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [mode, setMode] = useState<ChatMode>("balanced");
-  const [messages, setMessages] = useState<Array<{ id: string; role: "assistant" | "user" | "system"; text: string; meta?: string }>>([
-    { id: "welcome", role: "assistant", text: "OGENIC AI พร้อมแล้ว · SAME MIND staging", meta: "Owner session" },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>(WELCOME_MESSAGES);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
@@ -104,17 +115,38 @@ export default function ControlPlaneV2() {
     finally { setLoading(false); }
   }, []);
 
+  const loadChatHistory = useCallback(async () => {
+    try {
+      const r = await fetch("/api/chat/history", { cache: "no-store", credentials: "same-origin" });
+      if (r.status === 401) return;
+      const body = await r.json().catch(() => ({})) as { messages?: PersistedChatMessage[] };
+      if (!r.ok || !Array.isArray(body.messages)) return;
+      const hydrated = body.messages.slice(-60).map((message, index): ChatMessage => ({
+        id: typeof message.id === "string" && message.id ? message.id : `same_mind_${index}`,
+        role: persistedRole(message.role),
+        text: String(message.text ?? ""),
+        meta: persistedMeta(message),
+      })).filter((message) => message.text.trim().length > 0);
+      setMessages(hydrated.length ? hydrated : WELCOME_MESSAGES);
+    } catch {
+      // Keep current UI messages if history hydration is temporarily unavailable.
+    }
+  }, []);
+
   const checkSession = useCallback(async () => {
     try {
       const r = await fetch("/api/session", { cache: "no-store", credentials: "same-origin" });
       const body = await r.json() as Session;
       setSession(body);
-      if (body.authenticated) await loadDashboard();
+      if (body.authenticated) await Promise.all([loadDashboard(), loadChatHistory()]);
     } catch { setSession({ authenticated: false, user: null }); }
-  }, [loadDashboard]);
+  }, [loadDashboard, loadChatHistory]);
 
   useEffect(() => { void checkSession(); }, [checkSession]);
   useEffect(() => { chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [messages, sending]);
+  useEffect(() => {
+    if (view === "chat" && session?.authenticated) void loadChatHistory();
+  }, [view, session?.authenticated, loadChatHistory]);
   useEffect(() => {
     if (view !== "openai") return;
     void fetch("/api/openai-status", { cache: "no-store", credentials: "same-origin" })
@@ -127,9 +159,12 @@ export default function ControlPlaneV2() {
     const r = await fetch("/api/session", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ owner_key: key }) });
     const body = await r.json().catch(() => ({})); setOwnerKey("");
     if (!r.ok || !body.authenticated) { setAuthError(body?.message || body?.code || "Sign in failed"); return; }
-    setSession(body); await loadDashboard();
+    setSession(body); await Promise.all([loadDashboard(), loadChatHistory()]);
   }
-  async function signOut() { await fetch("/api/session", { method: "DELETE", credentials: "same-origin" }).catch(() => undefined); setSession({ authenticated: false, user: null }); setDashboard(null); }
+  async function signOut() {
+    await fetch("/api/session", { method: "DELETE", credentials: "same-origin" }).catch(() => undefined);
+    setSession({ authenticated: false, user: null }); setDashboard(null); setMessages(WELCOME_MESSAGES);
+  }
 
   async function sendMessage() {
     const prompt = draft.trim(); if (!prompt || sending) return;
@@ -139,7 +174,7 @@ export default function ControlPlaneV2() {
       const r = await fetch("/api/chat", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Idempotency-Key": `ui_${crypto.randomUUID()}` }, body: JSON.stringify({ prompt, mode }) });
       const body = await r.json().catch(() => ({}));
       if (!r.ok || !body?.ok) throw new Error(body?.message || body?.code || `HTTP_${r.status}`);
-      setMessages((m) => [...m, { id: crypto.randomUUID(), role: "assistant", text: body.text || "Done", meta: `${body.model || "OGENIC AI"}${body.incentive_pool ? ` · ${body.incentive_pool}` : ""}` }]);
+      await loadChatHistory();
       void loadDashboard();
     } catch (e) { setMessages((m) => [...m, { id: crypto.randomUUID(), role: "system", text: e instanceof Error ? e.message : "AI request failed", meta: "Runtime" }]); }
     finally { setSending(false); }

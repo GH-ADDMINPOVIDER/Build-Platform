@@ -54,12 +54,15 @@ test("SAME MIND is locked to one canonical owner session line", async () => {
   const modelApi = await read("worker/chat-model-api.ts");
   const liveAssist = await read("worker/live-assist-api.ts");
   const connectorEntry = await read("worker/entry-connectors.ts");
+  const desktop = await read("src/ControlPlaneV2.tsx");
   const mobile = await read("src/MobileApp.tsx");
 
   assert.match(entry, /SAME_MIND_CONVERSATION_ID = "owner-main"/);
   assert.match(modelApi, /CONVERSATION_ID = "owner-main"/);
   assert.match(liveAssist, /SAME_MIND_CONVERSATION_ID = "owner-main"/);
   assert.match(entry, /\/api\/chat\/history/);
+  assert.match(desktop, /fetch\("\/api\/chat\/history"/);
+  assert.match(desktop, /body\.messages\.slice\(-60\)/);
   assert.match(mobile, /fetch\("\/api\/chat\/history"/);
 
   assert.match(connectorEntry, /pathname === "\/api\/chat\/model" \|\| pathname === "\/api\/chat\/api"/);
