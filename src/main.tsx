@@ -1,9 +1,12 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import ControlPlaneV2 from "./ControlPlaneV2";
+import ChatModelRouter from "./ChatModelRouter";
 import AppEnhancements from "./AppEnhancements";
+import WorkspacePolish from "./WorkspacePolish";
 import ConnectorPanel from "./ConnectorPanel";
 import ProviderConnectWizard from "./ProviderConnectWizard";
+import GagVault from "./GagVault";
 import LiveAssist from "./LiveAssist";
 import ThemeController from "./ThemeController";
 import "./control-plane-v2.css";
@@ -12,6 +15,8 @@ import "./provider-connect.css";
 import "./live-assist.css";
 import "./mobile-fixes.css";
 import "./openai-platform-theme.css";
+import "./gag-vault.css";
+import "./dense-mobile.css";
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -22,9 +27,12 @@ if ("serviceWorker" in navigator) {
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ControlPlaneV2 />
+    <ChatModelRouter />
     <AppEnhancements />
+    <WorkspacePolish />
     <ConnectorPanel />
     <ProviderConnectWizard />
+    <GagVault />
     <LiveAssist />
     <ThemeController />
   </React.StrictMode>,
