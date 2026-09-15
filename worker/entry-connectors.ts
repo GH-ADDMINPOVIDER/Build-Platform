@@ -17,14 +17,20 @@ const chatModelApi = createChatModelApi();
 const manusApi = createManusApi();
 const publicHooks = createPublicHookApi();
 
-function canonicalChatModelRequest(request: Request) {
+async function canonicalChatModelRequest(request: Request) {
   const url = new URL(request.url);
   url.pathname = "/api/chat/model";
-  return new Request(url.toString(), request);
+  const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
+  return new Request(url.toString(), {
+    method: request.method,
+    headers: request.headers,
+    body,
+    redirect: request.redirect,
+  });
 }
 
 export default {
-  fetch(request: Request, env: Bindings, ctx: unknown) {
+  async fetch(request: Request, env: Bindings, ctx: unknown) {
     const pathname = new URL(request.url).pathname;
     if (pathname === "/api/provider-connect" || pathname.startsWith("/api/provider-connect/")) {
       return providerConnectApi.fetch(request, env, ctx as never);
@@ -36,7 +42,7 @@ export default {
       return browserSessionApi.fetch(request, env, ctx as never);
     }
     if (pathname === "/api/chat/model" || pathname === "/api/chat/api") {
-      const canonicalRequest = pathname === "/api/chat/model" ? request : canonicalChatModelRequest(request);
+      const canonicalRequest = pathname === "/api/chat/model" ? request : await canonicalChatModelRequest(request);
       return chatModelApi.fetch(canonicalRequest, env, ctx as never);
     }
     if (pathname === "/api/manus/status" || pathname === "/api/manus/task") {
