@@ -79,16 +79,11 @@ export function createChatModelApi() {
       return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt or attachment is required" }, 400);
     }
 
+    const seedNow = Date.now();
     await db.prepare(
       `INSERT OR IGNORE INTO chat_conversations (id, owner_id, title, created_at, updated_at)
-       VALUES (?, 'owner', 'OGENIC SAME MIND', ?, ?, ?)`,
-    ).bind(CONVERSATION_ID, Date.now(), Date.now(), Date.now()).run().catch(async () => {
-      // Older schema uses five columns; keep compatibility with the current staging table.
-      await db.prepare(
-        `INSERT OR IGNORE INTO chat_conversations (id, owner_id, title, created_at, updated_at)
-         VALUES (?, 'owner', 'OGENIC SAME MIND', ?, ?)`,
-      ).bind(CONVERSATION_ID, Date.now(), Date.now()).run();
-    });
+       VALUES (?, 'owner', 'OGENIC SAME MIND', ?, ?)`,
+    ).bind(CONVERSATION_ID, seedNow, seedNow).run();
 
     const historyResult = await db.prepare(
       `SELECT role, content FROM chat_messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 18`,
