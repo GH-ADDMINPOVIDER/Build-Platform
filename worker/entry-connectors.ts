@@ -5,14 +5,16 @@ import { createPublicHookApi, type ConnectorBindings } from "./connector-runtime
 import { createLiveAssistApi, type LiveAssistBindings } from "./live-assist-api";
 import { createBrowserSessionApi, type BrowserSessionBindings } from "./browser-session-api";
 import { createChatModelApi } from "./chat-model-api";
+import { createManusApi } from "./manus-api";
 
-type Bindings = ConnectorAppBindings & ConnectorBindings & LiveAssistBindings & BrowserSessionBindings;
+type Bindings = ConnectorAppBindings & ConnectorBindings & LiveAssistBindings & BrowserSessionBindings & { MANUS_API_KEY?: string };
 
 const connectorApi = createConnectorAppApi();
 const providerConnectApi = createProviderConnectApi();
 const liveAssistApi = createLiveAssistApi();
 const browserSessionApi = createBrowserSessionApi();
 const chatModelApi = createChatModelApi();
+const manusApi = createManusApi();
 const publicHooks = createPublicHookApi();
 
 export default {
@@ -29,6 +31,9 @@ export default {
     }
     if (pathname === "/api/chat/model") {
       return chatModelApi.fetch(request, env, ctx as never);
+    }
+    if (pathname === "/api/manus/status" || pathname === "/api/manus/task") {
+      return manusApi.fetch(request, env, ctx as never);
     }
     if (
       pathname === "/api/connectors" ||
