@@ -154,6 +154,7 @@ jobs:
               'LINE_CHANNEL_ACCESS_TOKEN', 'LINE_SECRET_CHANNEL', 'LINE_ID_USE',
               'META_PAGE_ACCESS_TOKEN', 'META_APP_SECRET', 'META_VERIFY_TOKEN',
               'OPENAI_WEBHOOK_SECRET', 'OGENIC_GENERIC_HOOK_SECRET',
+              'MANUS_API_KEY',
           ]
           payload = {key: os.environ[key] for key in keys if os.environ.get(key)}
           if not payload.get('OPENAI_API_KEY') or not payload.get('OGENIC_OPS_KEY'):
@@ -212,6 +213,9 @@ jobs:
           UNAUTH_CODE="$(curl --silent --show-error --output "$UNAUTH_BODY" --write-out '%{http_code}' "${STAGING_URL}/api/browser-session")"
           test "$UNAUTH_CODE" = "401" || { echo "::error::unauthenticated browser session returned HTTP $UNAUTH_CODE"; cat "$UNAUTH_BODY"; exit 1; }
 
+          UNAUTH_CODE="$(curl --silent --show-error --output "$UNAUTH_BODY" --write-out '%{http_code}' "${STAGING_URL}/api/manus/status")"
+          test "$UNAUTH_CODE" = "401" || { echo "::error::unauthenticated Manus status returned HTTP $UNAUTH_CODE"; cat "$UNAUTH_BODY"; exit 1; }
+
           printf '{"owner_key":%s}' "$(jq -Rn --arg value "$OGENIC_OPS_KEY" '$value')" \
             | curl --fail --silent --show-error --cookie-jar "$COOKIE_JAR" \
                 --header 'Content-Type: application/json' --data-binary @- "${STAGING_URL}/api/session" \
@@ -244,8 +248,15 @@ jobs:
             .human_in_the_loop == true
           ' >/dev/null
 
-          if printf '%s\n%s\n%s' "$DASHBOARD" "$CONNECTORS" "$BROWSER_BRIDGE" | grep -Eq 'OPENAI_API_KEY|OGENIC_OPS_KEY|LINE_CHANNEL_ACCESS_TOKEN|LINE_SECRET_CHANNEL|META_APP_SECRET|META_PAGE_ACCESS_TOKEN|N8N_API_KEY|GITHUB_TOKEN'; then
+          MANUS_BRIDGE="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" "${STAGING_URL}/api/manus/status")"
+          printf '%s' "$MANUS_BRIDGE" | jq -e '
+            .ok == true and
+            .provider == "manus_api_v2" and
+            (.state == "BOUND" or .state == "CONFIGURATION_REQUIRED")
+          ' >/dev/null
+
+          if printf '%s\n%s\n%s\n%s' "$DASHBOARD" "$CONNECTORS" "$BROWSER_BRIDGE" "$MANUS_BRIDGE" | grep -Eq 'OPENAI_API_KEY|OGENIC_OPS_KEY|LINE_CHANNEL_ACCESS_TOKEN|LINE_SECRET_CHANNEL|META_APP_SECRET|META_PAGE_ACCESS_TOKEN|N8N_API_KEY|GITHUB_TOKEN|MANUS_API_KEY'; then
             echo "::error::control plane response leaked a protected binding name"
             exit 1
           fi
-          echo "Owner auth, connector hub, and Browser Run mobile bridge verified on staging without starting a billable browser session."
+          echo "Owner auth, connector hub, Browser Run mobile bridge, and Manus bridge state verified without starting billable sessions/tasks."
