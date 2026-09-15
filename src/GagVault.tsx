@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 type MemoryMessage = { id?: string; role?: string; text?: string; model?: string | null; created_at?: number };
 type SessionLink = { id: string; bucket: string; title: string; url: string; note: string; createdAt: number };
 type MonthlyReminder = { day: number; note: string; lastNotifiedMonth: string };
+type ManusStatus = { ok?: boolean; state?: string; provider?: string; note?: string };
 
 const SESSION_KEY = "ogenic.gag.sessions.v1";
 const REMINDER_KEY = "ogenic.gag.monthly-reminder.v1";
@@ -38,6 +39,10 @@ export default function GagVault() {
   const [memoryState, setMemoryState] = useState("ยังไม่โหลด");
   const [reminder, setReminder] = useState<MonthlyReminder>(loadReminder);
   const [reminderState, setReminderState] = useState("");
+  const [manus, setManus] = useState<ManusStatus | null>(null);
+  const [manusPrompt, setManusPrompt] = useState("");
+  const [manusBusy, setManusBusy] = useState(false);
+  const [manusResult, setManusResult] = useState<{ title?: string; url?: string; error?: string }>({});
 
   useEffect(() => { localStorage.setItem(SESSION_KEY, JSON.stringify(sessions)); }, [sessions]);
   useEffect(() => { localStorage.setItem(REMINDER_KEY, JSON.stringify(reminder)); }, [reminder]);
@@ -54,6 +59,14 @@ export default function GagVault() {
     } catch (error) {
       setMemoryState(error instanceof Error ? error.message : "อ่านฐานความจำไม่ได้");
     }
+  }, []);
+
+  const loadManus = useCallback(async () => {
+    try {
+      const response = await fetch("/api/manus/status", { cache: "no-store", credentials: "same-origin" });
+      const body = await response.json().catch(() => ({})) as ManusStatus;
+      setManus(response.ok && body?.ok ? body : { ok: false, state: "UNAVAILABLE" });
+    } catch { setManus({ ok: false, state: "UNAVAILABLE" }); }
   }, []);
 
   useEffect(() => {
@@ -75,8 +88,8 @@ export default function GagVault() {
 
   useEffect(() => {
     document.querySelector(".gagNavButton")?.classList.toggle("active", open);
-    if (open) void loadMemory();
-  }, [open, loadMemory]);
+    if (open) { void loadMemory(); void loadManus(); }
+  }, [open, loadMemory, loadManus]);
 
   useEffect(() => {
     if (!open) return;
@@ -125,6 +138,26 @@ export default function GagVault() {
     }
   }
 
+  async function runManus() {
+    const prompt = manusPrompt.trim();
+    if (!prompt || manuscriptBlocked || manusBusy) return;
+    setManusBusy(true); setManusResult({});
+    try {
+      const response = await fetch("/api/manus/task", {
+        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body?.ok) throw new Error(body?.message || body?.code || `HTTP_${response.status}`);
+      setManusResult({ title: body.task_title || "Manus task", url: body.task_url || "" });
+      if (body.task_url) {
+        setSessions((rows) => [{ id: crypto.randomUUID(), bucket: "M", title: body.task_title || "Manus task", url: body.task_url, note: "Created from OGENIC GAG", createdAt: Date.now() }, ...rows]);
+      }
+      setManusPrompt("");
+    } catch (error) { setManusResult({ error: error instanceof Error ? error.message : "Manus task failed" }); }
+    finally { setManusBusy(false); }
+  }
+
+  const manuscriptBlocked = manus?.state !== "BOUND";
   if (!open) return null;
 
   return <section className="gagShell" aria-label="GAG memory and session vault">
@@ -145,6 +178,15 @@ export default function GagVault() {
         <div className="gagReminderFields"><label>วันที่<input type="number" min={1} max={28} value={reminder.day} onChange={(e) => setReminder((row) => ({ ...row, day: Math.max(1, Math.min(28, Number(e.target.value) || 1)) }))} /></label><label>ข้อความ<input value={reminder.note} onChange={(e) => setReminder((row) => ({ ...row, note: e.target.value }))} /></label></div>
         <div className="gagActions"><button onClick={() => setReminderState("บันทึก reminder แล้ว")}>บันทึก</button><button onClick={() => void enableNotifications()}>เปิดแจ้งเตือน</button><button disabled title="Gmail delivery จะเปิดเมื่อมี server-side Gmail connection ใน Web Dev">Gmail delivery</button></div>
         {reminderState && <small className="gagNotice">{reminderState}</small>}
+      </article>
+
+      <article className="gagCard gagManus">
+        <div className="gagCardHead"><div><span className="eyebrow">MANUS AGENT</span><h2>Agent bridge</h2></div><span className={`gagState ${manus?.state === "BOUND" ? "ready" : "blocked"}`}>{manus?.state || "CHECKING"}</span></div>
+        <textarea value={manusPrompt} onChange={(e) => setManusPrompt(e.target.value)} placeholder="สั่ง Manus ให้ทำงาน…" rows={3} />
+        <div className="gagActions"><button disabled={manuscriptBlocked || !manusPrompt.trim() || manusBusy} onClick={() => void runManus()}>{manusBusy ? "Running…" : "Run Manus"}</button><button onClick={() => window.open("https://manus.im/app", "_blank", "noopener,noreferrer")}>เปิด Manus ↗</button></div>
+        {manusResult.error && <small className="gagNotice error">{manusResult.error}</small>}
+        {manusResult.url && <button className="gagResultLink" onClick={() => window.open(manusResult.url, "_blank", "noopener,noreferrer")}>{manusResult.title || "Open task"} ↗</button>}
+        {manuscriptBlocked && <small className="gagNotice">ต้องมี MANUS_API_KEY ใน secret store ก่อน ปุ่ม Run จึงเปิด · ไม่รับ key ผ่านหน้าเว็บ</small>}
       </article>
     </div>
 
