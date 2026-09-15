@@ -5,11 +5,13 @@ import AppEnhancements from "./AppEnhancements";
 import ConnectorPanel from "./ConnectorPanel";
 import ProviderConnectWizard from "./ProviderConnectWizard";
 import LiveAssist from "./LiveAssist";
+import ThemeController from "./ThemeController";
 import "./control-plane-v2.css";
 import "./connector-panel.css";
 import "./provider-connect.css";
 import "./live-assist.css";
 import "./mobile-fixes.css";
+import "./openai-platform-theme.css";
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -24,5 +26,6 @@ createRoot(document.getElementById("root")!).render(
     <ConnectorPanel />
     <ProviderConnectWizard />
     <LiveAssist />
+    <ThemeController />
   </React.StrictMode>,
 );
