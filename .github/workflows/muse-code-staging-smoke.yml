@@ -41,6 +41,8 @@ jobs:
           muse --version 2>&1 | tee /tmp/muse-version.txt
           echo "--- login help ---"
           muse login --help 2>&1 | sed -n '1,120p'
+          echo "--- exec help ---"
+          muse exec --help 2>&1 | sed -n '1,220p'
           echo "--- serve help ---"
           muse serve --help 2>&1 | sed -n '1,160p'
           echo '```' >> "$GITHUB_STEP_SUMMARY"
