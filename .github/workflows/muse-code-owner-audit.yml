@@ -1,4 +1,5 @@
 name: Muse Code Owner Audit
+# Staging-only Muse execution lane. Account login is the only owner gate.
 
 on:
   push:
