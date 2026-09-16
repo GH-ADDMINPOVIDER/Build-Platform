@@ -1,10 +1,11 @@
 {
-  "version": 2,
+  "version": 3,
   "owner_line": "owner-main",
   "integration": {
     "inline_chat": true,
     "surface": "ogenic-web+ogenic-app",
-    "source_of_truth": "D1 owner-main"
+    "source_of_truth": "D1 owner-main",
+    "ui_label": "Meta Facebook"
   },
   "scope": {
     "primary": ["line", "meta-facebook-messenger"],
