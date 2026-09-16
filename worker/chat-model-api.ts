@@ -24,6 +24,9 @@ type Body = {
   token_boost?: unknown;
   mode?: unknown;
   source_surface?: unknown;
+  session_ref?: unknown;
+  session_url?: unknown;
+  session_label?: unknown;
 };
 type ChatRow = {
   id?: string;
@@ -82,6 +85,51 @@ function resolveSurface(body: Body, request: Request) {
   const mode = clean(body.mode, 40).toLowerCase();
   if (mode === "mobile") return "ogenic-app";
   return "unknown";
+}
+
+function safeSessionUrl(value: unknown) {
+  const candidate = clean(value, 1200);
+  if (!candidate) return null;
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    return `${url.origin}${url.pathname}`.slice(0, 1000);
+  } catch {
+    return null;
+  }
+}
+
+async function rememberSessionRef(
+  db: D1Like,
+  sourceSurface: string,
+  sessionRef: string,
+  sessionUrl: string | null,
+  sessionLabel: string | null,
+  sequence: number,
+) {
+  if (!sessionRef || !sequence) return;
+  const now = Date.now();
+  await db.prepare(
+    `INSERT INTO chat_session_refs(
+       id, conversation_id, source_surface, session_ref, session_url, label,
+       first_sequence, last_sequence, first_seen_at, last_seen_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(conversation_id, source_surface, session_ref) DO UPDATE SET
+       session_url = COALESCE(excluded.session_url, chat_session_refs.session_url),
+       label = COALESCE(excluded.label, chat_session_refs.label),
+       first_sequence = CASE
+         WHEN chat_session_refs.first_sequence IS NULL THEN excluded.first_sequence
+         ELSE MIN(chat_session_refs.first_sequence, excluded.first_sequence)
+       END,
+       last_sequence = CASE
+         WHEN chat_session_refs.last_sequence IS NULL THEN excluded.last_sequence
+         ELSE MAX(chat_session_refs.last_sequence, excluded.last_sequence)
+       END,
+       last_seen_at = excluded.last_seen_at`,
+  ).bind(
+    makeId("session"), CONVERSATION_ID, sourceSurface, sessionRef, sessionUrl, sessionLabel,
+    sequence, sequence, now, now,
+  ).run();
 }
 
 async function ensureConversation(db: D1Like) {
@@ -173,6 +221,9 @@ export function createChatModelApi() {
     const requestedBoost = Number(body.token_boost ?? 1);
     const boost = BOOSTS.has(requestedBoost) ? requestedBoost : 1;
     const sourceSurface = resolveSurface(body, c.req.raw);
+    const sessionRef = clean(body.session_ref ?? c.req.header("x-ogenic-session-ref"), 220);
+    const sessionUrl = safeSessionUrl(body.session_url ?? c.req.header("x-ogenic-session-url"));
+    const sessionLabel = clean(body.session_label ?? c.req.header("x-ogenic-session-label"), 160) || null;
     const attachmentIds = Array.isArray(body.attachment_ids)
       ? body.attachment_ids.map((value) => clean(value, 120)).filter(Boolean).slice(0, 4)
       : [];
@@ -192,6 +243,7 @@ export function createChatModelApi() {
        LIMIT 1`,
     ).bind(CONVERSATION_ID, assistantIdempotency).first<ChatRow>();
     if (replay?.content) {
+      await rememberSessionRef(db, sourceSurface, sessionRef, sessionUrl, sessionLabel, Number(replay.sequence_no ?? 0));
       return c.json({
         ok: true,
         replay: true,
@@ -252,6 +304,7 @@ export function createChatModelApi() {
       ).bind(CONVERSATION_ID, userIdempotency).first<{ sequence_no: number }>();
       userSequence = Number(persistedUser?.sequence_no ?? candidate);
     }
+    await rememberSessionRef(db, sourceSurface, sessionRef, sessionUrl, sessionLabel, userSequence);
 
     const requestBody: Record<string, unknown> = {
       model,

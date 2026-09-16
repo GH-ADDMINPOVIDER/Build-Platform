@@ -14,6 +14,7 @@ type Message = {
   sequence_no?: number | null;
   source_surface?: string | null;
 };
+type SessionRef = { id: string; source_surface: string; session_ref: string; session_url?: string | null; label?: string | null; first_sequence?: number | null; last_sequence?: number | null; last_seen_at?: number };
 type RuntimeTool = { id: string; label: string; state: string; summary?: string; records?: Array<Record<string, unknown>> };
 type IncentivePool = { id: string; label: string; remaining: number | null; cap: number | null; percent: number | null; state: string; telemetry?: string };
 type Dashboard = {
@@ -87,6 +88,20 @@ function parseUrl(text: string) {
   const match = text.match(/https?:\/\/[^\s)\]}]+/i);
   return match?.[0] ?? "";
 }
+function makeViewportSessionRef(surface: Surface, reuse = true) {
+  const key = `ogenic.1lss.viewport.${surface}`;
+  try {
+    if (reuse) {
+      const current = sessionStorage.getItem(key);
+      if (current) return current;
+    }
+    const next = `${surface}_${crypto.randomUUID()}`;
+    sessionStorage.setItem(key, next);
+    return next;
+  } catch {
+    return `${surface}_${crypto.randomUUID()}`;
+  }
+}
 function fileToDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -106,6 +121,9 @@ export default function UnifiedChat({ surface }: Props) {
   const [manus, setManus] = useState<ManusState | null>(null);
   const [browser, setBrowser] = useState<BrowserState | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [sessionRefs, setSessionRefs] = useState<SessionRef[]>([]);
+  const [historyHasMore, setHistoryHasMore] = useState(false);
+  const [viewportSessionRef, setViewportSessionRef] = useState(() => makeViewportSessionRef(surface));
   const [latestSequence, setLatestSequence] = useState(0);
   const [viewportFloor, setViewportFloor] = useState(0);
   const [draft, setDraft] = useState("");
@@ -148,12 +166,72 @@ export default function UnifiedChat({ surface }: Props) {
     if (!d1Enabled) return;
     const response = await fetch("/api/chat/history", { credentials: "same-origin", cache: "no-store" });
     if (!response.ok) return;
-    const body = await response.json().catch(() => ({})) as { messages?: Message[] };
+    const body = await response.json().catch(() => ({})) as { messages?: Message[]; has_more?: boolean };
     const rows = Array.isArray(body.messages) ? body.messages : [];
     const latest = rows.reduce((max, row) => Math.max(max, Number(row.sequence_no ?? 0)), 0);
     setLatestSequence(latest);
+    setHistoryHasMore(Boolean(body.has_more ?? (rows.length >= 60)));
     setMessages(rows.filter((row) => Number(row.sequence_no ?? 0) > floor));
   }, [d1Enabled, viewportFloor]);
+
+  const loadSessionRefs = useCallback(async () => {
+    if (!d1Enabled) return;
+    const response = await fetch("/api/1lss/sessions?limit=20", { credentials: "same-origin", cache: "no-store" });
+    if (!response.ok) return;
+    const body = await response.json().catch(() => ({})) as { sessions?: SessionRef[] };
+    setSessionRefs(Array.isArray(body.sessions) ? body.sessions : []);
+  }, [d1Enabled]);
+
+  async function registerSessionRef(ref = viewportSessionRef, sequenceNo = 0) {
+    if (!d1Enabled || !ref) return;
+    const response = await fetch("/api/1lss/sessions", {
+      method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source_surface: surface,
+        session_ref: ref,
+        session_url: `${window.location.origin}${window.location.pathname}`,
+        label: surface === "ogenic-app" ? "OGENIC App viewport" : "OGENIC Web viewport",
+        sequence_no: sequenceNo || undefined,
+      }),
+    });
+    if (response.ok) await loadSessionRefs();
+  }
+
+  async function loadOlder() {
+    if (!d1Enabled) return;
+    const oldest = messages.reduce((min, row) => {
+      const seq = Number(row.sequence_no ?? 0);
+      return seq > 0 ? Math.min(min, seq) : min;
+    }, Number.POSITIVE_INFINITY);
+    const before = Number.isFinite(oldest) ? oldest : latestSequence + 1;
+    const response = await fetch(`/api/1lss/history-page?before_sequence=${before}&limit=60`, { credentials: "same-origin", cache: "no-store" });
+    if (!response.ok) return;
+    const body = await response.json().catch(() => ({})) as { messages?: Message[]; has_more?: boolean };
+    const older = Array.isArray(body.messages) ? body.messages : [];
+    setHistoryHasMore(Boolean(body.has_more));
+    setMessages((current) => {
+      const seen = new Set(current.map((row) => `${row.sequence_no ?? "x"}:${row.id ?? ""}`));
+      return [...older.filter((row) => !seen.has(`${row.sequence_no ?? "x"}:${row.id ?? ""}`)), ...current];
+    });
+    setInlineNotice(older.length ? `โหลด 1LSS เก่ามาอีก ${older.length} รายการ` : "ถึงต้นเส้นที่โหลดได้แล้ว");
+  }
+
+  async function openKnownSession(row: SessionRef) {
+    if (row.session_url && row.source_surface.startsWith("chatgpt")) {
+      window.open(row.session_url, "_blank", "noopener,noreferrer");
+      setNewDock(false);
+      return;
+    }
+    const response = await fetch(`/api/1lss/sessions/${encodeURIComponent(row.id)}`, { credentials: "same-origin", cache: "no-store" });
+    if (!response.ok) return;
+    const body = await response.json().catch(() => ({})) as { messages?: Message[]; session?: SessionRef };
+    const rows = Array.isArray(body.messages) ? body.messages : [];
+    setMessages(rows);
+    const first = Number(body.session?.first_sequence ?? row.first_sequence ?? 1);
+    setViewportFloor(Math.max(0, first - 1));
+    setNewDock(false);
+    setInlineNotice(`เปิด session ${row.label || row.source_surface} จาก 1LSS แล้ว`);
+  }
 
   const loadRuntime = useCallback(async () => {
     const [dashR, connectorR, platformR, manusR, browserR] = await Promise.all([
@@ -180,7 +258,7 @@ export default function UnifiedChat({ surface }: Props) {
       .then(async (response) => response.json())
       .then(async (body: Session) => {
         setSession(body);
-        if (body.authenticated) await Promise.all([loadRuntime(), loadHistory(0)]);
+        if (body.authenticated) await Promise.all([loadRuntime(), loadHistory(0), loadSessionRefs(), registerSessionRef(viewportSessionRef)]);
       })
       .catch(() => setSession({ authenticated: false, user: null }));
   }, [loadRuntime]);
@@ -196,7 +274,7 @@ export default function UnifiedChat({ surface }: Props) {
     setOwnerKey("");
     if (!response.ok || !body?.authenticated) { setAuthError(body?.message || body?.code || "Sign in failed"); return; }
     setSession(body);
-    await Promise.all([loadRuntime(), loadHistory(0)]);
+    await Promise.all([loadRuntime(), loadHistory(0), loadSessionRefs(), registerSessionRef(viewportSessionRef)]);
   }
 
   async function signOut() {
@@ -313,6 +391,9 @@ export default function UnifiedChat({ surface }: Props) {
         reasoning_effort: chatConfig.effort,
         token_boost: chatConfig.boost,
         source_surface: surface,
+        session_ref: viewportSessionRef,
+        session_url: `${window.location.origin}${window.location.pathname}`,
+        session_label: surface === "ogenic-app" ? "OGENIC App viewport" : "OGENIC Web viewport",
       }),
     });
     const body = await response.json().catch(() => ({}));
@@ -345,6 +426,9 @@ export default function UnifiedChat({ surface }: Props) {
 
   function startNew(memory: boolean) {
     setD1Enabled(memory);
+    const nextRef = makeViewportSessionRef(surface, false);
+    setViewportSessionRef(nextRef);
+    if (memory) void registerSessionRef(nextRef, latestSequence + 1);
     setViewportFloor(latestSequence);
     setMessages([]);
     setAttachments([]);
@@ -375,10 +459,11 @@ export default function UnifiedChat({ surface }: Props) {
       <button className="ucBrand" onClick={() => setNewDock((value) => !value)}><img src="/ogenic-icon-192.png" alt="" /><span><b>OGENIC</b><small>{surface === "ogenic-app" ? "APP" : "WEB"}</small></span></button>
       <div className="ucLineState"><b>1LSS #{String(latestSequence).padStart(4, "0")}</b><span className={d1Enabled ? "on" : "off"}>D1 {d1Enabled ? "●" : "○"}</span></div>
       <button className="ucNew" onClick={() => setNewDock((value) => !value)}>＋ New</button>
-      {newDock && <section className="ucNewDock"><strong>New chat viewport</strong><p>เส้นชีวิตไม่แตก ถ้าเปิด D1 จะต่อ owner-main หลังบ้าน</p><label><input type="checkbox" checked={d1Enabled} onChange={(event) => setD1Enabled(event.target.checked)} /> D1 · 1LSS Memory</label><div><button onClick={() => startNew(d1Enabled)}>Start</button><button className="ghost" onClick={() => setNewDock(false)}>Cancel</button></div></section>}
+      {newDock && <section className="ucNewDock"><strong>New chat viewport</strong><p>เส้นชีวิตไม่แตก ถ้าเปิด D1 จะต่อ owner-main หลังบ้าน</p><label><input type="checkbox" checked={d1Enabled} onChange={(event) => setD1Enabled(event.target.checked)} /> D1 · 1LSS Memory</label><div><button onClick={() => startNew(d1Enabled)}>Start</button><button className="ghost" onClick={() => void loadOlder()}>Load older</button><button className="ghost" onClick={() => setNewDock(false)}>Cancel</button></div>{!!sessionRefs.length && <div className="ucConnected"><small>RECENT DOORS</small><p>{sessionRefs.slice(0, 5).map((row) => `${row.label || row.source_surface} #${row.last_sequence || "?"}`).join(" · ")}</p><div>{sessionRefs.slice(0, 5).map((row) => <button key={row.id} className="ghost" onClick={() => void openKnownSession(row)}>{row.source_surface} · #{row.last_sequence || "?"}</button>)}</div></div>}</section>}
     </header>
 
     <section className="ucConversation">
+      {historyHasMore && <button className="ghost" onClick={() => void loadOlder()}>↑ Load older 1LSS</button>}
       {!messages.length && <div className="ucWelcome"><div className="ucOrb"><i /></div><small>AMMONITE · 1LSS</small><h1>What are we doing next?</h1><p>Chat, files, tools, live browser and agents — one line, no cockpit clutter.</p></div>}
       {messages.map((message, index) => <article key={message.id || index} className={`ucMessage ${message.role || "assistant"}`}>
         <div className="ucMessageMeta"><b>{message.role === "user" ? "YOU" : message.role === "system" ? "SYSTEM" : "AMMONITE"}</b><span>{message.sequence_no ? `#${message.sequence_no}` : ""}{message.source_surface ? ` · ${message.source_surface}` : ""}{message.created_at ? ` · ${timeAgo(message.created_at)}` : ""}</span></div>

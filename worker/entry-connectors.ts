@@ -9,8 +9,9 @@ import { createManusApi } from "./manus-api";
 import { createUnifiedChatApi, type UnifiedChatBindings } from "./unified-chat-api";
 import { createInlineToolsApi, type InlineToolBindings } from "./inline-tools-api";
 import { createLiveDoorApi, type LiveDoorBindings } from "./live-door-api";
+import { createSessionRecoveryApi, type SessionRecoveryBindings } from "./session-recovery-api";
 
-type Bindings = ConnectorAppBindings & ConnectorBindings & LiveAssistBindings & BrowserSessionBindings & UnifiedChatBindings & InlineToolBindings & LiveDoorBindings & { MANUS_API_KEY?: string };
+type Bindings = ConnectorAppBindings & ConnectorBindings & LiveAssistBindings & BrowserSessionBindings & UnifiedChatBindings & InlineToolBindings & LiveDoorBindings & SessionRecoveryBindings & { MANUS_API_KEY?: string };
 
 const connectorApi = createConnectorAppApi();
 const providerConnectApi = createProviderConnectApi();
@@ -21,6 +22,7 @@ const manusApi = createManusApi();
 const unifiedChatApi = createUnifiedChatApi();
 const inlineToolsApi = createInlineToolsApi();
 const liveDoorApi = createLiveDoorApi();
+const sessionRecoveryApi = createSessionRecoveryApi();
 const publicHooks = createPublicHookApi();
 
 const ONE_LINE_ID = "owner-main";
@@ -160,6 +162,9 @@ export default {
     }
     if (pathname === "/api/live-door") {
       return liveDoorApi.fetch(request, env, ctx as never);
+    }
+    if (pathname === "/api/1lss/history-page" || pathname === "/api/1lss/sessions" || pathname.startsWith("/api/1lss/sessions/")) {
+      return sessionRecoveryApi.fetch(request, env, ctx as never);
     }
     if (pathname === "/api/chat/ephemeral" || pathname === "/api/1lss/event") {
       return unifiedChatApi.fetch(request, env, ctx as never);

@@ -169,7 +169,7 @@ export function createSessionRecoveryApi() {
     const db = c.env.DB;
     if (!db) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
     await ensureConversation(db);
-    const body = await c.req.json<Record<string, unknown>>().catch(() => ({}));
+    const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
     const source = cleanSurface(body.source_surface);
     const sessionRef = clean(body.session_ref, 220);
     const sessionUrl = safeSessionUrl(body.session_url);
