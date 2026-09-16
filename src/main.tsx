@@ -15,12 +15,12 @@ import "./control-plane-v2.css";
 import "./connector-panel.css";
 import "./provider-connect.css";
 import "./live-assist.css";
-import "./mobile-fixes.css";
 import "./openai-platform-theme.css";
 import "./gag-vault.css";
 import "./dense-mobile.css";
 import "./mobile-app.css";
 import "./unified-chat.css";
+import "./mobile-fixes.css";
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
