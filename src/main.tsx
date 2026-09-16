@@ -10,7 +10,7 @@ import ProviderConnectWizard from "./ProviderConnectWizard";
 import GagVault from "./GagVault";
 import LiveAssist from "./LiveAssist";
 import ThemeController from "./ThemeController";
-import MobileApp from "./MobileApp";
+import UnifiedChat from "./UnifiedChat";
 import "./control-plane-v2.css";
 import "./connector-panel.css";
 import "./provider-connect.css";
@@ -20,6 +20,7 @@ import "./openai-platform-theme.css";
 import "./gag-vault.css";
 import "./dense-mobile.css";
 import "./mobile-app.css";
+import "./unified-chat.css";
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -28,11 +29,15 @@ if ("serviceWorker" in navigator) {
 }
 
 const pathname = window.location.pathname;
-const mobileSurface = Capacitor.isNativePlatform() || pathname === "/app" || pathname.startsWith("/app/") || new URLSearchParams(window.location.search).get("mobile") === "1";
+const nativeApp = Capacitor.isNativePlatform();
+const appRoute = pathname === "/app" || pathname.startsWith("/app/") || new URLSearchParams(window.location.search).get("mobile") === "1";
+const webChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
+const unifiedChatSurface = nativeApp || appRoute || webChatRoute;
+const sourceSurface = nativeApp || appRoute ? "ogenic-app" as const : "ogenic-web" as const;
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    {mobileSurface ? <MobileApp /> : <>
+    {unifiedChatSurface ? <UnifiedChat surface={sourceSurface} /> : <>
       <ControlPlaneV2 />
       <ChatModelRouter />
       <AppEnhancements />

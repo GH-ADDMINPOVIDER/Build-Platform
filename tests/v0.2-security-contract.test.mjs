@@ -96,3 +96,45 @@ test("1LSS is one canonical ordered owner-main line across live chat doors", asy
   assert.match(migration, /idx_chat_messages_conversation_sequence/);
   assert.match(migration, /idx_chat_messages_conversation_idempotency/);
 });
+
+test("UnifiedChat gives web and native app one capability surface without cloning 1LSS", async () => {
+  const main = await read("src/main.tsx");
+  const ui = await read("src/UnifiedChat.tsx");
+  const router = await read("worker/entry-connectors.ts");
+  const unified = await read("worker/unified-chat-api.ts");
+  const inline = await read("worker/inline-tools-api.ts");
+  const liveDoor = await read("worker/live-door-api.ts");
+
+  assert.match(main, /pathname === "\/chat"/);
+  assert.match(main, /<UnifiedChat surface=\{sourceSurface\}/);
+  assert.match(main, /nativeApp \|\| appRoute \|\| webChatRoute/);
+  assert.doesNotMatch(ui, /OGENIC_OPS_KEY|GITHUB_TOKEN|LINEAR_API_KEY|N8N_API_KEY|OPENAI_API_KEY|MANUS_API_KEY/);
+  assert.match(ui, /\/api\/chat\/history/);
+  assert.match(ui, /sequence_no/);
+  assert.match(ui, /D1 · 1LSS/);
+  assert.match(ui, /\/api\/chat\/ephemeral/);
+  assert.match(ui, /\/api\/1lss\/event/);
+  assert.match(ui, /\/api\/inline\/tool/);
+  assert.match(ui, /\/api\/live-door/);
+  assert.match(ui, /\/api\/manus\/task/);
+  assert.match(ui, /Included quota หมด/);
+
+  assert.match(router, /createUnifiedChatApi/);
+  assert.match(router, /createInlineToolsApi/);
+  assert.match(router, /createLiveDoorApi/);
+  assert.match(router, /pathname === "\/api\/1lss\/event"/);
+  assert.match(router, /pathname === "\/api\/inline\/tool"/);
+  assert.match(router, /pathname === "\/api\/live-door"/);
+
+  assert.match(unified, /CONVERSATION_ID = "owner-main"/);
+  assert.match(unified, /SECRET_LIKE_CONTENT_REJECTED/);
+  assert.match(unified, /memory: "OFF"/);
+  assert.match(inline, /readLiveTools/);
+  assert.match(inline, /read_only: true/);
+
+  assert.match(liveDoor, /BROWSER_QUOTA_FIRST/);
+  assert.match(liveDoor, /openai_tokens_used: 0/);
+  assert.match(liveDoor, /WAITING_HUMAN_SECRET/);
+  assert.match(liveDoor, /WAITING_HUMAN_CONSENT/);
+  assert.match(liveDoor, /STOP_BEFORE_PASSWORD_OTP_CAPTCHA_CONSENT/);
+});

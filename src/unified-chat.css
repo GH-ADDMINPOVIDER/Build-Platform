@@ -1,0 +1,197 @@
+:root {
+  --uc-bg: #f6f7fb;
+  --uc-panel: rgba(255,255,255,.88);
+  --uc-card: #ffffff;
+  --uc-text: #111318;
+  --uc-sub: #6b7280;
+  --uc-line: rgba(17,19,24,.09);
+  --uc-accent: #2f6df6;
+  --uc-accent-soft: rgba(47,109,246,.10);
+  --uc-green: #18a66a;
+  --uc-warn: #d97706;
+  --uc-shadow: 0 18px 60px rgba(18,24,40,.12);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --uc-bg: #0d0f13;
+    --uc-panel: rgba(18,20,26,.88);
+    --uc-card: #151820;
+    --uc-text: #f6f7fb;
+    --uc-sub: #9ca3af;
+    --uc-line: rgba(255,255,255,.10);
+    --uc-accent: #78a2ff;
+    --uc-accent-soft: rgba(120,162,255,.13);
+    --uc-shadow: 0 18px 60px rgba(0,0,0,.38);
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, textarea, input { font: inherit; }
+button { color: inherit; }
+.ucHidden { display: none !important; }
+.ucShell, .ucSplash, .ucAuth {
+  min-height: 100dvh;
+  color: var(--uc-text);
+  background:
+    radial-gradient(circle at 50% -12%, rgba(74,129,255,.16), transparent 36%),
+    var(--uc-bg);
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+}
+.ucSplash, .ucAuth { display: grid; place-items: center; padding: 24px; }
+.ucSplash { gap: 10px; align-content: center; }
+.ucSplash img, .ucAuth img { width: 52px; height: 52px; border-radius: 15px; box-shadow: 0 12px 34px rgba(47,109,246,.20); }
+.ucSplash b { font-size: 20px; letter-spacing: .02em; }
+.ucSplash span { color: var(--uc-sub); font-size: 13px; }
+.ucAuth section { width: min(420px, 100%); padding: 34px; border: 1px solid var(--uc-line); background: var(--uc-panel); backdrop-filter: blur(22px); border-radius: 28px; box-shadow: var(--uc-shadow); }
+.ucAuth small { display: block; margin-top: 18px; color: var(--uc-accent); font-weight: 750; letter-spacing: .13em; font-size: 10px; }
+.ucAuth h1 { margin: 8px 0 4px; font-size: 34px; letter-spacing: -.045em; }
+.ucAuth p { color: var(--uc-sub); margin: 0 0 24px; }
+.ucAuth input { width: 100%; border: 1px solid var(--uc-line); background: var(--uc-card); color: var(--uc-text); padding: 15px 16px; border-radius: 16px; outline: none; }
+.ucAuth input:focus { border-color: var(--uc-accent); box-shadow: 0 0 0 4px var(--uc-accent-soft); }
+.ucAuth button { width: 100%; border: 0; background: var(--uc-text); color: var(--uc-bg); border-radius: 16px; padding: 14px 16px; margin-top: 12px; font-weight: 750; cursor: pointer; }
+.ucAuth em { display: block; color: #e04b52; margin-top: 12px; font-size: 12px; font-style: normal; }
+
+.ucShell { display: flex; flex-direction: column; overflow: hidden; }
+.ucTopbar {
+  position: sticky; top: 0; z-index: 30;
+  width: 100%; min-height: 66px; padding: max(10px, env(safe-area-inset-top)) 18px 10px;
+  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px;
+  background: color-mix(in srgb, var(--uc-bg) 82%, transparent);
+  backdrop-filter: blur(24px) saturate(130%);
+  border-bottom: 1px solid var(--uc-line);
+}
+.ucBrand { display: flex; align-items: center; gap: 10px; background: transparent; border: 0; padding: 0; text-align: left; cursor: pointer; min-width: 0; }
+.ucBrand img { width: 32px; height: 32px; border-radius: 10px; }
+.ucBrand span { display: flex; align-items: baseline; gap: 7px; }
+.ucBrand b { font-size: 14px; letter-spacing: .02em; }
+.ucBrand small { font-size: 9px; letter-spacing: .12em; color: var(--uc-sub); font-weight: 800; }
+.ucLineState { display: flex; align-items: center; gap: 7px; border: 1px solid var(--uc-line); background: var(--uc-panel); border-radius: 999px; padding: 7px 10px; white-space: nowrap; }
+.ucLineState b { font-size: 10px; letter-spacing: .05em; }
+.ucLineState span { font-size: 10px; font-weight: 750; color: var(--uc-sub); }
+.ucLineState span.on { color: var(--uc-green); }
+.ucNew { border: 0; background: var(--uc-text); color: var(--uc-bg); border-radius: 999px; padding: 9px 13px; font-weight: 750; font-size: 12px; cursor: pointer; }
+.ucNewDock {
+  position: absolute; right: 16px; top: calc(100% + 8px); width: min(330px, calc(100vw - 32px));
+  padding: 16px; border: 1px solid var(--uc-line); background: var(--uc-panel); backdrop-filter: blur(24px);
+  border-radius: 22px; box-shadow: var(--uc-shadow); z-index: 40;
+}
+.ucNewDock strong { font-size: 14px; }
+.ucNewDock p { color: var(--uc-sub); font-size: 12px; line-height: 1.45; margin: 6px 0 12px; }
+.ucNewDock label { display: flex; gap: 9px; align-items: center; padding: 10px 0 14px; font-size: 13px; font-weight: 650; }
+.ucNewDock > div { display: flex; gap: 8px; }
+.ucNewDock button { border: 0; background: var(--uc-text); color: var(--uc-bg); border-radius: 12px; padding: 9px 13px; font-weight: 700; cursor: pointer; }
+.ucNewDock button.ghost { background: var(--uc-accent-soft); color: var(--uc-text); }
+
+.ucConversation {
+  flex: 1 1 auto; overflow-y: auto; min-height: 0;
+  width: min(880px, 100%); margin: 0 auto; padding: 34px 20px 260px;
+  scrollbar-width: thin;
+}
+.ucWelcome { min-height: min(52dvh, 520px); display: grid; align-content: center; justify-items: center; text-align: center; padding: 40px 10px; }
+.ucOrb { width: 54px; height: 54px; border-radius: 18px; background: linear-gradient(145deg, #0f172a, #376fff 58%, #83a8ff); box-shadow: 0 18px 55px rgba(47,109,246,.30); display: grid; place-items: center; margin-bottom: 20px; }
+.ucOrb i { width: 14px; height: 14px; border-radius: 50%; background: white; box-shadow: 0 0 24px rgba(255,255,255,.8); }
+.ucWelcome small { color: var(--uc-accent); letter-spacing: .13em; font-weight: 800; font-size: 10px; }
+.ucWelcome h1 { margin: 8px 0; font-size: clamp(31px, 6vw, 52px); letter-spacing: -.055em; line-height: 1.02; }
+.ucWelcome p { max-width: 540px; color: var(--uc-sub); font-size: 14px; line-height: 1.55; margin: 0; }
+.ucMessage { max-width: 760px; margin: 0 auto 18px; }
+.ucMessage.user { width: fit-content; max-width: min(680px, 88%); margin-left: auto; margin-right: max(0px, calc((100% - 760px)/2)); border-radius: 22px 22px 6px 22px; padding: 12px 15px; background: var(--uc-accent-soft); }
+.ucMessage.assistant, .ucMessage.system { padding: 0 4px; }
+.ucMessage.system { border-left: 2px solid var(--uc-warn); padding-left: 13px; }
+.ucMessageMeta { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.ucMessageMeta b { font-size: 10px; letter-spacing: .08em; }
+.ucMessageMeta span { color: var(--uc-sub); font-size: 10px; }
+.ucMessage p { white-space: pre-wrap; word-break: break-word; margin: 0; line-height: 1.58; font-size: 15px; }
+.ucMessage > small { color: var(--uc-sub); display: block; margin-top: 6px; font-size: 10px; }
+.ucThinking { color: var(--uc-sub); letter-spacing: .25em; animation: ucPulse 1.2s infinite ease-in-out; }
+@keyframes ucPulse { 50% { opacity: .4; } }
+
+.ucComposerWrap {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+  padding: 8px 16px max(10px, env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--uc-bg) 92%, transparent) 20%, var(--uc-bg) 56%);
+}
+.ucComposerWrap > * { width: min(850px, 100%); margin-left: auto; margin-right: auto; }
+.ucDock {
+  max-height: min(58dvh, 520px); overflow-y: auto; margin-bottom: 8px !important;
+  border: 1px solid var(--uc-line); border-radius: 24px; background: var(--uc-panel); backdrop-filter: blur(28px) saturate(130%);
+  box-shadow: var(--uc-shadow); padding: 13px;
+}
+.ucDockHead { display: flex; align-items: center; justify-content: space-between; padding: 4px 5px 10px; }
+.ucDockHead > div { display: grid; gap: 2px; }
+.ucDockHead b { font-size: 14px; }
+.ucDockHead small { color: var(--uc-sub); font-size: 10px; }
+.ucDockHead > button { border: 0; background: var(--uc-accent-soft); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
+.ucMemoryRow, .ucQuotaRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border-radius: 17px; background: color-mix(in srgb, var(--uc-card) 78%, transparent); margin-bottom: 8px; }
+.ucMemoryRow span, .ucQuotaRow span { display: grid; gap: 2px; }
+.ucMemoryRow b, .ucQuotaRow b { font-size: 13px; }
+.ucMemoryRow small, .ucQuotaRow small { color: var(--uc-sub); font-size: 10px; }
+.toggle { width: 44px; height: 26px; border-radius: 999px; border: 0; padding: 3px; background: #cfd3da; cursor: pointer; }
+.toggle i { display: block; width: 20px; height: 20px; border-radius: 50%; background: white; transition: .18s ease; box-shadow: 0 2px 7px rgba(0,0,0,.12); }
+.toggle.on { background: var(--uc-accent); }
+.toggle.on i { transform: translateX(18px); }
+.ucCapability { width: 100%; display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 10px; border: 0; background: transparent; color: inherit; text-align: left; padding: 10px; border-radius: 16px; cursor: pointer; }
+.ucCapability:hover, .ucCapability.active { background: var(--uc-accent-soft); }
+.ucCapability > span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--uc-card); border: 1px solid var(--uc-line); font-weight: 800; }
+.ucCapability > div { min-width: 0; display: grid; gap: 2px; }
+.ucCapability b { font-size: 13px; }
+.ucCapability small { color: var(--uc-sub); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ucCapability em { color: var(--uc-sub); font-style: normal; font-weight: 800; }
+.ucConnected { padding: 10px 12px; margin: 7px 0; border-top: 1px solid var(--uc-line); }
+.ucConnected small { color: var(--uc-sub); letter-spacing: .1em; font-size: 9px; font-weight: 800; }
+.ucConnected p { margin: 5px 0 0; color: var(--uc-sub); font-size: 11px; line-height: 1.45; }
+.ucFallback { border: 1px solid var(--uc-line); background: var(--uc-card); color: var(--uc-sub); padding: 7px 9px; border-radius: 10px; font-size: 10px; font-weight: 750; cursor: pointer; }
+.ucFallback.on { background: #fff4e7; color: #a85b00; border-color: #ffd6a6; }
+.ucModelList { display: grid; gap: 5px; }
+.ucModelList button { border: 0; background: transparent; display: flex; align-items: center; justify-content: space-between; text-align: left; padding: 11px 12px; border-radius: 15px; color: inherit; cursor: pointer; }
+.ucModelList button.active { background: var(--uc-accent-soft); }
+.ucModelList span { display: grid; gap: 2px; }
+.ucModelList b { font-size: 13px; }
+.ucModelList small { color: var(--uc-sub); font-size: 10px; }
+.ucModelList em { color: var(--uc-accent); font-style: normal; font-weight: 800; }
+.ucEffort, .ucBoost { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ucEffort button, .ucBoost button { border: 1px solid var(--uc-line); background: var(--uc-card); color: var(--uc-sub); border-radius: 999px; padding: 7px 10px; font-size: 10px; cursor: pointer; }
+.ucEffort button.active, .ucBoost button.active { background: var(--uc-text); color: var(--uc-bg); border-color: var(--uc-text); }
+.ucActiveTool { display: flex; width: fit-content !important; margin-bottom: 6px !important; margin-left: max(0px, calc((100% - min(850px,100%))/2)); gap: 6px; align-items: center; padding: 5px 8px 5px 10px; border-radius: 999px; background: var(--uc-accent-soft); color: var(--uc-accent); font-size: 10px; font-weight: 800; letter-spacing: .06em; }
+.ucActiveTool button { border: 0; background: transparent; color: inherit; cursor: pointer; }
+.ucAttachments { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 6px !important; }
+.ucAttachments button { flex: 0 0 auto; border: 1px solid var(--uc-line); background: var(--uc-card); color: var(--uc-text); border-radius: 999px; padding: 6px 9px; font-size: 10px; cursor: pointer; }
+.ucNotice { margin-bottom: 6px !important; color: var(--uc-sub); font-size: 10px; padding: 0 7px; }
+.ucQuotaWarn { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 6px !important; border: 1px solid #ffd6a6; background: #fff6eb; color: #8b4a00; border-radius: 14px; font-size: 10px; }
+.ucQuotaWarn b { white-space: nowrap; }
+.ucQuotaWarn span { flex: 1; }
+.ucQuotaWarn button { border: 0; background: #8b4a00; color: white; border-radius: 9px; padding: 6px 8px; cursor: pointer; }
+.ucComposer { border: 1px solid var(--uc-line); border-radius: 25px; background: var(--uc-panel); backdrop-filter: blur(26px) saturate(135%); box-shadow: 0 14px 45px rgba(18,24,40,.10); padding: 10px 10px 8px; }
+.ucComposer textarea { width: 100%; max-height: 180px; min-height: 48px; resize: none; border: 0; outline: none; background: transparent; color: var(--uc-text); padding: 8px 10px; line-height: 1.45; font-size: 15px; }
+.ucComposer textarea::placeholder { color: color-mix(in srgb, var(--uc-sub) 76%, transparent); }
+.ucComposerBar { display: flex; align-items: center; gap: 7px; }
+.ucRound, .ucSend { border: 0; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
+.ucRound { background: var(--uc-accent-soft); color: var(--uc-text); font-size: 23px; font-weight: 300; }
+.ucSend { margin-left: auto; background: var(--uc-text); color: var(--uc-bg); font-size: 19px; font-weight: 800; }
+.ucSend:disabled { opacity: .28; cursor: default; }
+.ucModel { min-width: 0; display: flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--uc-text); padding: 5px 3px; cursor: pointer; }
+.ucModel i { width: 8px; height: 8px; border-radius: 50%; background: var(--uc-accent); box-shadow: 0 0 0 3px var(--uc-accent-soft); }
+.ucModel b { font-size: 11px; }
+.ucModel small { color: var(--uc-sub); font-size: 9px; }
+.ucQuotaMini { margin-left: auto; color: var(--uc-sub); font-size: 9px; font-weight: 700; white-space: nowrap; }
+.ucFooterLine { display: flex; align-items: center; gap: 8px; padding: 5px 7px 0; color: var(--uc-sub); font-size: 9px; }
+.ucFooterLine span { flex: 1; }
+.ucFooterLine button { border: 0; background: transparent; color: var(--uc-sub); font-size: 9px; cursor: pointer; }
+
+@media (max-width: 700px) {
+  .ucTopbar { grid-template-columns: 1fr auto; }
+  .ucLineState { position: absolute; left: 50%; transform: translateX(-50%); top: max(13px, env(safe-area-inset-top)); padding: 6px 8px; }
+  .ucLineState b { font-size: 9px; }
+  .ucLineState span { font-size: 9px; }
+  .ucBrand span { display: none; }
+  .ucNew { padding: 8px 11px; }
+  .ucConversation { padding: 25px 15px 250px; }
+  .ucWelcome { min-height: 46dvh; }
+  .ucWelcome h1 { font-size: 34px; }
+  .ucWelcome p { font-size: 13px; }
+  .ucMessage p { font-size: 14px; }
+  .ucComposerWrap { padding-left: 10px; padding-right: 10px; }
+  .ucDock { border-radius: 22px; max-height: 52dvh; }
+  .ucModel small { display: none; }
+  .ucQuotaMini { display: none; }
+  .ucActiveTool { margin-left: 0 !important; }
+}

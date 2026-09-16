@@ -6,8 +6,11 @@ import { createLiveAssistApi, type LiveAssistBindings } from "./live-assist-api"
 import { createBrowserSessionApi, type BrowserSessionBindings } from "./browser-session-api";
 import { createChatModelApi } from "./chat-model-api";
 import { createManusApi } from "./manus-api";
+import { createUnifiedChatApi, type UnifiedChatBindings } from "./unified-chat-api";
+import { createInlineToolsApi, type InlineToolBindings } from "./inline-tools-api";
+import { createLiveDoorApi, type LiveDoorBindings } from "./live-door-api";
 
-type Bindings = ConnectorAppBindings & ConnectorBindings & LiveAssistBindings & BrowserSessionBindings & { MANUS_API_KEY?: string };
+type Bindings = ConnectorAppBindings & ConnectorBindings & LiveAssistBindings & BrowserSessionBindings & UnifiedChatBindings & InlineToolBindings & LiveDoorBindings & { MANUS_API_KEY?: string };
 
 const connectorApi = createConnectorAppApi();
 const providerConnectApi = createProviderConnectApi();
@@ -15,6 +18,9 @@ const liveAssistApi = createLiveAssistApi();
 const browserSessionApi = createBrowserSessionApi();
 const chatModelApi = createChatModelApi();
 const manusApi = createManusApi();
+const unifiedChatApi = createUnifiedChatApi();
+const inlineToolsApi = createInlineToolsApi();
+const liveDoorApi = createLiveDoorApi();
 const publicHooks = createPublicHookApi();
 
 const ONE_LINE_ID = "owner-main";
@@ -105,7 +111,6 @@ async function stampFunctionTurn(request: Request, response: Response, env: Bind
     const name = clip(call.name, 100) || "unknown";
     const state = clip(call.state, 100) || "RESULT";
     const callId = clip(call.call_id, 120) || crypto.randomUUID();
-    // Keep only non-secret tool metadata on the life line. Arguments/results stay server-side.
     await appendOneLine(env, "system", `[TOOL ${name}] ${state}`, sourceSurface, `${requestKey}:tool:${callId}`);
   }
   if (text) {
@@ -113,7 +118,6 @@ async function stampFunctionTurn(request: Request, response: Response, env: Bind
   }
 }
 
-// 1LSS: every live-chat door is normalized into the same owner-main handler.
 async function canonicalChatModelRequest(request: Request, sourceSurface?: ChatSurface) {
   const url = new URL(request.url);
   url.pathname = "/api/chat/model";
@@ -153,6 +157,15 @@ export default {
     }
     if (pathname === "/api/browser-session" || pathname.startsWith("/api/browser-session/")) {
       return browserSessionApi.fetch(request, env, ctx as never);
+    }
+    if (pathname === "/api/live-door") {
+      return liveDoorApi.fetch(request, env, ctx as never);
+    }
+    if (pathname === "/api/chat/ephemeral" || pathname === "/api/1lss/event") {
+      return unifiedChatApi.fetch(request, env, ctx as never);
+    }
+    if (pathname === "/api/inline/tool") {
+      return inlineToolsApi.fetch(request, env, ctx as never);
     }
     if (pathname === "/api/chat/history") {
       return chatModelApi.fetch(request, env, ctx as never);
