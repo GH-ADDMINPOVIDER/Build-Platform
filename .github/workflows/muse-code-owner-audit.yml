@@ -1,0 +1,123 @@
+name: Muse Code Owner Audit
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/muse-code-owner-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: muse-code-owner-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout staging branch read-only
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install official Muse Code CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://dev.meta.ai/install.sh -o /tmp/muse-install.sh
+          bash /tmp/muse-install.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/muse" --version
+
+      - name: Meta account login — OWNER APPROVAL GATE
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          unset META_API_KEY || true
+          echo "============================================================"
+          echo "OWNER ACTION REQUIRED: Muse will print a Meta verification URL/code below."
+          echo "Approve it in your browser. Do NOT paste passwords/tokens into GitHub or chat."
+          echo "This run intentionally has NO META_API_KEY and will not use API-key billing."
+          echo "============================================================"
+          timeout 480s muse login
+          echo "Meta account login approved for this ephemeral runner."
+
+      - name: Run read-only OGENIC architecture audit with Muse
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          unset META_API_KEY || true
+          cat > /tmp/muse-audit-prompt.md <<'PROMPT'
+          You are auditing the private OGENIC staging repository. Do not modify files, do not run shell commands, do not use web tools, do not commit, push, deploy, or alter external systems.
+
+          Scope ONLY the current branch: phase-vi-provider-incentive-metering.
+
+          Read the repository and produce a concise engineering audit of the current OGENIC architecture, focusing on:
+          1. 1LSS / owner-main: one canonical ordered D1 conversation line across OGENIC Web, OGENIC App, ChatGPT-dev bridge and external harness doors.
+          2. UnifiedChat: Web /chat and native /app should share the same model/reasoning/tool configuration and not fork state.
+          3. D1 sequence_no, source_surface, idempotency_key and safe tool-event stamping.
+          4. LockSession concept: many reusable authenticated doors, but never parallel conversation histories. Secrets must never enter chat/D1/git.
+          5. Live Door: Cloudflare Browser Run first, human takeover before password/OTP/MFA/captcha/secret/consent.
+          6. Quota-first routing: provider included/subscription quota first; never silently fall back to paid API.
+          7. Muse Code integration: Muse must be an execution lane/worker, not a second source of memory. D1 owner-main remains canonical truth.
+
+          Identify concrete bugs, mismatches, unsafe assumptions, duplicated state, missing tests, and the smallest next implementation steps. Distinguish VERIFIED code facts from recommendations. Do not propose touching main, prod, or Candy.
+
+          End with exactly three headings: VERIFIED, GAPS, NEXT_SAFE_PATCH.
+          PROMPT
+
+          timeout 360s muse exec \
+            --provider meta \
+            --json \
+            --reasoning-effort low \
+            --workspace "$GITHUB_WORKSPACE" \
+            --disable-write \
+            --disable-shell \
+            --disable-web-tools \
+            --no-foreign-personal-context \
+            --approval-mode untrusted \
+            --max-model-steps 8 \
+            --max-tool-output-bytes 12000 \
+            --prompt-file /tmp/muse-audit-prompt.md \
+            > /tmp/muse-audit.ndjson
+
+          jq -r 'select(.payload_type=="run.terminal.completed") | .payload.text // empty' /tmp/muse-audit.ndjson | tail -n 1 > /tmp/muse-audit.txt
+          test -s /tmp/muse-audit.txt
+          cat /tmp/muse-audit.txt
+          {
+            echo "## Muse Code read-only OGENIC audit"
+            echo
+            echo '```text'
+            sed -n '1,220p' /tmp/muse-audit.txt
+            echo '```'
+            echo
+            echo "- Branch: phase-vi-provider-incentive-metering"
+            echo "- Workspace writes: DISABLED"
+            echo "- Shell: DISABLED"
+            echo "- Web tools: DISABLED"
+            echo "- API key route: DISABLED (account login only)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload redacted audit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: muse-code-ogenic-readonly-audit
+          path: |
+            /tmp/muse-audit.txt
+            /tmp/muse-audit.ndjson
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Logout Muse account from ephemeral runner
+        if: always()
+        shell: bash
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          unset META_API_KEY || true
+          muse logout >/dev/null 2>&1 || true
