@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "owner_line": "owner-main",
+  "enabled": true,
+  "history_paging": true,
+  "session_reference_registry": true,
+  "safe_url_policy": "origin+pathname only",
+  "surfaces": [
+    "ogenic-web",
+    "ogenic-app",
+    "chatgpt-dev",
+    "chatgpt-app",
+    "external-harness"
+  ],
+  "policy": {
+    "no_parallel_canonical_history": true,
+    "no_raw_secrets": true,
+    "session_reference_only_when_supplied": true
+  }
+}
