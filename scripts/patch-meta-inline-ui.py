@@ -17,7 +17,11 @@ replacements = [
     ),
     (
         '    { id: "n8n", label: "n8n", sub: liveTools.get("n8n")?.summary || "Workflows", live: toolLive(liveTools.get("n8n")?.state) },\n    { id: "manus",',
-        '    { id: "n8n", label: "n8n", sub: liveTools.get("n8n")?.summary || "Workflows", live: toolLive(liveTools.get("n8n")?.state) },\n    { id: "meta", label: "Meta", sub: liveTools.get("meta")?.summary || "Facebook · Instagram · WhatsApp · Threads · Muse", live: toolLive(liveTools.get("meta")?.state) },\n    { id: "manus",'
+        '    { id: "n8n", label: "n8n", sub: liveTools.get("n8n")?.summary || "Workflows", live: toolLive(liveTools.get("n8n")?.state) },\n    { id: "meta", label: "Meta Facebook", sub: liveTools.get("meta")?.summary || "Facebook Page · Messenger · Instagram optional", live: toolLive(liveTools.get("meta")?.state) },\n    { id: "manus",'
+    ),
+    (
+        '    { id: "meta", label: "Meta", sub: liveTools.get("meta")?.summary || "Facebook · Instagram · WhatsApp · Threads · Muse", live: toolLive(liveTools.get("meta")?.state) },',
+        '    { id: "meta", label: "Meta Facebook", sub: liveTools.get("meta")?.summary || "Facebook Page · Messenger · Instagram optional", live: toolLive(liveTools.get("meta")?.state) },'
     ),
 ]
 changed = False
@@ -33,6 +37,6 @@ for before, after in replacements:
         raise SystemExit(f'PATCH_CONTRACT_FAILED neither old nor new pattern found: {before[:120]}')
 if changed:
     path.write_text(text, encoding='utf-8')
-    print('PATCH_OK Meta inline tool enabled in UnifiedChat')
+    print('PATCH_OK Meta UI scoped to Facebook; Instagram optional')
 else:
     print('PATCH_OK already applied; no changes')
