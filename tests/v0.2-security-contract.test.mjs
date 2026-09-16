@@ -49,27 +49,50 @@ test("deployment remains locked to the staging feature branch", async () => {
   assert.doesNotMatch(workflow, /wrangler deploy[^\n]*--env prod/);
 });
 
-test("SAME MIND is locked to one canonical owner session line", async () => {
+test("1LSS is one canonical ordered owner-main line across live chat doors", async () => {
   const entry = await read("worker/entry.ts");
   const modelApi = await read("worker/chat-model-api.ts");
   const liveAssist = await read("worker/live-assist-api.ts");
   const connectorEntry = await read("worker/entry-connectors.ts");
   const desktop = await read("src/ControlPlaneV2.tsx");
   const mobile = await read("src/MobileApp.tsx");
+  const migration = await read("database/migrations/0010_1lss_canonical_line.sql");
 
   assert.match(entry, /SAME_MIND_CONVERSATION_ID = "owner-main"/);
   assert.match(modelApi, /CONVERSATION_ID = "owner-main"/);
   assert.match(liveAssist, /SAME_MIND_CONVERSATION_ID = "owner-main"/);
-  assert.match(entry, /\/api\/chat\/history/);
+  assert.match(modelApi, /session_line: "1LSS_OWNER_MAIN"/);
+  assert.match(liveAssist, /session_line: "1LSS_OWNER_MAIN"/);
+
   assert.match(desktop, /fetch\("\/api\/chat\/history"/);
   assert.match(desktop, /body\.messages\.slice\(-60\)/);
   assert.match(mobile, /fetch\("\/api\/chat\/history"/);
-
-  assert.match(connectorEntry, /pathname === "\/api\/chat\/model" \|\| pathname === "\/api\/chat\/api"/);
+  assert.match(connectorEntry, /pathname === "\/api\/chat"/);
+  assert.match(connectorEntry, /pathname === "\/api\/chat\/api"/);
+  assert.match(connectorEntry, /pathname === "\/api\/chat\/model"/);
+  assert.match(connectorEntry, /pathname === "\/api\/1lss\/chat"/);
+  assert.match(connectorEntry, /"ogenic-web"/);
+  assert.match(connectorEntry, /"chatgpt-dev"/);
   assert.match(connectorEntry, /canonicalChatModelRequest/);
-  assert.match(modelApi, /ORDER BY created_at DESC, rowid DESC/);
+
+  assert.match(modelApi, /sequence_no/);
+  assert.match(modelApi, /source_surface/);
+  assert.match(modelApi, /idempotency_key/);
+  assert.match(modelApi, /ORDER BY sequence_no DESC, created_at DESC, rowid DESC/);
   assert.match(modelApi, /HISTORY_LIMIT = 60/);
+  assert.match(modelApi, /You are Ammonite/);
   assert.match(modelApi, /Temporal references/);
   assert.match(modelApi, /Distinguish "last interaction\/conversation" from "latest project state\/status"/);
-  assert.match(modelApi, /session_line: "CANONICAL_OWNER_MAIN"/);
+
+  assert.match(liveAssist, /source_surface, idempotency_key/);
+  assert.match(liveAssist, /'live-assist'/);
+  assert.match(liveAssist, /ORDER BY sequence_no DESC, created_at DESC, rowid DESC/);
+
+  assert.match(migration, /last_sequence INTEGER NOT NULL DEFAULT 0/);
+  assert.match(migration, /sequence_no INTEGER/);
+  assert.match(migration, /source_surface TEXT NOT NULL DEFAULT 'legacy'/);
+  assert.match(migration, /idempotency_key TEXT/);
+  assert.match(migration, /ROW_NUMBER\(\) OVER/);
+  assert.match(migration, /idx_chat_messages_conversation_sequence/);
+  assert.match(migration, /idx_chat_messages_conversation_idempotency/);
 });
