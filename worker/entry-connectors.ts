@@ -17,7 +17,101 @@ const chatModelApi = createChatModelApi();
 const manusApi = createManusApi();
 const publicHooks = createPublicHookApi();
 
+const ONE_LINE_ID = "owner-main";
 type ChatSurface = "ogenic-web" | "chatgpt-dev" | "external-harness";
+type FunctionTurnBody = { prompt?: unknown; source_surface?: unknown };
+type FunctionTurnResponse = {
+  ok?: boolean;
+  text?: unknown;
+  model?: unknown;
+  function_calls?: Array<{ name?: unknown; state?: unknown; call_id?: unknown }>;
+};
+
+const clip = (value: unknown, max: number) => String(value ?? "").trim().slice(0, max);
+
+async function ensureOneLine(env: Bindings) {
+  if (!env.DB) return;
+  const now = Date.now();
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO chat_conversations (id, owner_id, title, created_at, updated_at)
+     VALUES (?, 'owner', 'OGENIC SAME MIND', ?, ?)`,
+  ).bind(ONE_LINE_ID, now, now).run();
+}
+
+async function nextOneLineSequence(env: Bindings) {
+  if (!env.DB) return null;
+  await ensureOneLine(env);
+  const row = await env.DB.prepare(
+    `UPDATE chat_conversations
+     SET last_sequence = last_sequence + 1, updated_at = ?
+     WHERE id = ?
+     RETURNING last_sequence`,
+  ).bind(Date.now(), ONE_LINE_ID).first<{ last_sequence: number }>();
+  return row && Number.isFinite(Number(row.last_sequence)) ? Number(row.last_sequence) : null;
+}
+
+async function appendOneLine(
+  env: Bindings,
+  role: "user" | "assistant" | "system",
+  content: string,
+  sourceSurface: string,
+  idempotencyKey: string,
+  model: string | null = null,
+) {
+  if (!env.DB || !content.trim()) return null;
+  await ensureOneLine(env);
+  const existing = await env.DB.prepare(
+    `SELECT sequence_no FROM chat_messages
+     WHERE conversation_id = ? AND idempotency_key = ?
+     LIMIT 1`,
+  ).bind(ONE_LINE_ID, idempotencyKey).first<{ sequence_no: number }>();
+  if (existing?.sequence_no) return Number(existing.sequence_no);
+
+  const sequence = await nextOneLineSequence(env);
+  if (!sequence) return null;
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO chat_messages(
+       id, conversation_id, role, content, model, run_id, created_at,
+       sequence_no, source_surface, idempotency_key
+     ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)`,
+  ).bind(
+    `1lss_${crypto.randomUUID()}`,
+    ONE_LINE_ID,
+    role,
+    clip(content, 7000),
+    model,
+    Date.now(),
+    sequence,
+    clip(sourceSurface, 60) || "plugin-harness",
+    clip(idempotencyKey, 220),
+  ).run();
+  return sequence;
+}
+
+async function stampFunctionTurn(request: Request, response: Response, env: Bindings) {
+  if (!env.DB || !response.ok) return;
+  const body = await request.json().catch(() => ({})) as FunctionTurnBody;
+  const result = await response.clone().json().catch(() => ({})) as FunctionTurnResponse;
+  if (!result.ok) return;
+
+  const prompt = clip(body.prompt, 7000);
+  const text = clip(result.text, 7000);
+  const requestedSurface = clip(body.source_surface || request.headers.get("x-ogenic-surface"), 60).toLowerCase();
+  const sourceSurface = requestedSurface || "plugin-harness";
+  const requestKey = clip(request.headers.get("idempotency-key"), 180) || `plugin_${crypto.randomUUID()}`;
+
+  if (prompt) await appendOneLine(env, "user", prompt, sourceSurface, `${requestKey}:user`);
+  for (const call of result.function_calls ?? []) {
+    const name = clip(call.name, 100) || "unknown";
+    const state = clip(call.state, 100) || "RESULT";
+    const callId = clip(call.call_id, 120) || crypto.randomUUID();
+    // Keep only non-secret tool metadata on the life line. Arguments/results stay server-side.
+    await appendOneLine(env, "system", `[TOOL ${name}] ${state}`, sourceSurface, `${requestKey}:tool:${callId}`);
+  }
+  if (text) {
+    await appendOneLine(env, "assistant", text, sourceSurface, `${requestKey}:assistant`, clip(result.model, 100) || null);
+  }
+}
 
 // 1LSS: every live-chat door is normalized into the same owner-main handler.
 async function canonicalChatModelRequest(request: Request, sourceSurface?: ChatSurface) {
@@ -84,10 +178,15 @@ export default {
     if (pathname === "/api/manus/status" || pathname === "/api/manus/task") {
       return manusApi.fetch(request, env, ctx as never);
     }
+    if (pathname === "/api/chat/functions") {
+      const stampRequest = request.clone();
+      const response = await connectorApi.fetch(request, env, ctx as never);
+      await stampFunctionTurn(stampRequest, response, env).catch(() => undefined);
+      return response;
+    }
     if (
       pathname === "/api/connectors" ||
       pathname.startsWith("/api/connectors/") ||
-      pathname === "/api/chat/functions" ||
       pathname.startsWith("/api/openai/")
     ) {
       return connectorApi.fetch(request, env, ctx as never);
