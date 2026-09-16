@@ -5,12 +5,26 @@ export type LiveToolBindings = {
   N8N_BASE_URL?: string;
   OGENIC_GITHUB_REPO?: string;
   OGENIC_GITHUB_BRANCH?: string;
+  META_PAGE_ACCESS_TOKEN?: string;
+  META_ACCESS_TOKEN?: string;
+  META_IG_USER_ID?: string;
+  INSTAGRAM_BUSINESS_ACCOUNT_ID?: string;
+  INSTAGRAM_ACCESS_TOKEN?: string;
+  IG_ACCESS_TOKEN?: string;
+  WHATSAPP_ACCESS_TOKEN?: string;
+  WHATSAPP_TOKEN?: string;
+  META_WHATSAPP_ACCESS_TOKEN?: string;
+  WHATSAPP_BUSINESS_ACCOUNT_ID?: string;
+  WABA_ID?: string;
+  WHATSAPP_PHONE_NUMBER_ID?: string;
+  THREADS_ACCESS_TOKEN?: string;
+  META_THREADS_ACCESS_TOKEN?: string;
 };
 
 export type LiveToolState = "LIVE" | "CONFIGURATION_REQUIRED" | "ERROR";
 
 export type LiveToolSnapshot = {
-  id: "github" | "linear" | "n8n";
+  id: "github" | "linear" | "n8n" | "meta";
   label: string;
   state: LiveToolState;
   latency_ms: number;
@@ -169,6 +183,53 @@ async function n8n(env: LiveToolBindings): Promise<LiveToolSnapshot> {
   }
 }
 
+async function metaProbe(url: string, token: string) {
+  if (!token) return { ready: false, state: "AUTH_REQUIRED" };
+  try {
+    await requestJson(url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } });
+    return { ready: true, state: "READY" };
+  } catch (error) {
+    const raw = clean(error instanceof Error ? error.message : error, 40);
+    return { ready: false, state: raw === "HTTP_401" || raw === "HTTP_403" ? "REAUTH_REQUIRED" : raw || "ERROR" };
+  }
+}
+
+async function meta(env: LiveToolBindings): Promise<LiveToolSnapshot> {
+  const started = Date.now();
+  const pageToken = clean(env.META_PAGE_ACCESS_TOKEN || env.META_ACCESS_TOKEN, 4000);
+  const igToken = clean(env.INSTAGRAM_ACCESS_TOKEN || env.IG_ACCESS_TOKEN || pageToken, 4000);
+  const igId = clean(env.INSTAGRAM_BUSINESS_ACCOUNT_ID || env.META_IG_USER_ID, 120);
+  const waToken = clean(env.WHATSAPP_ACCESS_TOKEN || env.WHATSAPP_TOKEN || env.META_WHATSAPP_ACCESS_TOKEN, 4000);
+  const waId = clean(env.WHATSAPP_BUSINESS_ACCOUNT_ID || env.WABA_ID || env.WHATSAPP_PHONE_NUMBER_ID, 120);
+  const threadsToken = clean(env.THREADS_ACCESS_TOKEN || env.META_THREADS_ACCESS_TOKEN, 4000);
+
+  if (!pageToken && !igToken && !waToken && !threadsToken) return configured("meta", "Meta Suite", started);
+
+  const [facebook, instagram, whatsapp, threads] = await Promise.all([
+    metaProbe("https://graph.facebook.com/me?fields=id,name", pageToken),
+    igId ? metaProbe(`https://graph.facebook.com/${encodeURIComponent(igId)}?fields=id,username`, igToken) : Promise.resolve({ ready: false, state: igToken ? "ASSET_ID_REQUIRED" : "AUTH_REQUIRED" }),
+    waId ? metaProbe(`https://graph.facebook.com/${encodeURIComponent(waId)}?fields=id`, waToken) : Promise.resolve({ ready: false, state: waToken ? "ASSET_ID_REQUIRED" : "AUTH_REQUIRED" }),
+    metaProbe("https://graph.threads.net/v1.0/me?fields=id,username", threadsToken),
+  ]);
+  const records: LiveToolSnapshot["records"] = [
+    { id: "facebook_messenger", label: "Facebook Page + Messenger", ready: facebook.ready, state: facebook.state },
+    { id: "instagram", label: "Instagram Professional + Messaging", ready: instagram.ready, state: instagram.state },
+    { id: "whatsapp", label: "WhatsApp Business", ready: whatsapp.ready, state: whatsapp.state },
+    { id: "threads", label: "Threads", ready: threads.ready, state: threads.state },
+    { id: "muse", label: "Muse Code", ready: true, state: "RUNTIME_READY_AUTH_SEPARATE" },
+  ];
+  const readyCount = records.filter((row) => row.ready === true).length;
+  return {
+    id: "meta",
+    label: "Meta Suite",
+    state: readyCount > 0 ? "LIVE" : "CONFIGURATION_REQUIRED",
+    latency_ms: Date.now() - started,
+    summary: `${readyCount}/5 Meta lanes runtime-ready · outbound actions approval-gated`,
+    checked_at: new Date().toISOString(),
+    records,
+  };
+}
+
 export async function readLiveTools(env: LiveToolBindings) {
-  return Promise.all([github(env), linear(env), n8n(env)]);
+  return Promise.all([github(env), linear(env), n8n(env), meta(env)]);
 }
