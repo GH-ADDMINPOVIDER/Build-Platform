@@ -362,7 +362,7 @@ export default function UnifiedChat({ surface }: Props) {
     { id: "github", label: "GitHub", sub: liveTools.get("github")?.summary || "Repository + CI", live: toolLive(liveTools.get("github")?.state) },
     { id: "linear", label: "Linear", sub: liveTools.get("linear")?.summary || "Issues + projects", live: toolLive(liveTools.get("linear")?.state) },
     { id: "n8n", label: "n8n", sub: liveTools.get("n8n")?.summary || "Workflows", live: toolLive(liveTools.get("n8n")?.state) },
-    { id: "meta", label: "Meta", sub: liveTools.get("meta")?.summary || "Facebook · Instagram · WhatsApp · Threads · Muse", live: toolLive(liveTools.get("meta")?.state) },
+    { id: "meta", label: "Meta Facebook", sub: liveTools.get("meta")?.summary || "Facebook Page · Messenger · Instagram optional", live: toolLive(liveTools.get("meta")?.state) },
     { id: "manus", label: "Manus", sub: "Delegate a task", live: toolLive(manus?.state) || manus?.configured === true },
     { id: "live", label: "Live door", sub: "Browser quota · stop before secrets", live: toolLive(browser?.state) },
   ];
