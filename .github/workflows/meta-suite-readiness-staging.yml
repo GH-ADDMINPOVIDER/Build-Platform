@@ -1,4 +1,4 @@
-name: Meta Suite Staging Readiness
+name: Meta Facebook Staging Readiness
 
 on:
   push:
@@ -50,7 +50,7 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Probe and auto-discover Meta family safely
+      - name: Probe Facebook and optional Instagram safely
         shell: bash
         run: |
           set -euo pipefail
@@ -91,97 +91,58 @@ jobs:
           IG_ID="$(pick INSTAGRAM_BUSINESS_ACCOUNT_ID META_IG_USER_ID IG_USER_ID || true)"
           PAGE_ID="$(pick META_ID_PAGE META_PAGE_ID || true)"
           IG_SOURCE=NONE
+          IG_STATE=NOT_REQUIRED
 
-          # Prefer explicit Instagram credentials. If absent, discover the linked IG professional account
-          # from a valid Meta/Page credential without printing or persisting any token value.
           if test -n "$IG_TOKEN" && test -n "$IG_ID"; then
             if graph_get "https://graph.facebook.com/${IG_ID}?fields=id,username" "$IG_TOKEN" /tmp/meta-ig.json; then
-              IG_STATE=ASSET_READY
+              IG_STATE=OPTIONAL_READY
               IG_SOURCE=EXPLICIT
             else
-              IG_STATE=TOKEN_OR_ASSET_INVALID
+              IG_STATE=OPTIONAL_UNAVAILABLE
             fi
-          else
-            IG_STATE=AUTH_REQUIRED
-            DISCOVERY_TOKEN="$PAGE_TOKEN"
-            if test -n "$DISCOVERY_TOKEN"; then
-              # A user token can enumerate managed Pages and linked IG professional accounts.
-              if graph_get 'https://graph.facebook.com/me/accounts?fields=id,name,instagram_business_account{id,username}' "$DISCOVERY_TOKEN" /tmp/meta-accounts.json; then
-                DISCOVERED_IG_ID="$(jq -r '[.data[]?.instagram_business_account?.id // empty][0] // empty' /tmp/meta-accounts.json)"
+          elif test -n "$PAGE_TOKEN"; then
+            if graph_get 'https://graph.facebook.com/me/accounts?fields=id,name,instagram_business_account{id,username}' "$PAGE_TOKEN" /tmp/meta-accounts.json; then
+              DISCOVERED_IG_ID="$(jq -r '[.data[]?.instagram_business_account?.id // empty][0] // empty' /tmp/meta-accounts.json)"
+              if test -n "$DISCOVERED_IG_ID"; then
+                IG_STATE=OPTIONAL_AUTO_DISCOVERED
+                IG_SOURCE=MANAGED_PAGE
+              fi
+            fi
+            if test "$IG_STATE" = "NOT_REQUIRED" && test -n "$PAGE_ID"; then
+              if graph_get "https://graph.facebook.com/${PAGE_ID}?fields=instagram_business_account{id,username}" "$PAGE_TOKEN" /tmp/meta-page-ig.json; then
+                DISCOVERED_IG_ID="$(jq -r '.instagram_business_account.id // empty' /tmp/meta-page-ig.json)"
                 if test -n "$DISCOVERED_IG_ID"; then
-                  IG_ID="$DISCOVERED_IG_ID"
-                  IG_TOKEN="$DISCOVERY_TOKEN"
-                  IG_STATE=AUTO_DISCOVERED
-                  IG_SOURCE=MANAGED_PAGE
+                  IG_STATE=OPTIONAL_AUTO_DISCOVERED
+                  IG_SOURCE=KNOWN_PAGE
                 fi
               fi
-              # A Page token cannot always enumerate /me/accounts, so fall back to the known Page id.
-              if test "$IG_STATE" = "AUTH_REQUIRED" && test -n "$PAGE_ID"; then
-                if graph_get "https://graph.facebook.com/${PAGE_ID}?fields=instagram_business_account{id,username}" "$DISCOVERY_TOKEN" /tmp/meta-page-ig.json; then
-                  DISCOVERED_IG_ID="$(jq -r '.instagram_business_account.id // empty' /tmp/meta-page-ig.json)"
-                  if test -n "$DISCOVERED_IG_ID"; then
-                    IG_ID="$DISCOVERED_IG_ID"
-                    IG_TOKEN="$DISCOVERY_TOKEN"
-                    IG_STATE=AUTO_DISCOVERED
-                    IG_SOURCE=KNOWN_PAGE
-                  else
-                    IG_STATE=NO_LINKED_IG_ASSET
-                  fi
-                else
-                  IG_STATE=IG_DISCOVERY_PERMISSION_REQUIRED
-                fi
-              elif test "$IG_STATE" = "AUTH_REQUIRED"; then
-                IG_STATE=ASSET_ID_REQUIRED
-              fi
-            elif test -n "$(pick INSTAGRAM_ACCESS_TOKEN IG_ACCESS_TOKEN META_PAGE_ACCESS_TOKEN META_ACCESS_TOKEN META_ACCESS_AOUTH_TOKEN META_API_CREATE || true)"; then
-              IG_STATE=TOKEN_INVALID_OR_ASSET_REQUIRED
             fi
-          fi
-
-          WA_TOKEN="$(pick WHATSAPP_ACCESS_TOKEN WHATSAPP_TOKEN META_WHATSAPP_ACCESS_TOKEN || true)"
-          WABA_ID="$(pick WHATSAPP_BUSINESS_ACCOUNT_ID WABA_ID || true)"
-          WA_PHONE_ID="$(pick WHATSAPP_PHONE_NUMBER_ID META_WHATSAPP_PHONE_NUMBER_ID || true)"
-          WA_STATE=AUTH_REQUIRED
-          if test -n "$WA_TOKEN" && test -n "$WABA_ID"; then
-            if graph_get "https://graph.facebook.com/${WABA_ID}?fields=id,name" "$WA_TOKEN" /tmp/meta-wa.json; then WA_STATE=WABA_READY; else WA_STATE=TOKEN_OR_WABA_INVALID; fi
-          elif test -n "$WA_TOKEN" && test -n "$WA_PHONE_ID"; then
-            if graph_get "https://graph.facebook.com/${WA_PHONE_ID}?fields=id,display_phone_number,verified_name" "$WA_TOKEN" /tmp/meta-wa.json; then WA_STATE=PHONE_READY; else WA_STATE=TOKEN_OR_PHONE_INVALID; fi
-          elif test -n "$WA_TOKEN"; then WA_STATE=ASSET_ID_REQUIRED; fi
-
-          THREADS_TOKEN="$(pick THREADS_ACCESS_TOKEN META_THREADS_ACCESS_TOKEN || true)"
-          THREADS_STATE=AUTH_REQUIRED
-          if test -n "$THREADS_TOKEN"; then
-            if graph_get 'https://graph.threads.net/v1.0/me?fields=id,username' "$THREADS_TOKEN" /tmp/meta-threads.json; then THREADS_STATE=READY; else THREADS_STATE=TOKEN_INVALID; fi
           fi
 
           APP_SECRET_STATE=MISSING; test -n "${META_APP_SECRET:-}" && APP_SECRET_STATE=PRESENT
           VERIFY_STATE=MISSING; test -n "${META_VERIFY_TOKEN:-}" && VERIFY_STATE=PRESENT
 
           {
-            echo "## Meta Suite Staging Readiness"
+            echo "## Meta Facebook Staging Readiness"
             echo
             echo '```text'
             status_line 'Facebook/Messenger' "$FB_STATE"
-            status_line 'Instagram' "$IG_STATE"
+            status_line 'Instagram (optional)' "$IG_STATE"
             status_line 'Instagram source' "$IG_SOURCE"
-            status_line 'WhatsApp Business' "$WA_STATE"
-            status_line 'Threads' "$THREADS_STATE"
             status_line 'Meta App Secret' "$APP_SECRET_STATE"
             status_line 'Webhook Verify Token' "$VERIFY_STATE"
-            status_line 'Muse Code' 'RUNTIME_READY · ACCOUNT_AUTH_SEPARATE'
             echo '```'
             echo
-            echo '- Probed every available Meta token alias read-only; no token value was printed.'
-            echo '- Attempted automatic linked Instagram professional-account discovery.'
-            echo '- No post, message, campaign, comment, template, or customer-visible action was executed.'
-            echo '- D1 owner-main remains the canonical 1LSS; Meta modules are execution/messaging lanes only.'
+            echo '- Primary sales channels: Facebook Page/Messenger + LINE OA.'
+            echo '- Instagram is optional and only used when it can be discovered from the linked Facebook Page or has explicit valid credentials.'
+            echo '- WhatsApp, Threads, and Muse are outside the active sales-channel scope.'
+            echo '- No post, message, campaign, comment, or customer-visible action was executed.'
+            echo '- No raw token or secret was printed.'
           } >> "$GITHUB_STEP_SUMMARY"
 
           status_line 'Facebook/Messenger' "$FB_STATE"
-          status_line 'Instagram' "$IG_STATE"
+          status_line 'Instagram (optional)' "$IG_STATE"
           status_line 'Instagram source' "$IG_SOURCE"
-          status_line 'WhatsApp Business' "$WA_STATE"
-          status_line 'Threads' "$THREADS_STATE"
           status_line 'Meta App Secret' "$APP_SECRET_STATE"
           status_line 'Webhook Verify Token' "$VERIFY_STATE"
 
@@ -195,7 +156,9 @@ jobs:
           ids = [m['id'] for m in data['modules']]
           assert len(ids) == len(set(ids))
           assert data['owner_line'] == 'owner-main'
+          assert data['scope']['primary'] == ['line', 'meta-facebook-messenger']
+          assert data['scope']['optional'] == ['meta-instagram']
           assert data['policy']['no_raw_secrets'] is True
           assert data['policy']['outbound_side_effects_require_approval'] is True
-          print('meta_suite_manifest=PASS modules=%d' % len(ids))
+          print('meta_facebook_scope=PASS modules=%d' % len(ids))
           PY
