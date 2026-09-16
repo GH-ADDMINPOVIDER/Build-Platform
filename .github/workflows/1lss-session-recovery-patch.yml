@@ -32,6 +32,23 @@ jobs:
       - name: Apply deterministic session-recovery patch
         run: python scripts/patch-1lss-session-recovery.py
 
+      - name: Normalize recovery API TypeScript fallback
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('worker/session-recovery-api.ts')
+          text = p.read_text(encoding='utf-8')
+          old = 'const body = await c.req.json<Record<string, unknown>>().catch(() => ({}));'
+          new = 'const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));'
+          if new not in text:
+              if old not in text:
+                  raise SystemExit('RECOVERY_BODY_FALLBACK_PATTERN_MISSING')
+              text = text.replace(old, new, 1)
+              p.write_text(text, encoding='utf-8')
+          print('recovery_body_fallback=OK')
+          PY
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund --package-lock=false
 
@@ -44,7 +61,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add worker/entry-connectors.ts worker/chat-model-api.ts src/UnifiedChat.tsx tests/1lss-session-recovery-contract.test.mjs
+          git add worker/session-recovery-api.ts worker/entry-connectors.ts worker/chat-model-api.ts src/UnifiedChat.tsx tests/1lss-session-recovery-contract.test.mjs
           if git diff --cached --quiet; then
             echo "No patch changes to commit"
             exit 0
