@@ -17,10 +17,28 @@ const chatModelApi = createChatModelApi();
 const manusApi = createManusApi();
 const publicHooks = createPublicHookApi();
 
-async function canonicalChatModelRequest(request: Request) {
+type ChatSurface = "ogenic-web" | "chatgpt-dev" | "external-harness";
+
+async function canonicalChatModelRequest(request: Request, sourceSurface?: ChatSurface) {
   const url = new URL(request.url);
   url.pathname = "/api/chat/model";
-  const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
+
+  let body: BodyInit | undefined;
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    const raw = await request.text();
+    if (sourceSurface && raw) {
+      try {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        if (!parsed.source_surface) parsed.source_surface = sourceSurface;
+        body = JSON.stringify(parsed);
+      } catch {
+        body = raw;
+      }
+    } else {
+      body = raw || undefined;
+    }
+  }
+
   return new Request(url.toString(), {
     method: request.method,
     headers: request.headers,
@@ -41,8 +59,25 @@ export default {
     if (pathname === "/api/browser-session" || pathname.startsWith("/api/browser-session/")) {
       return browserSessionApi.fetch(request, env, ctx as never);
     }
-    if (pathname === "/api/chat/model" || pathname === "/api/chat/api") {
-      const canonicalRequest = pathname === "/api/chat/model" ? request : await canonicalChatModelRequest(request);
+    if (pathname === "/api/chat/history") {
+      return chatModelApi.fetch(request, env, ctx as never);
+    }
+    if (
+      pathname === "/api/chat/model" ||
+      pathname === "/api/chat" ||
+      pathname === "/api/chat/api" ||
+      pathname === "/api/1lss/chat"
+    ) {
+      const sourceSurface: ChatSurface | undefined = pathname === "/api/chat"
+        ? "ogenic-web"
+        : pathname === "/api/chat/api"
+          ? "chatgpt-dev"
+          : pathname === "/api/1lss/chat"
+            ? "external-harness"
+            : undefined;
+      const canonicalRequest = pathname === "/api/chat/model"
+        ? request
+        : await canonicalChatModelRequest(request, sourceSurface);
       return chatModelApi.fetch(canonicalRequest, env, ctx as never);
     }
     if (pathname === "/api/manus/status" || pathname === "/api/manus/task") {
