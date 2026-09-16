@@ -1,0 +1,143 @@
+name: Meta Suite Staging Readiness
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/meta-suite-readiness-staging.yml"
+      - "config/meta-suite.staging.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load canonical credentials from Infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
+          secret-path: ${{ steps.infisical_project.outputs.secret_path }}
+
+      - name: Load staging credentials from Infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Probe Meta family safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          probe() {
+            local url="$1" token="$2"
+            test -n "$token" || return 10
+            local code
+            code="$(curl --silent --show-error --output /tmp/meta-probe.json --write-out '%{http_code}' \
+              -H "Authorization: Bearer ${token}" -H 'Accept: application/json' "$url" || true)"
+            test "$code" = "200"
+          }
+          pick() {
+            for name in "$@"; do
+              eval "value=\${$name:-}"
+              if test -n "$value"; then printf '%s' "$value"; return 0; fi
+            done
+            return 1
+          }
+          status_line() { printf '%-28s %s\n' "$1" "$2"; }
+
+          PAGE_TOKEN="$(pick META_PAGE_ACCESS_TOKEN META_ACCESS_TOKEN META_ACCESS_AOUTH_TOKEN || true)"
+          IG_TOKEN="$(pick INSTAGRAM_ACCESS_TOKEN IG_ACCESS_TOKEN META_PAGE_ACCESS_TOKEN META_ACCESS_TOKEN || true)"
+          IG_ID="$(pick INSTAGRAM_BUSINESS_ACCOUNT_ID META_IG_USER_ID IG_USER_ID || true)"
+          WA_TOKEN="$(pick WHATSAPP_ACCESS_TOKEN WHATSAPP_TOKEN META_WHATSAPP_ACCESS_TOKEN || true)"
+          WABA_ID="$(pick WHATSAPP_BUSINESS_ACCOUNT_ID WABA_ID || true)"
+          WA_PHONE_ID="$(pick WHATSAPP_PHONE_NUMBER_ID META_WHATSAPP_PHONE_NUMBER_ID || true)"
+          THREADS_TOKEN="$(pick THREADS_ACCESS_TOKEN META_THREADS_ACCESS_TOKEN || true)"
+
+          FB_STATE=AUTH_REQUIRED
+          if test -n "$PAGE_TOKEN"; then
+            if probe 'https://graph.facebook.com/me?fields=id,name' "$PAGE_TOKEN"; then FB_STATE=TOKEN_VALID; else FB_STATE=TOKEN_INVALID; fi
+          fi
+
+          IG_STATE=AUTH_REQUIRED
+          if test -n "$IG_TOKEN" && test -n "$IG_ID"; then
+            if probe "https://graph.facebook.com/${IG_ID}?fields=id,username" "$IG_TOKEN"; then IG_STATE=ASSET_READY; else IG_STATE=TOKEN_OR_ASSET_INVALID; fi
+          elif test -n "$IG_TOKEN"; then IG_STATE=ASSET_ID_REQUIRED; fi
+
+          WA_STATE=AUTH_REQUIRED
+          if test -n "$WA_TOKEN" && test -n "$WABA_ID"; then
+            if probe "https://graph.facebook.com/${WABA_ID}?fields=id,name" "$WA_TOKEN"; then WA_STATE=WABA_READY; else WA_STATE=TOKEN_OR_WABA_INVALID; fi
+          elif test -n "$WA_TOKEN" && test -n "$WA_PHONE_ID"; then
+            if probe "https://graph.facebook.com/${WA_PHONE_ID}?fields=id,display_phone_number,verified_name" "$WA_TOKEN"; then WA_STATE=PHONE_READY; else WA_STATE=TOKEN_OR_PHONE_INVALID; fi
+          elif test -n "$WA_TOKEN"; then WA_STATE=ASSET_ID_REQUIRED; fi
+
+          THREADS_STATE=AUTH_REQUIRED
+          if test -n "$THREADS_TOKEN"; then
+            if probe 'https://graph.threads.net/v1.0/me?fields=id,username' "$THREADS_TOKEN"; then THREADS_STATE=READY; else THREADS_STATE=TOKEN_INVALID; fi
+          fi
+
+          APP_SECRET_STATE=MISSING; test -n "${META_APP_SECRET:-}" && APP_SECRET_STATE=PRESENT
+          VERIFY_STATE=MISSING; test -n "${META_VERIFY_TOKEN:-}" && VERIFY_STATE=PRESENT
+
+          {
+            echo "## Meta Suite Staging Readiness"
+            echo
+            echo '```text'
+            status_line 'Facebook/Messenger' "$FB_STATE"
+            status_line 'Instagram' "$IG_STATE"
+            status_line 'WhatsApp Business' "$WA_STATE"
+            status_line 'Threads' "$THREADS_STATE"
+            status_line 'Meta App Secret' "$APP_SECRET_STATE"
+            status_line 'Webhook Verify Token' "$VERIFY_STATE"
+            status_line 'Muse Code' 'RUNTIME_READY · ACCOUNT_AUTH_SEPARATE'
+            echo '```'
+            echo
+            echo '- No post, message, campaign, comment, template, or customer-visible action was executed.'
+            echo '- No raw token or secret was printed.'
+            echo '- D1 owner-main remains the canonical 1LSS; Meta modules are execution/messaging lanes only.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          status_line 'Facebook/Messenger' "$FB_STATE"
+          status_line 'Instagram' "$IG_STATE"
+          status_line 'WhatsApp Business' "$WA_STATE"
+          status_line 'Threads' "$THREADS_STATE"
+          status_line 'Meta App Secret' "$APP_SECRET_STATE"
+          status_line 'Webhook Verify Token' "$VERIFY_STATE"
+
+      - name: Validate capability manifest
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          with open('config/meta-suite.staging.json', encoding='utf-8') as f:
+              data = json.load(f)
+          ids = [m['id'] for m in data['modules']]
+          assert len(ids) == len(set(ids))
+          assert data['owner_line'] == 'owner-main'
+          assert data['policy']['no_raw_secrets'] is True
+          assert data['policy']['outbound_side_effects_require_approval'] is True
+          print('meta_suite_manifest=PASS modules=%d' % len(ids))
+          PY
