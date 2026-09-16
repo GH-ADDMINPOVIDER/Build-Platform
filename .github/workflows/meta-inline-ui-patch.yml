@@ -1,0 +1,45 @@
+name: Meta Inline UI Patch
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/meta-inline-ui-patch.yml"
+      - "scripts/patch-meta-inline-ui.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: phase-vi-provider-incentive-metering
+
+      - name: Apply deterministic Meta UI patch
+        run: python scripts/patch-meta-inline-ui.py
+
+      - name: Validate TypeScript and build
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+
+      - name: Commit patched UnifiedChat
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- src/UnifiedChat.tsx; then
+            echo "No UI patch needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/UnifiedChat.tsx
+          git commit -m "feat: expose Meta suite in unified chat"
+          git push origin HEAD:phase-vi-provider-incentive-metering
