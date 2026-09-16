@@ -20,7 +20,7 @@ type ResponsesBody = {
   usage?: { total_tokens?: number } | null;
 };
 
-const TOOLS = new Set(["github", "linear", "n8n"]);
+const TOOLS = new Set(["github", "linear", "n8n", "meta"]);
 const MODELS = new Set(["gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-4.1-mini", "gpt-6-astra"]);
 const EFFORTS = new Set(["low", "medium", "high", "xhigh", "max"]);
 
@@ -77,7 +77,7 @@ export function createInlineToolsApi() {
       model,
       input: [{
         role: "user",
-        content: [{ type: "input_text", text: `You are Ammonite inside OGENIC. Answer the owner's question using ONLY the verified read-only live snapshot below. Do not claim you changed GitHub, Linear, n8n, deployments, issues, files, workflows, or any external system. If the snapshot is insufficient, say exactly what is missing. Reply in the owner's language.\n\nTOOL=${tool}\nVERIFIED SNAPSHOT:\n${snapshot}\n\nOWNER QUESTION:\n${prompt}` }],
+        content: [{ type: "input_text", text: `You are Ammonite inside OGENIC. Answer the owner's question using ONLY the verified read-only live snapshot below. Do not claim you changed GitHub, Linear, n8n, Meta, deployments, issues, files, workflows, posts, messages, comments, campaigns, or any external system. If the snapshot is insufficient, say exactly what is missing. For Meta, distinguish Facebook/Messenger, Instagram, WhatsApp, Threads and Muse sublanes and never treat one token as proof that every Meta product is authorized. Reply in the owner's language.\n\nTOOL=${tool}\nVERIFIED SNAPSHOT:\n${snapshot}\n\nOWNER QUESTION:\n${prompt}` }],
       }],
       max_output_tokens: 1800,
       store: false,
