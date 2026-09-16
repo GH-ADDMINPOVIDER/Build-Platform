@@ -20,10 +20,19 @@ replacements = [
         '    { id: "n8n", label: "n8n", sub: liveTools.get("n8n")?.summary || "Workflows", live: toolLive(liveTools.get("n8n")?.state) },\n    { id: "meta", label: "Meta", sub: liveTools.get("meta")?.summary || "Facebook · Instagram · WhatsApp · Threads · Muse", live: toolLive(liveTools.get("meta")?.state) },\n    { id: "manus",'
     ),
 ]
+changed = False
 for before, after in replacements:
-    count = text.count(before)
-    if count != 1:
-        raise SystemExit(f'PATCH_CONTRACT_FAILED expected exactly 1 match, got {count}: {before[:120]}')
-    text = text.replace(before, after, 1)
-path.write_text(text, encoding='utf-8')
-print('PATCH_OK Meta inline tool enabled in UnifiedChat')
+    if before in text:
+        if text.count(before) != 1:
+            raise SystemExit(f'PATCH_CONTRACT_FAILED duplicate old pattern: {before[:120]}')
+        text = text.replace(before, after, 1)
+        changed = True
+    elif after in text:
+        continue
+    else:
+        raise SystemExit(f'PATCH_CONTRACT_FAILED neither old nor new pattern found: {before[:120]}')
+if changed:
+    path.write_text(text, encoding='utf-8')
+    print('PATCH_OK Meta inline tool enabled in UnifiedChat')
+else:
+    print('PATCH_OK already applied; no changes')
