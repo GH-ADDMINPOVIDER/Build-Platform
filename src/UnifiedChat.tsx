@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 type Surface = "ogenic-app" | "ogenic-web";
 type Role = "user" | "assistant" | "system";
 type Effort = "low" | "medium" | "high" | "xhigh" | "max";
-type ToolMode = "chat" | "web" | "rag" | "github" | "linear" | "n8n" | "manus" | "live";
+type ToolMode = "chat" | "web" | "rag" | "github" | "linear" | "n8n" | "meta" | "manus" | "live";
 type Session = { authenticated?: boolean; user?: { label?: string; role?: string } | null };
 type Message = {
   id?: string;
@@ -236,7 +236,7 @@ export default function UnifiedChat({ surface }: Props) {
     return tool ? JSON.stringify({ label: tool.label, state: tool.state, summary: tool.summary, records: tool.records ?? [] }).slice(0, 9000) : "";
   }
 
-  async function runInlineTool(mode: "github" | "linear" | "n8n", prompt: string) {
+  async function runInlineTool(mode: "github" | "linear" | "n8n" | "meta", prompt: string) {
     const response = await fetch("/api/inline/tool", {
       method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Idempotency-Key": `inline_${crypto.randomUUID()}` },
       body: JSON.stringify({ tool: mode, prompt, model: selectedModel.id, reasoning_effort: chatConfig.effort, snapshot: snapshotFor(mode) }),
@@ -334,7 +334,7 @@ export default function UnifiedChat({ surface }: Props) {
     try {
       if (toolMode === "manus") await runManus(prompt);
       else if (toolMode === "live") await runLiveDoor(prompt);
-      else if (toolMode === "github" || toolMode === "linear" || toolMode === "n8n") await runInlineTool(toolMode, prompt);
+      else if (toolMode === "github" || toolMode === "linear" || toolMode === "n8n" || toolMode === "meta") await runInlineTool(toolMode, prompt);
       else if (toolMode === "web" || toolMode === "rag") await runHostedTools(prompt);
       else await runChat(prompt);
       await loadRuntime();
@@ -362,6 +362,7 @@ export default function UnifiedChat({ surface }: Props) {
     { id: "github", label: "GitHub", sub: liveTools.get("github")?.summary || "Repository + CI", live: toolLive(liveTools.get("github")?.state) },
     { id: "linear", label: "Linear", sub: liveTools.get("linear")?.summary || "Issues + projects", live: toolLive(liveTools.get("linear")?.state) },
     { id: "n8n", label: "n8n", sub: liveTools.get("n8n")?.summary || "Workflows", live: toolLive(liveTools.get("n8n")?.state) },
+    { id: "meta", label: "Meta", sub: liveTools.get("meta")?.summary || "Facebook · Instagram · WhatsApp · Threads · Muse", live: toolLive(liveTools.get("meta")?.state) },
     { id: "manus", label: "Manus", sub: "Delegate a task", live: toolLive(manus?.state) || manus?.configured === true },
     { id: "live", label: "Live door", sub: "Browser quota · stop before secrets", live: toolLive(browser?.state) },
   ];
