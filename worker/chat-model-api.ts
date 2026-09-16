@@ -23,8 +23,18 @@ type Body = {
   reasoning_effort?: unknown;
   token_boost?: unknown;
   mode?: unknown;
+  source_surface?: unknown;
 };
-type ChatRow = { role: string; content: string; created_at: number };
+type ChatRow = {
+  id?: string;
+  role: string;
+  content: string;
+  model?: string | null;
+  run_id?: string | null;
+  created_at: number;
+  sequence_no?: number | null;
+  source_surface?: string | null;
+};
 type AttachmentRow = { filename: string; mime_type: string; data_base64: string };
 type ResponsesBody = {
   output?: Array<{ content?: Array<{ type?: string; text?: string; refusal?: string }> }>;
@@ -38,6 +48,16 @@ const HISTORY_CHAR_BUDGET = 22_000;
 const MODELS = new Set(["gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-4.1-mini", "gpt-6-astra"]);
 const EFFORTS = new Set(["low", "medium", "high", "xhigh", "max"]);
 const BOOSTS = new Set([1, 10, 20]);
+const SURFACES = new Set([
+  "ogenic-web",
+  "ogenic-app",
+  "chatgpt-dev",
+  "chatgpt-app",
+  "live-assist",
+  "manus",
+  "external-harness",
+  "unknown",
+]);
 
 function clean(value: unknown, max: number) {
   return String(value ?? "").trim().slice(0, max);
@@ -56,6 +76,33 @@ function outputText(body: ResponsesBody) {
   return out.join("\n").trim();
 }
 
+function resolveSurface(body: Body, request: Request) {
+  const explicit = clean(body.source_surface ?? request.headers.get("x-ogenic-surface"), 40).toLowerCase();
+  if (SURFACES.has(explicit)) return explicit;
+  const mode = clean(body.mode, 40).toLowerCase();
+  if (mode === "mobile") return "ogenic-app";
+  return "unknown";
+}
+
+async function ensureConversation(db: D1Like) {
+  const now = Date.now();
+  await db.prepare(
+    `INSERT OR IGNORE INTO chat_conversations (id, owner_id, title, created_at, updated_at)
+     VALUES (?, 'owner', 'OGENIC SAME MIND', ?, ?)`,
+  ).bind(CONVERSATION_ID, now, now).run();
+}
+
+async function nextSequence(db: D1Like) {
+  const row = await db.prepare(
+    `UPDATE chat_conversations
+     SET last_sequence = last_sequence + 1, updated_at = ?
+     WHERE id = ?
+     RETURNING last_sequence`,
+  ).bind(Date.now(), CONVERSATION_ID).first<{ last_sequence: number }>();
+  if (!row || !Number.isFinite(Number(row.last_sequence))) throw new Error("1LSS_SEQUENCE_UNAVAILABLE");
+  return Number(row.last_sequence);
+}
+
 function canonicalSessionLine(rows: ChatRow[]) {
   const selected: string[] = [];
   let used = 0;
@@ -63,7 +110,9 @@ function canonicalSessionLine(rows: ChatRow[]) {
     const timestamp = Number.isFinite(Number(row.created_at))
       ? new Date(Number(row.created_at)).toISOString()
       : "unknown-time";
-    const line = `[${timestamp}] ${String(row.role).toUpperCase()}: ${clean(row.content, 1600)}`;
+    const seq = Number.isFinite(Number(row.sequence_no)) ? `#${Number(row.sequence_no)}` : "#legacy";
+    const surface = clean(row.source_surface || "legacy", 40) || "legacy";
+    const line = `[${seq}][${surface}][${timestamp}] ${String(row.role).toUpperCase()}: ${clean(row.content, 1600)}`;
     const next = line.length + 1;
     if (selected.length >= 12 && used + next > HISTORY_CHAR_BUDGET) break;
     selected.push(line);
@@ -74,6 +123,39 @@ function canonicalSessionLine(rows: ChatRow[]) {
 
 export function createChatModelApi() {
   const api = new Hono<Env>();
+
+  api.get("/api/chat/history", async (c) => {
+    if (!(await hasOwnerSession(c.req.raw, c.env))) {
+      return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);
+    }
+    const db = c.env.DB;
+    if (!db) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+    await ensureConversation(db);
+    const result = await db.prepare(
+      `SELECT id, role, content, model, run_id, created_at, sequence_no, source_surface
+       FROM chat_messages
+       WHERE conversation_id = ?
+       ORDER BY sequence_no DESC, created_at DESC, rowid DESC
+       LIMIT ?`,
+    ).bind(CONVERSATION_ID, HISTORY_LIMIT).all<ChatRow>();
+    const messages = [...(result.results ?? [])].reverse().map((message) => ({
+      id: message.id,
+      role: message.role,
+      text: message.content,
+      model: message.model ?? null,
+      run_id: message.run_id ?? null,
+      created_at: message.created_at,
+      sequence_no: message.sequence_no ?? null,
+      source_surface: message.source_surface ?? "legacy",
+    }));
+    return c.json({
+      ok: true,
+      conversation_id: CONVERSATION_ID,
+      session_line: "1LSS_OWNER_MAIN",
+      memory: "D1_SAME_MIND",
+      messages,
+    }, 200, { "Cache-Control": "no-store" });
+  });
 
   api.post("/api/chat/model", async (c) => {
     if (!(await hasOwnerSession(c.req.raw, c.env))) {
@@ -90,6 +172,7 @@ export function createChatModelApi() {
     const effort = EFFORTS.has(String(body.reasoning_effort)) ? String(body.reasoning_effort) : "medium";
     const requestedBoost = Number(body.token_boost ?? 1);
     const boost = BOOSTS.has(requestedBoost) ? requestedBoost : 1;
+    const sourceSurface = resolveSurface(body, c.req.raw);
     const attachmentIds = Array.isArray(body.attachment_ids)
       ? body.attachment_ids.map((value) => clean(value, 120)).filter(Boolean).slice(0, 4)
       : [];
@@ -97,38 +180,46 @@ export function createChatModelApi() {
       return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt or attachment is required" }, 400);
     }
 
-    const seedNow = Date.now();
-    await db.prepare(
-      `INSERT OR IGNORE INTO chat_conversations (id, owner_id, title, created_at, updated_at)
-       VALUES (?, 'owner', 'OGENIC SAME MIND', ?, ?)`,
-    ).bind(CONVERSATION_ID, seedNow, seedNow).run();
+    await ensureConversation(db);
+    const requestKey = clean(c.req.header("idempotency-key") || makeId("1lss"), 180);
+    const userIdempotency = `${requestKey}:user`;
+    const assistantIdempotency = `${requestKey}:assistant`;
+
+    const replay = await db.prepare(
+      `SELECT content, model, sequence_no, source_surface, created_at
+       FROM chat_messages
+       WHERE conversation_id = ? AND idempotency_key = ?
+       LIMIT 1`,
+    ).bind(CONVERSATION_ID, assistantIdempotency).first<ChatRow>();
+    if (replay?.content) {
+      return c.json({
+        ok: true,
+        replay: true,
+        text: replay.content,
+        conversation_id: CONVERSATION_ID,
+        memory: "D1_SAME_MIND",
+        session_line: "1LSS_OWNER_MAIN",
+        sequence_no: replay.sequence_no ?? null,
+        source_surface: replay.source_surface ?? sourceSurface,
+        model: replay.model ?? model,
+        reasoning_effort: replay.model === "gpt-4.1-mini" ? "n/a" : effort,
+        token_boost: boost,
+        billing: "OPENAI_API",
+      }, 200, { "Cache-Control": "no-store" });
+    }
 
     const historyResult = await db.prepare(
-      `SELECT role, content, created_at
+      `SELECT role, content, created_at, sequence_no, source_surface
        FROM chat_messages
        WHERE conversation_id = ?
-       ORDER BY created_at DESC, rowid DESC
+       ORDER BY sequence_no DESC, created_at DESC, rowid DESC
        LIMIT ?`,
     ).bind(CONVERSATION_ID, HISTORY_LIMIT).all<ChatRow>();
     const history = canonicalSessionLine(historyResult.results ?? []);
 
     const content: Array<Record<string, unknown>> = [{
       type: "input_text",
-      text: `You are OGENIC AI, the owner's continuous copilot.
-
-SESSION INVARIANT:
-- Treat the persisted D1 conversation id "owner-main" as ONE canonical SAME MIND session line across desktop chat, mobile chat, API mode, and manual Live Assist whenever those surfaces persist messages to this conversation.
-- The timeline below is chronological evidence. Do not replace it with a project's latest deployment, commit, runtime, or status unless the owner explicitly asks for project/system status.
-- Temporal references such as "ล่าสุด", "เมื่อกี้", "ก่อนหน้านี้", "last time", "earlier", and "previously" refer first to the newest relevant persisted interaction in this session line.
-- Distinguish "last interaction/conversation" from "latest project state/status". If the wording could mean either, prefer the conversation timeline unless the owner names a project/system/status.
-- Never claim access to a separate ChatGPT App conversation unless it was explicitly imported into this D1 session.
-- Reply in the user's language and natural tone.
-
-CANONICAL SAME MIND SESSION LINE (oldest to newest):
-${history || "No prior persisted messages."}
-
-CURRENT OWNER MESSAGE:
-${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
+      text: `You are Ammonite, OGENIC AI, the owner's continuous copilot.\n\n1LSS SESSION INVARIANT:\n- D1 conversation id "owner-main" is ONE canonical ordered life line. Web, OGENIC App, ChatGPT Dev harness, ChatGPT App harness, Live Assist, and approved agents are doors into that same line when they persist here.\n- source_surface is metadata only. Never create a second conversational truth for another surface.\n- sequence_no is the authoritative turn order. Prefer it over timestamps when deciding what happened latest.\n- The timeline below is chronological evidence. Do not replace it with a project's latest deployment, commit, runtime, or status unless the owner explicitly asks for project/system status.\n- Temporal references such as "ล่าสุด", "เมื่อกี้", "ก่อนหน้านี้", "last time", "earlier", and "previously" refer first to the newest relevant persisted interaction in this 1LSS line.\n- Distinguish "last interaction/conversation" from "latest project state/status". If wording could mean either, prefer the conversation timeline unless the owner names a project/system/status.\n- Never claim a surface was synchronized unless that turn exists in this D1 line or verified runtime evidence says so.\n- Never expose secrets or tokens in chat. Never guess a verified state.\n- Reply in the user's language and natural tone.\n\nCANONICAL 1LSS OWNER-MAIN (oldest to newest):\n${history || "No prior persisted messages."}\n\nCURRENT OWNER MESSAGE [source=${sourceSurface}]:\n${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
     }];
 
     for (const id of attachmentIds) {
@@ -143,13 +234,24 @@ ${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
       }
     }
 
-    const now = Date.now();
     const visibleUserText = `${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}${attachmentIds.length ? `\n\n[${attachmentIds.length} attachment(s)]` : ""}`;
-    await db.prepare(
-      `INSERT INTO chat_messages(id, conversation_id, role, content, model, run_id, created_at)
-       VALUES (?, ?, 'user', ?, NULL, NULL, ?)`,
-    ).bind(makeId("model_u"), CONVERSATION_ID, visibleUserText, now).run();
-    await db.prepare("UPDATE chat_conversations SET updated_at = ? WHERE id = ?").bind(now, CONVERSATION_ID).run();
+    const existingUser = await db.prepare(
+      `SELECT sequence_no FROM chat_messages WHERE conversation_id = ? AND idempotency_key = ? LIMIT 1`,
+    ).bind(CONVERSATION_ID, userIdempotency).first<{ sequence_no: number }>();
+    let userSequence = Number(existingUser?.sequence_no ?? 0);
+    if (!userSequence) {
+      const candidate = await nextSequence(db);
+      await db.prepare(
+        `INSERT OR IGNORE INTO chat_messages(
+           id, conversation_id, role, content, model, run_id, created_at,
+           sequence_no, source_surface, idempotency_key
+         ) VALUES (?, ?, 'user', ?, NULL, NULL, ?, ?, ?, ?)`,
+      ).bind(makeId("model_u"), CONVERSATION_ID, visibleUserText, Date.now(), candidate, sourceSurface, userIdempotency).run();
+      const persistedUser = await db.prepare(
+        `SELECT sequence_no FROM chat_messages WHERE conversation_id = ? AND idempotency_key = ? LIMIT 1`,
+      ).bind(CONVERSATION_ID, userIdempotency).first<{ sequence_no: number }>();
+      userSequence = Number(persistedUser?.sequence_no ?? candidate);
+    }
 
     const requestBody: Record<string, unknown> = {
       model,
@@ -164,7 +266,7 @@ ${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "Idempotency-Key": c.req.header("idempotency-key") ?? makeId("model"),
+        "Idempotency-Key": requestKey,
       },
       body: JSON.stringify(requestBody),
     });
@@ -174,24 +276,38 @@ ${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
         ok: false,
         code: result.error?.code ? `OPENAI_${String(result.error.code).toUpperCase()}` : `OPENAI_HTTP_${response.status}`,
         message: clean(result.error?.message ?? "OpenAI model request failed", 300),
+        conversation_id: CONVERSATION_ID,
+        user_sequence_no: userSequence,
       }, 502);
     }
 
     const text = outputText(result);
-    if (!text) return c.json({ ok: false, code: "OPENAI_EMPTY_OUTPUT" }, 502);
+    if (!text) return c.json({ ok: false, code: "OPENAI_EMPTY_OUTPUT", user_sequence_no: userSequence }, 502);
+
+    const assistantCandidate = await nextSequence(db);
     await db.prepare(
-      `INSERT INTO chat_messages(id, conversation_id, role, content, model, run_id, created_at)
-       VALUES (?, ?, 'assistant', ?, ?, NULL, ?)`,
-    ).bind(makeId("model_a"), CONVERSATION_ID, text, model, Date.now()).run();
-    await db.prepare("UPDATE chat_conversations SET updated_at = ? WHERE id = ?").bind(Date.now(), CONVERSATION_ID).run();
+      `INSERT OR IGNORE INTO chat_messages(
+         id, conversation_id, role, content, model, run_id, created_at,
+         sequence_no, source_surface, idempotency_key
+       ) VALUES (?, ?, 'assistant', ?, ?, NULL, ?, ?, ?, ?)`,
+    ).bind(makeId("model_a"), CONVERSATION_ID, text, model, Date.now(), assistantCandidate, sourceSurface, assistantIdempotency).run();
+    const persistedAssistant = await db.prepare(
+      `SELECT content, model, sequence_no, source_surface
+       FROM chat_messages
+       WHERE conversation_id = ? AND idempotency_key = ?
+       LIMIT 1`,
+    ).bind(CONVERSATION_ID, assistantIdempotency).first<ChatRow>();
 
     return c.json({
       ok: true,
-      text,
+      text: persistedAssistant?.content || text,
       conversation_id: CONVERSATION_ID,
       memory: "D1_SAME_MIND",
-      session_line: "CANONICAL_OWNER_MAIN",
-      model,
+      session_line: "1LSS_OWNER_MAIN",
+      user_sequence_no: userSequence,
+      sequence_no: persistedAssistant?.sequence_no ?? assistantCandidate,
+      source_surface: persistedAssistant?.source_surface ?? sourceSurface,
+      model: persistedAssistant?.model ?? model,
       reasoning_effort: model === "gpt-4.1-mini" ? "n/a" : effort,
       token_boost: boost,
       max_output_tokens: requestBody.max_output_tokens,
