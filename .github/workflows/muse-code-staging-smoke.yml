@@ -1,0 +1,68 @@
+name: Muse Code Staging Readiness
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/muse-code-staging-smoke.yml"
+      - "scripts/muse/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: muse-code-staging-readiness
+  cancel-in-progress: true
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+
+      - name: Install official Muse Code CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://dev.meta.ai/install.sh -o /tmp/muse-install.sh
+          bash /tmp/muse-install.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Muse CLI and MSP host surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "## Muse Code staging readiness" >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          muse --version 2>&1 | tee /tmp/muse-version.txt
+          echo "--- login help ---"
+          muse login --help 2>&1 | sed -n '1,120p'
+          echo "--- serve help ---"
+          muse serve --help 2>&1 | sed -n '1,160p'
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "- CLI installed: YES" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Paid/API credential used: NO" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Meta login attempted: NO" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Zero-cost local provider smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          set +e
+          timeout 60s muse exec --provider echo --json "Reply with exactly OGENIC_MUSE_READY" > /tmp/muse-echo.ndjson 2>/tmp/muse-echo.err
+          code=$?
+          set -e
+          echo "echo_exit=$code"
+          sed -n '1,80p' /tmp/muse-echo.ndjson || true
+          sed -n '1,80p' /tmp/muse-echo.err || true
+          if [ "$code" -ne 0 ]; then
+            echo "- Echo smoke: FAILED ($code)" >> "$GITHUB_STEP_SUMMARY"
+            exit "$code"
+          fi
+          echo "- Echo smoke: PASS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Next gate: official Meta account device login (owner approval only)" >> "$GITHUB_STEP_SUMMARY"
