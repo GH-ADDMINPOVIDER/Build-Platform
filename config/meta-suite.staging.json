@@ -1,10 +1,16 @@
 {
-  "version": 1,
+  "version": 2,
   "owner_line": "owner-main",
   "integration": {
     "inline_chat": true,
     "surface": "ogenic-web+ogenic-app",
     "source_of_truth": "D1 owner-main"
+  },
+  "scope": {
+    "primary": ["line", "meta-facebook-messenger"],
+    "optional": ["meta-instagram"],
+    "inactive": ["meta-whatsapp", "meta-threads", "meta-muse"],
+    "note": "Primary sales channels are LINE OA and Facebook Page/Messenger. Instagram is optional only when linked/discoverable; other Meta products are not part of the active sales scope."
   },
   "policy": {
     "read_first": true,
@@ -17,6 +23,7 @@
       "id": "meta-facebook-messenger",
       "label": "Facebook Page + Messenger",
       "family": "Meta",
+      "priority": "primary",
       "mode": "Graph API + Webhooks",
       "credentials": ["META_PAGE_ACCESS_TOKEN", "META_APP_SECRET", "META_VERIFY_TOKEN"],
       "permissions": ["pages_messaging"],
@@ -27,38 +34,14 @@
       "id": "meta-instagram",
       "label": "Instagram Professional + Messaging",
       "family": "Meta",
+      "priority": "optional",
+      "required": false,
+      "auto_discover_from_facebook_page": true,
       "mode": "Instagram Graph API + Webhooks",
       "credential_aliases": ["INSTAGRAM_ACCESS_TOKEN", "IG_ACCESS_TOKEN", "META_PAGE_ACCESS_TOKEN"],
       "asset_aliases": ["INSTAGRAM_BUSINESS_ACCOUNT_ID", "META_IG_USER_ID", "IG_USER_ID"],
-      "permissions": ["instagram_business_basic", "instagram_business_manage_messages", "instagram_business_manage_comments", "instagram_business_content_publish"],
+      "permissions": ["instagram_business_basic", "instagram_business_manage_messages"],
       "outbound": "approval-gated"
-    },
-    {
-      "id": "meta-whatsapp",
-      "label": "WhatsApp Business Platform",
-      "family": "Meta",
-      "mode": "Cloud API + Webhooks",
-      "credential_aliases": ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_TOKEN", "META_WHATSAPP_ACCESS_TOKEN"],
-      "asset_aliases": ["WHATSAPP_BUSINESS_ACCOUNT_ID", "WABA_ID", "WHATSAPP_PHONE_NUMBER_ID"],
-      "outbound": "approval-gated"
-    },
-    {
-      "id": "meta-threads",
-      "label": "Threads",
-      "family": "Meta",
-      "mode": "Threads API",
-      "credential_aliases": ["THREADS_ACCESS_TOKEN", "META_THREADS_ACCESS_TOKEN"],
-      "permissions": ["threads_basic", "threads_content_publish", "threads_read_replies", "threads_manage_replies", "threads_manage_insights"],
-      "outbound": "approval-gated"
-    },
-    {
-      "id": "meta-muse",
-      "label": "Muse Code / Muse Spark",
-      "family": "Meta AI",
-      "mode": "Muse Code CLI + MSP / SDK",
-      "auth": "Meta account login preferred before META_API_KEY",
-      "memory_policy": "worker-only; D1 owner-main remains canonical 1LSS",
-      "outbound": "workspace mutation disabled until explicitly approved"
     }
   ]
 }
