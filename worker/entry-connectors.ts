@@ -19,6 +19,7 @@ const publicHooks = createPublicHookApi();
 
 type ChatSurface = "ogenic-web" | "chatgpt-dev" | "external-harness";
 
+// 1LSS: every live-chat door is normalized into the same owner-main handler.
 async function canonicalChatModelRequest(request: Request, sourceSurface?: ChatSurface) {
   const url = new URL(request.url);
   url.pathname = "/api/chat/model";
