@@ -21,7 +21,7 @@ jobs:
         with:
           ref: phase-vi-provider-incentive-metering
 
-      - name: Apply deterministic Meta UI + deploy patch
+      - name: Apply deterministic Meta UI patch
         run: python scripts/patch-meta-inline-ui.py
 
       - name: Validate TypeScript and build
@@ -31,16 +31,16 @@ jobs:
           npm run typecheck
           npm run build
 
-      - name: Commit patched staging files
+      - name: Commit patched UnifiedChat
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- src/UnifiedChat.tsx .github/workflows/provider-incentive-staging-deploy.yml; then
-            echo "No Meta patch needed."
+          if git diff --quiet -- src/UnifiedChat.tsx; then
+            echo "No Meta UI patch needed."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/UnifiedChat.tsx .github/workflows/provider-incentive-staging-deploy.yml
+          git add src/UnifiedChat.tsx
           git commit -m "feat: expose Meta suite in unified chat"
           git push origin HEAD:phase-vi-provider-incentive-metering
