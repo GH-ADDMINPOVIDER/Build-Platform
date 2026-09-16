@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "owner_line": "owner-main",
+  "policy": {
+    "read_first": true,
+    "no_raw_secrets": true,
+    "outbound_side_effects_require_approval": true,
+    "paid_api_fallback_requires_owner_choice": true
+  },
+  "modules": [
+    {
+      "id": "meta-facebook-messenger",
+      "label": "Facebook Page + Messenger",
+      "family": "Meta",
+      "mode": "Graph API + Webhooks",
+      "credentials": ["META_PAGE_ACCESS_TOKEN", "META_APP_SECRET", "META_VERIFY_TOKEN"],
+      "permissions": ["pages_messaging"],
+      "safe_probe": "GET /me?fields=id,name",
+      "outbound": "approval-gated"
+    },
+    {
+      "id": "meta-instagram",
+      "label": "Instagram Professional + Messaging",
+      "family": "Meta",
+      "mode": "Instagram Graph API + Webhooks",
+      "credential_aliases": ["INSTAGRAM_ACCESS_TOKEN", "IG_ACCESS_TOKEN", "META_PAGE_ACCESS_TOKEN"],
+      "asset_aliases": ["INSTAGRAM_BUSINESS_ACCOUNT_ID", "META_IG_USER_ID", "IG_USER_ID"],
+      "permissions": ["instagram_business_basic", "instagram_business_manage_messages", "instagram_business_manage_comments", "instagram_business_content_publish"],
+      "outbound": "approval-gated"
+    },
+    {
+      "id": "meta-whatsapp",
+      "label": "WhatsApp Business Platform",
+      "family": "Meta",
+      "mode": "Cloud API + Webhooks",
+      "credential_aliases": ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_TOKEN", "META_WHATSAPP_ACCESS_TOKEN"],
+      "asset_aliases": ["WHATSAPP_BUSINESS_ACCOUNT_ID", "WABA_ID", "WHATSAPP_PHONE_NUMBER_ID"],
+      "outbound": "approval-gated"
+    },
+    {
+      "id": "meta-threads",
+      "label": "Threads",
+      "family": "Meta",
+      "mode": "Threads API",
+      "credential_aliases": ["THREADS_ACCESS_TOKEN", "META_THREADS_ACCESS_TOKEN"],
+      "permissions": ["threads_basic", "threads_content_publish", "threads_read_replies", "threads_manage_replies", "threads_manage_insights"],
+      "outbound": "approval-gated"
+    },
+    {
+      "id": "meta-muse",
+      "label": "Muse Code / Muse Spark",
+      "family": "Meta AI",
+      "mode": "Muse Code CLI + MSP / SDK",
+      "auth": "Meta account login preferred before META_API_KEY",
+      "memory_policy": "worker-only; D1 owner-main remains canonical 1LSS",
+      "outbound": "workspace mutation disabled until explicitly approved"
+    }
+  ]
+}
