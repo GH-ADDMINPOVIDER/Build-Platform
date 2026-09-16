@@ -16,10 +16,6 @@ replacements = [
         'else if (toolMode === "github" || toolMode === "linear" || toolMode === "n8n" || toolMode === "meta") await runInlineTool(toolMode, prompt);'
     ),
     (
-        '    { id: "n8n", label: "n8n", sub: liveTools.get("n8n")?.summary || "Workflows", live: toolLive(liveTools.get("n8n")?.state) },\n    { id: "manus",',
-        '    { id: "n8n", label: "n8n", sub: liveTools.get("n8n")?.summary || "Workflows", live: toolLive(liveTools.get("n8n")?.state) },\n    { id: "meta", label: "Meta Facebook", sub: liveTools.get("meta")?.summary || "Facebook Page · Messenger · Instagram optional", live: toolLive(liveTools.get("meta")?.state) },\n    { id: "manus",'
-    ),
-    (
         '    { id: "meta", label: "Meta", sub: liveTools.get("meta")?.summary || "Facebook · Instagram · WhatsApp · Threads · Muse", live: toolLive(liveTools.get("meta")?.state) },',
         '    { id: "meta", label: "Meta Facebook", sub: liveTools.get("meta")?.summary || "Facebook Page · Messenger · Instagram optional", live: toolLive(liveTools.get("meta")?.state) },'
     ),
