@@ -1,0 +1,54 @@
+name: 1LSS Session Recovery Patch
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/1lss-session-recovery-patch.yml"
+      - "scripts/patch-1lss-session-recovery.py"
+      - "worker/session-recovery-api.ts"
+      - "database/migrations/0011_1lss_session_refs.sql"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: phase-vi-provider-incentive-metering
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply deterministic session-recovery patch
+        run: python scripts/patch-1lss-session-recovery.py
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --package-lock=false
+
+      - name: Validate tests, TypeScript and build
+        run: npm run check
+
+      - name: Commit patched recovery surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worker/entry-connectors.ts worker/chat-model-api.ts src/UnifiedChat.tsx tests/1lss-session-recovery-contract.test.mjs
+          if git diff --cached --quiet; then
+            echo "No patch changes to commit"
+            exit 0
+          fi
+          git commit -m "feat: recover prior 1LSS session doors"
+          git pull --rebase origin phase-vi-provider-incentive-metering
+          git push origin HEAD:phase-vi-provider-incentive-metering
