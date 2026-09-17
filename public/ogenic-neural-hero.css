@@ -1,0 +1,55 @@
+.ucWelcome > .ucOrb {
+  width: clamp(230px, 42vw, 320px) !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1;
+  border-radius: 42px !important;
+  margin: 0 0 24px !important;
+  background: #05070d url('/ogenic-neural-hero.svg') center / cover no-repeat !important;
+  border: 1px solid rgba(120, 190, 255, .18);
+  box-shadow:
+    0 22px 70px rgba(27, 93, 255, .18),
+    0 14px 44px rgba(142, 72, 255, .14),
+    inset 0 0 0 1px rgba(255, 255, 255, .04) !important;
+  overflow: hidden;
+  position: relative;
+}
+
+.ucWelcome > .ucOrb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255,255,255,.08), transparent 18%),
+    linear-gradient(140deg, rgba(78,212,255,.07), transparent 35%, rgba(200,76,255,.05));
+  mix-blend-mode: screen;
+}
+
+.ucWelcome > .ucOrb > i {
+  display: none !important;
+}
+
+.ucWelcome small {
+  color: #7cdcff !important;
+  text-shadow: 0 0 20px rgba(85, 177, 255, .28);
+}
+
+@media (max-width: 700px) {
+  .ucWelcome > .ucOrb {
+    width: min(72vw, 262px) !important;
+    border-radius: 34px !important;
+    margin-bottom: 18px !important;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ucWelcome > .ucOrb {
+    animation: ogenicNeuralFloat 5.6s ease-in-out infinite;
+  }
+}
+
+@keyframes ogenicNeuralFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
