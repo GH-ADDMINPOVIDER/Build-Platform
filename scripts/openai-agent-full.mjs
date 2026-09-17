@@ -68,7 +68,7 @@ function consume(event) {
 
   if (event.type === 'agent.session.turn.item.done' && event.item) {
     const item = event.item;
-    if (item.type === 'assistant_message' && Array.isArray(item.content)) {
+    if (item.type === 'message' && Array.isArray(item.content)) {
       const text = item.content
         .filter((part) => part && part.type === 'output_text' && typeof part.text === 'string')
         .map((part) => part.text)
