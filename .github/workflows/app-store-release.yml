@@ -77,6 +77,9 @@ jobs:
           npx cap add ios
           npx cap sync ios
 
+      - name: Apply OGENIC HARNESS native app icon
+        run: bash scripts/apply-ios-brand.sh
+
       - name: Prepare App Store Connect API key
         id: apple_key
         shell: bash
