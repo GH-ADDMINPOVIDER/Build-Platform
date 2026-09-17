@@ -24,13 +24,15 @@ import "./mobile-fixes.css";
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    void navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    void navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(() => undefined);
   });
 }
 
 const pathname = window.location.pathname;
+const params = new URLSearchParams(window.location.search);
 const nativeApp = Capacitor.isNativePlatform();
-const appRoute = pathname === "/app" || pathname.startsWith("/app/") || new URLSearchParams(window.location.search).get("mobile") === "1";
+const shortcutApp = params.get("source") === "app";
+const appRoute = pathname === "/app" || pathname.startsWith("/app/") || params.get("mobile") === "1" || shortcutApp;
 const webChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
 const unifiedChatSurface = nativeApp || appRoute || webChatRoute;
 const sourceSurface = nativeApp || appRoute ? "ogenic-app" as const : "ogenic-web" as const;
