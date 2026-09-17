@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">OGENIC HARNESS mark</title>
+  <desc id="desc">Three access paths converge into one continuous harness line around a central owner node.</desc>
+  <defs>
+    <linearGradient id="ring" x1="36" y1="28" x2="220" y2="228" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8A5CFF"/>
+      <stop offset="0.55" stop-color="#D92D8A"/>
+      <stop offset="1" stop-color="#FF7A1A"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="64" fill="#09080D"/>
+  <path d="M55 66C83 36 126 27 162 40c37 13 65 47 68 86 3 39-19 76-55 95-36 18-81 14-112-12-31-26-44-68-31-106" fill="none" stroke="url(#ring)" stroke-width="18" stroke-linecap="round"/>
+  <path d="M28 102h50c18 0 31 10 42 25l10 14" fill="none" stroke="#8A5CFF" stroke-width="14" stroke-linecap="round"/>
+  <path d="M36 160h42c17 0 29-7 40-20l12-15" fill="none" stroke="#D92D8A" stroke-width="14" stroke-linecap="round"/>
+  <path d="M73 42l22 30c9 12 19 18 34 18h17" fill="none" stroke="#B541E8" stroke-width="14" stroke-linecap="round"/>
+  <path d="M130 129h55" fill="none" stroke="#F7F4FB" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="130" cy="129" r="24" fill="#0E0C14" stroke="#F7F4FB" stroke-width="9"/>
+  <circle cx="130" cy="129" r="9" fill="#FF8A24"/>
+</svg>
