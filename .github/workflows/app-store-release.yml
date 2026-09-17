@@ -150,6 +150,14 @@ jobs:
           test -n "$IPA_PATH" || { echo "::error::Signed IPA was not produced"; exit 1; }
           echo "IPA ready: $(basename "$IPA_PATH")"
 
+      - name: Save signed IPA as private CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ogenic-ai-ios-signed
+          path: build/appstore/*.ipa
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Validate build with App Store Connect
         shell: bash
         run: |
@@ -165,7 +173,7 @@ jobs:
             --apiIssuer "$APPSTORE_CONNECT_ISSUER_ID"
 
       - name: Upload build to App Store Connect
-        if: ${{ github.event_name == 'push' || inputs.upload }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.upload }}
         shell: bash
         run: |
           set -euo pipefail
