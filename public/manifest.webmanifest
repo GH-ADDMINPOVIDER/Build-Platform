@@ -1,16 +1,17 @@
 {
   "name": "OGENIC AI",
   "short_name": "OGENIC AI",
-  "description": "OGENIC AI chat, agents, workflows and GM Buff control surface.",
+  "description": "OGENIC AI chat, agents, workflows and HARNESS control surface.",
   "start_url": "/chat?source=app",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
-  "background_color": "#07070b",
-  "theme_color": "#07070b",
+  "background_color": "#07070A",
+  "theme_color": "#07070A",
   "orientation": "portrait-primary",
   "categories": ["productivity", "utilities"],
   "icons": [
+    { "src": "/ogenic-harness-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
     { "src": "/ogenic-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
     { "src": "/ogenic-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
