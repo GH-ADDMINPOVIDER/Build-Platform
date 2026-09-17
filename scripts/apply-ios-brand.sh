@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Final app branding is intentionally optional so native builds are never blocked
+# while the owner is still iterating on the OGENIC logo/icon.
+# Enable only when the final icon has been approved:
+#   OGENIC_FINAL_ICON=1 bash scripts/apply-ios-brand.sh [source.svg]
+if [[ "${OGENIC_FINAL_ICON:-0}" != "1" ]]; then
+  echo "Final OGENIC icon not locked yet; keeping the generated Capacitor AppIcon for this build."
+  exit 0
+fi
+
 SOURCE_SVG="${1:-public/ogenic-harness-app-icon.svg}"
 ICONSET="$(find ios/App/App/Assets.xcassets -type d -name 'AppIcon.appiconset' -print -quit)"
 
 if [[ ! -f "$SOURCE_SVG" ]]; then
-  echo "::error::Missing native icon source: $SOURCE_SVG"
+  echo "::error::Missing final native icon source: $SOURCE_SVG"
   exit 1
 fi
 if [[ -z "$ICONSET" || ! -d "$ICONSET" ]]; then
@@ -20,7 +29,7 @@ trap 'rm -rf "$PREVIEW_DIR"' EXIT
 qlmanage -t -s 1024 -o "$PREVIEW_DIR" "$SOURCE_SVG" >/dev/null 2>&1
 SOURCE_PNG="$(find "$PREVIEW_DIR" -maxdepth 1 -type f -name '*.png' -print -quit)"
 if [[ -z "$SOURCE_PNG" || ! -f "$SOURCE_PNG" ]]; then
-  echo "::error::Could not render HARNESS SVG to PNG"
+  echo "::error::Could not render final OGENIC SVG to PNG"
   exit 1
 fi
 
@@ -47,7 +56,7 @@ PY
 done < <(jq -r '.images[]? | select(.filename != null) | [.filename, .size, (.scale // "1x")] | @tsv' "$CONTENTS")
 
 # Capacitor 7 currently generates filename-backed AppIcon entries. Keep a safe fallback
-# so a future template change still receives the branded 1024 source.
+# so a future template change still receives the approved 1024 source.
 if [[ "$COUNT" -eq 0 ]]; then
   FALLBACK="$ICONSET/AppIcon-512@2x.png"
   sips -z 1024 1024 "$SOURCE_PNG" --out "$FALLBACK" >/dev/null
@@ -69,4 +78,4 @@ PY
   COUNT=1
 fi
 
-echo "Applied OGENIC HARNESS native branding to ${COUNT} iOS app icon asset(s)."
+echo "Applied approved OGENIC branding to ${COUNT} iOS app icon asset(s)."
