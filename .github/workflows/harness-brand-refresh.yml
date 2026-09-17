@@ -67,7 +67,7 @@ jobs:
           PY
 
       - name: Install and verify
-        run: npm ci
+        run: npm install --package-lock-only && npm ci
 
       - name: Typecheck and build
         run: npm run check
