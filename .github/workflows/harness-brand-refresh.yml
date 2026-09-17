@@ -1,0 +1,87 @@
+name: OGENIC HARNESS Brand Refresh
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/harness-brand-refresh.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase-vi-provider-incentive-metering
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Apply HARNESS branding and logo
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          tsx_path = Path('src/ControlPlaneV2.tsx')
+          css_path = Path('src/control-plane-v2.css')
+          tsx = tsx_path.read_text()
+          css = css_path.read_text()
+
+          old_brand = '<div className="cpBrand"><span className="cpLogo"><i /></span><div><strong>OGENIC AI</strong><small>v0.2 · STAGING</small></div></div>'
+          new_brand = '<div className="cpBrand"><img className="cpLogo" src="/assets/ogenic-harness-mark.svg" alt="OGENIC HARNESS" /><div><strong>OGENIC HARNESS</strong><small>ONE LINE · MANY KEYS</small></div></div>'
+          count = tsx.count(old_brand)
+          if count != 2:
+              raise SystemExit(f'expected 2 legacy brand blocks, found {count}')
+          tsx = tsx.replace(old_brand, new_brand)
+
+          replacements = {
+              'OWNER CONTROL PLANE': 'OWNER HARNESS',
+              'One app. Everything OGENIC.': 'One Line. Many Keys.',
+              'OGENIC CONTROL PLANE': 'OGENIC HARNESS',
+              'OGENIC AI พร้อมทำงาน': 'OGENIC HARNESS พร้อมทำงาน',
+              'Chat · Tools · Workflows · Finance · Apps ใน control plane เดียว': 'Chat · Tools · Workflows · Finance · Apps บน HARNESS เส้นเดียว',
+              'OGENIC AI พร้อมแล้ว · SAME MIND staging': 'OGENIC HARNESS พร้อมแล้ว · owner-main / 1LSS',
+          }
+          for old, new in replacements.items():
+              if old not in tsx:
+                  raise SystemExit(f'missing expected UI text: {old}')
+              tsx = tsx.replace(old, new)
+
+          old_logo_css = '.cpLogo{position:relative;width:42px;height:42px;border-radius:50%;background:conic-gradient(#ff174e,#d81770 40%,#7c3cff 72%,#ff174e)}.cpLogo:after{content:"";position:absolute;inset:8px;border-radius:50%;background:#08080d}.cpLogo i{position:absolute;z-index:1;width:14px;height:14px;right:2px;top:3px;border-radius:50%;background:#de246d}'
+          new_logo_css = '.cpLogo{width:42px;height:42px;display:block;flex:0 0 auto;border-radius:13px;box-shadow:0 0 0 1px rgba(151,91,255,.28),0 10px 26px rgba(126,67,255,.18)}'
+          if old_logo_css not in css:
+              raise SystemExit('legacy cpLogo CSS not found')
+          css = css.replace(old_logo_css, new_logo_css)
+
+          tsx_path.write_text(tsx)
+          css_path.write_text(css)
+          PY
+
+      - name: Install and verify
+        run: npm ci
+
+      - name: Typecheck and build
+        run: npm run check
+
+      - name: Commit refresh
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No branding changes required."
+            exit 0
+          fi
+          git config user.name "OGENIC CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/ControlPlaneV2.tsx src/control-plane-v2.css public/assets/ogenic-harness-mark.svg
+          git commit -m "feat: refresh OGENIC website as HARNESS"
+          git push origin HEAD:phase-vi-provider-incentive-metering
