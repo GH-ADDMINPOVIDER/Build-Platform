@@ -53,7 +53,7 @@ const apps: AppLink[] = [
 
 const cashKey = "ogenic.webdev.cashflow.v1";
 const WELCOME_MESSAGES: ChatMessage[] = [
-  { id: "welcome", role: "assistant", text: "OGENIC AI พร้อมแล้ว · SAME MIND staging", meta: "Owner session" },
+  { id: "welcome", role: "assistant", text: "OGENIC HARNESS พร้อมแล้ว · owner-main / 1LSS", meta: "Owner session" },
 ];
 
 function count(rows: Array<{ status: string; count: number }> | undefined, wanted: string[]) {
@@ -202,8 +202,8 @@ export default function ControlPlaneV2() {
 
   if (!session?.authenticated) return (
     <main className="cpAuth"><section className="cpAuthCard">
-      <div className="cpBrand"><span className="cpLogo"><i /></span><div><strong>OGENIC AI</strong><small>v0.2 · STAGING</small></div></div>
-      <span className="eyebrow">OWNER CONTROL PLANE</span><h1>One app. Everything OGENIC.</h1>
+      <div className="cpBrand"><img className="cpLogo" src="/assets/ogenic-harness-mark.svg" alt="OGENIC HARNESS" /><div><strong>OGENIC HARNESS</strong><small>ONE LINE · MANY KEYS</small></div></div>
+      <span className="eyebrow">OWNER HARNESS</span><h1>One Line. Many Keys.</h1>
       <p>คีย์ถูกตรวจที่ Worker และไม่บันทึกลง browser storage</p>
       <div className="cpAuthForm"><input type="password" value={ownerKey} onChange={(e) => setOwnerKey(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void signIn(); }} placeholder="Owner access key" /><button onClick={() => void signIn()}>Enter</button></div>
       {authError && <div className="cpError">{authError}</div>}
@@ -212,12 +212,12 @@ export default function ControlPlaneV2() {
 
   return <main className="cpShell">
     <aside className="cpSide">
-      <div className="cpBrand"><span className="cpLogo"><i /></span><div><strong>OGENIC AI</strong><small>v0.2 · STAGING</small></div></div>
+      <div className="cpBrand"><img className="cpLogo" src="/assets/ogenic-harness-mark.svg" alt="OGENIC HARNESS" /><div><strong>OGENIC HARNESS</strong><small>ONE LINE · MANY KEYS</small></div></div>
       <nav>{nav.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => setView(item.id)}><span>{item.icon}</span>{item.label}</button>)}</nav>
       <div className="cpSideFoot"><span><i className="cpOnlineDot" /> Owner session</span><button onClick={() => void signOut()}>Sign out</button></div>
     </aside>
     <section className="cpWorkspace">
-      <header className="cpHeader"><div><span className="eyebrow">OGENIC CONTROL PLANE</span><h1>{nav.find((n) => n.id === view)?.label}</h1></div><div className="cpHeaderActions"><span className="cpStage">STAGING ONLY</span><button onClick={() => void loadDashboard()}>{loading ? "Syncing…" : "↻ Sync"}</button></div></header>
+      <header className="cpHeader"><div><span className="eyebrow">OGENIC HARNESS</span><h1>{nav.find((n) => n.id === view)?.label}</h1></div><div className="cpHeaderActions"><span className="cpStage">STAGING ONLY</span><button onClick={() => void loadDashboard()}>{loading ? "Syncing…" : "↻ Sync"}</button></div></header>
       {loadError && <div className="cpError">{loadError}</div>}
 
       {view === "overview" && <>
@@ -227,7 +227,7 @@ export default function ControlPlaneV2() {
           <article><span>Active runs</span><strong>{activeRuns}</strong><small>{dashboard?.workflows?.length ?? 0} workflows</small></article>
           <article><span>Open tasks</span><strong>{openTasks}</strong><small>Agent queue</small></article>
         </section>
-        <section className="cpHero"><img src="/assets/ogenic-ai-ops.webp" alt="OGENIC AI operations system" /><div className="cpHeroCopy"><span className="eyebrow">AI OPERATIONS</span><h2>OGENIC AI พร้อมทำงาน</h2><p>Chat · Tools · Workflows · Finance · Apps ใน control plane เดียว</p><div><button onClick={() => setView("chat")}>Open AI Chat</button><button onClick={() => setView("apps")}>Open Apps</button></div></div></section>
+        <section className="cpHero"><img src="/assets/ogenic-ai-ops.webp" alt="OGENIC AI operations system" /><div className="cpHeroCopy"><span className="eyebrow">AI OPERATIONS</span><h2>OGENIC HARNESS พร้อมทำงาน</h2><p>Chat · Tools · Workflows · Finance · Apps บน HARNESS เส้นเดียว</p><div><button onClick={() => setView("chat")}>Open AI Chat</button><button onClick={() => setView("apps")}>Open Apps</button></div></div></section>
         <section className="cpGrid2">
           <article className="cpPanel"><div className="cpPanelHead"><div><span className="eyebrow">PROVIDERS</span><h2>Live tools</h2></div><button onClick={() => setView("tools")}>Open →</button></div>{(dashboard?.tools ?? []).map((tool) => <div className="cpRow" key={tool.id}><b>{tool.label}</b><small>{tool.summary || "—"}</small><span className={`cpStatus ${tone(tool.state)}`}>{tool.state}</span></div>)}</article>
           <article className="cpPanel"><div className="cpPanelHead"><div><span className="eyebrow">QUICK APPS</span><h2>Workspace</h2></div><button onClick={() => setView("apps")}>All →</button></div><div className="cpQuickApps">{apps.slice(0, 6).map((app) => <button key={app.id} onClick={() => app.internal ? setView(app.internal) : window.open(app.url, "_blank", "noopener,noreferrer")}><i>{app.icon}</i><span><b>{app.label}</b><small>{app.sub}</small></span></button>)}</div></article>
