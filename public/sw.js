@@ -1,5 +1,5 @@
-const CACHE = "ogenic-ai-shell-v7";
-const SHELL = ["/", "/app", "/manifest.webmanifest", "/ogenic-icon-180.png", "/ogenic-icon-192.png", "/ogenic-icon-512.png"];
+const CACHE = "ogenic-ai-shell-v8";
+const SHELL = ["/", "/chat", "/app", "/manifest.webmanifest", "/ogenic-icon-180.png", "/ogenic-icon-192.png", "/ogenic-icon-512.png"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -29,6 +29,6 @@ self.addEventListener("fetch", (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match("/app") || caches.match("/"))),
+      .catch(() => caches.match(request).then((cached) => cached || caches.match("/chat") || caches.match("/app") || caches.match("/"))),
   );
 });
