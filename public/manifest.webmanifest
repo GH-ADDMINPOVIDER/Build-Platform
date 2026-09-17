@@ -2,7 +2,7 @@
   "name": "OGENIC AI",
   "short_name": "OGENIC AI",
   "description": "OGENIC AI chat, agents, workflows and GM Buff control surface.",
-  "start_url": "/?source=app",
+  "start_url": "/chat?source=app",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
