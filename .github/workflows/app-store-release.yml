@@ -50,17 +50,17 @@ jobs:
           method: oidc
           identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
           project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
-          env-slug: staging
-          secret-path: /apple
+          env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
+          secret-path: ${{ steps.infisical_project.outputs.secret_path }}
 
       - name: Require Apple release credentials
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${APPLE_TEAM_ID:-}" || { echo "::error::Missing APPLE_TEAM_ID in Infisical /apple"; exit 1; }
-          test -n "${APPSTORE_CONNECT_KEY_ID:-}" || { echo "::error::Missing APPSTORE_CONNECT_KEY_ID in Infisical /apple"; exit 1; }
-          test -n "${APPSTORE_CONNECT_ISSUER_ID:-}" || { echo "::error::Missing APPSTORE_CONNECT_ISSUER_ID in Infisical /apple"; exit 1; }
-          test -n "${APPSTORE_CONNECT_PRIVATE_KEY:-}" || { echo "::error::Missing APPSTORE_CONNECT_PRIVATE_KEY in Infisical /apple"; exit 1; }
+          test -n "${APPLE_TEAM_ID:-}" || { echo "::error::Missing APPLE_TEAM_ID in canonical Infisical source"; exit 1; }
+          test -n "${APPSTORE_CONNECT_KEY_ID:-}" || { echo "::error::Missing APPSTORE_CONNECT_KEY_ID in canonical Infisical source"; exit 1; }
+          test -n "${APPSTORE_CONNECT_ISSUER_ID:-}" || { echo "::error::Missing APPSTORE_CONNECT_ISSUER_ID in canonical Infisical source"; exit 1; }
+          test -n "${APPSTORE_CONNECT_PRIVATE_KEY:-}" || { echo "::error::Missing APPSTORE_CONNECT_PRIVATE_KEY in canonical Infisical source"; exit 1; }
           echo "Apple release credentials are present; values remain masked."
 
       - name: Install dependencies
