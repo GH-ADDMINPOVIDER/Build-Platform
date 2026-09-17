@@ -60,6 +60,16 @@ function cookieValue(request: Request, name: string) {
   return "";
 }
 
+function bearerValue(request: Request) {
+  const value = request.headers.get("authorization") ?? "";
+  const match = /^Bearer\s+(.+)$/i.exec(value.trim());
+  return match?.[1]?.trim() ?? "";
+}
+
+function nativeClient(request: Request) {
+  return (request.headers.get("x-ogenic-client") ?? "").trim().toLowerCase() === "native";
+}
+
 async function issueSession(secret: string) {
   const payload = base64UrlEncode(JSON.stringify({
     sub: "ogenic-owner",
@@ -70,8 +80,7 @@ async function issueSession(secret: string) {
   return `${payload}.${await hmac(payload, secret)}`;
 }
 
-async function validSignedSession(request: Request, secret: string) {
-  const token = cookieValue(request, COOKIE);
+async function validSignedToken(token: string, secret: string) {
   const separator = token.lastIndexOf(".");
   if (separator <= 0) return false;
   const payload = token.slice(0, separator);
@@ -86,6 +95,11 @@ async function validSignedSession(request: Request, secret: string) {
   }
 }
 
+async function validSignedSession(request: Request, secret: string) {
+  const token = bearerValue(request) || cookieValue(request, COOKIE);
+  return Boolean(token && await validSignedToken(token, secret));
+}
+
 export async function hasOwnerSession(request: Request, env: AuthBindings) {
   const secret = String(env.OGENIC_OPS_KEY ?? "").trim();
   return Boolean(secret && await validSignedSession(request, secret));
@@ -98,7 +112,7 @@ export async function requireOwnerSession(c: Context<AuthEnv>) {
 
 function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  return !origin || origin === new URL(request.url).origin;
+  return !origin || origin === new URL(request.url).origin || nativeClient(request);
 }
 
 export function createAuthApi() {
@@ -110,7 +124,7 @@ export function createAuthApi() {
       ok: true,
       authenticated,
       user: authenticated ? { id: "ogenic-owner", role: "owner", label: "OGENIC Owner" } : null,
-      method: authenticated ? "secure_cookie" : null,
+      method: authenticated ? (bearerValue(c.req.raw) ? "native_bearer" : "secure_cookie") : null,
     }, 200, { "Cache-Control": "no-store" });
   });
 
@@ -124,8 +138,14 @@ export function createAuthApi() {
       return c.json({ ok: false, code: "REAUTH_REQUIRED" }, 401, { "Cache-Control": "no-store" });
     }
     const token = await issueSession(configured);
+    const responseBody: Record<string, unknown> = {
+      ok: true,
+      authenticated: true,
+      user: { id: "ogenic-owner", role: "owner", label: "OGENIC Owner" },
+    };
+    if (nativeClient(c.req.raw)) responseBody.session_token = token;
     return c.json(
-      { ok: true, authenticated: true, user: { id: "ogenic-owner", role: "owner", label: "OGENIC Owner" } },
+      responseBody,
       200,
       {
         "Cache-Control": "no-store",
