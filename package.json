@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run test && npm run typecheck && npm run build",
     "deploy": "npm run build && wrangler deploy",
+    "agent:full": "node scripts/openai-agent-full.mjs",
     "app:ios:add": "npx cap add ios",
     "app:ios:sync": "npm run build && npx cap sync ios",
     "app:ios:open": "npx cap open ios",
