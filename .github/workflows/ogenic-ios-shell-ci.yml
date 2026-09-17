@@ -10,6 +10,7 @@ on:
       - "index.html"
       - "public/**"
       - "src/**"
+      - "scripts/apply-ios-brand.sh"
   workflow_dispatch:
 
 permissions:
@@ -38,6 +39,9 @@ jobs:
       - name: Sync OGENIC web shell into iOS
         run: npx cap sync ios
 
+      - name: Apply OGENIC HARNESS native app icon
+        run: bash scripts/apply-ios-brand.sh
+
       - name: Build unsigned iOS simulator app
         run: |
           xcodebuild \
@@ -52,4 +56,6 @@ jobs:
       - name: Verify native app bundle
         run: |
           test -d build/ios/Build/Products/Debug-iphonesimulator/App.app
-          echo "OGENIC AI native iOS shell built successfully (unsigned simulator build)."
+          ICON_COUNT="$(find ios/App/App/Assets.xcassets/AppIcon.appiconset -name '*.png' -type f | wc -l | tr -d ' ')"
+          test "$ICON_COUNT" -gt 0
+          echo "OGENIC AI native iOS app built successfully with HARNESS branding (unsigned simulator build)."
