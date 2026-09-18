@@ -7,6 +7,8 @@ import {
   testConnector,
   type ConnectorBindings,
 } from "./connector-runtime";
+import { readIncentiveSnapshot } from "./provider-incentives";
+import { readCanonicalD1Context, recordChatUsage } from "./d1-context";
 
 export type ConnectorAppBindings = AuthBindings & ConnectorBindings & {
   OPENAI_API_KEY?: string;
@@ -228,6 +230,7 @@ export function createConnectorAppApi() {
     const tools = [
       { id: "web_search", label: "Web Search", state: "LIVE", risk: "READ_ONLY", note: "OpenAI-hosted web search; metered per API usage." },
       { id: "file_search", label: "File Search", state: storeId ? "LIVE" : "CONFIGURATION_REQUIRED", risk: "READ_ONLY", note: storeId ? "Connected to OGENIC Knowledge vector store." : "Create the OGENIC Knowledge store to enable." },
+      { id: "d1_canonical", label: "D1 Canonical Context", state: c.env.DB ? "LIVE" : "CONFIGURATION_REQUIRED", risk: "READ_ONLY", note: c.env.DB ? "Reads canonical toolkit, policies, provider bindings, sources and knowledge from D1." : "Bind D1 DB to enable canonical context." },
       { id: "functions", label: "Function Calling", state: "LIVE", risk: "APPROVAL_GATED", note: "OGENIC connector functions; side effects stop at Human Approval." },
       { id: "mcp", label: "Remote MCP", state: "REGISTERED", risk: "APPROVAL_GATED", note: "OGENIC Registry MCP is registered; execution remains explicitly approval-gated." },
       { id: "computer_use", label: "Computer Use", state: "AVAILABLE", risk: "HIGH_RISK", note: "Not auto-enabled in web dev; requires explicit owner action policy." },
@@ -262,15 +265,28 @@ export function createConnectorAppApi() {
   api.post("/api/chat/functions", async (c) => {
     const apiKey = clean(c.env.OPENAI_API_KEY, 4000);
     if (!apiKey) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OPENAI_API_KEY" }, 503);
-    const body: { prompt?: unknown; model?: unknown } = await c.req.json<{ prompt?: unknown; model?: unknown }>().catch(() => ({ prompt: undefined, model: undefined }));
+    const body: { prompt?: unknown; model?: unknown; tool_mode?: unknown; reasoning_effort?: unknown; allow_paid_fallback?: unknown; source_surface?: unknown } = await c.req.json<{ prompt?: unknown; model?: unknown; tool_mode?: unknown; reasoning_effort?: unknown; allow_paid_fallback?: unknown; source_surface?: unknown }>().catch(() => ({}));
     const prompt = clean(body.prompt, 7000);
     if (!prompt) return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt is required" }, 400);
     const requestedModel = clean(body.model, 80);
     const model = requestedModel === "gpt-6-astra" ? requestedModel : "gpt-5.6-sol";
+    const toolMode = ["web", "rag", "auto"].includes(clean(body.tool_mode, 20).toLowerCase()) ? clean(body.tool_mode, 20).toLowerCase() : "auto";
+    const effort = ["low", "medium", "high", "xhigh", "max"].includes(clean(body.reasoning_effort, 20)) ? clean(body.reasoning_effort, 20) : "low";
+    const allowPaidFallback = body.allow_paid_fallback === true;
+    const sourceSurface = clean(body.source_surface, 60) || "ogenic-ui";
+    const incentive = await readIncentiveSnapshot(c.env.DB);
+    const poolId = "standard";
+    const pool = incentive.pools.find((row) => row.id === poolId);
+    const guarded = pool?.state === "CRITICAL" || pool?.state === "EXHAUSTED";
+    if (guarded && !allowPaidFallback) {
+      return c.json({ ok: false, code: "INCENTIVE_CAP_GUARD", message: "standard pool is guarded; paid fallback is disabled", incentive_pool: poolId, routing_mode: incentive.routing_mode, paid_fallback: false }, 429);
+    }
+    const d1Context = await readCanonicalD1Context(c.env.DB);
     const store = await knowledgeStore(c.env, apiKey, false);
-    const hostedTools: Array<Record<string, unknown>> = [{ type: "web_search" }];
-    if (store.state === "LIVE" && store.id) hostedTools.push({ type: "file_search", vector_store_ids: [store.id], max_num_results: 8 });
-    const requestTools: Array<Record<string, unknown>> = [...functionTools, ...hostedTools];
+    const webTool: Record<string, unknown> = { type: "web_search" };
+    const fileTool: Record<string, unknown> | null = store.state === "LIVE" && store.id ? { type: "file_search", vector_store_ids: [store.id], max_num_results: 8 } : null;
+    const hostedTools: Array<Record<string, unknown>> = toolMode === "web" ? [webTool] : toolMode === "rag" ? (fileTool ? [fileTool] : []) : [webTool, ...(fileTool ? [fileTool] : [])];
+    const requestTools: Array<Record<string, unknown>> = toolMode === "auto" ? [...functionTools, ...hostedTools] : hostedTools;
 
     let input: Array<Record<string, unknown>> = [{
       role: "user",
@@ -278,6 +294,7 @@ export function createConnectorAppApi() {
     }];
     const calls: Array<{ name: string; state: string; call_id: string }> = [];
     let final: ResponseBody = {};
+    let usageTotal = 0;
 
     for (let round = 0; round < 4; round += 1) {
       const response = await fetch("https://api.openai.com/v1/responses", {
@@ -289,19 +306,17 @@ export function createConnectorAppApi() {
         },
         body: JSON.stringify({
           model,
-          reasoning: { effort: "low" },
-          instructions: "You are the OGENIC connector supervisor. Use OpenAI hosted read-only tools and OGENIC functions when relevant. Never claim an external action was executed when a function returns HUMAN_APPROVAL_REQUIRED. LINE/Meta/n8n credentials remain server-side. Prefer live tool facts over guesses. Reply in the user's language.",
+          reasoning: { effort },
+          instructions: "You are the OGENIC connector supervisor. The D1 block is a verified read-only snapshot from the canonical Worker database. Use it directly for OGENIC toolkit, policy, provider binding, canonical source and knowledge questions. Use only the selected hosted tool mode for web/RAG requests. Never claim an external action was executed when a function returns HUMAN_APPROVAL_REQUIRED. LINE/Meta/n8n credentials remain server-side. Prefer verified tool facts over guesses. Reply in the user's language.\n\nCANONICAL D1 READ-ONLY CONTEXT:\n" + d1Context.text,
           input,
-          tools: requestTools,
-          tool_choice: "auto",
-          parallel_tool_calls: true,
-          max_tool_calls: 6,
-          include: store.state === "LIVE" ? ["web_search_call.action.sources", "file_search_call.results"] : ["web_search_call.action.sources"],
+          ...(requestTools.length ? { tools: requestTools, tool_choice: "auto", parallel_tool_calls: true, max_tool_calls: 6 } : {}),
+          ...(toolMode === "web" ? { include: ["web_search_call.action.sources"] } : toolMode === "rag" && store.state === "LIVE" ? { include: ["file_search_call.results"] } : toolMode === "auto" && store.state === "LIVE" ? { include: ["web_search_call.action.sources", "file_search_call.results"] } : toolMode === "auto" ? { include: ["web_search_call.action.sources"] } : {}),
           max_output_tokens: 1800,
           store: false,
         }),
       });
       final = await response.json().catch(() => ({})) as ResponseBody;
+      usageTotal += Number(final.usage?.total_tokens ?? 0);
       if (!response.ok) {
         return c.json({
           ok: false,
@@ -324,16 +339,29 @@ export function createConnectorAppApi() {
     }
 
     const text = extractText(final);
+    await recordChatUsage(c.env.DB, {
+      conversationId: "owner-main",
+      sourceSurface,
+      model,
+      poolId,
+      usageTokens: usageTotal,
+      route: allowPaidFallback && guarded ? "paid_fallback" : "incentive_guarded",
+    });
     return c.json({
       ok: true,
       text: text || "Function inspection completed.",
       model: final.model ?? model,
       function_calls: calls,
       hosted_tools: {
-        web_search: "LIVE",
-        file_search: store.state === "LIVE" ? "LIVE" : store.state,
+        web_search: toolMode === "rag" ? "DISABLED_FOR_RAG_MODE" : "LIVE",
+        file_search: toolMode === "web" ? "DISABLED_FOR_WEB_MODE" : store.state === "LIVE" ? "LIVE" : store.state,
+        d1_canonical: d1Context.state,
       },
-      usage_tokens: Number(final.usage?.total_tokens ?? 0),
+      tool_mode: toolMode,
+      incentive_pool: poolId,
+      routing_mode: incentive.routing_mode,
+      paid_fallback: allowPaidFallback,
+      usage_tokens: usageTotal,
       policy: "SIDE_EFFECTS_REQUIRE_SEPARATE_OWNER_APPROVAL",
     }, 200, { "Cache-Control": "no-store" });
   });
