@@ -81,6 +81,11 @@ export async function recordChatUsage(
 ) {
   if (!db || !Number.isFinite(input.usageTokens) || input.usageTokens <= 0) return;
   try {
+    const now = Date.now();
+    await db.prepare(
+      `INSERT OR IGNORE INTO chat_conversations (id, owner_id, title, created_at, updated_at)
+       VALUES (?, \'owner\', \'OGENIC SAME MIND\', ?, ?)`
+    ).bind(clip(input.conversationId, 120), now, now).run();
     await db.prepare(
       `INSERT INTO chat_usage_ledger(
          id, conversation_id, source_surface, model, pool_id, usage_tokens, billed_route, created_at
