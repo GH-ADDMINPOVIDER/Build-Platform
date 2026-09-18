@@ -152,6 +152,7 @@ export default function UnifiedChat({ surface }: Props) {
   const pools = dashboard.incentives?.pools ?? [];
   const exhausted = dashboard.incentives?.policy_state === "EXHAUSTED";
   const requiresOpenAI = !["manus", "live"].includes(toolMode);
+  const quotaMetered = pools.some((pool) => pool.telemetry === "HARNESS_METERED");
   const quotaBlocked = exhausted && requiresOpenAI && !allowPaidFallback;
 
   useEffect(() => { try { localStorage.setItem(MEMORY_KEY, d1Enabled ? "1" : "0"); } catch { /* noop */ } }, [d1Enabled]);
@@ -372,7 +373,7 @@ export default function UnifiedChat({ surface }: Props) {
     if (!d1Enabled) throw new Error("Web/RAG tool ต้องเปิด D1 เพื่อคง 1LSS");
     const response = await fetch("/api/chat/functions", {
       method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Idempotency-Key": `hosted_${crypto.randomUUID()}` },
-      body: JSON.stringify({ prompt: toolMode === "rag" ? `Use file_search when relevant. ${prompt}` : `Use web_search when relevant. ${prompt}`, model: selectedModel.id, source_surface: surface }),
+      body: JSON.stringify({ prompt, model: selectedModel.id, source_surface: surface, tool_mode: toolMode, reasoning_effort: chatConfig.effort, allow_paid_fallback: allowPaidFallback }),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !body?.ok) throw new Error(body?.message || body?.code || `HTTP_${response.status}`);
@@ -394,6 +395,7 @@ export default function UnifiedChat({ surface }: Props) {
         session_ref: viewportSessionRef,
         session_url: `${window.location.origin}${window.location.pathname}`,
         session_label: surface === "ogenic-app" ? "OGENIC App viewport" : "OGENIC Web viewport",
+        allow_paid_fallback: allowPaidFallback,
       }),
     });
     const body = await response.json().catch(() => ({}));
@@ -442,7 +444,7 @@ export default function UnifiedChat({ surface }: Props) {
 
   const toolRows: Array<{ id: ToolMode; label: string; sub: string; live: boolean }> = [
     { id: "web", label: "Web search", sub: "Fresh web sources", live: toolLive(platformTools.get("web_search")?.state) },
-    { id: "rag", label: "RAG memory", sub: "OGENIC knowledge", live: toolLive(platformTools.get("file_search")?.state) },
+    { id: "rag", label: "RAG memory", sub: "D1 canonical + OGENIC knowledge", live: toolLive(platformTools.get("d1_canonical")?.state) || toolLive(platformTools.get("file_search")?.state) },
     { id: "github", label: "GitHub", sub: liveTools.get("github")?.summary || "Repository + CI", live: toolLive(liveTools.get("github")?.state) },
     { id: "linear", label: "Linear", sub: liveTools.get("linear")?.summary || "Issues + projects", live: toolLive(liveTools.get("linear")?.state) },
     { id: "n8n", label: "n8n", sub: liveTools.get("n8n")?.summary || "Workflows", live: toolLive(liveTools.get("n8n")?.state) },
@@ -482,7 +484,7 @@ export default function UnifiedChat({ surface }: Props) {
           <button className="ucCapability" onClick={() => fileInput.current?.click()}><span>▧</span><div><b>Photos & files</b><small>Attach to this turn</small></div><em>＋</em></button>
           {toolRows.filter((row) => row.live).map((row) => <button key={row.id} className={`ucCapability ${toolMode === row.id ? "active" : ""}`} onClick={() => { setToolMode(row.id); setToolDock(false); }}><span>{row.id === "live" ? "◎" : row.id === "manus" ? "◉" : row.id === "github" ? "⌘" : row.id === "rag" ? "◇" : "✦"}</span><div><b>{row.label}</b><small>{row.sub}</small></div><em>{toolMode === row.id ? "✓" : "›"}</em></button>)}
           {!!connected.length && <div className="ucConnected"><small>CONNECTED</small><p>{connected.map((row) => row.label).join(" · ")}</p></div>}
-          <div className="ucQuotaRow"><span><b>Quota route</b><small>{dashboard.incentives?.routing_mode || "quota-first"}{exhausted ? " · EXHAUSTED" : " · included first"}</small></span><button className={allowPaidFallback ? "ucFallback on" : "ucFallback"} onClick={() => setAllowPaidFallback((value) => !value)}>{allowPaidFallback ? "API allowed" : "API locked"}</button></div>
+          <div className="ucQuotaRow"><span><b>Quota route</b><small>{dashboard.incentives?.routing_mode || "quota-first"}{exhausted ? " · EXHAUSTED" : quotaMetered ? " · metered" : " · metering pending"}</small></span><button className={allowPaidFallback ? "ucFallback on" : "ucFallback"} onClick={() => setAllowPaidFallback((value) => !value)}>{allowPaidFallback ? "Paid fallback ON" : "Paid fallback OFF"}</button></div>
         </>}
         {modelDock && <>
           <div className="ucDockHead"><div><b>Model</b><small>Web + App ใช้ config เดียวกัน</small></div><button onClick={() => setModelDock(false)}>×</button></div>
@@ -495,13 +497,13 @@ export default function UnifiedChat({ surface }: Props) {
       {toolMode !== "chat" && <div className="ucActiveTool"><span>{toolMode.toUpperCase()}</span><button onClick={() => setToolMode("chat")}>×</button></div>}
       {attachments.length > 0 && <div className="ucAttachments">{attachments.map((file) => <button key={file.id} onClick={() => setAttachments((rows) => rows.filter((row) => row.id !== file.id))}>▧ {file.filename} ×</button>)}</div>}
       {inlineNotice && <div className="ucNotice">{inlineNotice}</div>}
-      {quotaBlocked && <div className="ucQuotaWarn"><b>Included quota หมด</b><span>กูไม่สลับไปเสีย API เอง</span><button onClick={() => setAllowPaidFallback(true)}>Use API</button></div>}
+      {quotaBlocked && <div className="ucQuotaWarn"><b>Guarded quota หมด</b><span>Paid fallback ปิดอยู่ กูจะไม่ข้าม guard เอง</span><button onClick={() => setAllowPaidFallback(true)}>Allow paid fallback</button></div>}
       <section className="ucComposer">
         <textarea rows={1} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : "Message Ammonite…"} />
         <div className="ucComposerBar">
           <button className="ucRound" onClick={() => { setToolDock((value) => !value); setModelDock(false); }}>＋</button>
           <button className="ucModel" onClick={() => { setModelDock((value) => !value); setToolDock(false); }}><i /> <b>{selectedModel.label}</b><small>{EFFORTS.find((row) => row.id === chatConfig.effort)?.label} · ×{chatConfig.boost}</small>⌄</button>
-          <div className="ucQuotaMini">{pools.length ? <>{pools[0]?.state === "EXHAUSTED" ? "API?" : "Quota-first"}</> : "Quota-first"}</div>
+          <div className="ucQuotaMini">{pools.length ? <>{pools[0]?.state === "EXHAUSTED" ? (allowPaidFallback ? "Fallback ON" : "Guarded") : quotaMetered ? "Metered" : "Guarded"}</> : "Guarded"}</div>
           <button className="ucSend" disabled={sending || (!draft.trim() && !attachments.length)} onClick={() => void send()}>{sending ? "…" : "↑"}</button>
         </div>
       </section>

@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { hasOwnerSession, type AuthBindings } from "./app-auth";
+import { readIncentiveSnapshot } from "./provider-incentives";
+import { readCanonicalD1Context, recordChatUsage } from "./d1-context";
 
 type D1Result<T = Record<string, unknown>> = { results?: T[] };
 type D1Prepared = {
@@ -27,6 +29,7 @@ type Body = {
   session_ref?: unknown;
   session_url?: unknown;
   session_label?: unknown;
+  allow_paid_fallback?: unknown;
 };
 type ChatRow = {
   id?: string;
@@ -85,6 +88,10 @@ function resolveSurface(body: Body, request: Request) {
   const mode = clean(body.mode, 40).toLowerCase();
   if (mode === "mobile") return "ogenic-app";
   return "unknown";
+}
+
+function poolForModel(model: string) {
+  return model === "gpt-5.6-sol" || model === "gpt-6-astra" ? "standard" : "high_volume";
 }
 
 function safeSessionUrl(value: unknown) {
@@ -268,10 +275,26 @@ export function createChatModelApi() {
        LIMIT ?`,
     ).bind(CONVERSATION_ID, HISTORY_LIMIT).all<ChatRow>();
     const history = canonicalSessionLine(historyResult.results ?? []);
+    const d1Context = await readCanonicalD1Context(db);
+    const allowPaidFallback = body.allow_paid_fallback === true;
+    const incentive = await readIncentiveSnapshot(db);
+    const poolId = poolForModel(model);
+    const pool = incentive.pools.find((row) => row.id === poolId);
+    const guarded = pool?.state === "CRITICAL" || pool?.state === "EXHAUSTED";
+    if (guarded && !allowPaidFallback) {
+      return c.json({
+        ok: false,
+        code: "INCENTIVE_CAP_GUARD",
+        message: poolId + " pool is " + (pool?.state ?? "guarded") + "; paid fallback is disabled",
+        incentive_pool: poolId,
+        routing_mode: incentive.routing_mode,
+        paid_fallback: false,
+      }, 429);
+    }
 
     const content: Array<Record<string, unknown>> = [{
       type: "input_text",
-      text: `You are Ammonite, OGENIC AI, the owner's continuous copilot.\n\n1LSS SESSION INVARIANT:\n- D1 conversation id "owner-main" is ONE canonical ordered life line. Web, OGENIC App, ChatGPT Dev harness, ChatGPT App harness, Live Assist, and approved agents are doors into that same line when they persist here.\n- source_surface is metadata only. Never create a second conversational truth for another surface.\n- sequence_no is the authoritative turn order. Prefer it over timestamps when deciding what happened latest.\n- The timeline below is chronological evidence. Do not replace it with a project's latest deployment, commit, runtime, or status unless the owner explicitly asks for project/system status.\n- Temporal references such as "ล่าสุด", "เมื่อกี้", "ก่อนหน้านี้", "last time", "earlier", and "previously" refer first to the newest relevant persisted interaction in this 1LSS line.\n- Distinguish "last interaction/conversation" from "latest project state/status". If wording could mean either, prefer the conversation timeline unless the owner names a project/system/status.\n- Never claim a surface was synchronized unless that turn exists in this D1 line or verified runtime evidence says so.\n- Never expose secrets or tokens in chat. Never guess a verified state.\n- Reply in the user's language and natural tone.\n\nCANONICAL 1LSS OWNER-MAIN (oldest to newest):\n${history || "No prior persisted messages."}\n\nCURRENT OWNER MESSAGE [source=${sourceSurface}]:\n${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
+      text: `You are Ammonite, OGENIC AI, the owner's continuous copilot.\n\n1LSS SESSION INVARIANT:\n- D1 conversation id "owner-main" is ONE canonical ordered life line. Web, OGENIC App, ChatGPT Dev harness, ChatGPT App harness, Live Assist, and approved agents are doors into that same line when they persist here.\n- source_surface is metadata only. Never create a second conversational truth for another surface.\n- sequence_no is the authoritative turn order. Prefer it over timestamps when deciding what happened latest.\n- The timeline below is chronological evidence. Do not replace it with a project's latest deployment, commit, runtime, or status unless the owner explicitly asks for project/system status.\n- Temporal references such as "ล่าสุด", "เมื่อกี้", "ก่อนหน้านี้", "last time", "earlier", and "previously" refer first to the newest relevant persisted interaction in this 1LSS line.\n- Distinguish "last interaction/conversation" from "latest project state/status". If wording could mean either, prefer the conversation timeline unless the owner names a project/system/status.\n- Never claim a surface was synchronized unless that turn exists in this D1 line or verified runtime evidence says so.\n- Never expose secrets or tokens in chat. Never guess a verified state.\n- Reply in the user's language and natural tone.\n\nCANONICAL 1LSS OWNER-MAIN (oldest to newest):\n${history || "No prior persisted messages."}\n\nCANONICAL D1 READ-ONLY CONTEXT:\n${d1Context.text}\n\nCURRENT OWNER MESSAGE [source=${sourceSurface}]:\n${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
     }];
 
     for (const id of attachmentIds) {
@@ -337,6 +360,16 @@ export function createChatModelApi() {
     const text = outputText(result);
     if (!text) return c.json({ ok: false, code: "OPENAI_EMPTY_OUTPUT", user_sequence_no: userSequence }, 502);
 
+    const usageTokens = Number(result.usage?.total_tokens ?? 0);
+    await recordChatUsage(db, {
+      conversationId: CONVERSATION_ID,
+      sourceSurface,
+      model,
+      poolId,
+      usageTokens,
+      route: allowPaidFallback && guarded ? "paid_fallback" : "incentive_guarded",
+    });
+
     const assistantCandidate = await nextSequence(db);
     await db.prepare(
       `INSERT OR IGNORE INTO chat_messages(
@@ -364,9 +397,11 @@ export function createChatModelApi() {
       reasoning_effort: model === "gpt-4.1-mini" ? "n/a" : effort,
       token_boost: boost,
       max_output_tokens: requestBody.max_output_tokens,
-      billing: "OPENAI_API",
-      incentive_pool: "api_billing",
-      usage_tokens: Number(result.usage?.total_tokens ?? 0),
+      billing: "OPENAI_API_ACCOUNT",
+      incentive_pool: poolId,
+      routing_mode: incentive.routing_mode,
+      paid_fallback: allowPaidFallback,
+      usage_tokens: usageTokens,
     }, 200, { "Cache-Control": "no-store" });
   });
 
