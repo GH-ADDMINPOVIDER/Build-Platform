@@ -101,6 +101,27 @@ export async function readIncentiveSnapshot(db?: IncentiveD1, timestamp = Date.n
         }
       }
     }
+
+    // Direct chat + hosted-tool calls do not create workflow runs, so meter them
+    // from the dedicated ledger when migration 0012 is present. Older staging DBs
+    // remain compatible because the ledger read is intentionally best-effort.
+    try {
+      const chatRows = await db
+        .prepare("SELECT pool_id, usage_tokens FROM chat_usage_ledger WHERE created_at >= ? AND created_at < ?")
+        .bind(start, end)
+        .all<{ pool_id: string; usage_tokens: number }>();
+      for (const row of chatRows.results ?? []) {
+        const group = incentives.groups.find((candidate) => candidate.id === row.pool_id);
+        const usage = Number(row.usage_tokens ?? 0);
+        if (group && Number.isFinite(usage) && usage >= 0) {
+          sawMeteredKey = true;
+          totals.set(group.usage_key, (totals.get(group.usage_key) ?? 0) + usage);
+        }
+      }
+    } catch {
+      // Migration not applied yet; retain workflow-only telemetry instead of
+      // breaking the dashboard.
+    }
   }
 
   const pools = incentives.groups.map((group) => {
