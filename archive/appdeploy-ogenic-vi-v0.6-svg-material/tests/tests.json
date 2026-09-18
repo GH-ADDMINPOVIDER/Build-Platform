@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Open a live poster agent shortcut",
+    "sanity": true,
+    "viewport": "mobile",
+    "covers": ["live poster Home", "inline SVG 2.5D material mascots", "agent shortcut grid", "agent mode routing", "Chat view", "OGENIC VI branding", "Harness Capability subtitle", "no static mascot images"],
+    "description": "Verifies the simplified Home agent list opens the selected living agent.",
+    "steps": ["Open the app", "Confirm poster-style Home with large OGENIC mascot and agent team", "Tap the LINEAR poster agent", "Observe the Chat header"],
+    "expected": "Home visibly uses the poster composition with glossy inline-SVG mascots rather than flat CSS blocks or static mascot images; header shows OGENIC VI with Harness Capability, and Chat opens with LINEAR as the active agent."
+  },
+  {
+    "name": "Use mascot states during chat",
+    "viewport": "mobile",
+    "covers": ["chat sprite states", "listening state", "thinking state", "POST /api/chat"],
+    "description": "Verifies the 2D mascot reacts to typing and a real chat request without changing chat behavior.",
+    "steps": ["Open Chat", "Type 'สรุปสถานะตอนนี้'", "Observe the mascot", "Tap send", "Wait for the response"],
+    "expected": "The mascot visibly changes state while typing and thinking, and a non-empty response appears."
+  },
+  {
+    "name": "Show compact no-token playground",
+    "viewport": "mobile",
+    "covers": ["AI Yard", "scripted playground", "visible 2.5D animation", "motion toggle", "reduced clutter"],
+    "description": "Verifies the Home playground remains available in a smaller clean section.",
+    "steps": ["Open Home", "Scroll to AI YARD", "Confirm MOTION ON", "Observe the characters and speech bubble", "Tap MOTION ON to pause movement"],
+    "expected": "A compact playground shows multiple colorful animated 2.5D characters with clearly visible movement, one scripted cheeky speech bubble, and the motion control can pause them."
+  },
+  {
+    "name": "Keep truthful tool states",
+    "viewport": "desktop",
+    "covers": ["Tools view", "tool status honesty", "GitHub gateway", "Vercel gateway", "Linear gateway"],
+    "description": "Verifies the visual redesign does not change connector truthfulness.",
+    "steps": ["Open Tools", "Inspect GitHub, Vercel, and Linear rows", "Tap Linear"],
+    "expected": "GitHub, Vercel, and Linear remain marked GATEWAY while Linear planning mode can still open in Chat."
+  },
+  {
+    "name": "Show chat backend failure",
+    "viewport": "desktop",
+    "covers": ["AI chat failure handling", "POST /api/chat error state"],
+    "description": "Verifies a backend failure remains visible after the redesign.",
+    "qa_faults": [{"method":"POST","path":"/api/chat","status":500,"body_json":{"error":"simulated_failure"}}],
+    "steps": ["Open Chat", "Enter 'ทดสอบ error'", "Send the message", "Observe the chat area"],
+    "expected": "A visible Thai error message says the message could not be sent and can be retried."
+  }
+]
