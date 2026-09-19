@@ -3,6 +3,7 @@ import { requireOwnerSession, type AuthBindings } from "./app-auth";
 import { readIncentiveSnapshot, type IncentiveD1 } from "./provider-incentives";
 import { readLiveTools, type LiveToolBindings } from "./live-tools";
 import toolkitManifest from "../assets/toolkit-manifest.json";
+import { readCanonicalD1Context } from "./d1-context";
 
 type D1Result<T = Record<string, unknown>> = { results?: T[]; success?: boolean };
 type D1Prepared = {
@@ -234,10 +235,11 @@ export function createAppApi() {
     const history = [...(historyResult.results ?? [])].reverse()
       .map((row) => `${String(row.role).toUpperCase()}: ${clean(row.content, 900)}`)
       .join("\n");
+    const d1Context = await readCanonicalD1Context(db);
 
     const content: Array<Record<string, unknown>> = [{
       type: "input_text",
-      text: `You are OGENIC AI in paid OpenAI API mode. Preserve continuity using the recent website conversation below. Never claim access to the user's separate ChatGPT App conversation or memory. Reply in the user's language.\n\nRECENT WEBSITE CHAT:\n${history || "No prior website messages."}\n\nCURRENT OWNER MESSAGE:\n${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
+      text: `You are OGENIC AI in paid OpenAI API mode. Preserve continuity using the recent website conversation and canonical D1 direction below. Never claim access to a separate surface unless evidence exists in the shared D1 line. Reply in the user's language.\n\nCANONICAL D1 DIRECTION:\n${d1Context.text.slice(0, 6000)}\n\nRECENT WEBSITE CHAT:\n${history || "No prior website messages."}\n\nCURRENT OWNER MESSAGE:\n${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
     }];
 
     for (const id of attachmentIds) {
