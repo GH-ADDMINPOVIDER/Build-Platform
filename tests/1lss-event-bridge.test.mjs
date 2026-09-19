@@ -28,3 +28,17 @@ test("UnifiedChat follows the 1LSS event cursor near-real-time", () => {
   assert.match(ui, /setInterval\(\(\) => \{ void poll1LSS\(\); \}, 3000\)/);
   assert.match(ui, /LIVE ≤3s/);
 });
+
+
+test("1LSS exposes a read-only cross-surface status probe", () => {
+  const api = read("worker/unified-chat-api.ts");
+  const entry = read("worker/entry-connectors.ts");
+  const ui = read("src/UnifiedChat.tsx");
+  assert.match(api, /\/api\/1lss\/status/);
+  assert.match(api, /cross_surface_ready/);
+  assert.match(api, /chat_session_refs/);
+  assert.match(entry, /\/api\/1lss\/status/);
+  assert.match(ui, /loadBridgeStatus/);
+  assert.match(ui, /WEB✓#/);
+  assert.match(ui, /APP✓#/);
+});

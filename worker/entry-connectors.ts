@@ -169,7 +169,8 @@ export default {
     if (
       pathname === "/api/chat/ephemeral" ||
       pathname === "/api/1lss/event" ||
-      pathname === "/api/1lss/events"
+      pathname === "/api/1lss/events" ||
+      pathname === "/api/1lss/status"
     ) {
       return unifiedChatApi.fetch(request, env, ctx as never);
     }

@@ -35,6 +35,12 @@ type EventRow = {
   sequence_no?: number | null;
   source_surface?: string | null;
 };
+type SurfaceSummaryRow = {
+  source_surface?: string | null;
+  last_sequence?: number | null;
+  message_count?: number | null;
+  last_seen_at?: number | null;
+};
 type ResponsesBody = {
   model?: string;
   output?: Array<{ content?: Array<{ type?: string; text?: string; refusal?: string }> }>;
@@ -95,6 +101,7 @@ export function createUnifiedChatApi() {
   api.use("/api/chat/ephemeral", requireOwner);
   api.use("/api/1lss/event", requireBridge);
   api.use("/api/1lss/events", requireBridge);
+  api.use("/api/1lss/status", requireBridge);
 
   api.post("/api/chat/ephemeral", async (c) => {
     const apiKey = clean(c.env.OPENAI_API_KEY, 4000);
@@ -140,6 +147,55 @@ export function createUnifiedChatApi() {
       session_line: null,
       billing: "OPENAI_API",
       usage_tokens: Number(result.usage?.total_tokens ?? 0),
+    }, 200, { "Cache-Control": "no-store" });
+  });
+
+  api.get("/api/1lss/status", async (c) => {
+    const db = c.env.DB;
+    if (!db) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+
+    const [messageRows, doorRows, conversation] = await Promise.all([
+      db.prepare(
+        `SELECT source_surface, MAX(sequence_no) AS last_sequence, COUNT(*) AS message_count
+         FROM chat_messages
+         WHERE conversation_id = ? AND source_surface IN ('ogenic-web', 'ogenic-app')
+         GROUP BY source_surface`,
+      ).bind(CONVERSATION_ID).all<SurfaceSummaryRow>(),
+      db.prepare(
+        `SELECT source_surface, MAX(last_sequence) AS last_sequence, MAX(last_seen_at) AS last_seen_at
+         FROM chat_session_refs
+         WHERE conversation_id = ? AND source_surface IN ('ogenic-web', 'ogenic-app')
+         GROUP BY source_surface`,
+      ).bind(CONVERSATION_ID).all<SurfaceSummaryRow>(),
+      db.prepare(
+        `SELECT last_sequence FROM chat_conversations WHERE id = ? LIMIT 1`,
+      ).bind(CONVERSATION_ID).first<{ last_sequence?: number }>(),
+    ]);
+
+    const messageMap = new Map((messageRows.results ?? []).map((row) => [String(row.source_surface ?? ""), row]));
+    const doorMap = new Map((doorRows.results ?? []).map((row) => [String(row.source_surface ?? ""), row]));
+    const surfaces = ["ogenic-web", "ogenic-app"].map((surface) => {
+      const messages = messageMap.get(surface);
+      const door = doorMap.get(surface);
+      return {
+        source_surface: surface,
+        message_count: Number(messages?.message_count ?? 0),
+        last_message_sequence: Number(messages?.last_sequence ?? 0),
+        door_last_sequence: Number(door?.last_sequence ?? 0),
+        door_last_seen_at: Number(door?.last_seen_at ?? 0),
+        door_seen: Number(door?.last_seen_at ?? 0) > 0,
+        persisted: Number(messages?.message_count ?? 0) > 0,
+      };
+    });
+
+    return c.json({
+      ok: true,
+      conversation_id: CONVERSATION_ID,
+      session_line: "1LSS_OWNER_MAIN",
+      latest_sequence: Number(conversation?.last_sequence ?? 0),
+      checked_at: Date.now(),
+      cross_surface_ready: surfaces.every((row) => row.door_seen && row.persisted),
+      surfaces,
     }, 200, { "Cache-Control": "no-store" });
   });
 

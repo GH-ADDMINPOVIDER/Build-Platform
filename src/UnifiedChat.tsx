@@ -38,6 +38,22 @@ type ManusState = { ok?: boolean; state?: string; configured?: boolean };
 type BrowserState = { ok?: boolean; state?: string; provider?: string; human_in_the_loop?: boolean };
 type Attachment = { id: string; filename: string; mime_type: string; size_bytes: number };
 type ChatConfig = { model: string; effort: Effort; boost: 1 | 10 | 20 };
+type BridgeSurface = {
+  source_surface: Surface;
+  message_count: number;
+  last_message_sequence: number;
+  door_last_sequence: number;
+  door_last_seen_at: number;
+  door_seen: boolean;
+  persisted: boolean;
+};
+type BridgeStatus = {
+  ok?: boolean;
+  cross_surface_ready?: boolean;
+  latest_sequence?: number;
+  checked_at?: number;
+  surfaces?: BridgeSurface[];
+};
 
 type Props = { surface: Surface };
 
@@ -137,6 +153,7 @@ export default function UnifiedChat({ surface }: Props) {
   const [chatConfig, setChatConfig] = useState<ChatConfig>(() => readJson(CHAT_CONFIG_KEY, DEFAULT_CONFIG));
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [inlineNotice, setInlineNotice] = useState("");
+  const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const chatEnd = useRef<HTMLDivElement | null>(null);
   const latestSequenceRef = useRef(0);
@@ -236,6 +253,28 @@ export default function UnifiedChat({ surface }: Props) {
     const body = await response.json().catch(() => ({})) as { sessions?: SessionRef[] };
     setSessionRefs(Array.isArray(body.sessions) ? body.sessions : []);
   }, [d1Enabled]);
+
+  const loadBridgeStatus = useCallback(async () => {
+    if (!d1Enabled || !session?.authenticated) return;
+    const response = await fetch("/api/1lss/status", { credentials: "same-origin", cache: "no-store" });
+    if (!response.ok) return;
+    const body = await response.json().catch(() => ({})) as BridgeStatus;
+    if (body?.ok) setBridgeStatus(body);
+  }, [d1Enabled, session?.authenticated]);
+
+  useEffect(() => {
+    if (!d1Enabled || !session?.authenticated) return;
+    void loadBridgeStatus();
+    const timer = window.setInterval(() => { void loadBridgeStatus(); }, 5000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void loadBridgeStatus();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [d1Enabled, session?.authenticated, loadBridgeStatus]);
 
   async function registerSessionRef(ref = viewportSessionRef, sequenceNo = 0) {
     if (!d1Enabled || !ref) return;
@@ -507,6 +546,11 @@ export default function UnifiedChat({ surface }: Props) {
     { id: "live", label: "Live door", sub: "Browser quota · stop before secrets", live: toolLive(browser?.state) },
   ];
   const connected = connectors.filter((row) => toolLive(row.state)).slice(0, 8);
+  const webBridge = bridgeStatus?.surfaces?.find((row) => row.source_surface === "ogenic-web");
+  const appBridge = bridgeStatus?.surfaces?.find((row) => row.source_surface === "ogenic-app");
+  const bridgeLabel = bridgeStatus?.cross_surface_ready
+    ? `WEB✓#${webBridge?.last_message_sequence || "?"} · APP✓#${appBridge?.last_message_sequence || "?"}`
+    : `WEB${webBridge?.door_seen ? "✓" : "○"} · APP${appBridge?.door_seen ? "✓" : "○"}`;
 
   return <main className="ucShell">
     <input ref={fileInput} type="file" className="ucHidden" accept="image/*,.pdf,.txt,.md,.csv,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = ""; }} />
@@ -561,7 +605,7 @@ export default function UnifiedChat({ surface }: Props) {
           <button className="ucSend" disabled={sending || (!draft.trim() && !attachments.length)} onClick={() => void send()}>{sending ? "…" : "↑"}</button>
         </div>
       </section>
-      <div className="ucFooterLine"><span>{d1Enabled ? `owner-main · LIVE ≤3s · next #${latestSequence + 1}` : "ephemeral · D1 off"}</span><button onClick={() => void loadRuntime()}>↻</button><button onClick={() => void signOut()}>Sign out</button></div>
+      <div className="ucFooterLine"><span>{d1Enabled ? `owner-main · LIVE ≤3s · ${bridgeLabel} · next #${latestSequence + 1}` : "ephemeral · D1 off"}</span><button onClick={() => { void loadRuntime(); void loadBridgeStatus(); }}>↻</button><button onClick={() => void signOut()}>Sign out</button></div>
     </footer>
   </main>;
 }
