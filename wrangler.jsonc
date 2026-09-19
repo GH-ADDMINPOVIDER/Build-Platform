@@ -32,7 +32,7 @@
     {
       "binding": "DB",
       "database_name": "ogenic-phase-vi-staging",
-      "database_id": "b4ca3a33-df80-47cf-8e75-7574e025b87b",
+      "database_id": "b4ac3a33-df80-47cf-8e75-7574e025b87b",
       "migrations_dir": "database/migrations"
     }
   ],
