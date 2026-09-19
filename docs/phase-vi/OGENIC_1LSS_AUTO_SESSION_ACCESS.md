@@ -73,3 +73,9 @@ Finish and verify OGENIC 1LSS — Auto Session Access:
 - Never expose raw secrets.
 - Do not claim an agent/provider is live until runtime evidence verifies it.
 - DeepSeek remains PLANNED until explicitly integrated and verified.
+
+
+## Deployment pipeline
+
+Cloudflare Workers Builds is the preferred staging deployment path for Phase VI Cloudflare runtime work.
+GitHub remains source/version control; Cloudflare runs staging build, D1 migrations and Worker deployment when this branch changes.
