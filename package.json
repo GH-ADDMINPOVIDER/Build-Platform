@@ -10,13 +10,14 @@
     "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "check": "npm run test && npm run typecheck && npm run build",
-    "deploy": "npm run build && wrangler deploy",
+    "deploy": "npm run build && wrangler deploy --keep-vars",
     "agent:full": "node scripts/openai-agent-full.mjs",
     "app:ios:add": "npx cap add ios",
     "app:ios:sync": "npm run build && npx cap sync ios",
     "app:ios:open": "npx cap open ios",
     "d1:migrate:local": "wrangler d1 migrations apply ogenic-phase-vi --local",
-    "d1:migrate:remote": "wrangler d1 migrations apply ogenic-phase-vi --remote"
+    "d1:migrate:remote": "wrangler d1 migrations apply ogenic-phase-vi-staging --remote",
+    "cf:deploy:staging": "wrangler d1 migrations apply ogenic-phase-vi-staging --remote && wrangler deploy --keep-vars"
   },
   "dependencies": {
     "@capacitor/core": "^7.4.0",
