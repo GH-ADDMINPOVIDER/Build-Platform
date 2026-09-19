@@ -1,5 +1,6 @@
 import incentives from "../config/provider-incentives.staging.json";
 import { readIncentiveSnapshot } from "./provider-incentives";
+import { readCanonicalD1Context } from "./d1-context";
 import type { Adapter, AdapterContext, AdapterResult, Json, WorkflowBindings } from "./workflow-engine";
 
 type OpenAIMode = "fast" | "balanced" | "power" | "api" | "codex";
@@ -232,6 +233,8 @@ async function invokeOpenAI(
   }
 
   const structured = operation === "codex";
+  const d1Context = await readCanonicalD1Context(env.DB);
+  const sharedDirection = `OGENIC canonical D1 direction (read-only):\n${d1Context.text.slice(0, 6000)}\n\nPreserve 1LSS continuity. Treat D1 as shared operating context and never invent a separate source of truth.`;
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     signal: context.signal,
@@ -244,8 +247,8 @@ async function invokeOpenAI(
       model: routed.route.model,
       input: await responsesInputFor(env, input, operation),
       instructions: structured
-        ? "Return only a concise implementation summary and a unified diff patch. Do not call tools. Do not include credentials or secrets."
-        : "Answer the user request directly. Use attached images/files when present. Do not call tools. Keep secrets and credentials out of the response.",
+        ? `${sharedDirection}\n\nReturn only a concise implementation summary and a unified diff patch. Do not call tools. Do not include credentials or secrets.`
+        : `${sharedDirection}\n\nAnswer the user request directly. Use attached images/files when present. Do not call tools. Keep secrets and credentials out of the response.`,
       max_output_tokens: maxOutputTokens,
       store: false,
       ...(structured
