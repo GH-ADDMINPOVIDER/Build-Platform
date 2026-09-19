@@ -92,9 +92,12 @@ if (!nativeApp && "serviceWorker" in navigator) {
 const pathname = window.location.pathname;
 const params = new URLSearchParams(window.location.search);
 const shortcutApp = params.get("source") === "app";
-const appRoute = pathname === "/app" || pathname.startsWith("/app/") || params.get("mobile") === "1" || shortcutApp;
+const mobileViewport = !nativeApp && window.matchMedia?.("(max-width: 900px)").matches === true;
+const mobileLanding = pathname === "/" && mobileViewport;
+const appRoute = pathname === "/app" || pathname.startsWith("/app/") || params.get("mobile") === "1" || shortcutApp || mobileLanding;
 const webChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
-const unifiedChatSurface = nativeApp || appRoute || webChatRoute;
+const controlRoute = pathname === "/overview" || pathname.startsWith("/overview/");
+const unifiedChatSurface = !controlRoute && (nativeApp || appRoute || webChatRoute);
 const sourceSurface = nativeApp || appRoute ? "ogenic-app" as const : "ogenic-web" as const;
 
 createRoot(document.getElementById("root")!).render(
