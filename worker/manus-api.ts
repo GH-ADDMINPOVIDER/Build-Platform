@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { hasOwnerSession, type AuthBindings } from "./app-auth";
+import { readCanonicalD1Context, type D1ContextDb } from "./d1-context";
 
-type Bindings = AuthBindings & { MANUS_API_KEY?: string };
+type Bindings = AuthBindings & { DB?: D1ContextDb; MANUS_API_KEY?: string };
 type Env = { Bindings: Bindings };
 type ManusBody = { prompt?: unknown };
 type ManusResponse = {
@@ -43,8 +44,11 @@ export function createManusApi() {
     const apiKey = String(c.env.MANUS_API_KEY ?? "").trim();
     if (!apiKey) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "MANUS_API_KEY" }, 503);
     const body = await c.req.json<ManusBody>().catch(() => ({} as ManusBody));
-    const prompt = clean(body.prompt, 18_000);
+    const prompt = clean(body.prompt, 13_000);
     if (!prompt) return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt is required" }, 400);
+    const d1Context = await readCanonicalD1Context(c.env.DB);
+    const canonicalContext = clean(d1Context.text, 4_000);
+    const delegatedPrompt = `OGENIC SHARED DIRECTION — load this before executing the owner task. Preserve 1LSS continuity and do not create a separate source of truth.\n\nCANONICAL D1 CONTEXT:\n${canonicalContext}\n\nOWNER TASK:\n${prompt}`;
 
     const response = await fetch("https://api.manus.ai/v2/task.create", {
       method: "POST",
@@ -54,7 +58,7 @@ export function createManusApi() {
       },
       body: JSON.stringify({
         message: {
-          content: [{ type: "text", text: prompt }],
+          content: [{ type: "text", text: delegatedPrompt }],
         },
       }),
     });
