@@ -2,16 +2,89 @@
   "schema_version": "6.0",
   "runtime": "cloudflare",
   "providers": [
-    {"id":"github","role":"code_ci","status":"active","auth":"github_app_or_token","secret_ref":"/providers/github/prod"},
-    {"id":"google_drive","role":"files_source","status":"active","auth":"oauth_or_service_account","secret_ref":"/providers/google-drive/prod"},
-    {"id":"linear","role":"tasks_agents","status":"active","auth":"oauth_or_api","secret_ref":"/providers/linear/prod"},
-    {"id":"documents","role":"artifacts","status":"active","auth":"runtime_capability","secret_ref":null},
-    {"id":"template_creator","role":"reusable_output","status":"active","auth":"runtime_capability","secret_ref":null},
-    {"id":"infisical","role":"identity_secrets","status":"active","auth":"machine_identity","secret_ref":null},
-    {"id":"cloudflare","role":"primary_runtime","status":"active","auth":"api_token_or_ci_binding","secret_ref":"/providers/cloudflare/prod"},
-    {"id":"notion","role":"legacy_knowledge_migration","status":"migration","auth":"oauth","secret_ref":"/providers/notion/prod"},
-    {"id":"n8n","role":"legacy_workflow_migration","status":"migration","auth":"api_or_webhook","secret_ref":"/providers/n8n/prod"},
-    {"id":"vercel","role":"optional_legacy_deploy","status":"optional","auth":"oauth_or_token","secret_ref":"/providers/vercel/prod"},
-    {"id":"clickup","role":"optional_legacy_tasks","status":"optional","auth":"oauth_or_token","secret_ref":"/providers/clickup/prod"}
+    {
+      "id": "github",
+      "role": "code_ci",
+      "status": "active",
+      "auth": "github_app_or_token",
+      "secret_ref": "/providers/github/prod"
+    },
+    {
+      "id": "google_drive",
+      "role": "files_source",
+      "status": "active",
+      "auth": "oauth_or_service_account",
+      "secret_ref": "/providers/google-drive/prod"
+    },
+    {
+      "id": "linear",
+      "role": "tasks_agents",
+      "status": "active",
+      "auth": "oauth_or_api",
+      "secret_ref": "/providers/linear/prod"
+    },
+    {
+      "id": "documents",
+      "role": "artifacts",
+      "status": "active",
+      "auth": "runtime_capability",
+      "secret_ref": null
+    },
+    {
+      "id": "template_creator",
+      "role": "reusable_output",
+      "status": "active",
+      "auth": "runtime_capability",
+      "secret_ref": null
+    },
+    {
+      "id": "infisical",
+      "role": "identity_secrets",
+      "status": "active",
+      "auth": "machine_identity",
+      "secret_ref": null
+    },
+    {
+      "id": "cloudflare",
+      "role": "primary_runtime",
+      "status": "active",
+      "auth": "api_token_or_ci_binding",
+      "secret_ref": "/providers/cloudflare/prod"
+    },
+    {
+      "id": "notion",
+      "role": "legacy_knowledge_migration",
+      "status": "migration",
+      "auth": "oauth",
+      "secret_ref": "/providers/notion/prod"
+    },
+    {
+      "id": "n8n",
+      "role": "legacy_workflow_migration",
+      "status": "migration",
+      "auth": "api_or_webhook",
+      "secret_ref": "/providers/n8n/prod"
+    },
+    {
+      "id": "vercel",
+      "role": "optional_legacy_deploy",
+      "status": "optional",
+      "auth": "oauth_or_token",
+      "secret_ref": "/providers/vercel/prod"
+    },
+    {
+      "id": "clickup",
+      "role": "optional_legacy_tasks",
+      "status": "optional",
+      "auth": "oauth_or_token",
+      "secret_ref": "/providers/clickup/prod"
+    },
+    {
+      "id": "deepseek",
+      "role": "planned_specialist_agent",
+      "status": "planned",
+      "auth": "api_key",
+      "secret_ref": "/providers/deepseek/staging"
+    }
   ]
 }
