@@ -45,7 +45,9 @@ type BridgeSurface = {
   door_last_sequence: number;
   door_last_seen_at: number;
   door_seen: boolean;
+  fresh: boolean;
   persisted: boolean;
+  caught_up_to_pair_latest: boolean;
 };
 type BridgeStatus = {
   ok?: boolean;
@@ -157,6 +159,7 @@ export default function UnifiedChat({ surface }: Props) {
   const fileInput = useRef<HTMLInputElement | null>(null);
   const chatEnd = useRef<HTMLDivElement | null>(null);
   const latestSequenceRef = useRef(0);
+  const eventCursorRef = useRef(0);
 
   const liveTools = useMemo(() => new Map((dashboard.tools ?? []).map((tool) => [tool.id, tool])), [dashboard.tools]);
   const platformTools = useMemo(() => new Map((platform?.tools ?? []).map((tool) => [tool.id, tool])), [platform?.tools]);
@@ -189,14 +192,16 @@ export default function UnifiedChat({ surface }: Props) {
     const body = await response.json().catch(() => ({})) as { messages?: Message[]; has_more?: boolean };
     const rows = Array.isArray(body.messages) ? body.messages : [];
     const latest = rows.reduce((max, row) => Math.max(max, Number(row.sequence_no ?? 0)), 0);
-    setLatestSequence(latest);
+    latestSequenceRef.current = Math.max(latestSequenceRef.current, latest);
+    eventCursorRef.current = Math.max(eventCursorRef.current, latest);
+    setLatestSequence(latestSequenceRef.current);
     setHistoryHasMore(Boolean(body.has_more ?? (rows.length >= 60)));
     setMessages(rows.filter((row) => Number(row.sequence_no ?? 0) > floor));
   }, [d1Enabled, viewportFloor]);
 
   const poll1LSS = useCallback(async () => {
     if (!d1Enabled || !session?.authenticated || sending) return;
-    const after = latestSequenceRef.current;
+    const after = eventCursorRef.current;
     const response = await fetch(`/api/1lss/events?after_sequence=${after}&limit=40`, {
       credentials: "same-origin",
       cache: "no-store",
@@ -204,15 +209,15 @@ export default function UnifiedChat({ surface }: Props) {
     if (!response.ok) return;
     const body = await response.json().catch(() => ({})) as { messages?: Message[]; latest_sequence?: number; cursor?: number };
     const rows = Array.isArray(body.messages) ? body.messages : [];
-    const newest = Math.max(
+    const cursor = Math.max(
       after,
-      Number(body.latest_sequence ?? 0),
       Number(body.cursor ?? 0),
       ...rows.map((row) => Number(row.sequence_no ?? 0)),
     );
-    if (newest > latestSequenceRef.current) {
-      latestSequenceRef.current = newest;
-      setLatestSequence(newest);
+    if (cursor > eventCursorRef.current) eventCursorRef.current = cursor;
+    if (cursor > latestSequenceRef.current) {
+      latestSequenceRef.current = cursor;
+      setLatestSequence(cursor);
     }
     if (!rows.length) return;
     setMessages((current) => {
@@ -290,6 +295,37 @@ export default function UnifiedChat({ surface }: Props) {
     });
     if (response.ok) await loadSessionRefs();
   }
+
+  const heartbeatSessionRef = useCallback(async () => {
+    if (!d1Enabled || !session?.authenticated || !viewportSessionRef) return;
+    if (document.visibilityState !== "visible") return;
+    await fetch("/api/1lss/sessions", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source_surface: surface,
+        session_ref: viewportSessionRef,
+        session_url: `${window.location.origin}${window.location.pathname}`,
+        label: surface === "ogenic-app" ? "OGENIC App viewport" : "OGENIC Web viewport",
+        sequence_no: latestSequenceRef.current || undefined,
+      }),
+    }).catch(() => undefined);
+  }, [d1Enabled, session?.authenticated, surface, viewportSessionRef]);
+
+  useEffect(() => {
+    if (!d1Enabled || !session?.authenticated) return;
+    void heartbeatSessionRef();
+    const timer = window.setInterval(() => { void heartbeatSessionRef(); }, 10_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void heartbeatSessionRef();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [d1Enabled, session?.authenticated, heartbeatSessionRef]);
 
   async function loadOlder() {
     if (!d1Enabled) return;
@@ -548,9 +584,11 @@ export default function UnifiedChat({ surface }: Props) {
   const connected = connectors.filter((row) => toolLive(row.state)).slice(0, 8);
   const webBridge = bridgeStatus?.surfaces?.find((row) => row.source_surface === "ogenic-web");
   const appBridge = bridgeStatus?.surfaces?.find((row) => row.source_surface === "ogenic-app");
+  const webReady = Boolean(webBridge?.fresh && webBridge?.persisted && webBridge?.caught_up_to_pair_latest);
+  const appReady = Boolean(appBridge?.fresh && appBridge?.persisted && appBridge?.caught_up_to_pair_latest);
   const bridgeLabel = bridgeStatus?.cross_surface_ready
-    ? `WEB✓#${webBridge?.last_message_sequence || "?"} · APP✓#${appBridge?.last_message_sequence || "?"}`
-    : `WEB${webBridge?.door_seen ? "✓" : "○"} · APP${appBridge?.door_seen ? "✓" : "○"}`;
+    ? `WEB✓#${webBridge?.door_last_sequence || "?"} · APP✓#${appBridge?.door_last_sequence || "?"}`
+    : `WEB${webReady ? "✓" : "○"} · APP${appReady ? "✓" : "○"}`;
 
   return <main className="ucShell">
     <input ref={fileInput} type="file" className="ucHidden" accept="image/*,.pdf,.txt,.md,.csv,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = ""; }} />

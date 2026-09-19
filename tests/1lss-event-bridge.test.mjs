@@ -22,9 +22,11 @@ test("1LSS exposes an incremental ordered event cursor", () => {
   assert.match(entry, /\/api\/1lss\/events/);
 });
 
-test("UnifiedChat follows the 1LSS event cursor near-real-time", () => {
+test("UnifiedChat follows the 1LSS event cursor near-real-time without skipping backlog pages", () => {
   const ui = read("src/UnifiedChat.tsx");
+  assert.match(ui, /eventCursorRef/);
   assert.match(ui, /after_sequence=/);
+  assert.doesNotMatch(ui, /Math\.max\([\s\S]{0,200}body\.latest_sequence/);
   assert.match(ui, /setInterval\(\(\) => \{ void poll1LSS\(\); \}, 3000\)/);
   assert.match(ui, /LIVE ≤3s/);
 });
@@ -36,6 +38,8 @@ test("1LSS exposes a read-only cross-surface status probe", () => {
   const ui = read("src/UnifiedChat.tsx");
   assert.match(api, /\/api\/1lss\/status/);
   assert.match(api, /cross_surface_ready/);
+  assert.match(api, /caught_up_to_pair_latest/);
+  assert.match(api, /freshness_ms/);
   assert.match(api, /chat_session_refs/);
   assert.match(entry, /\/api\/1lss\/status/);
   assert.match(ui, /loadBridgeStatus/);

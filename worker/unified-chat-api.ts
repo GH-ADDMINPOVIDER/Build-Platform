@@ -41,6 +41,11 @@ type SurfaceSummaryRow = {
   message_count?: number | null;
   last_seen_at?: number | null;
 };
+type SessionPresenceRow = {
+  source_surface?: string | null;
+  last_sequence?: number | null;
+  last_seen_at?: number | null;
+};
 type ResponsesBody = {
   model?: string;
   output?: Array<{ content?: Array<{ type?: string; text?: string; refusal?: string }> }>;
@@ -154,7 +159,7 @@ export function createUnifiedChatApi() {
     const db = c.env.DB;
     if (!db) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
 
-    const [messageRows, doorRows, conversation] = await Promise.all([
+    const [messageRows, presenceRows, conversation] = await Promise.all([
       db.prepare(
         `SELECT source_surface, MAX(sequence_no) AS last_sequence, COUNT(*) AS message_count
          FROM chat_messages
@@ -162,29 +167,48 @@ export function createUnifiedChatApi() {
          GROUP BY source_surface`,
       ).bind(CONVERSATION_ID).all<SurfaceSummaryRow>(),
       db.prepare(
-        `SELECT source_surface, MAX(last_sequence) AS last_sequence, MAX(last_seen_at) AS last_seen_at
+        `SELECT source_surface, last_sequence, last_seen_at
          FROM chat_session_refs
          WHERE conversation_id = ? AND source_surface IN ('ogenic-web', 'ogenic-app')
-         GROUP BY source_surface`,
-      ).bind(CONVERSATION_ID).all<SurfaceSummaryRow>(),
+         ORDER BY last_seen_at DESC`,
+      ).bind(CONVERSATION_ID).all<SessionPresenceRow>(),
       db.prepare(
         `SELECT last_sequence FROM chat_conversations WHERE id = ? LIMIT 1`,
       ).bind(CONVERSATION_ID).first<{ last_sequence?: number }>(),
     ]);
 
+    const now = Date.now();
+    const freshnessMs = 120_000;
     const messageMap = new Map((messageRows.results ?? []).map((row) => [String(row.source_surface ?? ""), row]));
-    const doorMap = new Map((doorRows.results ?? []).map((row) => [String(row.source_surface ?? ""), row]));
-    const surfaces = ["ogenic-web", "ogenic-app"].map((surface) => {
+    const freshestPresence = new Map<string, SessionPresenceRow>();
+    for (const row of presenceRows.results ?? []) {
+      const surface = String(row.source_surface ?? "");
+      if (surface && !freshestPresence.has(surface)) freshestPresence.set(surface, row);
+    }
+
+    const pairLatestSequence = Math.max(
+      0,
+      ...(messageRows.results ?? []).map((row) => Number(row.last_sequence ?? 0)),
+    );
+
+    const surfaces = (["ogenic-web", "ogenic-app"] as const).map((surface) => {
       const messages = messageMap.get(surface);
-      const door = doorMap.get(surface);
+      const presence = freshestPresence.get(surface);
+      const lastSeenAt = Number(presence?.last_seen_at ?? 0);
+      const doorLastSequence = Number(presence?.last_sequence ?? 0);
+      const persisted = Number(messages?.message_count ?? 0) > 0;
+      const fresh = lastSeenAt > 0 && now - lastSeenAt <= freshnessMs;
+      const caughtUp = pairLatestSequence > 0 && doorLastSequence >= pairLatestSequence;
       return {
         source_surface: surface,
         message_count: Number(messages?.message_count ?? 0),
         last_message_sequence: Number(messages?.last_sequence ?? 0),
-        door_last_sequence: Number(door?.last_sequence ?? 0),
-        door_last_seen_at: Number(door?.last_seen_at ?? 0),
-        door_seen: Number(door?.last_seen_at ?? 0) > 0,
-        persisted: Number(messages?.message_count ?? 0) > 0,
+        door_last_sequence: doorLastSequence,
+        door_last_seen_at: lastSeenAt,
+        door_seen: lastSeenAt > 0,
+        fresh,
+        persisted,
+        caught_up_to_pair_latest: caughtUp,
       };
     });
 
@@ -193,8 +217,10 @@ export function createUnifiedChatApi() {
       conversation_id: CONVERSATION_ID,
       session_line: "1LSS_OWNER_MAIN",
       latest_sequence: Number(conversation?.last_sequence ?? 0),
-      checked_at: Date.now(),
-      cross_surface_ready: surfaces.every((row) => row.door_seen && row.persisted),
+      pair_latest_sequence: pairLatestSequence,
+      checked_at: now,
+      freshness_ms: freshnessMs,
+      cross_surface_ready: surfaces.every((row) => row.fresh && row.persisted && row.caught_up_to_pair_latest),
       surfaces,
     }, 200, { "Cache-Control": "no-store" });
   });
