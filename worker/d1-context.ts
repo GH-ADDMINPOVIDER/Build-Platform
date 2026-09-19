@@ -12,6 +12,15 @@ export type CanonicalD1Context = {
   counts: Record<string, number>;
 };
 
+export type RuntimeEvidence = {
+  git_sha?: string;
+  git_branch?: string;
+  build_uuid?: string;
+  runtime?: string;
+  phase?: string;
+  version?: { id?: string; tag?: string; timestamp?: string } | null;
+};
+
 function clip(value: unknown, max: number) {
   return String(value ?? "").trim().slice(0, max);
 }
@@ -30,7 +39,7 @@ function section(label: string, rows: unknown[]) {
   return `## ${label}\n${JSON.stringify(rows)}`;
 }
 
-export async function readCanonicalD1Context(db?: D1ContextDb): Promise<CanonicalD1Context> {
+export async function readCanonicalD1Context(db?: D1ContextDb, runtime: RuntimeEvidence = {}): Promise<CanonicalD1Context> {
   if (!db) return { state: "UNBOUND", text: "D1 canonical context is not bound.", counts: {} };
 
   const [meta, toolkits, planes, policies, bindings, sources, knowledge] = await Promise.all([
@@ -43,7 +52,20 @@ export async function readCanonicalD1Context(db?: D1ContextDb): Promise<Canonica
     safeRows(db, "SELECT id, project_id, source_id, title, substr(body, 1, 2200) AS body, format, canonical, source_last_edited_at, updated_at FROM knowledge_documents ORDER BY canonical DESC, updated_at DESC LIMIT 10"),
   ]);
 
+  const runtimeEvidence = [{
+    checked_at: new Date().toISOString(),
+    runtime: clip(runtime.runtime, 80) || "cloudflare",
+    phase: clip(runtime.phase, 40) || "VI",
+    git_sha: clip(runtime.git_sha, 80) || null,
+    git_branch: clip(runtime.git_branch, 160) || null,
+    build_uuid: clip(runtime.build_uuid, 120) || null,
+    worker_version_id: clip(runtime.version?.id, 120) || null,
+    worker_version_tag: clip(runtime.version?.tag, 120) || null,
+    worker_version_timestamp: clip(runtime.version?.timestamp, 120) || null,
+  }];
+
   const text = [
+    section("LIVE_RUNTIME_EVIDENCE", runtimeEvidence),
     section("SYSTEM_META", meta),
     section("TOOLKITS", toolkits),
     section("SYSTEM_PLANES", planes),

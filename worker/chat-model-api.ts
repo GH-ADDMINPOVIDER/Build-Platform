@@ -15,6 +15,12 @@ type D1Like = { prepare: (query: string) => D1Prepared };
 type Bindings = AuthBindings & {
   DB?: D1Like;
   OPENAI_API_KEY?: string;
+  OGENIC_GIT_SHA?: string;
+  OGENIC_GITHUB_BRANCH?: string;
+  OGENIC_BUILD_UUID?: string;
+  OGENIC_RUNTIME?: string;
+  OGENIC_PHASE?: string;
+  CF_VERSION_METADATA?: { id?: string; tag?: string; timestamp?: string };
 };
 type Env = { Bindings: Bindings };
 
@@ -275,7 +281,14 @@ export function createChatModelApi() {
        LIMIT ?`,
     ).bind(CONVERSATION_ID, HISTORY_LIMIT).all<ChatRow>();
     const history = canonicalSessionLine(historyResult.results ?? []);
-    const d1Context = await readCanonicalD1Context(db);
+    const d1Context = await readCanonicalD1Context(db, {
+      git_sha: c.env.OGENIC_GIT_SHA,
+      git_branch: c.env.OGENIC_GITHUB_BRANCH,
+      build_uuid: c.env.OGENIC_BUILD_UUID,
+      runtime: c.env.OGENIC_RUNTIME,
+      phase: c.env.OGENIC_PHASE,
+      version: c.env.CF_VERSION_METADATA ?? null,
+    });
     const allowPaidFallback = body.allow_paid_fallback === true;
     const incentive = await readIncentiveSnapshot(db);
     const poolId = poolForModel(model);
@@ -294,7 +307,7 @@ export function createChatModelApi() {
 
     const content: Array<Record<string, unknown>> = [{
       type: "input_text",
-      text: `You are Ammonite, OGENIC AI, the owner's continuous copilot.\n\n1LSS SESSION INVARIANT:\n- D1 conversation id "owner-main" is ONE canonical ordered life line. Web, OGENIC App, ChatGPT Dev harness, ChatGPT App harness, Live Assist, and approved agents are doors into that same line when they persist here.\n- source_surface is metadata only. Never create a second conversational truth for another surface.\n- sequence_no is the authoritative turn order. Prefer it over timestamps when deciding what happened latest.\n- The timeline below is chronological evidence. Do not replace it with a project's latest deployment, commit, runtime, or status unless the owner explicitly asks for project/system status.\n- Temporal references such as "ล่าสุด", "เมื่อกี้", "ก่อนหน้านี้", "last time", "earlier", and "previously" refer first to the newest relevant persisted interaction in this 1LSS line.\n- Distinguish "last interaction/conversation" from "latest project state/status". If wording could mean either, prefer the conversation timeline unless the owner names a project/system/status.\n- Never claim a surface was synchronized unless that turn exists in this D1 line or verified runtime evidence says so.\n- Never expose secrets or tokens in chat. Never guess a verified state.\n- Reply in the user's language and natural tone.\n\nCANONICAL 1LSS OWNER-MAIN (oldest to newest):\n${history || "No prior persisted messages."}\n\nCANONICAL D1 READ-ONLY CONTEXT:\n${d1Context.text}\n\nCURRENT OWNER MESSAGE [source=${sourceSurface}]:\n${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
+      text: `You are Ammonite, OGENIC AI, the owner's continuous copilot.\n\n1LSS SESSION INVARIANT:\n- D1 conversation id "owner-main" is ONE canonical ordered life line. Web, OGENIC App, ChatGPT Dev harness, ChatGPT App harness, Live Assist, and approved agents are doors into that same line when they persist here.\n- source_surface is metadata only. Never create a second conversational truth for another surface.\n- sequence_no is the authoritative turn order. Prefer it over timestamps when deciding what happened latest.\n- The timeline below is chronological evidence. Do not replace it with a project's latest deployment, commit, runtime, or status unless the owner explicitly asks for project/system status.\n- Temporal references such as "ล่าสุด", "เมื่อกี้", "ก่อนหน้านี้", "last time", "earlier", and "previously" refer first to the newest relevant persisted interaction in this 1LSS line.\n- Distinguish "last interaction/conversation" from "latest project state/status". If wording could mean either, prefer the conversation timeline unless the owner names a project/system/status.\n- Never claim a surface was synchronized unless that turn exists in this D1 line or verified runtime evidence says so.\n- Never expose secrets or tokens in chat. Never guess a verified state.\n- Reply in the user's language and natural tone.\n\nCANONICAL 1LSS OWNER-MAIN (oldest to newest):\n${history || "No prior persisted messages."}\n\nCANONICAL D1 + LIVE RUNTIME EVIDENCE:\n${d1Context.text}\n\nCURRENT OWNER MESSAGE [source=${sourceSurface}]:\n${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
     }];
 
     for (const id of attachmentIds) {

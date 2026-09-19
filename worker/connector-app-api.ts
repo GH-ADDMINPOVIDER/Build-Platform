@@ -14,6 +14,12 @@ export type ConnectorAppBindings = AuthBindings & ConnectorBindings & {
   OPENAI_API_KEY?: string;
   OPENAI_ADMIN_API_KEY?: string;
   OPENAI_VECTOR_STORE_ID?: string;
+  OGENIC_GIT_SHA?: string;
+  OGENIC_GITHUB_BRANCH?: string;
+  OGENIC_BUILD_UUID?: string;
+  OGENIC_RUNTIME?: string;
+  OGENIC_PHASE?: string;
+  CF_VERSION_METADATA?: { id?: string; tag?: string; timestamp?: string };
 };
 type Env = { Bindings: ConnectorAppBindings };
 
@@ -281,7 +287,14 @@ export function createConnectorAppApi() {
     if (guarded && !allowPaidFallback) {
       return c.json({ ok: false, code: "INCENTIVE_CAP_GUARD", message: "standard pool is guarded; paid fallback is disabled", incentive_pool: poolId, routing_mode: incentive.routing_mode, paid_fallback: false }, 429);
     }
-    const d1Context = await readCanonicalD1Context(c.env.DB);
+    const d1Context = await readCanonicalD1Context(c.env.DB, {
+      git_sha: c.env.OGENIC_GIT_SHA,
+      git_branch: c.env.OGENIC_GITHUB_BRANCH,
+      build_uuid: c.env.OGENIC_BUILD_UUID,
+      runtime: c.env.OGENIC_RUNTIME,
+      phase: c.env.OGENIC_PHASE,
+      version: c.env.CF_VERSION_METADATA ?? null,
+    });
     const store = await knowledgeStore(c.env, apiKey, false);
     const webTool: Record<string, unknown> = { type: "web_search" };
     const fileTool: Record<string, unknown> | null = store.state === "LIVE" && store.id ? { type: "file_search", vector_store_ids: [store.id], max_num_results: 8 } : null;
@@ -307,7 +320,7 @@ export function createConnectorAppApi() {
         body: JSON.stringify({
           model,
           reasoning: { effort },
-          instructions: "You are the OGENIC connector supervisor. The D1 block is a verified read-only snapshot from the canonical Worker database. Use it directly for OGENIC toolkit, policy, provider binding, canonical source and knowledge questions. Use only the selected hosted tool mode for web/RAG requests. Never claim an external action was executed when a function returns HUMAN_APPROVAL_REQUIRED. LINE/Meta/n8n credentials remain server-side. Prefer verified tool facts over guesses. Reply in the user's language.\n\nCANONICAL D1 READ-ONLY CONTEXT:\n" + d1Context.text,
+          instructions: "You are the OGENIC connector supervisor. The context block combines verified read-only D1 canonical state with live runtime evidence from the currently executing Worker version. Use it directly for OGENIC toolkit, policy, provider binding, canonical source and knowledge questions. Use only the selected hosted tool mode for web/RAG requests. Never claim an external action was executed when a function returns HUMAN_APPROVAL_REQUIRED. LINE/Meta/n8n credentials remain server-side. Prefer verified tool facts over guesses. Reply in the user's language.\n\nCANONICAL D1 + LIVE RUNTIME EVIDENCE:\n" + d1Context.text,
           input,
           ...(requestTools.length ? { tools: requestTools, tool_choice: "auto", parallel_tool_calls: true, max_tool_calls: 6 } : {}),
           ...(toolMode === "web" ? { include: ["web_search_call.action.sources"] } : toolMode === "rag" && store.state === "LIVE" ? { include: ["file_search_call.results"] } : toolMode === "auto" && store.state === "LIVE" ? { include: ["web_search_call.action.sources", "file_search_call.results"] } : toolMode === "auto" ? { include: ["web_search_call.action.sources"] } : {}),
