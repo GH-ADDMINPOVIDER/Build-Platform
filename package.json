@@ -17,7 +17,8 @@
     "app:ios:open": "npx cap open ios",
     "d1:migrate:local": "wrangler d1 migrations apply ogenic-phase-vi --local",
     "d1:migrate:remote": "wrangler d1 migrations apply ogenic-phase-vi-staging --remote",
-    "cf:deploy:staging": "wrangler d1 migrations apply ogenic-phase-vi-staging --remote && wrangler deploy --keep-vars"
+    "cf:deploy:staging": "wrangler deploy --keep-vars",
+    "cf:migrate:staging": "wrangler d1 migrations apply ogenic-phase-vi-staging --remote"
   },
   "dependencies": {
     "@capacitor/core": "^7.4.0",
