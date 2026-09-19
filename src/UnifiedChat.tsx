@@ -139,6 +139,7 @@ export default function UnifiedChat({ surface }: Props) {
   const [inlineNotice, setInlineNotice] = useState("");
   const fileInput = useRef<HTMLInputElement | null>(null);
   const chatEnd = useRef<HTMLDivElement | null>(null);
+  const latestSequenceRef = useRef(0);
 
   const liveTools = useMemo(() => new Map((dashboard.tools ?? []).map((tool) => [tool.id, tool])), [dashboard.tools]);
   const platformTools = useMemo(() => new Map((platform?.tools ?? []).map((tool) => [tool.id, tool])), [platform?.tools]);
@@ -159,6 +160,7 @@ export default function UnifiedChat({ surface }: Props) {
   useEffect(() => { try { localStorage.setItem(PAID_FALLBACK_KEY, allowPaidFallback ? "1" : "0"); } catch { /* noop */ } }, [allowPaidFallback]);
   useEffect(() => { try { localStorage.setItem(CHAT_CONFIG_KEY, JSON.stringify(chatConfig)); } catch { /* noop */ } }, [chatConfig]);
   useEffect(() => { chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages, sending]);
+  useEffect(() => { latestSequenceRef.current = latestSequence; }, [latestSequence]);
   useEffect(() => {
     if (selectedModel.id !== chatConfig.model) setChatConfig((current) => ({ ...current, model: selectedModel.id }));
   }, [selectedModel.id, chatConfig.model]);
@@ -174,6 +176,58 @@ export default function UnifiedChat({ surface }: Props) {
     setHistoryHasMore(Boolean(body.has_more ?? (rows.length >= 60)));
     setMessages(rows.filter((row) => Number(row.sequence_no ?? 0) > floor));
   }, [d1Enabled, viewportFloor]);
+
+  const poll1LSS = useCallback(async () => {
+    if (!d1Enabled || !session?.authenticated || sending) return;
+    const after = latestSequenceRef.current;
+    const response = await fetch(`/api/1lss/events?after_sequence=${after}&limit=40`, {
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    if (!response.ok) return;
+    const body = await response.json().catch(() => ({})) as { messages?: Message[]; latest_sequence?: number; cursor?: number };
+    const rows = Array.isArray(body.messages) ? body.messages : [];
+    const newest = Math.max(
+      after,
+      Number(body.latest_sequence ?? 0),
+      Number(body.cursor ?? 0),
+      ...rows.map((row) => Number(row.sequence_no ?? 0)),
+    );
+    if (newest > latestSequenceRef.current) {
+      latestSequenceRef.current = newest;
+      setLatestSequence(newest);
+    }
+    if (!rows.length) return;
+    setMessages((current) => {
+      const seenIds = new Set(current.map((row) => row.id).filter(Boolean));
+      const seenSequences = new Set(current.map((row) => Number(row.sequence_no ?? 0)).filter((value) => value > 0));
+      const additions = rows.filter((row) => {
+        const sequence = Number(row.sequence_no ?? 0);
+        if (sequence <= viewportFloor) return false;
+        if (row.id && seenIds.has(row.id)) return false;
+        if (sequence > 0 && seenSequences.has(sequence)) return false;
+        return true;
+      });
+      if (!additions.length) return current;
+      return [...current, ...additions].sort((left, right) =>
+        Number(left.sequence_no ?? 0) - Number(right.sequence_no ?? 0)
+      );
+    });
+  }, [d1Enabled, session?.authenticated, sending, viewportFloor]);
+
+  useEffect(() => {
+    if (!d1Enabled || !session?.authenticated) return;
+    void poll1LSS();
+    const timer = window.setInterval(() => { void poll1LSS(); }, 3000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void poll1LSS();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [d1Enabled, session?.authenticated, poll1LSS]);
 
   const loadSessionRefs = useCallback(async () => {
     if (!d1Enabled) return;
@@ -507,7 +561,7 @@ export default function UnifiedChat({ surface }: Props) {
           <button className="ucSend" disabled={sending || (!draft.trim() && !attachments.length)} onClick={() => void send()}>{sending ? "…" : "↑"}</button>
         </div>
       </section>
-      <div className="ucFooterLine"><span>{d1Enabled ? `owner-main · next #${latestSequence + 1}` : "ephemeral · D1 off"}</span><button onClick={() => void loadRuntime()}>↻</button><button onClick={() => void signOut()}>Sign out</button></div>
+      <div className="ucFooterLine"><span>{d1Enabled ? `owner-main · LIVE ≤3s · next #${latestSequence + 1}` : "ephemeral · D1 off"}</span><button onClick={() => void loadRuntime()}>↻</button><button onClick={() => void signOut()}>Sign out</button></div>
     </footer>
   </main>;
 }

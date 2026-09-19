@@ -1,5 +1,5 @@
 import { Hono, type Context, type Next } from "hono";
-import { requireOwnerSession, type AuthBindings } from "./app-auth";
+import { hasOwnerOrOpsAccess, requireOwnerSession, type AuthBindings } from "./app-auth";
 
 type D1Result<T = Record<string, unknown>> = { results?: T[]; success?: boolean };
 type D1Prepared = {
@@ -25,6 +25,15 @@ type EphemeralBody = {
 type EventBody = {
   source_surface?: unknown;
   events?: Array<{ role?: unknown; content?: unknown; model?: unknown }>;
+};
+type EventRow = {
+  id?: string;
+  role: string;
+  content: string;
+  model?: string | null;
+  created_at: number;
+  sequence_no?: number | null;
+  source_surface?: string | null;
 };
 type ResponsesBody = {
   model?: string;
@@ -77,8 +86,15 @@ export function createUnifiedChatApi() {
     if (denied) return denied;
     await next();
   };
+  const requireBridge = async (c: Context<Env>, next: Next) => {
+    if (!(await hasOwnerOrOpsAccess(c.req.raw, c.env))) {
+      return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner_or_ops_bridge" }, 401);
+    }
+    await next();
+  };
   api.use("/api/chat/ephemeral", requireOwner);
-  api.use("/api/1lss/event", requireOwner);
+  api.use("/api/1lss/event", requireBridge);
+  api.use("/api/1lss/events", requireBridge);
 
   api.post("/api/chat/ephemeral", async (c) => {
     const apiKey = clean(c.env.OPENAI_API_KEY, 4000);
@@ -124,6 +140,53 @@ export function createUnifiedChatApi() {
       session_line: null,
       billing: "OPENAI_API",
       usage_tokens: Number(result.usage?.total_tokens ?? 0),
+    }, 200, { "Cache-Control": "no-store" });
+  });
+
+  api.get("/api/1lss/events", async (c) => {
+    const db = c.env.DB;
+    if (!db) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+    await ensureConversation(db);
+
+    const afterRaw = Math.floor(Number(c.req.query("after_sequence") ?? 0));
+    const after = Number.isFinite(afterRaw) && afterRaw > 0 ? afterRaw : 0;
+    const limitRaw = Math.floor(Number(c.req.query("limit") ?? 40));
+    const limit = Number.isFinite(limitRaw) ? Math.min(100, Math.max(1, limitRaw)) : 40;
+
+    const result = await db.prepare(
+      `SELECT id, role, content, model, created_at, sequence_no, source_surface
+       FROM chat_messages
+       WHERE conversation_id = ? AND sequence_no > ?
+       ORDER BY sequence_no ASC, created_at ASC, rowid ASC
+       LIMIT ?`,
+    ).bind(CONVERSATION_ID, after, limit).all<EventRow>();
+
+    const conversation = await db.prepare(
+      `SELECT last_sequence FROM chat_conversations WHERE id = ? LIMIT 1`,
+    ).bind(CONVERSATION_ID).first<{ last_sequence?: number }>();
+
+    const messages = (result.results ?? []).map((row) => ({
+      id: row.id,
+      role: row.role,
+      text: row.content,
+      model: row.model ?? null,
+      created_at: row.created_at,
+      sequence_no: row.sequence_no ?? null,
+      source_surface: row.source_surface ?? "legacy",
+    }));
+    const cursor = Math.max(
+      after,
+      ...messages.map((row) => Number(row.sequence_no ?? 0)),
+    );
+
+    return c.json({
+      ok: true,
+      conversation_id: CONVERSATION_ID,
+      session_line: "1LSS_OWNER_MAIN",
+      after_sequence: after,
+      cursor,
+      latest_sequence: Math.max(cursor, Number(conversation?.last_sequence ?? 0)),
+      messages,
     }, 200, { "Cache-Control": "no-store" });
   });
 

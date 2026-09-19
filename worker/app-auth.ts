@@ -105,6 +105,17 @@ export async function hasOwnerSession(request: Request, env: AuthBindings) {
   return Boolean(secret && await validSignedSession(request, secret));
 }
 
+export async function hasOpsAccess(request: Request, env: AuthBindings) {
+  const configured = String(env.OGENIC_OPS_KEY ?? "").trim();
+  const supplied = (request.headers.get("x-ogenic-ops-key") ?? "").trim();
+  return Boolean(configured && supplied && await secureEqual(supplied, configured));
+}
+
+export async function hasOwnerOrOpsAccess(request: Request, env: AuthBindings) {
+  if (await hasOwnerSession(request, env)) return true;
+  return hasOpsAccess(request, env);
+}
+
 export async function requireOwnerSession(c: Context<AuthEnv>) {
   if (await hasOwnerSession(c.req.raw, c.env)) return null;
   return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);

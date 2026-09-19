@@ -166,7 +166,11 @@ export default {
     if (pathname === "/api/1lss/history-page" || pathname === "/api/1lss/sessions" || pathname.startsWith("/api/1lss/sessions/")) {
       return sessionRecoveryApi.fetch(request, env, ctx as never);
     }
-    if (pathname === "/api/chat/ephemeral" || pathname === "/api/1lss/event") {
+    if (
+      pathname === "/api/chat/ephemeral" ||
+      pathname === "/api/1lss/event" ||
+      pathname === "/api/1lss/events"
+    ) {
       return unifiedChatApi.fetch(request, env, ctx as never);
     }
     if (pathname === "/api/inline/tool") {
