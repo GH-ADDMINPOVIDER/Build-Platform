@@ -13,6 +13,8 @@ type D1Like = { prepare: (query: string) => D1Prepared };
 export type UnifiedChatBindings = AuthBindings & {
   DB?: D1Like;
   OPENAI_API_KEY?: string;
+  OGENIC_BUILD_UUID?: string;
+  OGENIC_GITHUB_BRANCH?: string;
 };
 type Env = { Bindings: UnifiedChatBindings };
 
@@ -106,6 +108,70 @@ async function nextSequence(db: D1Like) {
   ).bind(Date.now(), CONVERSATION_ID).first<{ last_sequence: number }>();
   if (!row || !Number.isFinite(Number(row.last_sequence))) throw new Error("1LSS_SEQUENCE_UNAVAILABLE");
   return Number(row.last_sequence);
+}
+
+async function persistEventBatch(
+  db: D1Like,
+  source: string,
+  prepared: Array<{ role: string; content: string; model: string | null }>,
+  requestKey: string,
+) {
+  const sequences: number[] = [];
+  let replayedCount = 0;
+  for (let i = 0; i < prepared.length; i += 1) {
+    const row = prepared[i]!;
+    const idem = `${requestKey}:${i}`;
+    const existing = await db.prepare(
+      `SELECT sequence_no FROM chat_messages WHERE conversation_id = ? AND idempotency_key = ? LIMIT 1`,
+    ).bind(CONVERSATION_ID, idem).first<{ sequence_no: number }>();
+    if (existing?.sequence_no) {
+      replayedCount += 1;
+      sequences.push(Number(existing.sequence_no));
+      continue;
+    }
+    const sequence = await nextSequence(db);
+    await db.prepare(
+      `INSERT OR IGNORE INTO chat_messages(
+        id, conversation_id, role, content, model, run_id, created_at,
+        sequence_no, source_surface, idempotency_key
+      ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)`,
+    ).bind(makeId("evt"), CONVERSATION_ID, row.role, row.content, row.model, Date.now(), sequence, source, idem).run();
+    const persisted = await db.prepare(
+      `SELECT sequence_no FROM chat_messages WHERE conversation_id = ? AND idempotency_key = ? LIMIT 1`,
+    ).bind(CONVERSATION_ID, idem).first<{ sequence_no: number }>();
+    sequences.push(Number(persisted?.sequence_no ?? sequence));
+  }
+  return { sequences, replayedCount };
+}
+
+async function readEventPage(db: D1Like, after: number, limit: number) {
+  const result = await db.prepare(
+    `SELECT id, role, content, model, created_at, sequence_no, source_surface
+     FROM chat_messages
+     WHERE conversation_id = ? AND sequence_no > ?
+     ORDER BY sequence_no ASC, created_at ASC, rowid ASC
+     LIMIT ?`,
+  ).bind(CONVERSATION_ID, after, limit).all<EventRow>();
+
+  const conversation = await db.prepare(
+    `SELECT last_sequence FROM chat_conversations WHERE id = ? LIMIT 1`,
+  ).bind(CONVERSATION_ID).first<{ last_sequence?: number }>();
+
+  const messages = (result.results ?? []).map((row) => ({
+    id: row.id,
+    role: row.role,
+    text: row.content,
+    model: row.model ?? null,
+    created_at: row.created_at,
+    sequence_no: row.sequence_no ?? null,
+    source_surface: row.source_surface ?? "legacy",
+  }));
+  const cursor = Math.max(after, ...messages.map((row) => Number(row.sequence_no ?? 0)));
+  return {
+    messages,
+    cursor,
+    latest_sequence: Math.max(cursor, Number(conversation?.last_sequence ?? 0)),
+  };
 }
 
 export function createUnifiedChatApi() {
@@ -252,41 +318,16 @@ export function createUnifiedChatApi() {
     const after = Number.isFinite(afterRaw) && afterRaw > 0 ? afterRaw : 0;
     const limitRaw = Math.floor(Number(c.req.query("limit") ?? 40));
     const limit = Number.isFinite(limitRaw) ? Math.min(100, Math.max(1, limitRaw)) : 40;
-
-    const result = await db.prepare(
-      `SELECT id, role, content, model, created_at, sequence_no, source_surface
-       FROM chat_messages
-       WHERE conversation_id = ? AND sequence_no > ?
-       ORDER BY sequence_no ASC, created_at ASC, rowid ASC
-       LIMIT ?`,
-    ).bind(CONVERSATION_ID, after, limit).all<EventRow>();
-
-    const conversation = await db.prepare(
-      `SELECT last_sequence FROM chat_conversations WHERE id = ? LIMIT 1`,
-    ).bind(CONVERSATION_ID).first<{ last_sequence?: number }>();
-
-    const messages = (result.results ?? []).map((row) => ({
-      id: row.id,
-      role: row.role,
-      text: row.content,
-      model: row.model ?? null,
-      created_at: row.created_at,
-      sequence_no: row.sequence_no ?? null,
-      source_surface: row.source_surface ?? "legacy",
-    }));
-    const cursor = Math.max(
-      after,
-      ...messages.map((row) => Number(row.sequence_no ?? 0)),
-    );
+    const page = await readEventPage(db, after, limit);
 
     return c.json({
       ok: true,
       conversation_id: CONVERSATION_ID,
       session_line: "1LSS_OWNER_MAIN",
       after_sequence: after,
-      cursor,
-      latest_sequence: Math.max(cursor, Number(conversation?.last_sequence ?? 0)),
-      messages,
+      cursor: page.cursor,
+      latest_sequence: page.latest_sequence,
+      messages: page.messages,
     }, 200, { "Cache-Control": "no-store" });
   });
 
@@ -323,28 +364,9 @@ export function createUnifiedChatApi() {
 
     await ensureConversation(db);
     const requestKey = requestKeyHeader || makeId("evt");
-    const sequences: number[] = [];
-    let replayedCount = 0;
-    for (let i = 0; i < prepared.length; i += 1) {
-      const row = prepared[i]!;
-      const idem = `${requestKey}:${i}`;
-      const existing = await db.prepare(
-        `SELECT sequence_no FROM chat_messages WHERE conversation_id = ? AND idempotency_key = ? LIMIT 1`,
-      ).bind(CONVERSATION_ID, idem).first<{ sequence_no: number }>();
-      if (existing?.sequence_no) {
-        replayedCount += 1;
-        sequences.push(Number(existing.sequence_no));
-        continue;
-      }
-      const sequence = await nextSequence(db);
-      await db.prepare(
-        `INSERT OR IGNORE INTO chat_messages(
-          id, conversation_id, role, content, model, run_id, created_at,
-          sequence_no, source_surface, idempotency_key
-        ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)`,
-      ).bind(makeId("evt"), CONVERSATION_ID, row.role, row.content, row.model, Date.now(), sequence, source, idem).run();
-      sequences.push(sequence);
-    }
+    const persisted = await persistEventBatch(db, source, prepared, requestKey);
+    const sequences = persisted.sequences;
+    const replayedCount = persisted.replayedCount;
     return c.json({
       ok: true,
       conversation_id: CONVERSATION_ID,
@@ -353,6 +375,90 @@ export function createUnifiedChatApi() {
       sequences,
       replayed_count: replayedCount,
     }, replayedCount === prepared.length ? 200 : 201, { "Cache-Control": "no-store" });
+  });
+
+
+
+  api.post("/api/1lss/runtime-proof", async (c) => {
+    const db = c.env.DB;
+    if (!db) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+    const expectedBuild = clean(c.env.OGENIC_BUILD_UUID, 180);
+    const suppliedBuild = clean(c.req.header("x-ogenic-build-proof"), 180);
+    const branch = clean(c.env.OGENIC_GITHUB_BRANCH, 180);
+    if (
+      !expectedBuild ||
+      expectedBuild === "unknown" ||
+      suppliedBuild !== expectedBuild ||
+      branch !== "phase-vi-provider-incentive-metering"
+    ) {
+      return c.json({ ok: false, code: "RUNTIME_PROOF_DENIED" }, 403);
+    }
+
+    await ensureConversation(db);
+    const requestKey = `runtime-proof:${expectedBuild}`;
+    const proofContent = `[1LSS RUNTIME PROOF] external-harness bridge verified for build ${expectedBuild}`;
+    const prepared = [{ role: "system", content: proofContent, model: null }];
+
+    const first = await persistEventBatch(db, "external-harness", prepared, requestKey);
+    const retry = await persistEventBatch(db, "external-harness", prepared, requestKey);
+    const sequence = Number(first.sequences[0] ?? 0);
+    const retrySequence = Number(retry.sequences[0] ?? 0);
+    if (!sequence || retrySequence !== sequence || retry.replayedCount !== 1) {
+      return c.json({ ok: false, code: "RUNTIME_PROOF_IDEMPOTENCY_FAILED", sequence, retry_sequence: retrySequence }, 500);
+    }
+
+    const visible = await readEventPage(db, Math.max(0, sequence - 1), 40);
+    const observed = visible.messages.find((row) =>
+      Number(row.sequence_no ?? 0) === sequence &&
+      row.source_surface === "external-harness" &&
+      row.text === proofContent
+    );
+    if (!observed) {
+      return c.json({ ok: false, code: "RUNTIME_PROOF_CURSOR_VISIBILITY_FAILED", sequence }, 500);
+    }
+
+    let cursor = 0;
+    let previous = 0;
+    let drained = 0;
+    let pages = 0;
+    let latest = 0;
+    while (pages < 100) {
+      const page = await readEventPage(db, cursor, 40);
+      latest = page.latest_sequence;
+      pages += 1;
+      for (const row of page.messages) {
+        const current = Number(row.sequence_no ?? 0);
+        if (current <= previous) {
+          return c.json({ ok: false, code: "RUNTIME_PROOF_CURSOR_ORDER_FAILED", previous, current }, 500);
+        }
+        previous = current;
+        drained += 1;
+      }
+      if (!page.messages.length || page.cursor >= page.latest_sequence) {
+        cursor = page.cursor;
+        break;
+      }
+      if (page.cursor <= cursor) {
+        return c.json({ ok: false, code: "RUNTIME_PROOF_CURSOR_STALLED", cursor, next_cursor: page.cursor }, 500);
+      }
+      cursor = page.cursor;
+    }
+    if (cursor < latest) {
+      return c.json({ ok: false, code: "RUNTIME_PROOF_BACKLOG_NOT_DRAINED", cursor, latest, pages }, 500);
+    }
+
+    return c.json({
+      ok: true,
+      proof: "1LSS_EXTERNAL_AGENT_RUNTIME_VERIFIED",
+      conversation_id: CONVERSATION_ID,
+      source_surface: "external-harness",
+      sequence_no: sequence,
+      retry_sequence_no: retrySequence,
+      replayed_count: retry.replayedCount,
+      observed_via_event_feed: true,
+      backlog: { drained, pages, cursor, latest, page_size: 40, complete: true },
+      build_uuid: expectedBuild,
+    }, 200, { "Cache-Control": "no-store" });
   });
 
   return api;
