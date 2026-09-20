@@ -58,6 +58,24 @@ const MODELS = new Set(["gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-4.1
 const EFFORTS = new Set(["low", "medium", "high", "xhigh", "max"]);
 const BOOSTS = new Set([1, 10, 20]);
 const ROLES = new Set(["user", "assistant", "system"]);
+const EVENT_SURFACES = new Set([
+  "ogenic-web",
+  "ogenic-app",
+  "chatgpt-dev",
+  "chatgpt-app",
+  "live-assist",
+  "manus",
+  "external-harness",
+  "plugin-harness",
+]);
+const EXTERNAL_EVENT_SURFACES = new Set([
+  "chatgpt-dev",
+  "chatgpt-app",
+  "live-assist",
+  "manus",
+  "external-harness",
+  "plugin-harness",
+]);
 
 function clean(value: unknown, max: number) { return String(value ?? "").trim().slice(0, max); }
 function makeId(prefix: string) { return `${prefix}_${crypto.randomUUID()}`; }
@@ -276,7 +294,22 @@ export function createUnifiedChatApi() {
     const db = c.env.DB;
     if (!db) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
     const body = await c.req.json<EventBody>().catch(() => ({} as EventBody));
-    const source = clean(body.source_surface, 60) || "ogenic-ui";
+    const source = clean(body.source_surface, 60).toLowerCase();
+    if (!EVENT_SURFACES.has(source)) {
+      return c.json({
+        ok: false,
+        code: "INVALID_SOURCE_SURFACE",
+        allowed: [...EVENT_SURFACES],
+      }, 400);
+    }
+    const requestKeyHeader = clean(c.req.header("idempotency-key"), 180);
+    if (EXTERNAL_EVENT_SURFACES.has(source) && !requestKeyHeader) {
+      return c.json({
+        ok: false,
+        code: "IDEMPOTENCY_KEY_REQUIRED",
+        source_surface: source,
+      }, 400);
+    }
     const rows = Array.isArray(body.events) ? body.events.slice(0, 6) : [];
     if (!rows.length) return c.json({ ok: false, code: "INVALID_REQUEST", message: "events are required" }, 400);
     const prepared = rows.map((row) => {
@@ -289,15 +322,20 @@ export function createUnifiedChatApi() {
     if (prepared.some((row) => secretLike(row.content))) return c.json({ ok: false, code: "SECRET_LIKE_CONTENT_REJECTED" }, 400);
 
     await ensureConversation(db);
-    const requestKey = clean(c.req.header("idempotency-key") || makeId("evt"), 180);
+    const requestKey = requestKeyHeader || makeId("evt");
     const sequences: number[] = [];
+    let replayedCount = 0;
     for (let i = 0; i < prepared.length; i += 1) {
       const row = prepared[i]!;
       const idem = `${requestKey}:${i}`;
       const existing = await db.prepare(
         `SELECT sequence_no FROM chat_messages WHERE conversation_id = ? AND idempotency_key = ? LIMIT 1`,
       ).bind(CONVERSATION_ID, idem).first<{ sequence_no: number }>();
-      if (existing?.sequence_no) { sequences.push(Number(existing.sequence_no)); continue; }
+      if (existing?.sequence_no) {
+        replayedCount += 1;
+        sequences.push(Number(existing.sequence_no));
+        continue;
+      }
       const sequence = await nextSequence(db);
       await db.prepare(
         `INSERT OR IGNORE INTO chat_messages(
@@ -307,7 +345,14 @@ export function createUnifiedChatApi() {
       ).bind(makeId("evt"), CONVERSATION_ID, row.role, row.content, row.model, Date.now(), sequence, source, idem).run();
       sequences.push(sequence);
     }
-    return c.json({ ok: true, conversation_id: CONVERSATION_ID, session_line: "1LSS_OWNER_MAIN", source_surface: source, sequences }, 201, { "Cache-Control": "no-store" });
+    return c.json({
+      ok: true,
+      conversation_id: CONVERSATION_ID,
+      session_line: "1LSS_OWNER_MAIN",
+      source_surface: source,
+      sequences,
+      replayed_count: replayedCount,
+    }, replayedCount === prepared.length ? 200 : 201, { "Cache-Control": "no-store" });
   });
 
   return api;

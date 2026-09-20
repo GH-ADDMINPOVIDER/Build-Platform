@@ -46,3 +46,25 @@ test("1LSS exposes a read-only cross-surface status probe", () => {
   assert.match(ui, /WEB✓#/);
   assert.match(ui, /APP✓#/);
 });
+
+test("1LSS external-agent bridge accepts only canonical surfaces and requires retry-safe idempotency", () => {
+  const api = read("worker/unified-chat-api.ts");
+  for (const surface of ["chatgpt-app", "chatgpt-dev", "manus", "external-harness"]) {
+    assert.match(api, new RegExp(`"${surface}"`));
+  }
+  assert.match(api, /INVALID_SOURCE_SURFACE/);
+  assert.match(api, /IDEMPOTENCY_KEY_REQUIRED/);
+  assert.match(api, /idempotency-key/);
+  assert.match(api, /conversation_id = \? AND idempotency_key = \?/);
+  assert.match(api, /source_surface, idempotency_key/);
+  assert.match(api, /replayed_count/);
+});
+
+test("existing App\/Web bridge emits idempotency keys and consumes canonical cursor events", () => {
+  const ui = read("src/UnifiedChat.tsx");
+  assert.match(ui, /Idempotency-Key/);
+  assert.match(ui, /\/api\/1lss\/event/);
+  assert.match(ui, /\/api\/1lss\/events\?after_sequence=/);
+  assert.match(ui, /eventCursorRef/);
+});
+
