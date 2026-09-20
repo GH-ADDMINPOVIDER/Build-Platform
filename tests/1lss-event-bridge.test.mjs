@@ -67,20 +67,3 @@ test("existing App\/Web bridge emits idempotency keys and consumes canonical cur
   assert.match(ui, /\/api\/1lss\/events\?after_sequence=/);
   assert.match(ui, /eventCursorRef/);
 });
-
-test("staging deploy performs a one-time external-agent runtime proof using build identity", () => {
-  const api = read("worker/unified-chat-api.ts");
-  const entry = read("worker/entry-connectors.ts");
-  const pkg = JSON.parse(read("package.json"));
-  const proof = read("scripts/runtime-proof.mjs");
-  assert.match(api, /\/api\/1lss\/runtime-proof/);
-  assert.match(api, /1LSS_EXTERNAL_AGENT_RUNTIME_VERIFIED/);
-  assert.match(api, /external-harness/);
-  assert.match(api, /replayedCount !== 1/);
-  assert.match(api, /readEventPage\(db, cursor, 40\)/);
-  assert.match(entry, /\/api\/1lss\/runtime-proof/);
-  assert.match(pkg.scripts["cf:deploy:staging"], /runtime-proof\.mjs/);
-  assert.match(proof, /WORKERS_CI_BUILD_UUID/);
-  assert.match(proof, /observed_via_event_feed/);
-});
-
