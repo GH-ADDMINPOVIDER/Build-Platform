@@ -43,6 +43,93 @@ const READ_ONLY_ANNOTATIONS = {
   openWorldHint: false,
 };
 
+const WRITE_IDEMPOTENT_ANNOTATIONS = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+};
+
+const ONE_LSS_CONVERSATION_ID = "owner-main";
+const ONE_LSS_SESSION_LINE = "1LSS_OWNER_MAIN";
+const ONE_LSS_SOURCE_SURFACES = new Set(["chatgpt-app", "plugin-harness"]);
+
+function cleanWriterValue(value, max) {
+  return String(value ?? "").trim().slice(0, max);
+}
+
+function safeBridgeCode(value) {
+  return cleanWriterValue(value, 80).toUpperCase().replace(/[^A-Z0-9_:-]/g, "_") || "UNKNOWN";
+}
+
+export async function append1LssEvent(
+  { turnId, role, content, sourceSurface, model },
+  {
+    fetchImpl = fetch,
+    baseUrl = process.env.OGENIC_1LSS_BASE_URL || process.env.OGENIC_PHASE_VI_STAGING_URL || process.env.OGENIC_1LSS_URL,
+    opsKey = process.env.OGENIC_OPS_KEY,
+  } = {},
+) {
+  const normalizedBaseUrl = cleanWriterValue(baseUrl, 2048).replace(/\/+$/, "");
+  const normalizedOpsKey = cleanWriterValue(opsKey, 4096);
+  const normalizedTurnId = cleanWriterValue(turnId, 180);
+  const normalizedRole = cleanWriterValue(role, 20).toLowerCase();
+  const normalizedContent = cleanWriterValue(content, 7000);
+  const normalizedSource = cleanWriterValue(sourceSurface, 60).toLowerCase();
+  const normalizedModel = cleanWriterValue(model, 100) || null;
+
+  if (!normalizedBaseUrl) throw new Error("1LSS_BRIDGE_URL_NOT_CONFIGURED");
+  if (!normalizedOpsKey) throw new Error("1LSS_BRIDGE_AUTH_NOT_CONFIGURED");
+  if (!normalizedTurnId) throw new Error("1LSS_TURN_ID_REQUIRED");
+  if (!["user", "assistant", "system"].includes(normalizedRole)) throw new Error("1LSS_INVALID_ROLE");
+  if (!normalizedContent) throw new Error("1LSS_CONTENT_REQUIRED");
+  if (!ONE_LSS_SOURCE_SURFACES.has(normalizedSource)) throw new Error("1LSS_INVALID_SOURCE_SURFACE");
+
+  const idempotencyKey = `mcp:${normalizedSource}:${normalizedTurnId}`;
+  const response = await fetchImpl(`${normalizedBaseUrl}/api/1lss/event`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-ogenic-ops-key": normalizedOpsKey,
+      "idempotency-key": idempotencyKey,
+    },
+    body: JSON.stringify({
+      source_surface: normalizedSource,
+      events: [{
+        role: normalizedRole,
+        content: normalizedContent,
+        model: normalizedModel,
+      }],
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload?.ok !== true) {
+    throw new Error(`1LSS_BRIDGE_HTTP_${response.status}_${safeBridgeCode(payload?.code)}`);
+  }
+
+  const sequences = Array.isArray(payload.sequences) ? payload.sequences.map(Number) : [];
+  const sequenceNo = sequences.length === 1 ? sequences[0] : NaN;
+  if (
+    payload.conversation_id !== ONE_LSS_CONVERSATION_ID ||
+    payload.session_line !== ONE_LSS_SESSION_LINE ||
+    payload.source_surface !== normalizedSource ||
+    !Number.isInteger(sequenceNo) ||
+    sequenceNo <= 0
+  ) {
+    throw new Error("1LSS_BRIDGE_CONTRACT_MISMATCH");
+  }
+
+  return {
+    ok: true,
+    conversation_id: ONE_LSS_CONVERSATION_ID,
+    session_line: ONE_LSS_SESSION_LINE,
+    source_surface: normalizedSource,
+    sequence_no: sequenceNo,
+    replayed: Number(payload.replayed_count ?? 0) > 0,
+  };
+}
+
 const APPROVAL_STATES = [
   "auto",
   "auto_with_review",
@@ -314,6 +401,16 @@ const surfaceSchema = z.object({
   mode: z.enum(["direct_api", "host_connector", "git_runtime"]).optional(),
 });
 
+const oneLssSyncSchema = z.object({
+  ok: z.boolean(),
+  conversation_id: z.string().optional(),
+  session_line: z.string().optional(),
+  source_surface: z.string().optional(),
+  sequence_no: z.number().int().positive().optional(),
+  replayed: z.boolean().optional(),
+  error: z.string().optional(),
+});
+
 export function createOgenicServer() {
   const server = new McpServer(
     { name: "ogenic-god-toolkit", version: VERSION },
@@ -398,6 +495,53 @@ export function createOgenicServer() {
         structuredContent: { surfaces, verifiedReadyCount },
         content: [{ type: "text", text: verifiedReadyCount > 0 ? `Verified ${verifiedReadyCount} live execution surface(s).` : "Live GitHub/Vercel adapters are installed but no surface has verified Ready in this runtime yet." }],
       };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "sync_1lss_turn",
+    {
+      title: "Sync turn to OGENIC 1LSS",
+      description: "Persist one ChatGPT/plugin turn into the canonical OGENIC owner-main line. Use one stable turn_id for the immutable turn and reuse it on retries. This writes only to the existing 1LSS bridge; it does not create a session or D1 conversation.",
+      inputSchema: {
+        turn_id: z.string().min(8).max(180),
+        role: z.enum(["user", "assistant", "system"]).default("user"),
+        content: z.string().min(1).max(7000),
+        source_surface: z.enum(["chatgpt-app", "plugin-harness"]).default("chatgpt-app"),
+        model: z.string().max(100).optional(),
+      },
+      outputSchema: oneLssSyncSchema.shape,
+      annotations: WRITE_IDEMPOTENT_ANNOTATIONS,
+      _meta: {
+        "openai/toolInvocation/invoking": "Syncing turn to OGENIC 1LSS…",
+        "openai/toolInvocation/invoked": "OGENIC 1LSS turn synced.",
+      },
+    },
+    async ({ turn_id, role, content, source_surface, model }) => {
+      try {
+        const result = await append1LssEvent({
+          turnId: turn_id,
+          role,
+          content,
+          sourceSurface: source_surface,
+          model,
+        });
+        return {
+          structuredContent: result,
+          content: [{ type: "text", text: `Synced to owner-main sequence ${result.sequence_no}${result.replayed ? " (idempotent replay)" : ""}.` }],
+        };
+      } catch (error) {
+        const result = {
+          ok: false,
+          error: safeBridgeCode(error instanceof Error ? error.message : "1LSS_SYNC_FAILED"),
+        };
+        return {
+          structuredContent: result,
+          content: [{ type: "text", text: `1LSS sync failed: ${result.error}` }],
+          isError: true,
+        };
+      }
     },
   );
 
