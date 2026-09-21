@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check api/mcp.js && node --check api/health.js && node --check tests/mcp-smoke.mjs && node --check tests/ui-sanity.mjs && node --check tests/fastwork-dry-run.mjs && node --check tests/fastwork-e2e.mjs && node --check tests/1lss-writer.test.mjs",
+    "check": "node --check server.js && node --check api/mcp.js && node --check api/health.js && node --check tests/mcp-smoke.mjs && node --check tests/ui-sanity.mjs && node --check tests/fastwork-dry-run.mjs && node --check tests/fastwork-e2e.mjs && node --check tests/1lss-writer.test.mjs && node --check scripts/verify-1lss-runtime.mjs",
     "test:mcp": "node tests/mcp-smoke.mjs",
     "test:ui": "node tests/ui-sanity.mjs",
     "test:e2e": "node tests/fastwork-e2e.mjs",
     "test:remote": "node tests/fastwork-e2e.mjs --remote",
     "test": "npm run check && npm run test:ui && npm run test:mcp && npm run test:e2e && npm run test:1lss",
-    "test:1lss": "node --test tests/1lss-writer.test.mjs"
+    "test:1lss": "node --test tests/1lss-writer.test.mjs",
+    "verify:1lss:runtime": "node scripts/verify-1lss-runtime.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.20.2",
