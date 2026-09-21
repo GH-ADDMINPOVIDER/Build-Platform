@@ -47,7 +47,7 @@ const WRITE_IDEMPOTENT_ANNOTATIONS = {
   readOnlyHint: false,
   destructiveHint: false,
   idempotentHint: true,
-  openWorldHint: false,
+  openWorldHint: true,
 };
 
 const ONE_LSS_CONVERSATION_ID = "owner-main";
