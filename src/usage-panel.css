@@ -1,0 +1,143 @@
+.cpUsage {
+  display: grid;
+  gap: 10px;
+}
+
+.cpUsageHead,
+.cpUsageOverview,
+.cpUsageGrid article,
+.cpUsageMeta {
+  border: 1px solid #27212d;
+  border-radius: 16px;
+  background: #0d0b12;
+}
+
+.cpUsageHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 22px;
+}
+
+.cpUsageHead h2 {
+  margin: 7px 0 4px;
+  font-size: 38px;
+  letter-spacing: -.04em;
+}
+
+.cpUsageHead p {
+  margin: 0;
+  color: #8e8696;
+  font-size: 12px;
+}
+
+.cpUsageHead button {
+  border: 0;
+  border-radius: 10px;
+  background: #17131b;
+  color: #ddd6e3;
+  padding: 10px 13px;
+}
+
+.cpUsageOverview {
+  padding: 18px 20px;
+}
+
+.cpUsageOverview > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cpUsageOverview span,
+.cpUsageOverview small {
+  color: #8e8696;
+}
+
+.cpUsageOverview strong {
+  font-size: 18px;
+}
+
+.cpUsageMeter {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #201b24;
+  margin: 15px 0 9px;
+}
+
+.cpUsageMeter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7e43ff, #d72b73);
+}
+
+.cpUsageGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cpUsageGrid article {
+  padding: 17px;
+}
+
+.cpUsageGrid article > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cpUsageGrid article > strong {
+  display: block;
+  margin: 14px 0 4px;
+  font-size: 27px;
+}
+
+.cpUsageGrid article > small {
+  display: block;
+  color: #8e8696;
+  margin-bottom: 12px;
+}
+
+.cpUsageGrid em {
+  font-style: normal;
+}
+
+.cpUsageMeta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+}
+
+.cpUsageMeta span {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  background: #100e14;
+  color: #b8b0bd;
+  font-size: 11px;
+}
+
+.cpUsageMeta b {
+  color: #716977;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+@media (max-width: 560px) {
+  .cpUsageGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cpUsageHead h2 {
+    font-size: 30px;
+  }
+
+  .cpUsageMeta {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

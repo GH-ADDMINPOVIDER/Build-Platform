@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type View = "overview" | "chat" | "openai" | "tools" | "workflows" | "tasks" | "cashflow" | "gm" | "apps" | "candy";
+type View = "overview" | "chat" | "openai" | "tools" | "workflows" | "tasks" | "cashflow" | "gm" | "usage" | "apps" | "candy";
 type ChatMode = "fast" | "balanced" | "power";
 type CashType = "income" | "expense" | "obligation" | "repayment";
 
 type Session = { authenticated: boolean; user: { id: string; role: "owner"; label: string } | null };
 type Tool = { id: string; label: string; state: string; latency_ms?: number; summary?: string; checked_at?: string; records?: Array<Record<string, unknown>> };
-type Pool = { id: string; label: string; used: number; cap: number | null; remaining: number | null; percent: number | null; state: string };
+type Pool = { id: string; label: string; used: number; cap: number | null; remaining: number | null; percent: number | null; state: string; telemetry?: string };
 type Dashboard = {
   app?: { name?: string; version?: string; phase?: string };
   runtime?: { provider?: string; database?: string; git_sha?: string; branch?: string };
@@ -15,7 +15,7 @@ type Dashboard = {
   runs?: Array<{ id: string; workflow_id: string; workflow_version: number; status: string; current_node_id?: string | null; updated_at?: number }>;
   run_counts?: Array<{ status: string; count: number }>;
   workflows?: Array<{ workflow_id: string; version: number; created_at: number }>;
-  incentives?: { policy_state: string; usage_tier?: number | null; pools: Pool[] };
+  incentives?: { policy_state: string; usage_tier?: number | null; routing_mode?: string; paid_fallback?: boolean; reset_at?: string; source?: string; pools: Pool[] };
   tools?: Tool[];
 };
 type CashRow = { id: string; type: CashType; amount: number; note: string; category: string; date: string };
@@ -32,6 +32,7 @@ const nav: Array<{ id: View; label: string; icon: string }> = [
   { id: "tasks", label: "Tasks", icon: "✓" },
   { id: "cashflow", label: "Cashflow", icon: "฿" },
   { id: "gm", label: "GM Limit", icon: "▥" },
+  { id: "usage", label: "Usage", icon: "◫" },
   { id: "apps", label: "Apps", icon: "▦" },
   { id: "candy", label: "Candy", icon: "♥" },
 ];
@@ -199,6 +200,10 @@ export default function ControlPlaneV2() {
   const expense = cash.filter((r) => r.type === "expense").reduce((s, r) => s + r.amount, 0);
   const repayments = cash.filter((r) => r.type === "repayment").reduce((s, r) => s + r.amount, 0);
   const obligations = cash.filter((r) => r.type === "obligation").reduce((s, r) => s + r.amount, 0);
+  const usagePools = dashboard?.incentives?.pools ?? [];
+  const usageTotal = usagePools.reduce((sum, pool) => sum + Math.max(0, Number(pool.used) || 0), 0);
+  const usageKnownCap = usagePools.reduce((sum, pool) => sum + (pool.cap === null ? 0 : Math.max(0, Number(pool.cap) || 0)), 0);
+  const usagePercent = usageKnownCap > 0 ? Math.min(100, (usageTotal / usageKnownCap) * 100) : null;
 
   if (!session?.authenticated) return (
     <main className="cpAuth"><section className="cpAuthCard">
@@ -247,6 +252,13 @@ export default function ControlPlaneV2() {
       {view === "cashflow" && <><section className="cpCashSummary"><article><span>รายรับ</span><strong>{baht(income)}</strong></article><article><span>รายจ่าย</span><strong>{baht(expense)}</strong></article><article><span>ภาระ/หนี้</span><strong>{baht(obligations)}</strong></article><article><span>ชำระแล้ว</span><strong>{baht(repayments)}</strong></article></section><section className="cpGrid2"><article className="cpPanel"><div className="cpPanelHead"><div><span className="eyebrow">QUICK ENTRY</span><h2>คีย์เงินรายรับรายจ่าย</h2></div><span className="cpStage">DEVICE LOCAL · STAGING</span></div><select className="cpInput" value={cashType} onChange={(e) => setCashType(e.target.value as CashType)}><option value="income">รายรับ</option><option value="expense">รายจ่าย</option><option value="obligation">ภาระ/หนี้</option><option value="repayment">ชำระหนี้</option></select><input className="cpInput" inputMode="decimal" value={cashAmount} onChange={(e) => setCashAmount(e.target.value)} placeholder="จำนวนเงิน" /><input className="cpInput" value={cashCategory} onChange={(e) => setCashCategory(e.target.value)} placeholder="หมวด" /><input className="cpInput" value={cashNote} onChange={(e) => setCashNote(e.target.value)} placeholder="รายละเอียด เช่น ค่าห้อง / สาลี่" /><button className="cpPrimary" onClick={addCash}>บันทึก</button><p className="cpHint">ยังไม่พบ ledger ชำระหนี้ “สาลี่” ที่ยืนยันแล้วใน web dev จึงไม่ import อัตโนมัติ</p></article><article className="cpPanel"><div className="cpPanelHead"><div><span className="eyebrow">LEDGER</span><h2>รายการล่าสุด</h2></div></div>{cash.map((r) => <div className="cpCashRow" key={r.id}><div><b>{r.note}</b><small>{r.category} · {new Date(r.date).toLocaleString("th-TH")}</small></div><strong className={r.type === "income" ? "plus" : "minus"}>{r.type === "income" ? "+" : "-"}{baht(r.amount)}</strong><button onClick={() => setCash((rows) => rows.filter((x) => x.id !== r.id))}>×</button></div>)}{!cash.length && <div className="cpEmpty">ยังไม่มีรายการ</div>}</article></section></>}
 
       {view === "gm" && <section className="cpPanel"><div className="cpPanelHead"><div><span className="eyebrow">GM METERING</span><h2>Provider pools</h2></div><button onClick={() => void loadDashboard()}>Refresh</button></div><div className="cpGmGrid">{(dashboard?.incentives?.pools ?? []).map((p) => <article key={p.id}><div><b>{p.label}</b><span className={`cpStatus ${tone(p.state)}`}>{p.state}</span></div><strong>{p.remaining ?? "—"} left</strong><div className="cpMeter"><i style={{ width: `${Math.max(2, Math.min(100, p.percent ?? 0))}%` }} /></div><small>{p.used} used · cap {p.cap ?? "pending"}</small></article>)}</div>{!(dashboard?.incentives?.pools?.length) && <div className="cpEmpty">GM data unavailable</div>}</section>}
+
+      {view === "usage" && <section className="cpUsage">
+        <div className="cpUsageHead"><div><span className="eyebrow">OPENAI · USAGE</span><h2>{usageTotal.toLocaleString()} tokens</h2><p>Today · canonical harness telemetry</p></div><button onClick={() => void loadDashboard()}>Refresh</button></div>
+        <div className="cpUsageOverview"><div><span>Daily usage</span><strong>{usagePercent === null ? "Metering" : `${usagePercent.toFixed(1)}%`}</strong></div><div className="cpUsageMeter"><i style={{ width: `${Math.max(usagePercent === null ? 0 : 2, usagePercent ?? 0)}%` }} /></div><small>{usageKnownCap > 0 ? `${usageTotal.toLocaleString()} of ${usageKnownCap.toLocaleString()} tokens` : `${usageTotal.toLocaleString()} metered tokens · cap pending`}</small></div>
+        <div className="cpUsageGrid">{usagePools.map((pool) => <article key={pool.id}><div><span>{pool.label}</span><em className={`cpStatus ${tone(pool.state)}`}>{pool.state}</em></div><strong>{pool.used.toLocaleString()}</strong><small>{pool.cap === null ? "Cap pending" : `${pool.remaining?.toLocaleString() ?? "0"} remaining`} · {pool.telemetry === "HARNESS_METERED" ? "Live metering" : "Awaiting telemetry"}</small><div className="cpMeter"><i style={{ width: `${Math.max(2, Math.min(100, pool.percent ?? 0))}%` }} /></div></article>)}</div>
+        <div className="cpUsageMeta"><span><b>Route</b>{dashboard?.incentives?.routing_mode || "quota-first"}</span><span><b>Paid fallback</b>{dashboard?.incentives?.paid_fallback ? "Enabled" : "Guarded"}</span><span><b>Reset</b>{dashboard?.incentives?.reset_at ? new Date(dashboard.incentives.reset_at).toLocaleString() : "Pending"}</span><span><b>Source</b>{dashboard?.incentives?.source || "HARNESS_D1"}</span></div>
+      </section>}
 
       {view === "apps" && <section className="cpPanel"><div className="cpPanelHead"><div><span className="eyebrow">APP HUB</span><h2>Applications</h2></div></div><div className="cpAppGrid">{apps.map((app) => <button key={app.id} onClick={() => app.internal ? setView(app.internal) : window.open(app.url, "_blank", "noopener,noreferrer")}><i>{app.icon}</i><span><b>{app.label}</b><small>{app.sub}</small></span><em>↗</em></button>)}</div></section>}
 

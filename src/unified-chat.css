@@ -160,6 +160,11 @@ button { color: inherit; }
 .ucQuotaWarn b { white-space: nowrap; }
 .ucQuotaWarn span { flex: 1; }
 .ucQuotaWarn button { border: 0; background: #8b4a00; color: white; border-radius: 9px; padding: 6px 8px; cursor: pointer; }
+.ucExperience { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; padding: 4px; margin-bottom: 6px !important; border: 1px solid var(--uc-line); border-radius: 16px; background: color-mix(in srgb, var(--uc-card) 72%, transparent); }
+.ucExperience button { min-width: 0; display: grid; gap: 2px; border: 0; border-radius: 12px; padding: 8px 9px; background: transparent; color: var(--uc-sub); text-align: left; cursor: pointer; }
+.ucExperience button.active { background: var(--uc-card); color: var(--uc-text); box-shadow: 0 3px 12px rgba(18,24,40,.08); }
+.ucExperience b { font-size: 11px; white-space: nowrap; }
+.ucExperience small { overflow: hidden; color: var(--uc-sub); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .ucComposer { border: 1px solid var(--uc-line); border-radius: 25px; background: var(--uc-panel); backdrop-filter: blur(26px) saturate(135%); box-shadow: 0 14px 45px rgba(18,24,40,.10); padding: 10px 10px 8px; }
 .ucComposer textarea { width: 100%; max-height: 180px; min-height: 48px; resize: none; border: 0; outline: none; background: transparent; color: var(--uc-text); padding: 8px 10px; line-height: 1.45; font-size: 15px; }
 .ucComposer textarea::placeholder { color: color-mix(in srgb, var(--uc-sub) 76%, transparent); }
@@ -194,4 +199,6 @@ button { color: inherit; }
   .ucModel small { display: none; }
   .ucQuotaMini { display: none; }
   .ucActiveTool { margin-left: 0 !important; }
+  .ucExperience button { padding: 8px 7px; text-align: center; }
+  .ucExperience small { font-size: 7px; }
 }

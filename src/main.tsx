@@ -12,6 +12,7 @@ import LiveAssist from "./LiveAssist";
 import ThemeController from "./ThemeController";
 import UnifiedChat from "./UnifiedChat";
 import "./control-plane-v2.css";
+import "./usage-panel.css";
 import "./connector-panel.css";
 import "./provider-connect.css";
 import "./live-assist.css";

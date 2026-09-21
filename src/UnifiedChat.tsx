@@ -4,6 +4,7 @@ type Surface = "ogenic-app" | "ogenic-web";
 type Role = "user" | "assistant" | "system";
 type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 type ToolMode = "chat" | "web" | "rag" | "github" | "linear" | "n8n" | "meta" | "manus" | "live";
+type ExperienceMode = "chatgpt" | "chat-api" | "agent-ai";
 type Session = { authenticated?: boolean; user?: { label?: string; role?: string } | null };
 type Message = {
   id?: string;
@@ -76,6 +77,11 @@ const EFFORTS: Array<{ id: Effort; label: string }> = [
   { id: "high", label: "High" },
   { id: "xhigh", label: "Max High" },
   { id: "max", label: "Max" },
+];
+const EXPERIENCE_MODES: Array<{ id: ExperienceMode; label: string; state: string }> = [
+  { id: "chatgpt", label: "ChatGPT", state: "Bridge pending" },
+  { id: "chat-api", label: "Chat API", state: "Responses API" },
+  { id: "agent-ai", label: "Agent AI", state: "owner-main · 1LSS" },
 ];
 
 function readJson<T>(key: string, fallback: T): T {
@@ -150,6 +156,7 @@ export default function UnifiedChat({ surface }: Props) {
   const [modelDock, setModelDock] = useState(false);
   const [newDock, setNewDock] = useState(false);
   const [toolMode, setToolMode] = useState<ToolMode>("chat");
+  const [experienceMode, setExperienceMode] = useState<ExperienceMode>("chat-api");
   const [d1Enabled, setD1Enabled] = useState(() => readBool(MEMORY_KEY, true));
   const [allowPaidFallback, setAllowPaidFallback] = useState(() => readBool(PAID_FALLBACK_KEY, false));
   const [chatConfig, setChatConfig] = useState<ChatConfig>(() => readJson(CHAT_CONFIG_KEY, DEFAULT_CONFIG));
@@ -498,11 +505,11 @@ export default function UnifiedChat({ surface }: Props) {
     if (!d1Enabled) setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "assistant", text: summary, created_at: Date.now() }]);
   }
 
-  async function runHostedTools(prompt: string) {
+  async function runHostedTools(prompt: string, hostedMode: "web" | "rag" | "auto" = toolMode === "rag" ? "rag" : "web") {
     if (!d1Enabled) throw new Error("Web/RAG tool ต้องเปิด D1 เพื่อคง 1LSS");
     const response = await fetch("/api/chat/functions", {
       method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Idempotency-Key": `hosted_${crypto.randomUUID()}` },
-      body: JSON.stringify({ prompt, model: selectedModel.id, source_surface: surface, tool_mode: toolMode, reasoning_effort: chatConfig.effort, allow_paid_fallback: allowPaidFallback }),
+      body: JSON.stringify({ prompt, model: selectedModel.id, source_surface: surface, tool_mode: hostedMode, reasoning_effort: chatConfig.effort, allow_paid_fallback: allowPaidFallback }),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !body?.ok) throw new Error(body?.message || body?.code || `HTTP_${response.status}`);
@@ -537,7 +544,15 @@ export default function UnifiedChat({ surface }: Props) {
   async function send() {
     const prompt = draft.trim() || (attachments.length ? "วิเคราะห์ไฟล์ที่แนบมา" : "");
     if (!prompt || sending) return;
+    if (experienceMode === "chatgpt") {
+      setInlineNotice("ChatGPT · Bridge pending — ยังไม่มี native bridge ที่ยืนยัน runtime แล้ว");
+      return;
+    }
     if (quotaBlocked) { setInlineNotice("Included quota หมด · เลือก API fallback ก่อน กูจะไม่เผา token เอง"); return; }
+    if (experienceMode === "agent-ai" && !d1Enabled) {
+      setInlineNotice("Agent AI ต้องใช้ owner-main / 1LSS");
+      return;
+    }
     if (!d1Enabled && attachments.length) { setInlineNotice("ไฟล์แนบต้องใช้ D1; เปิด D1 หรือเอาไฟล์ออกก่อน"); return; }
     setSending(true);
     setInlineNotice("");
@@ -548,6 +563,7 @@ export default function UnifiedChat({ surface }: Props) {
       else if (toolMode === "live") await runLiveDoor(prompt);
       else if (toolMode === "github" || toolMode === "linear" || toolMode === "n8n" || toolMode === "meta") await runInlineTool(toolMode, prompt);
       else if (toolMode === "web" || toolMode === "rag") await runHostedTools(prompt);
+      else if (experienceMode === "agent-ai") await runHostedTools(prompt, "auto");
       else await runChat(prompt);
       await loadRuntime();
     } catch (error) {
@@ -566,6 +582,21 @@ export default function UnifiedChat({ surface }: Props) {
     setToolMode("chat");
     setNewDock(false);
     setInlineNotice(memory ? `New viewport · D1 ต่อจาก #${latestSequence}` : "New ephemeral chat · D1 off");
+  }
+
+  function selectExperience(next: ExperienceMode) {
+    setExperienceMode(next);
+    setToolMode("chat");
+    setToolDock(false);
+    setModelDock(false);
+    if (next === "agent-ai") {
+      setD1Enabled(true);
+      setInlineNotice("Agent AI · owner-main / 1LSS");
+    } else if (next === "chatgpt") {
+      setInlineNotice("ChatGPT · Bridge pending");
+    } else {
+      setInlineNotice("Chat API · direct OpenAI Responses API");
+    }
   }
 
   if (session === null) return <main className="ucSplash"><img src="/ogenic-icon-192.png" alt="" /><b>OGENIC AI</b><span>Joining 1LSS…</span></main>;
@@ -616,7 +647,7 @@ export default function UnifiedChat({ surface }: Props) {
       {(toolDock || modelDock) && <section className="ucDock">
         {toolDock && <>
           <div className="ucDockHead"><div><b>Capabilities</b><small>แสดงเฉพาะตัวที่ใช้งานได้จริง</small></div><button onClick={() => setToolDock(false)}>×</button></div>
-          <div className="ucMemoryRow"><span><b>D1 · 1LSS</b><small>{d1Enabled ? "Canonical memory ON" : "Ephemeral · no memory write"}</small></span><button className={d1Enabled ? "toggle on" : "toggle"} onClick={() => setD1Enabled((value) => !value)}><i /></button></div>
+          <div className="ucMemoryRow"><span><b>D1 · 1LSS</b><small>{d1Enabled ? "Canonical memory ON" : "Ephemeral · no memory write"}</small></span><button className={d1Enabled ? "toggle on" : "toggle"} disabled={experienceMode === "agent-ai"} aria-label={experienceMode === "agent-ai" ? "Agent AI requires 1LSS memory" : "Toggle 1LSS memory"} onClick={() => setD1Enabled((value) => !value)}><i /></button></div>
           <button className="ucCapability" onClick={() => fileInput.current?.click()}><span>▧</span><div><b>Photos & files</b><small>Attach to this turn</small></div><em>＋</em></button>
           {toolRows.filter((row) => row.live).map((row) => <button key={row.id} className={`ucCapability ${toolMode === row.id ? "active" : ""}`} onClick={() => { setToolMode(row.id); setToolDock(false); }}><span>{row.id === "live" ? "◎" : row.id === "manus" ? "◉" : row.id === "github" ? "⌘" : row.id === "rag" ? "◇" : "✦"}</span><div><b>{row.label}</b><small>{row.sub}</small></div><em>{toolMode === row.id ? "✓" : "›"}</em></button>)}
           {!!connected.length && <div className="ucConnected"><small>CONNECTED</small><p>{connected.map((row) => row.label).join(" · ")}</p></div>}
@@ -634,13 +665,16 @@ export default function UnifiedChat({ surface }: Props) {
       {attachments.length > 0 && <div className="ucAttachments">{attachments.map((file) => <button key={file.id} onClick={() => setAttachments((rows) => rows.filter((row) => row.id !== file.id))}>▧ {file.filename} ×</button>)}</div>}
       {inlineNotice && <div className="ucNotice">{inlineNotice}</div>}
       {quotaBlocked && <div className="ucQuotaWarn"><b>Guarded quota หมด</b><span>Paid fallback ปิดอยู่ กูจะไม่ข้าม guard เอง</span><button onClick={() => setAllowPaidFallback(true)}>Allow paid fallback</button></div>}
+      <div className="ucExperience" role="group" aria-label="Chat mode">
+        {EXPERIENCE_MODES.map((item) => <button key={item.id} className={experienceMode === item.id ? "active" : ""} aria-pressed={experienceMode === item.id} onClick={() => selectExperience(item.id)}><b>{item.label}</b><small>{item.state}</small></button>)}
+      </div>
       <section className="ucComposer">
-        <textarea rows={1} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : "Message Ammonite…"} />
+        <textarea rows={1} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={experienceMode === "chatgpt" ? "ChatGPT native bridge pending…" : toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message Ammonite…"} />
         <div className="ucComposerBar">
           <button className="ucRound" onClick={() => { setToolDock((value) => !value); setModelDock(false); }}>＋</button>
           <button className="ucModel" onClick={() => { setModelDock((value) => !value); setToolDock(false); }}><i /> <b>{selectedModel.label}</b><small>{EFFORTS.find((row) => row.id === chatConfig.effort)?.label} · ×{chatConfig.boost}</small>⌄</button>
           <div className="ucQuotaMini">{pools.length ? <>{pools[0]?.state === "EXHAUSTED" ? (allowPaidFallback ? "Fallback ON" : "Guarded") : quotaMetered ? "Metered" : "Guarded"}</> : "Guarded"}</div>
-          <button className="ucSend" disabled={sending || (!draft.trim() && !attachments.length)} onClick={() => void send()}>{sending ? "…" : "↑"}</button>
+          <button className="ucSend" aria-label={experienceMode === "chatgpt" ? "ChatGPT bridge pending" : "Send message"} disabled={experienceMode === "chatgpt" || sending || (!draft.trim() && !attachments.length)} onClick={() => void send()}>{sending ? "…" : "↑"}</button>
         </div>
       </section>
       <div className="ucFooterLine"><span>{d1Enabled ? `owner-main · LIVE ≤3s · ${bridgeLabel} · next #${latestSequence + 1}` : "ephemeral · D1 off"}</span><button onClick={() => { void loadRuntime(); void loadBridgeStatus(); }}>↻</button><button onClick={() => void signOut()}>Sign out</button></div>
