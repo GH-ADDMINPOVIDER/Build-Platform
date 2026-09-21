@@ -1,6 +1,6 @@
 # OGENIC Phase VI — LIVE STATE
 
-Updated: 2026-09-17
+Updated: 2026-09-21
 
 This file is the compact handoff for fresh chats and agent handoffs. Keep it small, current, and operational. Do not copy full chat history into this file.
 
@@ -20,7 +20,7 @@ On activation:
 
 - Repository: `Ogenicchocolate21debug/Build-Platform`
 - Active Phase VI branch: `phase-vi-provider-incentive-metering`
-- Verified HEAD: `35abcc4e5210ff405125a0bfa53c3dd425e1272c`
+- Last verified implementation commit: `13b666267d1534c8fea0a9bfa2b93dd6fdee0539`
 - Supervisor: `Harness—Ammonite-OC-Ops`
 - Shared State: Cloudflare D1
 - Task Control: Linear
@@ -45,7 +45,16 @@ Important execution rule:
 
 ## Current verification
 
-- Branch/HEAD verified on GitHub: `phase-vi-provider-incentive-metering` @ `35abcc4e5210ff405125a0bfa53c3dd425e1272c`.
+- Three-mode UI implementation is committed on the staging branch: `ChatGPT | Chat API | Agent AI`.
+- ChatGPT remains honestly labeled `Bridge pending`; no native bridge is claimed.
+- Chat API preserves the existing direct Responses API path.
+- Agent AI uses the existing `/api/chat/functions` execution path; successful turns are stamped back to canonical `owner-main / 1LSS`.
+- An OpenAI-style Usage view is placed immediately after GM and reads existing dashboard telemetry; no D1 schema change was made.
+- Local verification for implementation commit `13b666267d1534c8fea0a9bfa2b93dd6fdee0539`: 28/28 tests passed, TypeScript passed, Worker/client build passed.
+- Cloudflare Workers Build `63b08840-da95-414c-a579-fb51b8846f35` succeeded for that commit and produced Version ID `835ed176-1e5d-423f-9fea-679fad7c8f35`.
+- Public staging health returned Cloudflare runtime + D1 bound. `/chat`, `/app`, and `/overview` served the verified client bundle `index-Co44fY0r.js`; the deployed bundle contains the three mode labels, `owner-main · 1LSS`, the agent endpoint, and Usage UI.
+- Authenticated runtime interaction is still unverified in this checkpoint because the available browser has no owner session. Do not mark Agent AI turn persistence or the authenticated Usage panel complete until observed through an existing authorized owner session.
+- Branch verified on GitHub: `phase-vi-provider-incentive-metering`; implementation evidence is pinned to commit `13b666267d1534c8fea0a9bfa2b93dd6fdee0539`.
 - Current commit checks: `Vercel – promptly` success; `Vercel Deployments – Ogenic-Registry` success; `Vercel – ogenic-control-tower` failure.
 - GitHub Actions is not the primary executor while hosted Actions minutes are exhausted; do not burn retries on runner allocation failure.
 - Public staging health has not yet been re-verified from an execution host in this checkpoint.
