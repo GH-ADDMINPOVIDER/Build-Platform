@@ -20,7 +20,10 @@ On activation:
 
 - Repository: `Ogenicchocolate21debug/Build-Platform`
 - Active Phase VI branch: `phase-vi-provider-incentive-metering`
+- Current staging HEAD: `a42fe45addb6072a3321f29fec5abb490d97c387`
 - Last verified implementation commit: `13b666267d1534c8fea0a9bfa2b93dd6fdee0539`
+- 1LSS writer branch: `phase-vi-1lss-plugin-writer` @ `65123de31d69c62e796b5c45a7d666f46c4f1938`
+- 1LSS writer PR: #8, draft; do not merge until runtime proof is complete.
 - Supervisor: `Harness—Ammonite-OC-Ops`
 - Shared State: Cloudflare D1
 - Task Control: Linear
@@ -51,13 +54,16 @@ Important execution rule:
 - Agent AI uses the existing `/api/chat/functions` execution path; successful turns are stamped back to canonical `owner-main / 1LSS`.
 - An OpenAI-style Usage view is placed immediately after GM and reads existing dashboard telemetry; no D1 schema change was made.
 - Local verification for implementation commit `13b666267d1534c8fea0a9bfa2b93dd6fdee0539`: 28/28 tests passed, TypeScript passed, Worker/client build passed.
-- Cloudflare Workers Build `63b08840-da95-414c-a579-fb51b8846f35` succeeded for that commit and produced Version ID `835ed176-1e5d-423f-9fea-679fad7c8f35`.
-- Public staging health returned Cloudflare runtime + D1 bound. `/chat`, `/app`, and `/overview` served the verified client bundle `index-Co44fY0r.js`; the deployed bundle contains the three mode labels, `owner-main · 1LSS`, the agent endpoint, and Usage UI.
-- Authenticated runtime interaction is still unverified in this checkpoint because the available browser has no owner session. Do not mark Agent AI turn persistence or the authenticated Usage panel complete until observed through an existing authorized owner session.
-- Branch verified on GitHub: `phase-vi-provider-incentive-metering`; implementation evidence is pinned to commit `13b666267d1534c8fea0a9bfa2b93dd6fdee0539`.
-- Current commit checks: `Vercel – promptly` success; `Vercel Deployments – Ogenic-Registry` success; `Vercel – ogenic-control-tower` failure.
-- GitHub Actions is not the primary executor while hosted Actions minutes are exhausted; do not burn retries on runner allocation failure.
-- Public staging health has not yet been re-verified from an execution host in this checkpoint.
+- Cloudflare Workers Build `63b08840-da95-414c-a579-fb51b8846f35` succeeded for that implementation commit and produced Version ID `835ed176-1e5d-423f-9fea-679fad7c8f35`.
+- Current staging HEAD `a42fe45addb6072a3321f29fec5abb490d97c387` also has a successful Cloudflare Workers Build check (`f941ad4a-78c6-4bc9-bfb2-23af46a58e78`).
+- Public staging health previously returned Cloudflare runtime + D1 bound. `/chat`, `/app`, and `/overview` served the verified client bundle `index-Co44fY0r.js`.
+- The deployed 1LSS bridge contract accepts `plugin-harness`, requires a stable Idempotency-Key for external surfaces, returns canonical `owner-main / 1LSS_OWNER_MAIN` sequences, and reports `replayed_count`.
+- Writer implementation contract matches that bridge statically: `sync_1lss_turn` writes one immutable turn with key `mcp:<source_surface>:<turn_id>` and validates the canonical response.
+- Writer branch now includes a direct proof harness: `npm run verify:1lss:runtime`. It writes one staging proof turn, replays the same turn, requires the same sequence, reads `/api/1lss/events` to prove exactly one canonical event, and checks `/api/1lss/status`. It never prints the Ops key.
+- Writer proof commits: `f9991c4255eb981d6ae829f6963c3ca8ec7d5a3e` and `65123de31d69c62e796b5c45a7d666f46c4f1938`.
+- GitHub hosted Actions are currently unusable for this branch while hosted minutes are exhausted. Fresh writer runs still fail before any workflow step is allocated (`steps = null`); do not burn retries or change billing.
+- Authenticated writer runtime proof is still incomplete because the current execution environment has neither an authorized owner session nor a server-side `OGENIC_OPS_KEY` binding available to the runner. Do not claim completion until the proof harness runs from an authorized host.
+- `Vercel – ogenic-control-tower` is not a Phase VI source of truth and its failure must not be treated as a staging Worker failure. Do not deploy or revive Control Tower for this proof.
 
 ## Shared-state v1 implemented
 
@@ -81,15 +87,16 @@ Exceptional terminal states:
 
 ## Next unfinished work
 
-1. Provision/connect a remote Codex workspace with terminal access and GitHub access to `Ogenicchocolate21debug/Build-Platform`.
-2. Checkout `phase-vi-provider-incentive-metering` at or after HEAD `35abcc4e5210ff405125a0bfa53c3dd425e1272c`.
-3. Run local verification on the checked-out repo: install dependencies only if required, then `npm run test`, `npm run typecheck`, and `npm run build` (or `npm run check`). Fix safe staging-only issues and rerun until green.
-4. From that host, verify staging `/api/health`; then verify D1/ops state when authorized.
-5. Ensure `OGENIC_OPS_KEY` is bound to the staging Worker without exposing its raw value.
-6. Run a real shared-state smoke flow: create task -> claim -> checkpoint/event -> DONE -> confirm lock release/state.
-7. Bind Linear task control to D1 task IDs and correlation IDs.
-8. Continue provider binding and remaining Phase VI work only after the shared-state smoke flow is green.
-9. Production promotion remains Human-Approval-gated after staging verification.
+1. Connect an authorized execution host with terminal + GitHub access. Do not use hosted Actions while runner allocation is blocked.
+2. Checkout `phase-vi-1lss-plugin-writer` at or after `65123de31d69c62e796b5c45a7d666f46c4f1938`.
+3. Bind the staging base URL and `OGENIC_OPS_KEY` server-side only; never print or commit the key.
+4. In `apps/ogenic-control-tower`, run the local writer unit test and then `npm run verify:1lss:runtime`.
+5. Accept writer runtime proof only if first write returns a canonical sequence, replay returns the same sequence with replay=true, the exact marker appears once through `/api/1lss/events`, and status reports a latest sequence at or after that proof.
+6. Observe the resulting canonical turn through the Phase VI App/Web path. Record whether `cross_surface_ready` is true; freshness failure is a separate visibility issue, not an idempotency failure.
+7. Keep PR #8 draft and unmerged until the runtime proof is captured. Do not target main/production.
+8. After the 1LSS writer proof is green, resume shared-state smoke: create task -> claim -> checkpoint/event -> DONE -> confirm lock release/state.
+9. Bind Linear task control to D1 task IDs and correlation IDs, then continue remaining provider binding.
+10. Production promotion remains Human-Approval-gated after staging verification.
 
 ## Guardrails
 
