@@ -445,7 +445,7 @@ export function createConnectorAppApi() {
             "or permission changes require separate owner approval. Reply in the user's language.\n\n" +
             "CANONICAL D1 + LIVE RUNTIME EVIDENCE:\n" + d1Context.text,
           reasoning: { effort, summary: "concise" },
-          multi_agent: { enabled: false, max_concurrent_subagents: 1 },
+          multi_agent: { enabled: false },
           service_tier: "auto",
         },
         environment: { type: "none" },
