@@ -146,6 +146,7 @@ export async function maybeRunPhaseViFinalProof(
       source_surface: "ogenic-web",
       reasoning_effort: "low",
       allow_paid_fallback: false,
+      idempotency_key: idem,
     };
 
     const callAgent = async (label: string) => {
