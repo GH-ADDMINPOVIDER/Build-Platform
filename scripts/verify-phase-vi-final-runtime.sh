@@ -21,7 +21,7 @@ echo "run_ref=${RUN_REF}"
 
 HEALTH="$(curl --fail --silent --show-error --retry 4 --retry-delay 2 --retry-all-errors "${STAGING_URL}/api/health")"
 printf '%s' "$HEALTH" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
-printf '%s' "$HEALTH" | jq -c '{ok,status,git_sha:(.git_sha // .runtime.git_sha // .runtime.sha // null),build_uuid:(.build_uuid // .runtime.build_uuid // null),version_id:(.version_id // .runtime.version_id // .runtime.worker_version_id // null),shared_state,ops_api_auth}'
+printf '%s' "$HEALTH" | jq -c '{ok,status,git_sha:(.git_sha // (if (.runtime|type)=="object" then (.runtime.git_sha // .runtime.sha) else null end)),build_uuid:(.build_uuid // (if (.runtime|type)=="object" then .runtime.build_uuid else null end)),version_id:(.version_id // (if (.runtime|type)=="object" then (.runtime.version_id // .runtime.worker_version_id) else null end)),shared_state,ops_api_auth}'
 echo
 
 printf '{"owner_key":%s}' "$(jq -Rn --arg value "$OGENIC_OPS_KEY" '$value')"   | curl --fail --silent --show-error       --cookie-jar "$COOKIE_JAR"       --header 'Content-Type: application/json'       --data-binary @-       "${STAGING_URL}/api/session"   | jq -e '.ok == true and .authenticated == true and .user.role == "owner"' >/dev/null
