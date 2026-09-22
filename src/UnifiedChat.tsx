@@ -4,7 +4,7 @@ type Surface = "ogenic-app" | "ogenic-web";
 type Role = "user" | "assistant" | "system";
 type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 type ToolMode = "chat" | "web" | "rag" | "github" | "linear" | "n8n" | "meta" | "manus" | "live";
-type ExperienceMode = "chatgpt" | "chat-api" | "agent-ai";
+type ExperienceMode = "chat-api" | "agent-ai";
 type Session = { authenticated?: boolean; user?: { label?: string; role?: string } | null };
 type Message = {
   id?: string;
@@ -79,8 +79,7 @@ const EFFORTS: Array<{ id: Effort; label: string }> = [
   { id: "max", label: "Max" },
 ];
 const EXPERIENCE_MODES: Array<{ id: ExperienceMode; label: string; state: string }> = [
-  { id: "chatgpt", label: "ChatGPT", state: "Bridge pending" },
-  { id: "chat-api", label: "Chat API", state: "Responses API" },
+  { id: "chat-api", label: "SAME MIND", state: "Responses API · 1LSS" },
   { id: "agent-ai", label: "Agent AI", state: "OpenAI Agent Session · 1LSS" },
 ];
 
@@ -567,10 +566,6 @@ export default function UnifiedChat({ surface }: Props) {
   async function send() {
     const prompt = draft.trim() || (attachments.length ? "วิเคราะห์ไฟล์ที่แนบมา" : "");
     if (!prompt || sending) return;
-    if (experienceMode === "chatgpt") {
-      setInlineNotice("ChatGPT · Bridge pending — ยังไม่มี native bridge ที่ยืนยัน runtime แล้ว");
-      return;
-    }
     if (quotaBlocked) { setInlineNotice("Included quota หมด · เลือก API fallback ก่อน กูจะไม่เผา token เอง"); return; }
     if (experienceMode === "agent-ai" && !d1Enabled) {
       setInlineNotice("Agent AI ต้องใช้ owner-main / 1LSS");
@@ -615,15 +610,13 @@ export default function UnifiedChat({ surface }: Props) {
     if (next === "agent-ai") {
       setD1Enabled(true);
       setInlineNotice("Agent AI · OpenAI Agent Session · owner-main / 1LSS");
-    } else if (next === "chatgpt") {
-      setInlineNotice("ChatGPT · Bridge pending");
     } else {
-      setInlineNotice("Chat API · direct OpenAI Responses API");
+      setInlineNotice("SAME MIND · OpenAI Responses API · owner-main / 1LSS");
     }
   }
 
-  if (session === null) return <main className="ucSplash"><img src="/ogenic-icon-192.png" alt="" /><b>OGENIC AI</b><span>Joining 1LSS…</span></main>;
-  if (!session.authenticated) return <main className="ucAuth"><section><img src="/ogenic-icon-192.png" alt="" /><small>OWNER ACCESS</small><h1>OGENIC AI</h1><p>One clean chat · one canonical line.</p><input type="password" value={ownerKey} onChange={(event) => setOwnerKey(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void signIn(); }} placeholder="Owner access key" /><button onClick={() => void signIn()}>Continue</button>{authError && <em>{authError}</em>}</section></main>;
+  if (session === null) return <main className="ucSplash"><img src="/ogenic-harness-mark.svg" alt="" /><b>OGENIC — SAME MIND</b><span>Joining 1LSS…</span></main>;
+  if (!session.authenticated) return <main className="ucAuth"><section><img src="/ogenic-harness-mark.svg" alt="" /><small>OWNER ACCESS</small><h1>OGENIC — SAME MIND</h1><p>One clean chat · one canonical line.</p><input type="password" value={ownerKey} onChange={(event) => setOwnerKey(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void signIn(); }} placeholder="Owner access key" /><button onClick={() => void signIn()}>Continue</button>{authError && <em>{authError}</em>}</section></main>;
 
   const toolRows: Array<{ id: ToolMode; label: string; sub: string; live: boolean }> = [
     { id: "web", label: "Web search", sub: "Fresh web sources", live: toolLive(platformTools.get("web_search")?.state) },
@@ -648,7 +641,7 @@ export default function UnifiedChat({ surface }: Props) {
     <input ref={fileInput} type="file" className="ucHidden" accept="image/*,.pdf,.txt,.md,.csv,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = ""; }} />
 
     <header className="ucTopbar">
-      <button className="ucBrand" onClick={() => setNewDock((value) => !value)}><img src="/ogenic-icon-192.png" alt="" /><span><b>OGENIC</b><small>{surface === "ogenic-app" ? "APP" : "WEB"}</small></span></button>
+      <button className="ucBrand" onClick={() => setNewDock((value) => !value)}><img src="/ogenic-harness-mark.svg" alt="" /><span><b>OGENIC</b><small>{surface === "ogenic-app" ? "SAME MIND · APP" : "SAME MIND · WEB"}</small></span></button>
       <div className="ucLineState"><b>1LSS #{String(latestSequence).padStart(4, "0")}</b><span className={d1Enabled ? "on" : "off"}>D1 {d1Enabled ? "●" : "○"}</span></div>
       <button className="ucNew" onClick={() => setNewDock((value) => !value)}>＋ New</button>
       {newDock && <section className="ucNewDock"><strong>New chat viewport</strong><p>เส้นชีวิตไม่แตก ถ้าเปิด D1 จะต่อ owner-main หลังบ้าน</p><label><input type="checkbox" checked={d1Enabled} onChange={(event) => setD1Enabled(event.target.checked)} /> D1 · 1LSS Memory</label><div><button onClick={() => startNew(d1Enabled)}>Start</button><button className="ghost" onClick={() => void loadOlder()}>Load older</button><button className="ghost" onClick={() => setNewDock(false)}>Cancel</button></div>{!!sessionRefs.length && <div className="ucConnected"><small>RECENT DOORS</small><p>{sessionRefs.slice(0, 5).map((row) => `${row.label || row.source_surface} #${row.last_sequence || "?"}`).join(" · ")}</p><div>{sessionRefs.slice(0, 5).map((row) => <button key={row.id} className="ghost" onClick={() => void openKnownSession(row)}>{row.source_surface} · #{row.last_sequence || "?"}</button>)}</div></div>}</section>}
@@ -656,9 +649,9 @@ export default function UnifiedChat({ surface }: Props) {
 
     <section className="ucConversation">
       {historyHasMore && <button className="ghost" onClick={() => void loadOlder()}>↑ Load older 1LSS</button>}
-      {!messages.length && <div className="ucWelcome"><div className="ucOrb"><i /></div><small>AMMONITE · 1LSS</small><h1>What are we doing next?</h1><p>Chat, files, tools, live browser and agents — one line, no cockpit clutter.</p></div>}
+      {!messages.length && <div className="ucWelcome"><div className="ucOrb"><i /></div><small>OGENIC · SAME MIND · 1LSS</small><h1>What are we doing next?</h1><p>Chat, files, tools, live browser and agents — one canonical line.</p></div>}
       {messages.map((message, index) => <article key={message.id || index} className={`ucMessage ${message.role || "assistant"}`}>
-        <div className="ucMessageMeta"><b>{message.role === "user" ? "YOU" : message.role === "system" ? "SYSTEM" : "AMMONITE"}</b><span>{message.sequence_no ? `#${message.sequence_no}` : ""}{message.source_surface ? ` · ${message.source_surface}` : ""}{message.created_at ? ` · ${timeAgo(message.created_at)}` : ""}</span></div>
+        <div className="ucMessageMeta"><b>{message.role === "user" ? "YOU" : message.role === "system" ? "SYSTEM" : "OGENIC"}</b><span>{message.sequence_no ? `#${message.sequence_no}` : ""}{message.source_surface ? ` · ${message.source_surface}` : ""}{message.created_at ? ` · ${timeAgo(message.created_at)}` : ""}</span></div>
         <p>{message.text}</p>
         {message.model && <small>{message.model}</small>}
       </article>)}
@@ -692,12 +685,12 @@ export default function UnifiedChat({ surface }: Props) {
         {EXPERIENCE_MODES.map((item) => <button key={item.id} className={experienceMode === item.id ? "active" : ""} aria-pressed={experienceMode === item.id} onClick={() => selectExperience(item.id)}><b>{item.label}</b><small>{item.state}</small></button>)}
       </div>
       <section className="ucComposer">
-        <textarea rows={1} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={experienceMode === "chatgpt" ? "ChatGPT native bridge pending…" : toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message Ammonite…"} />
+        <textarea rows={1} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message SAME MIND…"} />
         <div className="ucComposerBar">
           <button className="ucRound" onClick={() => { setToolDock((value) => !value); setModelDock(false); }}>＋</button>
           <button className="ucModel" onClick={() => { setModelDock((value) => !value); setToolDock(false); }}><i /> <b>{selectedModel.label}</b><small>{EFFORTS.find((row) => row.id === chatConfig.effort)?.label} · ×{chatConfig.boost}</small>⌄</button>
           <div className="ucQuotaMini">{pools.length ? <>{pools[0]?.state === "EXHAUSTED" ? (allowPaidFallback ? "Fallback ON" : "Guarded") : quotaMetered ? "Metered" : "Guarded"}</> : "Guarded"}</div>
-          <button className="ucSend" aria-label={experienceMode === "chatgpt" ? "ChatGPT bridge pending" : "Send message"} disabled={experienceMode === "chatgpt" || sending || (!draft.trim() && !attachments.length)} onClick={() => void send()}>{sending ? "…" : "↑"}</button>
+          <button className="ucSend" aria-label="Send message" disabled={sending || (!draft.trim() && !attachments.length)} onClick={() => void send()}>{sending ? "…" : "↑"}</button>
         </div>
       </section>
       <div className="ucFooterLine"><span>{d1Enabled ? `owner-main · LIVE ≤3s · ${bridgeLabel} · next #${latestSequence + 1}` : "ephemeral · D1 off"}</span><button onClick={() => { void loadRuntime(); void loadBridgeStatus(); }}>↻</button><button onClick={() => void signOut()}>Sign out</button></div>

@@ -11,6 +11,7 @@ import GagVault from "./GagVault";
 import LiveAssist from "./LiveAssist";
 import ThemeController from "./ThemeController";
 import UnifiedChat from "./UnifiedChat";
+import Landing from "./Landing";
 import "./control-plane-v2.css";
 import "./usage-panel.css";
 import "./connector-panel.css";
@@ -22,6 +23,7 @@ import "./dense-mobile.css";
 import "./mobile-app.css";
 import "./unified-chat.css";
 import "./mobile-fixes.css";
+import "./landing.css";
 
 const nativeApp = Capacitor.isNativePlatform();
 const NATIVE_API_BASE = "https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev";
@@ -96,15 +98,22 @@ const explicitAppRoute = pathname === "/app" || pathname.startsWith("/app/");
 const webChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
 const controlRoute = pathname === "/overview" || pathname.startsWith("/overview/");
 const shortcutApp = !webChatRoute && !controlRoute && params.get("source") === "app";
-const mobileViewport = !nativeApp && window.matchMedia?.("(max-width: 900px)").matches === true;
-const mobileLanding = pathname === "/" && mobileViewport;
-const appRoute = explicitAppRoute || (!webChatRoute && !controlRoute && (params.get("mobile") === "1" || shortcutApp || mobileLanding));
-const unifiedChatSurface = !controlRoute && (nativeApp || appRoute || webChatRoute);
+const landingRoute = !nativeApp && pathname === "/";
+const appRoute = explicitAppRoute || (!webChatRoute && !controlRoute && (params.get("mobile") === "1" || shortcutApp));
+const unifiedChatSurface = !controlRoute && !landingRoute && (nativeApp || appRoute || webChatRoute);
 const sourceSurface = webChatRoute ? "ogenic-web" as const : "ogenic-app" as const;
+
+document.title = landingRoute || controlRoute
+  ? "OGENIC CORE — HARNESS"
+  : surfaceTitle(sourceSurface);
+
+function surfaceTitle(surface: "ogenic-web" | "ogenic-app") {
+  return surface === "ogenic-web" ? "OGENIC — SAME MIND" : "OGENIC — SAME MIND · APP";
+}
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    {unifiedChatSurface ? <UnifiedChat surface={sourceSurface} /> : <>
+    {landingRoute ? <Landing /> : unifiedChatSurface ? <UnifiedChat surface={sourceSurface} /> : <>
       <ControlPlaneV2 />
       <ChatModelRouter />
       <AppEnhancements />
