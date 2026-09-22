@@ -10,6 +10,20 @@ Canonical human-readable execution checklist for post-Phase-VI work.
 - Do not touch main/prod/Candy without explicit approval.
 - Never persist raw secrets, cookies, tokens, passwords, or MFA material here.
 
+## Canonical OGENIC program flow
+
+**Umbrella name: OGENIC**
+
+- [x] **Project Session — CLOSED as foundation scope**
+  - Completed foundation: owner-main / 1LSS continuity, session refs, recovery API, Auto Session Access direction.
+  - Remaining provider-specific session-reuse work is reclassified under Project Resolver and must not reopen Project Session.
+- [ ] **Project Resolver — CURRENT ACTIVE PROJECT**
+  - Unified Plugin/Capability Registry, permission/session lookup, adapter choice, deterministic routing, optional Jev accelerator, PAM feasibility, provider recovery and audit.
+- [ ] **WAVE — PRODUCT SURFACE / DELIVERY TARGET**
+  - Mobile-first Chat / Work / Live / Apps / More consuming Resolver capabilities under OGENIC.
+
+Canonical flow: **OGENIC → Project Session ✅ → Project Resolver 🔄 → WAVE**
+
 ## Execution order — easiest wins first
 
 ### Wave 1 — QUICK WINS
