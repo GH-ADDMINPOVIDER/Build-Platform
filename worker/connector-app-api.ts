@@ -190,8 +190,15 @@ function safeStore(item: Record<string, unknown>) {
 type AgentStreamEvent = {
   type?: string;
   session_id?: string;
+  text?: string;
+  delta?: string;
   usage?: { total_tokens?: number };
   error?: { code?: string; message?: string } | string | null;
+  turn?: {
+    subagent_id?: string | null;
+    usage?: { total_tokens?: number };
+    error?: { code?: string; message?: string } | string | null;
+  };
   item?: {
     type?: string;
     phase?: string;
@@ -209,13 +216,24 @@ async function readAgentSessionStream(response: Response) {
   let sessionId = "";
   let terminal = "";
   let finalText = "";
+  let streamedText = "";
   let fallbackText = "";
   let usageTokens = 0;
   let streamError = "";
 
   const consume = (event: AgentStreamEvent) => {
     if (typeof event.session_id === "string") sessionId = event.session_id;
-    usageTokens = Math.max(usageTokens, Number(event.usage?.total_tokens ?? 0));
+    usageTokens = Math.max(
+      usageTokens,
+      Number(event.usage?.total_tokens ?? 0),
+      Number(event.turn?.usage?.total_tokens ?? 0),
+    );
+    if (event.type === "agent.session.turn.output_text.delta" && typeof event.delta === "string") {
+      streamedText += event.delta;
+    }
+    if (event.type === "agent.session.turn.output_text.done" && typeof event.text === "string") {
+      finalText = event.text.trim();
+    }
     if (event.type === "agent.session.turn.item.done" && event.item?.type === "message") {
       const text = (event.item.content ?? [])
         .filter((part) => part?.type === "output_text" && typeof part.text === "string")
@@ -227,13 +245,18 @@ async function readAgentSessionStream(response: Response) {
         if (event.item.phase === "final_answer") finalText = text;
       }
     }
-    if (event.type === "agent.session.turn.completed") terminal = "completed";
-    if (event.type === "agent.session.turn.cancelled") terminal = "cancelled";
-    if (event.type === "agent.session.turn.failed" || event.type === "agent.session.failed") {
+    const rootTurn = event.turn?.subagent_id == null;
+    if (event.type === "agent.session.turn.completed" && rootTurn) terminal = "completed";
+    if (event.type === "agent.session.turn.cancelled" && rootTurn) terminal = "cancelled";
+    if ((event.type === "agent.session.turn.failed" && rootTurn)
+      || event.type === "agent.session.failed"
+      || event.type === "agent.session.environment.failed"
+      || event.type === "error") {
       terminal = "failed";
-      if (typeof event.error === "string") streamError = event.error;
-      else if (event.error && typeof event.error === "object") {
-        streamError = clean(event.error.message || event.error.code || "AGENT_SESSION_FAILED", 300);
+      const failure = event.turn?.error || event.error;
+      if (typeof failure === "string") streamError = failure;
+      else if (failure && typeof failure === "object") {
+        streamError = clean(failure.message || failure.code || "AGENT_SESSION_FAILED", 300);
       }
     }
   };
@@ -250,7 +273,7 @@ async function readAgentSessionStream(response: Response) {
   while (true) {
     const chunk = await reader.read();
     if (chunk.done) break;
-    buffer += decoder.decode(chunk.value, { stream: true });
+    buffer += decoder.decode(chunk.value, { stream: true }).replace(/\r\n/g, "\n");
     let split = buffer.indexOf("\n\n");
     while (split >= 0) {
       consumeBlock(buffer.slice(0, split));
@@ -258,13 +281,13 @@ async function readAgentSessionStream(response: Response) {
       split = buffer.indexOf("\n\n");
     }
   }
-  buffer += decoder.decode();
+  buffer += decoder.decode().replace(/\r\n/g, "\n");
   if (buffer.trim()) consumeBlock(buffer);
 
   return {
     sessionId,
     terminal: terminal || "unknown",
-    text: finalText || fallbackText,
+    text: finalText || streamedText.trim() || fallbackText,
     usageTokens,
     error: streamError,
   };
