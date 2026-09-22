@@ -26,7 +26,7 @@ import "./mobile-fixes.css";
 import "./landing.css";
 
 const nativeApp = Capacitor.isNativePlatform();
-const NATIVE_API_BASE = "https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev";
+const NATIVE_API_BASE = "https://wave.ogenicchocolate.com";
 const NATIVE_SESSION_KEY = "ogenic.native.session.v1";
 
 function installNativeApiBridge() {

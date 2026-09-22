@@ -9,6 +9,12 @@
   "observability": {
     "enabled": true
   },
+  "routes": [
+    {
+      "pattern": "wave.ogenicchocolate.com",
+      "custom_domain": true
+    }
+  ],
   "browser": {
     "binding": "BROWSER"
   },
