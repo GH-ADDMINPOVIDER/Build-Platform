@@ -28,7 +28,7 @@ const publicHooks = createPublicHookApi();
 
 const ONE_LINE_ID = "owner-main";
 type ChatSurface = "ogenic-web" | "chatgpt-dev" | "external-harness";
-type FunctionTurnBody = { prompt?: unknown; source_surface?: unknown };
+type FunctionTurnBody = { prompt?: unknown; source_surface?: unknown; idempotency_key?: unknown };
 type FunctionTurnResponse = {
   ok?: boolean;
   text?: unknown;
@@ -101,6 +101,60 @@ async function appendOneLine(
   return sequence;
 }
 
+type CachedAgentRow = {
+  content: string;
+  model: string | null;
+  run_id: string | null;
+  source_surface: string;
+  sequence_no: number;
+};
+
+async function requestIdempotencyKey(request: Request) {
+  const fromHeader = clip(request.headers.get("idempotency-key"), 180);
+  if (fromHeader) return fromHeader;
+  const body = await request.clone().json().catch(() => ({})) as FunctionTurnBody;
+  return clip(body.idempotency_key, 180);
+}
+
+async function cachedAgentReplay(request: Request, env: Bindings) {
+  if (!env.DB || request.method !== "POST") return null;
+  const requestKey = await requestIdempotencyKey(request);
+  if (!requestKey) return null;
+
+  const user = await env.DB.prepare(
+    `SELECT content, model, run_id, source_surface, sequence_no
+     FROM chat_messages
+     WHERE conversation_id = ? AND idempotency_key = ?
+     LIMIT 1`,
+  ).bind(ONE_LINE_ID, `${requestKey}:user`).first<CachedAgentRow>();
+  const assistant = await env.DB.prepare(
+    `SELECT content, model, run_id, source_surface, sequence_no
+     FROM chat_messages
+     WHERE conversation_id = ? AND idempotency_key = ?
+     LIMIT 1`,
+  ).bind(ONE_LINE_ID, `${requestKey}:assistant`).first<CachedAgentRow>();
+
+  if (!user || !assistant || !assistant.run_id) return null;
+  return Response.json({
+    ok: true,
+    text: assistant.content,
+    model: assistant.model,
+    agent_session_id: assistant.run_id,
+    agent_terminal: "completed",
+    memory: "D1_CANONICAL",
+    conversation_id: ONE_LINE_ID,
+    session_line: "1LSS_OWNER_MAIN",
+    source_surface: assistant.source_surface,
+    usage_tokens: 0,
+    runtime: "OPENAI_AGENT_SESSION",
+    idempotent_replay: true,
+    policy: "SIDE_EFFECTS_REQUIRE_SEPARATE_OWNER_APPROVAL",
+  }, {
+    status: 200,
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+
 async function stampFunctionTurn(request: Request, response: Response, env: Bindings) {
   if (!env.DB || !response.ok) return;
   const body = await request.json().catch(() => ({})) as FunctionTurnBody;
@@ -111,10 +165,11 @@ async function stampFunctionTurn(request: Request, response: Response, env: Bind
   const text = clip(result.text, 7000);
   const requestedSurface = clip(body.source_surface || request.headers.get("x-ogenic-surface"), 60).toLowerCase();
   const sourceSurface = requestedSurface || "plugin-harness";
-  const requestKey = clip(request.headers.get("idempotency-key"), 180) || `plugin_${crypto.randomUUID()}`;
   const runId = result.runtime === "OPENAI_AGENT_SESSION"
     ? clip(result.agent_session_id, 160) || null
     : null;
+  const suppliedRequestKey = clip(request.headers.get("idempotency-key"), 180) || clip(body.idempotency_key, 180);
+  const requestKey = suppliedRequestKey || (runId ? `agent_session:${runId}` : `plugin_${crypto.randomUUID()}`);
 
   if (prompt) await appendOneLine(env, "user", prompt, sourceSurface, `${requestKey}:user`, null, runId);
   for (const call of result.function_calls ?? []) {
@@ -211,7 +266,15 @@ export default {
     if (pathname === "/api/manus/status" || pathname === "/api/manus/task") {
       return manusApi.fetch(request, env, ctx as never);
     }
-    if (pathname === "/api/chat/functions" || pathname === "/api/chat/agent") {
+    if (pathname === "/api/chat/agent") {
+      const cached = await cachedAgentReplay(request, env);
+      if (cached) return cached;
+      const stampRequest = request.clone();
+      const response = await connectorApi.fetch(request, env, ctx as never);
+      await stampFunctionTurn(stampRequest, response, env).catch(() => undefined);
+      return response;
+    }
+    if (pathname === "/api/chat/functions") {
       const stampRequest = request.clone();
       const response = await connectorApi.fetch(request, env, ctx as never);
       await stampFunctionTurn(stampRequest, response, env).catch(() => undefined);
