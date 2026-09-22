@@ -1,0 +1,34 @@
+{
+  "schema": "ogenic.phase-vi.final-acceptance.v1",
+  "phase": "OGENIC Phase VI",
+  "status": "PASS",
+  "closeout_stamp": "PHASE_VI_COMPLETE",
+  "recorded_on_branch": "phase-vi-1lss-plugin-writer",
+  "verified_source_heads": {
+    "phase-vi-provider-incentive-metering": "0eb9617bd8e1060cab1f6654d6d4144641572a93",
+    "phase-vi-1lss-plugin-writer": "09fca0961b98449486989228c97b5faca5a28b0a"
+  },
+  "acceptance": {
+    "phase_vi_runtime": "PASS",
+    "same_mind_context_path": "PASS",
+    "owner_main_1lss_path": "PASS",
+    "d1_canonical_state_path": "PASS",
+    "idempotent_runtime_behavior": "PASS",
+    "vercel_provider_head": "READY",
+    "vercel_writer_head": "READY",
+    "railway_runtime_probe": "SUCCESS"
+  },
+  "external_ci_note": {
+    "github_hosted_actions": "BLOCKED_BY_ACCOUNT_ACTIONS_MINUTES_EXHAUSTED",
+    "actions_usage_observed": "2000/2000 included minutes used",
+    "reset_date_observed": "2026-10-01",
+    "classified_as_phase_vi_code_failure": false,
+    "blocking_final_acceptance": false
+  },
+  "closeout_policy": {
+    "reopen_phase_vi_only_for_verified_runtime_regression": true,
+    "do_not_reopen_for_hosted_ci_quota_only": true,
+    "main_production_candy_secrets_touched_by_this_stamp": false
+  },
+  "note": "This record stamps the verified Phase VI runtime/SAME MIND acceptance state. GitHub-hosted Actions quota exhaustion is recorded as an external CI capacity condition, not a Phase VI runtime failure."
+}
