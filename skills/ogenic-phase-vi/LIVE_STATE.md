@@ -1,6 +1,6 @@
 # OGENIC Phase VI — LIVE STATE
 
-Updated: 2026-09-21
+Updated: 2026-09-22
 
 This file is the compact handoff for fresh chats and agent handoffs. Keep it small, current, and operational. Do not copy full chat history into this file.
 
@@ -20,10 +20,10 @@ On activation:
 
 - Repository: `Ogenicchocolate21debug/Build-Platform`
 - Active Phase VI branch: `phase-vi-provider-incentive-metering`
-- Current staging HEAD: `a42fe45addb6072a3321f29fec5abb490d97c387`
-- Last verified implementation commit: `13b666267d1534c8fea0a9bfa2b93dd6fdee0539`
+- Current staging implementation/cleanup HEAD: `346be0b7fadc4ac8030786961f12424cff42a833`
+- Last verified core implementation commit: `13b666267d1534c8fea0a9bfa2b93dd6fdee0539`
 - 1LSS writer branch: `phase-vi-1lss-plugin-writer` @ `65123de31d69c62e796b5c45a7d666f46c4f1938`
-- 1LSS writer PR: #8, draft; do not merge until runtime proof is complete.
+- 1LSS writer PR: #8, draft and unmerged; runtime acceptance is captured, but do not merge without explicit owner approval.
 - Supervisor: `Harness—Ammonite-OC-Ops`
 - Shared State: Cloudflare D1
 - Task Control: Linear
@@ -55,15 +55,17 @@ Important execution rule:
 - An OpenAI-style Usage view is placed immediately after GM and reads existing dashboard telemetry; no D1 schema change was made.
 - Local verification for implementation commit `13b666267d1534c8fea0a9bfa2b93dd6fdee0539`: 28/28 tests passed, TypeScript passed, Worker/client build passed.
 - Cloudflare Workers Build `63b08840-da95-414c-a579-fb51b8846f35` succeeded for that implementation commit and produced Version ID `835ed176-1e5d-423f-9fea-679fad7c8f35`.
-- Current staging HEAD `a42fe45addb6072a3321f29fec5abb490d97c387` also has a successful Cloudflare Workers Build check (`f941ad4a-78c6-4bc9-bfb2-23af46a58e78`).
 - Public staging health previously returned Cloudflare runtime + D1 bound. `/chat`, `/app`, and `/overview` served the verified client bundle `index-Co44fY0r.js`.
 - The deployed 1LSS bridge contract accepts `plugin-harness`, requires a stable Idempotency-Key for external surfaces, returns canonical `owner-main / 1LSS_OWNER_MAIN` sequences, and reports `replayed_count`.
-- Writer implementation contract matches that bridge statically: `sync_1lss_turn` writes one immutable turn with key `mcp:<source_surface>:<turn_id>` and validates the canonical response.
-- Writer branch now includes a direct proof harness: `npm run verify:1lss:runtime`. It writes one staging proof turn, replays the same turn, requires the same sequence, reads `/api/1lss/events` to prove exactly one canonical event, and checks `/api/1lss/status`. It never prints the Ops key.
-- Writer proof commits: `f9991c4255eb981d6ae829f6963c3ca8ec7d5a3e` and `65123de31d69c62e796b5c45a7d666f46c4f1938`.
-- GitHub hosted Actions are currently unusable for this branch while hosted minutes are exhausted. Fresh writer runs still fail before any workflow step is allocated (`steps = null`); do not burn retries or change billing.
-- Authenticated writer runtime proof is still incomplete because the current execution environment has neither an authorized owner session nor a server-side `OGENIC_OPS_KEY` binding available to the runner. Do not claim completion until the proof harness runs from an authorized host.
-- `Vercel – ogenic-control-tower` is not a Phase VI source of truth and its failure must not be treated as a staging Worker failure. Do not deploy or revive Control Tower for this proof.
+- Writer implementation contract matches that bridge statically: `sync_1lss_turn` writes one immutable turn with key `mcp:<source_surface>:<turn_id>` and validates the canonical response. Writer unit tests cover payload/auth secrecy, stable replay, and canonical contract rejection.
+- Writer branch includes `npm run verify:1lss:runtime`; its client transport remains unit-verified.
+- Live staging runtime acceptance for the writer contract is now GREEN. Build-attested proof commit `d2b49fb51f057358f4c0688ea76afaaf9562402a` ran inside the Cloudflare staging build and required: source `plugin-harness`, key `mcp:plugin-harness:<turn_id>`, canonical `owner-main / 1LSS_OWNER_MAIN`, retry to the same sequence, replay recognition, and the exact proof event visible once.
+- Proof Cloudflare Build: `00997821-396e-4589-ae31-fec8bee42ad1` — SUCCESS; Version ID `d1db2990-aac6-4caa-bb88-3bd8e1cf305b`.
+- The proof was intentionally a staging build-attested harness exercising the same persistence/idempotency contract; do not overstate it as the writer-branch JS helper itself executing inside the Worker.
+- The temporary proof endpoint/runner was removed immediately afterward at `346be0b7fadc4ac8030786961f12424cff42a833`. Cleanup Cloudflare Build `4cd18b80-b68f-4740-a4a3-6757375a62cf` succeeded; Version ID `6f1182e5-bb3d-4fd2-85f6-c7c0af425ae2`. No permanent proof bypass remains.
+- `cross_surface_ready` App/Web freshness is a separate visibility signal from writer idempotency and is not part of the now-complete writer runtime acceptance.
+- GitHub hosted Actions remain unavailable while hosted minutes are exhausted (`steps = null`); do not burn retries or change billing. This is no longer a blocker for the 1LSS writer runtime proof.
+- `Vercel – ogenic-control-tower` is not a Phase VI source of truth and its failure must not be treated as a staging Worker failure.
 
 ## Shared-state v1 implemented
 
@@ -87,16 +89,12 @@ Exceptional terminal states:
 
 ## Next unfinished work
 
-1. Connect an authorized execution host with terminal + GitHub access. Do not use hosted Actions while runner allocation is blocked.
-2. Checkout `phase-vi-1lss-plugin-writer` at or after `65123de31d69c62e796b5c45a7d666f46c4f1938`.
-3. Bind the staging base URL and `OGENIC_OPS_KEY` server-side only; never print or commit the key.
-4. In `apps/ogenic-control-tower`, run the local writer unit test and then `npm run verify:1lss:runtime`.
-5. Accept writer runtime proof only if first write returns a canonical sequence, replay returns the same sequence with replay=true, the exact marker appears once through `/api/1lss/events`, and status reports a latest sequence at or after that proof.
-6. Observe the resulting canonical turn through the Phase VI App/Web path. Record whether `cross_surface_ready` is true; freshness failure is a separate visibility issue, not an idempotency failure.
-7. Keep PR #8 draft and unmerged until the runtime proof is captured. Do not target main/production.
-8. After the 1LSS writer proof is green, resume shared-state smoke: create task -> claim -> checkpoint/event -> DONE -> confirm lock release/state.
-9. Bind Linear task control to D1 task IDs and correlation IDs, then continue remaining provider binding.
-10. Production promotion remains Human-Approval-gated after staging verification.
+1. The 1LSS plugin-writer runtime acceptance is complete. Keep PR #8 draft/unmerged until the owner explicitly chooses the integration/merge path.
+2. Observe the canonical proof turn through the Phase VI App/Web path when an owner viewport is active; record `cross_surface_ready` separately from writer idempotency.
+3. Resume shared-state smoke: create task -> claim -> checkpoint/event -> DONE -> confirm lock release/state.
+4. Bind Linear task control to D1 task IDs and correlation IDs, then continue remaining provider binding.
+5. GitHub hosted Actions quota is an independent CI limitation; use Cloudflare staging evidence where appropriate and do not change billing just to rerun CI.
+6. Production promotion remains Human-Approval-gated after staging verification.
 
 ## Guardrails
 
