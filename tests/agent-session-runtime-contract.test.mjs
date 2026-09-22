@@ -11,6 +11,7 @@ test("Agent AI uses real OpenAI Agent Sessions and preserves canonical 1LSS stam
 
   assert.match(connector, /api\.post\("\/api\/chat\/agent"/);
   assert.match(connector, /https:\/\/api\.openai\.com\/v1\/agents\/sessions/);
+  assert.doesNotMatch(connector, /name:\s*"OGENIC Agent AI"/);
   assert.match(connector, /"OpenAI-Beta": "agents=v1"/);
   assert.match(connector, /environment:\s*\{ type: "none" \}/);
   assert.match(connector, /agent_session_id/);
