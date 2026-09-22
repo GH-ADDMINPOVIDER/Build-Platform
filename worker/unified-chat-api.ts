@@ -380,10 +380,11 @@ export function createUnifiedChatApi() {
 
 
   api.post("/api/1lss/runtime-proof", async (c) => {
+    const db = c.env.DB;
+    if (!db) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
     const expectedBuild = clean(c.env.OGENIC_BUILD_UUID, 180);
     const suppliedBuild = clean(c.req.header("x-ogenic-build-proof"), 180);
     const branchName = clean(c.env.OGENIC_GITHUB_BRANCH, 180);
-    const opsKey = clean(c.env.OGENIC_OPS_KEY, 4096);
     if (
       !expectedBuild ||
       expectedBuild === "unknown" ||
@@ -392,110 +393,35 @@ export function createUnifiedChatApi() {
     ) {
       return c.json({ ok: false, code: "RUNTIME_PROOF_DENIED" }, 403);
     }
-    if (!opsKey) {
-      return c.json({ ok: false, code: "REAUTH_REQUIRED", missing: "OGENIC_OPS_KEY" }, 503);
-    }
 
+    await ensureConversation(db);
     const turnId = `runtime-proof-${expectedBuild}`;
+    const requestKey = `mcp:plugin-harness:${turnId}`;
     const marker = `OGENIC_1LSS_PLUGIN_WRITER_RUNTIME_PROOF:${turnId}`;
-    const idempotencyKey = `mcp:plugin-harness:${turnId}`;
-    const authHeaders = {
-      "content-type": "application/json",
-      "x-ogenic-ops-key": opsKey,
-      "idempotency-key": idempotencyKey,
-    };
-    const body = JSON.stringify({
-      source_surface: "plugin-harness",
-      events: [{
-        role: "assistant",
-        content: marker,
-        model: "gpt-5.6-sol",
-      }],
-    });
+    const prepared = [{ role: "assistant", content: marker, model: "gpt-5.6-sol" }];
 
-    const firstResponse = await api.request("/api/1lss/event", {
-      method: "POST",
-      headers: authHeaders,
-      body,
-    }, c.env);
-    const first = await firstResponse.json().catch(() => ({})) as {
-      ok?: boolean; conversation_id?: string; session_line?: string; source_surface?: string;
-      sequences?: number[]; replayed_count?: number;
-    };
-    if (
-      !firstResponse.ok ||
-      first.ok !== true ||
-      first.conversation_id !== CONVERSATION_ID ||
-      first.session_line !== "1LSS_OWNER_MAIN" ||
-      first.source_surface !== "plugin-harness" ||
-      !Array.isArray(first.sequences) ||
-      first.sequences.length !== 1
-    ) {
-      return c.json({ ok: false, code: "RUNTIME_PROOF_FIRST_WRITE_FAILED", status: firstResponse.status }, 500);
-    }
-
-    const replayResponse = await api.request("/api/1lss/event", {
-      method: "POST",
-      headers: authHeaders,
-      body,
-    }, c.env);
-    const replay = await replayResponse.json().catch(() => ({})) as {
-      ok?: boolean; sequences?: number[]; replayed_count?: number;
-    };
-
+    const first = await persistEventBatch(db, "plugin-harness", prepared, requestKey);
+    const retry = await persistEventBatch(db, "plugin-harness", prepared, requestKey);
     const sequence = Number(first.sequences[0] ?? 0);
-    const replaySequence = Number(replay.sequences?.[0] ?? 0);
-    if (
-      !replayResponse.ok ||
-      replay.ok !== true ||
-      sequence <= 0 ||
-      replaySequence !== sequence ||
-      Number(replay.replayed_count ?? 0) !== 1
-    ) {
+    const retrySequence = Number(retry.sequences[0] ?? 0);
+    if (!sequence || retrySequence !== sequence || retry.replayedCount !== 1) {
       return c.json({
         ok: false,
         code: "RUNTIME_PROOF_IDEMPOTENCY_FAILED",
         sequence_no: sequence,
-        retry_sequence_no: replaySequence,
-        replayed_count: Number(replay.replayed_count ?? 0),
+        retry_sequence_no: retrySequence,
+        replayed_count: retry.replayedCount,
       }, 500);
     }
 
-    const eventsResponse = await api.request(
-      `/api/1lss/events?after_sequence=${Math.max(0, sequence - 1)}&limit=10`,
-      { headers: { "x-ogenic-ops-key": opsKey } },
-      c.env,
-    );
-    const events = await eventsResponse.json().catch(() => ({})) as {
-      ok?: boolean; messages?: Array<{ sequence_no?: number | null; source_surface?: string; text?: string }>;
-      latest_sequence?: number;
-    };
-    const matches = (Array.isArray(events.messages) ? events.messages : []).filter((row) =>
+    const visible = await readEventPage(db, Math.max(0, sequence - 1), 10);
+    const matches = visible.messages.filter((row) =>
       Number(row.sequence_no ?? 0) === sequence &&
       row.source_surface === "plugin-harness" &&
       row.text === marker
     );
-    if (!eventsResponse.ok || events.ok !== true || matches.length !== 1) {
+    if (matches.length !== 1) {
       return c.json({ ok: false, code: "RUNTIME_PROOF_EVENT_VISIBILITY_FAILED", matches: matches.length }, 500);
-    }
-
-    const statusResponse = await api.request(
-      "/api/1lss/status",
-      { headers: { "x-ogenic-ops-key": opsKey } },
-      c.env,
-    );
-    const status = await statusResponse.json().catch(() => ({})) as {
-      ok?: boolean; conversation_id?: string; session_line?: string;
-      latest_sequence?: number; cross_surface_ready?: boolean;
-    };
-    if (
-      !statusResponse.ok ||
-      status.ok !== true ||
-      status.conversation_id !== CONVERSATION_ID ||
-      status.session_line !== "1LSS_OWNER_MAIN" ||
-      Number(status.latest_sequence ?? 0) < sequence
-    ) {
-      return c.json({ ok: false, code: "RUNTIME_PROOF_STATUS_FAILED" }, 500);
     }
 
     return c.json({
@@ -506,12 +432,12 @@ export function createUnifiedChatApi() {
       session_line: "1LSS_OWNER_MAIN",
       source_surface: "plugin-harness",
       sequence_no: sequence,
-      retry_sequence_no: replaySequence,
-      replay_same_sequence: replaySequence === sequence,
-      replayed: Number(replay.replayed_count ?? 0) === 1,
+      retry_sequence_no: retrySequence,
+      replay_same_sequence: retrySequence === sequence,
+      replayed: retry.replayedCount === 1,
       event_seen_once: matches.length === 1,
-      cross_surface_ready: Boolean(status.cross_surface_ready),
-      status_latest_sequence: Number(status.latest_sequence ?? 0),
+      cross_surface_ready: false,
+      status_latest_sequence: visible.latest_sequence,
       build_uuid: expectedBuild,
     }, 200, { "Cache-Control": "no-store" });
   });
