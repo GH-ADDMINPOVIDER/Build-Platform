@@ -187,6 +187,89 @@ function safeStore(item: Record<string, unknown>) {
   };
 }
 
+type AgentStreamEvent = {
+  type?: string;
+  session_id?: string;
+  usage?: { total_tokens?: number };
+  error?: { code?: string; message?: string } | string | null;
+  item?: {
+    type?: string;
+    phase?: string;
+    content?: Array<{ type?: string; text?: string }>;
+  };
+};
+
+async function readAgentSessionStream(response: Response) {
+  if (!response.body) {
+    return { sessionId: "", terminal: "failed", text: "", usageTokens: 0, error: "AGENT_STREAM_UNAVAILABLE" };
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let sessionId = "";
+  let terminal = "";
+  let finalText = "";
+  let fallbackText = "";
+  let usageTokens = 0;
+  let streamError = "";
+
+  const consume = (event: AgentStreamEvent) => {
+    if (typeof event.session_id === "string") sessionId = event.session_id;
+    usageTokens = Math.max(usageTokens, Number(event.usage?.total_tokens ?? 0));
+    if (event.type === "agent.session.turn.item.done" && event.item?.type === "message") {
+      const text = (event.item.content ?? [])
+        .filter((part) => part?.type === "output_text" && typeof part.text === "string")
+        .map((part) => part.text ?? "")
+        .join("\n")
+        .trim();
+      if (text) {
+        fallbackText = text;
+        if (event.item.phase === "final_answer") finalText = text;
+      }
+    }
+    if (event.type === "agent.session.turn.completed") terminal = "completed";
+    if (event.type === "agent.session.turn.cancelled") terminal = "cancelled";
+    if (event.type === "agent.session.turn.failed" || event.type === "agent.session.failed") {
+      terminal = "failed";
+      if (typeof event.error === "string") streamError = event.error;
+      else if (event.error && typeof event.error === "object") {
+        streamError = clean(event.error.message || event.error.code || "AGENT_SESSION_FAILED", 300);
+      }
+    }
+  };
+
+  const consumeBlock = (block: string) => {
+    for (const line of block.split("\n")) {
+      if (!line.startsWith("data:")) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === "[DONE]") continue;
+      try { consume(JSON.parse(payload) as AgentStreamEvent); } catch { /* ignore keepalive/non-json event lines */ }
+    }
+  };
+
+  while (true) {
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    buffer += decoder.decode(chunk.value, { stream: true });
+    let split = buffer.indexOf("\n\n");
+    while (split >= 0) {
+      consumeBlock(buffer.slice(0, split));
+      buffer = buffer.slice(split + 2);
+      split = buffer.indexOf("\n\n");
+    }
+  }
+  buffer += decoder.decode();
+  if (buffer.trim()) consumeBlock(buffer);
+
+  return {
+    sessionId,
+    terminal: terminal || "unknown",
+    text: finalText || fallbackText,
+    usageTokens,
+    error: streamError,
+  };
+}
+
 export function createConnectorAppApi() {
   const api = new Hono<Env>();
   const ownerOnly = async (c: Context<Env>, next: Next) => {
@@ -198,6 +281,7 @@ export function createConnectorAppApi() {
   api.use("/api/connectors", ownerOnly);
   api.use("/api/connectors/*", ownerOnly);
   api.use("/api/chat/functions", ownerOnly);
+  api.use("/api/chat/agent", ownerOnly);
   api.use("/api/openai/*", ownerOnly);
 
   api.get("/api/connectors", async (c) => {
@@ -266,6 +350,148 @@ export function createConnectorAppApi() {
     const store = await knowledgeStore(c.env, apiKey, true);
     if (store.state !== "LIVE") return c.json({ ok: false, code: store.state, message: store.error ?? "Vector store unavailable" }, 502);
     return c.json({ ok: true, store: { id: store.id, name: KNOWLEDGE_STORE_NAME, created: store.created, state: store.state } }, 200, { "Cache-Control": "no-store" });
+  });
+
+  api.post("/api/chat/agent", async (c) => {
+    const apiKey = clean(c.env.OPENAI_API_KEY, 4000);
+    if (!apiKey) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OPENAI_API_KEY" }, 503);
+
+    const body: {
+      prompt?: unknown;
+      model?: unknown;
+      reasoning_effort?: unknown;
+      allow_paid_fallback?: unknown;
+      source_surface?: unknown;
+    } = await c.req.json<{
+      prompt?: unknown;
+      model?: unknown;
+      reasoning_effort?: unknown;
+      allow_paid_fallback?: unknown;
+      source_surface?: unknown;
+    }>().catch(() => ({}));
+
+    const prompt = clean(body.prompt, 7000);
+    if (!prompt) return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt is required" }, 400);
+
+    const requestedModel = clean(body.model, 80);
+    const supportedModels = new Set(["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-6-astra"]);
+    const model = supportedModels.has(requestedModel) ? requestedModel : "gpt-5.6-sol";
+    const requestedEffort = clean(body.reasoning_effort, 20);
+    const effort = ["low", "medium", "high", "xhigh", "max"].includes(requestedEffort) ? requestedEffort : "medium";
+    const allowPaidFallback = body.allow_paid_fallback === true;
+    const sourceSurface = clean(body.source_surface, 60) || "ogenic-ui";
+
+    const incentive = await readIncentiveSnapshot(c.env.DB);
+    const poolId = "standard";
+    const pool = incentive.pools.find((row) => row.id === poolId);
+    const guarded = pool?.state === "CRITICAL" || pool?.state === "EXHAUSTED";
+    if (guarded && !allowPaidFallback) {
+      return c.json({
+        ok: false,
+        code: "INCENTIVE_CAP_GUARD",
+        message: "standard pool is guarded; paid fallback is disabled",
+        incentive_pool: poolId,
+        routing_mode: incentive.routing_mode,
+        paid_fallback: false,
+      }, 429);
+    }
+
+    const d1Context = await readCanonicalD1Context(c.env.DB, {
+      git_sha: c.env.OGENIC_GIT_SHA,
+      git_branch: c.env.OGENIC_GITHUB_BRANCH,
+      build_uuid: c.env.OGENIC_BUILD_UUID,
+      runtime: c.env.OGENIC_RUNTIME,
+      phase: c.env.OGENIC_PHASE,
+      version: c.env.CF_VERSION_METADATA ?? null,
+    });
+
+    const agentResponse = await fetch("https://api.openai.com/v1/agents/sessions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "OpenAI-Beta": "agents=v1",
+        "Content-Type": "application/json",
+        "Idempotency-Key": c.req.header("idempotency-key") ?? `agent_${crypto.randomUUID()}`,
+      },
+      body: JSON.stringify({
+        agent: {
+          name: "OGENIC Agent AI",
+          model,
+          instructions:
+            "You are OGENIC Agent AI on staging. Preserve SAME MIND continuity using the supplied canonical D1 context. " +
+            "Never claim an external side effect occurred unless verified. Production-affecting, destructive, credential, billing, " +
+            "or permission changes require separate owner approval. Reply in the user's language.\n\n" +
+            "CANONICAL D1 + LIVE RUNTIME EVIDENCE:\n" + d1Context.text,
+          reasoning: { effort, summary: "concise" },
+          multi_agent: { enabled: false, max_concurrent_subagents: 1 },
+          service_tier: "auto",
+        },
+        environment: { type: "none" },
+        input: prompt,
+        metadata: {
+          project: "ogenic-phase-vi",
+          environment: "staging",
+          branch: c.env.OGENIC_GITHUB_BRANCH || "phase-vi-provider-incentive-metering",
+          conversation: "owner-main",
+          session_line: "1LSS_OWNER_MAIN",
+          source_surface: sourceSurface,
+        },
+        stream: true,
+      }),
+    });
+
+    if (!agentResponse.ok) {
+      const raw = await agentResponse.text().catch(() => "");
+      return c.json({
+        ok: false,
+        code: `OPENAI_AGENT_HTTP_${agentResponse.status}`,
+        message: clean(raw || "OpenAI Agent Session request failed", 300),
+      }, 502);
+    }
+
+    const agent = await readAgentSessionStream(agentResponse);
+    if (agent.terminal !== "completed") {
+      return c.json({
+        ok: false,
+        code: `AGENT_${agent.terminal.toUpperCase()}`,
+        message: agent.error || "Agent session did not complete",
+        agent_session_id: agent.sessionId || null,
+      }, 502);
+    }
+    if (!agent.text) {
+      return c.json({
+        ok: false,
+        code: "AGENT_EMPTY_OUTPUT",
+        agent_session_id: agent.sessionId || null,
+      }, 502);
+    }
+
+    await recordChatUsage(c.env.DB, {
+      conversationId: "owner-main",
+      sourceSurface,
+      model,
+      poolId,
+      usageTokens: agent.usageTokens,
+      route: allowPaidFallback && guarded ? "paid_fallback" : "agent_session",
+    });
+
+    return c.json({
+      ok: true,
+      text: agent.text,
+      model,
+      agent_session_id: agent.sessionId || null,
+      agent_terminal: agent.terminal,
+      memory: "D1_CANONICAL",
+      conversation_id: "owner-main",
+      session_line: "1LSS_OWNER_MAIN",
+      d1_canonical: d1Context.state,
+      incentive_pool: poolId,
+      routing_mode: incentive.routing_mode,
+      paid_fallback: allowPaidFallback,
+      usage_tokens: agent.usageTokens,
+      runtime: "OPENAI_AGENT_SESSION",
+      policy: "SIDE_EFFECTS_REQUIRE_SEPARATE_OWNER_APPROVAL",
+    }, 200, { "Cache-Control": "no-store" });
   });
 
   api.post("/api/chat/functions", async (c) => {
