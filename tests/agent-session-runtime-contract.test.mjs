@@ -14,12 +14,19 @@ test("Agent AI uses real OpenAI Agent Sessions and preserves canonical 1LSS stam
   assert.match(connector, /"OpenAI-Beta": "agents=v1"/);
   assert.match(connector, /environment:\s*\{ type: "none" \}/);
   assert.match(connector, /agent_session_id/);
+  assert.match(connector, /agent\.session\.turn\.output_text\.done/);
+  assert.match(connector, /agent\.session\.turn\.output_text\.delta/);
+  assert.match(connector, /event\.turn\?\.subagent_id == null/);
+  assert.match(connector, /agent\.session\.environment\.failed/);
   assert.match(connector, /runtime:\s*"OPENAI_AGENT_SESSION"/);
   assert.match(connector, /conversation_id:\s*"owner-main"/);
   assert.match(connector, /session_line:\s*"1LSS_OWNER_MAIN"/);
 
   assert.match(entry, /pathname === "\/api\/chat\/functions" \|\| pathname === "\/api\/chat\/agent"/);
   assert.match(entry, /stampFunctionTurn\(stampRequest, response, env\)/);
+  assert.match(entry, /result\.runtime === "OPENAI_AGENT_SESSION"/);
+  assert.match(entry, /clip\(result\.agent_session_id, 160\)/);
+  assert.match(entry, /run_id, created_at/);
 
   assert.match(ui, /async function runAgentAI/);
   assert.match(ui, /fetch\("\/api\/chat\/agent"/);
