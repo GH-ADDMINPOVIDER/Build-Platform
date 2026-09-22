@@ -1,6 +1,4 @@
-:root {
-  color-scheme: dark;
-}
+:root { color-scheme: dark; }
 
 .olShell {
   min-height: 100dvh;
@@ -9,170 +7,55 @@
   overflow: hidden;
   padding: 24px clamp(20px, 5vw, 72px) 28px;
   background:
-    radial-gradient(circle at 50% 18%, rgba(66, 255, 142, .16), transparent 34%),
-    linear-gradient(180deg, #07110b 0%, #030605 52%, #050806 100%);
-  color: #f4fbf6;
+    linear-gradient(180deg, rgba(1,8,4,.36) 0%, rgba(1,8,4,.62) 47%, rgba(1,7,4,.93) 100%),
+    url("/assets/wave-bg-desktop.webp") center 38% / cover fixed no-repeat,
+    #020704;
+  color: #f0fff4;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
+.olGlow { position:absolute; left:50%; top:18%; width:min(66vw,780px); height:min(66vw,780px); transform:translate(-50%,-10%); border-radius:50%; background:rgba(43,255,116,.09); filter:blur(100px); pointer-events:none; }
+.olTop,.olHero,.olCapabilityWrap,.olFooter { position:relative; z-index:1; }
+.olTop { max-width:1180px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.olBrand { color:inherit; text-decoration:none; display:inline-flex; align-items:center; gap:12px; }
+.olBrand img { width:48px; height:48px; object-fit:cover; border-radius:15px; box-shadow:0 0 34px rgba(75,255,142,.25); }
+.olBrand span { display:grid; gap:2px; }
+.olBrand b { font-size:16px; letter-spacing:.22em; }
+.olBrand small { font-size:9px; color:#77a886; letter-spacing:.13em; }
+.olPass { border:1px solid rgba(88,255,145,.28); background:rgba(11,58,28,.45); color:#83ffad; padding:8px 11px; border-radius:999px; font-size:10px; font-weight:800; letter-spacing:.11em; backdrop-filter:blur(16px); }
+.olHero { max-width:900px; margin:8vh auto 9vh; text-align:center; }
+.olStone { width:clamp(122px,20vw,190px); aspect-ratio:1; object-fit:cover; border-radius:32%; filter:drop-shadow(0 22px 48px rgba(52,255,126,.25)); margin-bottom:20px; }
+.olEyebrow { margin:0 0 15px; color:#7bffab; font-size:10px; font-weight:850; letter-spacing:.24em; }
+.olHero h1 { margin:0; font-size:clamp(54px,8vw,96px); line-height:.92; letter-spacing:-.06em; font-weight:760; text-transform:uppercase; }
+.olLead { max-width:720px; margin:24px auto 0; color:#b2c9b9; font-size:clamp(15px,2.1vw,19px); line-height:1.65; }
+.olLead b { color:#effff4; }
+.olActions { margin-top:34px; display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
+.olActions a { min-height:52px; padding:0 18px; border-radius:16px; display:inline-flex; align-items:center; gap:18px; justify-content:space-between; text-decoration:none; font-weight:760; transition:transform .18s ease,border-color .18s ease,background .18s ease; }
+.olActions a:hover { transform:translateY(-2px); }
+.olPrimary { background:#66f592; color:#031008; min-width:238px; box-shadow:0 12px 46px rgba(53,255,119,.14); }
+.olSecondary { color:#e2f2e7; border:1px solid rgba(104,255,153,.18); background:rgba(4,15,8,.66); backdrop-filter:blur(16px); }
+.olCapabilityWrap { max-width:1080px; margin:0 auto 7vh; padding:22px; border:1px solid rgba(92,255,146,.15); border-radius:28px; background:rgba(2,12,6,.72); backdrop-filter:blur(24px); }
+.olSectionHead { display:flex; justify-content:space-between; align-items:end; gap:16px; margin-bottom:16px; }
+.olSectionHead small { color:#64db8b; font-size:9px; font-weight:850; letter-spacing:.16em; }
+.olSectionHead h2 { margin:5px 0 0; font-size:clamp(25px,4vw,38px); letter-spacing:-.035em; }
+.olSectionHead>span { color:#62806b; font-size:9px; letter-spacing:.11em; }
+.olCapabilityGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.olCapabilityGrid article { min-height:132px; padding:17px; border:1px solid rgba(108,255,155,.12); border-radius:19px; background:linear-gradient(145deg,rgba(13,37,20,.55),rgba(3,11,6,.72)); display:grid; align-content:start; gap:9px; }
+.olCapabilityGrid article>span { color:#67ff9b; font:800 9px/1 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.12em; }
+.olCapabilityGrid b { font-size:14px; }
+.olCapabilityGrid small { color:#849d8b; line-height:1.55; font-size:11px; }
+.olFooter { max-width:1180px; margin:0 auto; padding-top:18px; border-top:1px solid rgba(88,255,145,.10); color:#557060; font-size:9px; text-align:center; letter-spacing:.14em; }
 
-.olGlow {
-  position: absolute;
-  inset: auto 50% 18% auto;
-  width: 42vw;
-  height: 42vw;
-  max-width: 560px;
-  max-height: 560px;
-  transform: translate(50%, 0);
-  border-radius: 50%;
-  background: rgba(52, 255, 126, .08);
-  filter: blur(90px);
-  pointer-events: none;
-}
-
-.olTop, .olHero, .olStatus, .olFooter { position: relative; z-index: 1; }
-
-.olTop {
-  max-width: 1180px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.olBrand {
-  color: inherit;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.olBrand img {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  box-shadow: 0 0 34px rgba(75, 255, 142, .2);
-}
-
-.olBrand span { display: grid; gap: 2px; }
-.olBrand b { font-size: 14px; letter-spacing: .16em; }
-.olBrand small { font-size: 10px; color: #81a68c; letter-spacing: .12em; }
-
-.olPass {
-  border: 1px solid rgba(88, 255, 145, .28);
-  background: rgba(35, 117, 62, .18);
-  color: #83ffad;
-  padding: 8px 11px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .11em;
-}
-
-.olHero {
-  max-width: 900px;
-  margin: 9vh auto 8vh;
-  text-align: center;
-}
-
-.olStone {
-  width: clamp(116px, 18vw, 178px);
-  aspect-ratio: 1;
-  border-radius: 34%;
-  filter: drop-shadow(0 22px 48px rgba(52, 255, 126, .18));
-  margin-bottom: 22px;
-}
-
-.olEyebrow {
-  margin: 0 0 16px;
-  color: #6fd491;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .19em;
-}
-
-.olHero h1 {
-  margin: 0;
-  font-size: clamp(44px, 7vw, 86px);
-  line-height: .96;
-  letter-spacing: -.055em;
-  font-weight: 760;
-}
-
-.olLead {
-  max-width: 720px;
-  margin: 24px auto 0;
-  color: #a9b9ad;
-  font-size: clamp(15px, 2.1vw, 19px);
-  line-height: 1.65;
-}
-
-.olActions {
-  margin-top: 34px;
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.olActions a {
-  min-height: 52px;
-  padding: 0 18px;
-  border-radius: 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 18px;
-  justify-content: space-between;
-  text-decoration: none;
-  font-weight: 760;
-  transition: transform .18s ease, border-color .18s ease, background .18s ease;
-}
-
-.olActions a:hover { transform: translateY(-2px); }
-.olPrimary { background: #54f58a; color: #041108; min-width: 238px; }
-.olSecondary { color: #dfe9e2; border: 1px solid #1d3023; background: rgba(10, 19, 13, .72); }
-
-.olStatus {
-  max-width: 1060px;
-  margin: 0 auto 7vh;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.olStatus article {
-  min-height: 116px;
-  border: 1px solid #13271a;
-  border-radius: 20px;
-  padding: 18px;
-  background: rgba(5, 12, 8, .7);
-  display: grid;
-  gap: 8px;
-}
-
-.olStatus article > span { color: #4eff88; font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
-.olStatus b { font-size: 14px; letter-spacing: .08em; }
-.olStatus small { color: #819487; line-height: 1.5; }
-
-.olFooter {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding-top: 18px;
-  border-top: 1px solid #122219;
-  color: #536d5b;
-  font-size: 10px;
-  text-align: center;
-  letter-spacing: .12em;
-}
-
-@media (max-width: 760px) {
-  .olShell { padding: 18px 16px 24px; }
-  .olPass { display: none; }
-  .olHero { margin: 8vh auto 7vh; }
-  .olHero h1 { font-size: clamp(46px, 14vw, 68px); }
-  .olActions { display: grid; }
-  .olActions a { width: 100%; box-sizing: border-box; }
-  .olStatus { grid-template-columns: 1fr; }
-  .olStatus article { min-height: 94px; }
+@media (max-width:760px) {
+  .olShell { padding:18px 16px 24px; background:linear-gradient(180deg,rgba(1,8,4,.28) 0%,rgba(1,8,4,.58) 44%,rgba(1,7,4,.96) 100%),url("/assets/wave-bg-mobile.webp") center top / cover fixed no-repeat,#020704; }
+  .olPass { display:none; }
+  .olBrand img { width:42px; height:42px; }
+  .olHero { margin:7vh auto 8vh; }
+  .olHero h1 { font-size:clamp(52px,15vw,74px); }
+  .olLead { font-size:14px; }
+  .olActions { display:grid; }
+  .olActions a { width:100%; box-sizing:border-box; }
+  .olCapabilityWrap { padding:15px; border-radius:22px; }
+  .olSectionHead>span { display:none; }
+  .olCapabilityGrid { grid-template-columns:1fr 1fr; }
+  .olCapabilityGrid article { min-height:132px; }
 }

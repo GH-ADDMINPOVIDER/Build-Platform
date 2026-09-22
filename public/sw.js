@@ -1,5 +1,5 @@
-const CACHE = "ogenic-same-mind-shell-v9";
-const SHELL = ["/", "/chat", "/app", "/overview", "/manifest.webmanifest", "/ogenic-harness-mark.svg", "/ogenic-icon-180.png", "/ogenic-icon-192.png", "/ogenic-icon-512.png"];
+const CACHE = "wave-same-mind-shell-v10";
+const SHELL = ["/", "/chat", "/app", "/overview", "/manifest.webmanifest", "/assets/wave-logo.webp", "/assets/wave-bg-desktop.webp", "/assets/wave-bg-mobile.webp"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

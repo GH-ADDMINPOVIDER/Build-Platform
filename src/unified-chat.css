@@ -1,28 +1,16 @@
 :root {
-  --uc-bg: #f6f7fb;
-  --uc-panel: rgba(255,255,255,.88);
-  --uc-card: #ffffff;
-  --uc-text: #111318;
-  --uc-sub: #6b7280;
-  --uc-line: rgba(17,19,24,.09);
-  --uc-accent: #2f6df6;
-  --uc-accent-soft: rgba(47,109,246,.10);
-  --uc-green: #18a66a;
-  --uc-warn: #d97706;
-  --uc-shadow: 0 18px 60px rgba(18,24,40,.12);
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --uc-bg: #0d0f13;
-    --uc-panel: rgba(18,20,26,.88);
-    --uc-card: #151820;
-    --uc-text: #f6f7fb;
-    --uc-sub: #9ca3af;
-    --uc-line: rgba(255,255,255,.10);
-    --uc-accent: #78a2ff;
-    --uc-accent-soft: rgba(120,162,255,.13);
-    --uc-shadow: 0 18px 60px rgba(0,0,0,.38);
-  }
+  color-scheme: dark;
+  --uc-bg: #020704;
+  --uc-panel: rgba(4,15,8,.88);
+  --uc-card: #07130b;
+  --uc-text: #effff4;
+  --uc-sub: #89a491;
+  --uc-line: rgba(103,255,153,.14);
+  --uc-accent: #67ff9b;
+  --uc-accent-soft: rgba(78,255,137,.12);
+  --uc-green: #67ff9b;
+  --uc-warn: #ffb84d;
+  --uc-shadow: 0 18px 60px rgba(0,0,0,.48);
 }
 * { box-sizing: border-box; }
 body { margin: 0; }
@@ -33,13 +21,14 @@ button { color: inherit; }
   min-height: 100dvh;
   color: var(--uc-text);
   background:
-    radial-gradient(circle at 50% -12%, rgba(74,129,255,.16), transparent 36%),
+    linear-gradient(180deg, rgba(1,8,4,.70), rgba(1,8,4,.92)),
+    url("/assets/wave-bg-desktop.webp") center / cover fixed no-repeat,
     var(--uc-bg);
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
 }
 .ucSplash, .ucAuth { display: grid; place-items: center; padding: 24px; }
 .ucSplash { gap: 10px; align-content: center; }
-.ucSplash img, .ucAuth img { width: 52px; height: 52px; border-radius: 15px; box-shadow: 0 12px 34px rgba(47,109,246,.20); }
+.ucSplash img, .ucAuth img { width: 58px; height: 58px; object-fit: cover; border-radius: 17px; box-shadow: 0 12px 40px rgba(65,255,130,.22); }
 .ucSplash b { font-size: 20px; letter-spacing: .02em; }
 .ucSplash span { color: var(--uc-sub); font-size: 13px; }
 .ucAuth section { width: min(420px, 100%); padding: 34px; border: 1px solid var(--uc-line); background: var(--uc-panel); backdrop-filter: blur(22px); border-radius: 28px; box-shadow: var(--uc-shadow); }
@@ -162,7 +151,7 @@ button { color: inherit; }
 .ucQuotaWarn b { white-space: nowrap; }
 .ucQuotaWarn span { flex: 1; }
 .ucQuotaWarn button { border: 0; background: #8b4a00; color: white; border-radius: 9px; padding: 6px 8px; cursor: pointer; }
-.ucExperience { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; padding: 4px; margin-bottom: 6px !important; border: 1px solid var(--uc-line); border-radius: 16px; background: color-mix(in srgb, var(--uc-card) 72%, transparent); }
+.ucExperience { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; padding: 4px; margin-bottom: 6px !important; border: 1px solid var(--uc-line); border-radius: 16px; background: color-mix(in srgb, var(--uc-card) 72%, transparent); }
 .ucExperience button { min-width: 0; display: grid; gap: 2px; border: 0; border-radius: 12px; padding: 8px 9px; background: transparent; color: var(--uc-sub); text-align: left; cursor: pointer; }
 .ucExperience button.active { background: var(--uc-card); color: var(--uc-text); box-shadow: 0 3px 12px rgba(18,24,40,.08); }
 .ucExperience b { font-size: 11px; white-space: nowrap; }
@@ -185,6 +174,7 @@ button { color: inherit; }
 .ucFooterLine button { border: 0; background: transparent; color: var(--uc-sub); font-size: 9px; cursor: pointer; }
 
 @media (max-width: 700px) {
+  .ucShell, .ucSplash, .ucAuth { background: linear-gradient(180deg, rgba(1,8,4,.66), rgba(1,8,4,.94)), url("/assets/wave-bg-mobile.webp") center top / cover fixed no-repeat, var(--uc-bg); }
   .ucTopbar { grid-template-columns: 1fr auto auto; }
   .ucLineState { position: absolute; left: 50%; transform: translateX(-50%); top: max(13px, env(safe-area-inset-top)); padding: 6px 8px; }
   .ucLineState b { font-size: 9px; }

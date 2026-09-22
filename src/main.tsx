@@ -103,12 +103,14 @@ const appRoute = explicitAppRoute || (!webChatRoute && !controlRoute && (params.
 const unifiedChatSurface = !controlRoute && !landingRoute && (nativeApp || appRoute || webChatRoute);
 const sourceSurface = webChatRoute ? "ogenic-web" as const : "ogenic-app" as const;
 
-document.title = landingRoute || controlRoute
-  ? "OGENIC CORE — HARNESS"
-  : surfaceTitle(sourceSurface);
+document.title = landingRoute
+  ? "WAVE — SAME MIND"
+  : controlRoute
+    ? "WAVE — OGENIC HARNESS"
+    : surfaceTitle(sourceSurface);
 
 function surfaceTitle(surface: "ogenic-web" | "ogenic-app") {
-  return surface === "ogenic-web" ? "OGENIC — SAME MIND" : "OGENIC — SAME MIND · APP";
+  return surface === "ogenic-web" ? "WAVE — SAME MIND" : "WAVE — SAME MIND · APP";
 }
 
 createRoot(document.getElementById("root")!).render(
