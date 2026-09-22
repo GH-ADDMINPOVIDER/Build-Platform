@@ -60,11 +60,19 @@ let buffer = '';
 let sessionId = null;
 let terminal = null;
 let finalTexts = [];
+let streamedText = '';
 let commandFailures = [];
 
 function consume(event) {
   if (!event || typeof event !== 'object') return;
   if (typeof event.session_id === 'string') sessionId = event.session_id;
+  if (event.type === 'agent.session.turn.output_text.delta' && typeof event.delta === 'string') {
+    streamedText += event.delta;
+  }
+  if (event.type === 'agent.session.turn.output_text.done' && typeof event.text === 'string') {
+    const text = event.text.trim();
+    if (text) finalTexts.push(text);
+  }
 
   if (event.type === 'agent.session.turn.item.done' && event.item) {
     const item = event.item;
@@ -86,13 +94,14 @@ function consume(event) {
     }
   }
 
-  if (event.type === 'agent.session.turn.completed') terminal = 'completed';
-  if (event.type === 'agent.session.turn.failed' || event.type === 'agent.session.failed') terminal = 'failed';
-  if (event.type === 'agent.session.turn.cancelled') terminal = 'cancelled';
+  const rootTurn = event.turn?.subagent_id == null;
+  if (event.type === 'agent.session.turn.completed' && rootTurn) terminal = 'completed';
+  if ((event.type === 'agent.session.turn.failed' && rootTurn) || event.type === 'agent.session.failed' || event.type === 'agent.session.environment.failed' || event.type === 'error') terminal = 'failed';
+  if (event.type === 'agent.session.turn.cancelled' && rootTurn) terminal = 'cancelled';
 }
 
 for await (const chunk of response.body) {
-  buffer += decoder.decode(chunk, { stream: true });
+  buffer += decoder.decode(chunk, { stream: true }).replace(/\r\n/g, '\n');
   let split;
   while ((split = buffer.indexOf('\n\n')) >= 0) {
     const block = buffer.slice(0, split);
@@ -106,8 +115,18 @@ for await (const chunk of response.body) {
   }
 }
 
+buffer += decoder.decode().replace(/\r\n/g, '\n');
+if (buffer.trim()) {
+  for (const line of buffer.split('\n')) {
+    if (!line.startsWith('data:')) continue;
+    const payload = line.slice(5).trim();
+    if (!payload || payload === '[DONE]') continue;
+    try { consume(JSON.parse(payload)); } catch { /* ignore trailing non-JSON event lines */ }
+  }
+}
+
 if (sessionId) console.log(`SESSION_ID=${sessionId}`);
-if (finalTexts.length) console.log(`FINAL=${finalTexts.at(-1)}`);
+if (finalTexts.length || streamedText.trim()) console.log(`FINAL=${finalTexts.at(-1) || streamedText.trim()}`);
 if (terminal !== 'completed') {
   console.error(`AGENT_TERMINAL=${terminal || 'unknown'}`);
   process.exit(1);
