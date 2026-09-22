@@ -438,7 +438,6 @@ export function createConnectorAppApi() {
       },
       body: JSON.stringify({
         agent: {
-          name: "OGENIC Agent AI",
           model,
           instructions:
             "You are OGENIC Agent AI on staging. Preserve SAME MIND continuity using the supplied canonical D1 context. " +
