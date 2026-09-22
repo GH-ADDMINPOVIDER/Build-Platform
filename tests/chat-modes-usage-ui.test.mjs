@@ -13,13 +13,17 @@ test("UnifiedChat exposes honest ChatGPT, Chat API and Agent AI modes", () => {
   assert.match(ui, /const \[experienceMode, setExperienceMode\] = useState<ExperienceMode>\("chat-api"\)/);
 });
 
-test("Agent AI executes through the existing functions path and returns to owner-main 1LSS", () => {
+test("Agent AI executes through OpenAI Agent Sessions and returns to owner-main 1LSS", () => {
   const ui = read("src/UnifiedChat.tsx");
+  const connector = read("worker/connector-app-api.ts");
   const entry = read("worker/entry-connectors.ts");
   assert.match(ui, /experienceMode === "agent-ai"/);
-  assert.match(ui, /runHostedTools\(prompt, "auto"\)/);
-  assert.match(ui, /owner-main · 1LSS/);
-  assert.match(ui, /fetch\("\/api\/chat\/functions"/);
+  assert.match(ui, /runAgentAI\(prompt\)/);
+  assert.match(ui, /OpenAI Agent Session · 1LSS/);
+  assert.match(ui, /fetch\("\/api\/chat\/agent"/);
+  assert.doesNotMatch(ui, /experienceMode === "agent-ai"\) await runHostedTools\(prompt, "auto"\)/);
+  assert.match(connector, /conversation_id:\s*"owner-main"/);
+  assert.match(connector, /session_line:\s*"1LSS_OWNER_MAIN"/);
   assert.match(entry, /await stampFunctionTurn/);
   assert.match(entry, /const ONE_LINE_ID = "owner-main"/);
 });
