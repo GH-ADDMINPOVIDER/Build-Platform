@@ -32,6 +32,8 @@ type FunctionTurnResponse = {
   ok?: boolean;
   text?: unknown;
   model?: unknown;
+  runtime?: unknown;
+  agent_session_id?: unknown;
   function_calls?: Array<{ name?: unknown; state?: unknown; call_id?: unknown }>;
 };
 
@@ -65,6 +67,7 @@ async function appendOneLine(
   sourceSurface: string,
   idempotencyKey: string,
   model: string | null = null,
+  runId: string | null = null,
 ) {
   if (!env.DB || !content.trim()) return null;
   await ensureOneLine(env);
@@ -81,13 +84,14 @@ async function appendOneLine(
     `INSERT OR IGNORE INTO chat_messages(
        id, conversation_id, role, content, model, run_id, created_at,
        sequence_no, source_surface, idempotency_key
-     ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
     `1lss_${crypto.randomUUID()}`,
     ONE_LINE_ID,
     role,
     clip(content, 7000),
     model,
+    runId,
     Date.now(),
     sequence,
     clip(sourceSurface, 60) || "plugin-harness",
@@ -107,16 +111,19 @@ async function stampFunctionTurn(request: Request, response: Response, env: Bind
   const requestedSurface = clip(body.source_surface || request.headers.get("x-ogenic-surface"), 60).toLowerCase();
   const sourceSurface = requestedSurface || "plugin-harness";
   const requestKey = clip(request.headers.get("idempotency-key"), 180) || `plugin_${crypto.randomUUID()}`;
+  const runId = result.runtime === "OPENAI_AGENT_SESSION"
+    ? clip(result.agent_session_id, 160) || null
+    : null;
 
-  if (prompt) await appendOneLine(env, "user", prompt, sourceSurface, `${requestKey}:user`);
+  if (prompt) await appendOneLine(env, "user", prompt, sourceSurface, `${requestKey}:user`, null, runId);
   for (const call of result.function_calls ?? []) {
     const name = clip(call.name, 100) || "unknown";
     const state = clip(call.state, 100) || "RESULT";
     const callId = clip(call.call_id, 120) || crypto.randomUUID();
-    await appendOneLine(env, "system", `[TOOL ${name}] ${state}`, sourceSurface, `${requestKey}:tool:${callId}`);
+    await appendOneLine(env, "system", `[TOOL ${name}] ${state}`, sourceSurface, `${requestKey}:tool:${callId}`, null, runId);
   }
   if (text) {
-    await appendOneLine(env, "assistant", text, sourceSurface, `${requestKey}:assistant`, clip(result.model, 100) || null);
+    await appendOneLine(env, "assistant", text, sourceSurface, `${requestKey}:assistant`, clip(result.model, 100) || null, runId);
   }
 }
 
