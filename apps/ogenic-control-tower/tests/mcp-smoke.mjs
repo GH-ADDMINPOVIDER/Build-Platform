@@ -29,7 +29,7 @@ try {
     const aliasTransport = new StreamableHTTPClientTransport(new URL(`${base}/api/mcp`));
     await aliasClient.connect(aliasTransport);
     const aliasTools = await aliasClient.listTools();
-    assert.equal(aliasTools.tools.length, 4);
+    assert.equal(aliasTools.tools.length, 7);
   } finally {
     await aliasClient.close().catch(() => {});
   }
@@ -39,10 +39,15 @@ try {
 
   const listed = await client.listTools();
   const names = listed.tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ["get_runtime_status", "list_capabilities", "render_control_tower", "route_request"]);
+  assert.deepEqual(names, ["get_1lss_status", "get_runtime_status", "list_capabilities", "read_1lss_context", "render_control_tower", "route_request", "sync_1lss_turn"]);
   for (const tool of listed.tools) {
-    assert.equal(tool.annotations?.readOnlyHint, true, `${tool.name} must be read-only`);
     assert.equal(tool.annotations?.destructiveHint, false, `${tool.name} must not be destructive`);
+    if (tool.name === "sync_1lss_turn") {
+      assert.equal(tool.annotations?.readOnlyHint, false, "sync_1lss_turn is the only write tool");
+      assert.equal(tool.annotations?.idempotentHint, true, "sync_1lss_turn must be idempotent");
+    } else {
+      assert.equal(tool.annotations?.readOnlyHint, true, `${tool.name} must be read-only`);
+    }
   }
 
   const caps = await client.callTool({ name: "list_capabilities", arguments: {} });

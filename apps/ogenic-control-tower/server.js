@@ -130,6 +130,96 @@ export async function append1LssEvent(
   };
 }
 
+function oneLssBridgeConfig({ baseUrl, opsKey } = {}) {
+  const normalizedBaseUrl = cleanWriterValue(
+    baseUrl || process.env.OGENIC_1LSS_BASE_URL || process.env.OGENIC_PHASE_VI_STAGING_URL || process.env.OGENIC_1LSS_URL,
+    2048,
+  ).replace(/\/+$/, "");
+  const normalizedOpsKey = cleanWriterValue(opsKey || process.env.OGENIC_OPS_KEY, 4096);
+  if (!normalizedBaseUrl) throw new Error("1LSS_BRIDGE_URL_NOT_CONFIGURED");
+  if (!normalizedOpsKey) throw new Error("1LSS_BRIDGE_AUTH_NOT_CONFIGURED");
+  return { normalizedBaseUrl, normalizedOpsKey };
+}
+
+async function fetch1LssRead(path, { fetchImpl = fetch, baseUrl, opsKey } = {}) {
+  const { normalizedBaseUrl, normalizedOpsKey } = oneLssBridgeConfig({ baseUrl, opsKey });
+  const response = await fetchImpl(`${normalizedBaseUrl}${path}`, {
+    method: "GET",
+    headers: { "x-ogenic-ops-key": normalizedOpsKey },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload?.ok !== true) {
+    throw new Error(`1LSS_BRIDGE_HTTP_${response.status}_${safeBridgeCode(payload?.code)}`);
+  }
+  if (
+    payload.conversation_id !== ONE_LSS_CONVERSATION_ID ||
+    payload.session_line !== ONE_LSS_SESSION_LINE
+  ) {
+    throw new Error("1LSS_BRIDGE_CONTRACT_MISMATCH");
+  }
+  return payload;
+}
+
+export async function read1LssContext(
+  { afterSequence = 0, limit = 40 } = {},
+  options = {},
+) {
+  const after = Math.max(0, Math.floor(Number(afterSequence) || 0));
+  const pageLimit = Math.min(100, Math.max(1, Math.floor(Number(limit) || 40)));
+  const payload = await fetch1LssRead(
+    `/api/1lss/events?after_sequence=${after}&limit=${pageLimit}`,
+    options,
+  );
+  const messages = Array.isArray(payload.messages)
+    ? payload.messages.map((row) => ({
+      id: cleanWriterValue(row?.id, 180),
+      role: cleanWriterValue(row?.role, 20),
+      text: cleanWriterValue(row?.text, 7000),
+      model: row?.model ? cleanWriterValue(row.model, 100) : null,
+      created_at: Number(row?.created_at ?? 0),
+      sequence_no: Number(row?.sequence_no ?? 0),
+      source_surface: cleanWriterValue(row?.source_surface, 60),
+    }))
+    : [];
+  return {
+    ok: true,
+    conversation_id: ONE_LSS_CONVERSATION_ID,
+    session_line: ONE_LSS_SESSION_LINE,
+    after_sequence: Number(payload.after_sequence ?? after),
+    cursor: Number(payload.cursor ?? after),
+    latest_sequence: Number(payload.latest_sequence ?? 0),
+    messages,
+  };
+}
+
+export async function get1LssStatus(options = {}) {
+  const payload = await fetch1LssRead("/api/1lss/status", options);
+  const surfaces = Array.isArray(payload.surfaces)
+    ? payload.surfaces.map((row) => ({
+      source_surface: cleanWriterValue(row?.source_surface, 60),
+      message_count: Number(row?.message_count ?? 0),
+      last_message_sequence: Number(row?.last_message_sequence ?? 0),
+      door_last_sequence: Number(row?.door_last_sequence ?? 0),
+      door_last_seen_at: Number(row?.door_last_seen_at ?? 0),
+      door_seen: Boolean(row?.door_seen),
+      fresh: Boolean(row?.fresh),
+      persisted: Boolean(row?.persisted),
+      caught_up_to_pair_latest: Boolean(row?.caught_up_to_pair_latest),
+    }))
+    : [];
+  return {
+    ok: true,
+    conversation_id: ONE_LSS_CONVERSATION_ID,
+    session_line: ONE_LSS_SESSION_LINE,
+    latest_sequence: Number(payload.latest_sequence ?? 0),
+    pair_latest_sequence: Number(payload.pair_latest_sequence ?? 0),
+    checked_at: Number(payload.checked_at ?? 0),
+    freshness_ms: Number(payload.freshness_ms ?? 0),
+    cross_surface_ready: Boolean(payload.cross_surface_ready),
+    surfaces,
+  };
+}
+
 const APPROVAL_STATES = [
   "auto",
   "auto_with_review",
@@ -411,6 +501,50 @@ const oneLssSyncSchema = z.object({
   error: z.string().optional(),
 });
 
+const oneLssMessageSchema = z.object({
+  id: z.string(),
+  role: z.string(),
+  text: z.string(),
+  model: z.string().nullable(),
+  created_at: z.number(),
+  sequence_no: z.number(),
+  source_surface: z.string(),
+});
+
+const oneLssContextSchema = z.object({
+  ok: z.boolean(),
+  conversation_id: z.string(),
+  session_line: z.string(),
+  after_sequence: z.number().int().nonnegative(),
+  cursor: z.number().int().nonnegative(),
+  latest_sequence: z.number().int().nonnegative(),
+  messages: z.array(oneLssMessageSchema),
+});
+
+const oneLssSurfaceSchema = z.object({
+  source_surface: z.string(),
+  message_count: z.number().int().nonnegative(),
+  last_message_sequence: z.number().int().nonnegative(),
+  door_last_sequence: z.number().int().nonnegative(),
+  door_last_seen_at: z.number().nonnegative(),
+  door_seen: z.boolean(),
+  fresh: z.boolean(),
+  persisted: z.boolean(),
+  caught_up_to_pair_latest: z.boolean(),
+});
+
+const oneLssStatusSchema = z.object({
+  ok: z.boolean(),
+  conversation_id: z.string(),
+  session_line: z.string(),
+  latest_sequence: z.number().int().nonnegative(),
+  pair_latest_sequence: z.number().int().nonnegative(),
+  checked_at: z.number().nonnegative(),
+  freshness_ms: z.number().nonnegative(),
+  cross_surface_ready: z.boolean(),
+  surfaces: z.array(oneLssSurfaceSchema),
+});
+
 export function createOgenicServer() {
   const server = new McpServer(
     { name: "ogenic-god-toolkit", version: VERSION },
@@ -495,6 +629,79 @@ export function createOgenicServer() {
         structuredContent: { surfaces, verifiedReadyCount },
         content: [{ type: "text", text: verifiedReadyCount > 0 ? `Verified ${verifiedReadyCount} live execution surface(s).` : "Live GitHub/Vercel adapters are installed but no surface has verified Ready in this runtime yet." }],
       };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "read_1lss_context",
+    {
+      title: "Read WAVE SAME MIND context",
+      description: "Read the canonical owner-main / 1LSS_OWNER_MAIN conversation in sequence order. Use after_sequence for incremental sync. Read-only; server-side bridge credentials are never returned.",
+      inputSchema: {
+        after_sequence: z.number().int().nonnegative().default(0),
+        limit: z.number().int().min(1).max(100).default(40),
+      },
+      outputSchema: oneLssContextSchema.shape,
+      annotations: READ_ONLY_ANNOTATIONS,
+      _meta: {
+        "openai/toolInvocation/invoking": "Reading WAVE SAME MIND…",
+        "openai/toolInvocation/invoked": "WAVE SAME MIND context loaded.",
+      },
+    },
+    async ({ after_sequence, limit }) => {
+      try {
+        const result = await read1LssContext({ afterSequence: after_sequence, limit });
+        return {
+          structuredContent: result,
+          content: [{ type: "text", text: `Loaded ${result.messages.length} canonical turn(s), cursor ${result.cursor}/${result.latest_sequence}.` }],
+        };
+      } catch (error) {
+        const result = {
+          ok: false,
+          error: safeBridgeCode(error instanceof Error ? error.message : "1LSS_READ_FAILED"),
+        };
+        return {
+          structuredContent: result,
+          content: [{ type: "text", text: `SAME MIND read failed: ${result.error}` }],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  registerAppTool(
+    server,
+    "get_1lss_status",
+    {
+      title: "Get WAVE SAME MIND status",
+      description: "Read canonical SAME MIND sequence and App/Web freshness status for owner-main / 1LSS_OWNER_MAIN. Read-only.",
+      inputSchema: {},
+      outputSchema: oneLssStatusSchema.shape,
+      annotations: READ_ONLY_ANNOTATIONS,
+      _meta: {
+        "openai/toolInvocation/invoking": "Checking WAVE SAME MIND…",
+        "openai/toolInvocation/invoked": "WAVE SAME MIND status checked.",
+      },
+    },
+    async () => {
+      try {
+        const result = await get1LssStatus();
+        return {
+          structuredContent: result,
+          content: [{ type: "text", text: `SAME MIND latest sequence ${result.latest_sequence}; cross-surface ${result.cross_surface_ready ? "ready" : "not fresh"}.` }],
+        };
+      } catch (error) {
+        const result = {
+          ok: false,
+          error: safeBridgeCode(error instanceof Error ? error.message : "1LSS_STATUS_FAILED"),
+        };
+        return {
+          structuredContent: result,
+          content: [{ type: "text", text: `SAME MIND status failed: ${result.error}` }],
+          isError: true,
+        };
+      }
     },
   );
 
