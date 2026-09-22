@@ -81,7 +81,7 @@ const EFFORTS: Array<{ id: Effort; label: string }> = [
 const EXPERIENCE_MODES: Array<{ id: ExperienceMode; label: string; state: string }> = [
   { id: "chatgpt", label: "ChatGPT", state: "Bridge pending" },
   { id: "chat-api", label: "Chat API", state: "Responses API" },
-  { id: "agent-ai", label: "Agent AI", state: "owner-main · 1LSS" },
+  { id: "agent-ai", label: "Agent AI", state: "OpenAI Agent Session · 1LSS" },
 ];
 
 function readJson<T>(key: string, fallback: T): T {
@@ -516,6 +516,29 @@ export default function UnifiedChat({ surface }: Props) {
     await loadHistory();
   }
 
+  async function runAgentAI(prompt: string) {
+    if (!d1Enabled) throw new Error("Agent AI ต้องเปิด D1 เพื่อคง owner-main / 1LSS");
+    const response = await fetch("/api/chat/agent", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": `agent_${crypto.randomUUID()}`,
+      },
+      body: JSON.stringify({
+        prompt,
+        model: selectedModel.id,
+        source_surface: surface,
+        reasoning_effort: chatConfig.effort,
+        allow_paid_fallback: allowPaidFallback,
+      }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body?.ok) throw new Error(body?.message || body?.code || `HTTP_${response.status}`);
+    if (body.agent_session_id) setInlineNotice(`Agent Session · ${body.agent_session_id}`);
+    await loadHistory();
+  }
+
   async function runChat(prompt: string) {
     const endpoint = d1Enabled ? "/api/chat/model" : "/api/chat/ephemeral";
     const response = await fetch(endpoint, {
@@ -563,7 +586,7 @@ export default function UnifiedChat({ surface }: Props) {
       else if (toolMode === "live") await runLiveDoor(prompt);
       else if (toolMode === "github" || toolMode === "linear" || toolMode === "n8n" || toolMode === "meta") await runInlineTool(toolMode, prompt);
       else if (toolMode === "web" || toolMode === "rag") await runHostedTools(prompt);
-      else if (experienceMode === "agent-ai") await runHostedTools(prompt, "auto");
+      else if (experienceMode === "agent-ai") await runAgentAI(prompt);
       else await runChat(prompt);
       await loadRuntime();
     } catch (error) {
@@ -591,7 +614,7 @@ export default function UnifiedChat({ surface }: Props) {
     setModelDock(false);
     if (next === "agent-ai") {
       setD1Enabled(true);
-      setInlineNotice("Agent AI · owner-main / 1LSS");
+      setInlineNotice("Agent AI · OpenAI Agent Session · owner-main / 1LSS");
     } else if (next === "chatgpt") {
       setInlineNotice("ChatGPT · Bridge pending");
     } else {
