@@ -201,7 +201,7 @@ export default {
     if (pathname === "/api/manus/status" || pathname === "/api/manus/task") {
       return manusApi.fetch(request, env, ctx as never);
     }
-    if (pathname === "/api/chat/functions") {
+    if (pathname === "/api/chat/functions" || pathname === "/api/chat/agent") {
       const stampRequest = request.clone();
       const response = await connectorApi.fetch(request, env, ctx as never);
       await stampFunctionTurn(stampRequest, response, env).catch(() => undefined);
