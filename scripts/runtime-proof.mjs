@@ -19,14 +19,17 @@ for (let attempt = 1; attempt <= 12; attempt += 1) {
     const body = await response.json().catch(() => ({}));
     if (response.ok && body?.ok && body?.proof === "1LSS_PLUGIN_WRITER_RUNTIME_VERIFIED") {
       console.log("1LSS_RUNTIME_PROOF_OK " + JSON.stringify({
-        writer_contract: body.writer_contract,\n        conversation_id: body.conversation_id,
+        writer_contract: body.writer_contract,
+        conversation_id: body.conversation_id,
         session_line: body.session_line,
         source_surface: body.source_surface,
         sequence_no: body.sequence_no,
         retry_sequence_no: body.retry_sequence_no,
-        replayed_count: body.replayed_count,
-        observed_via_event_feed: body.observed_via_event_feed,
-        backlog: body.backlog,
+        replay_same_sequence: body.replay_same_sequence,
+        replayed: body.replayed,
+        event_seen_once: body.event_seen_once,
+        cross_surface_ready: body.cross_surface_ready,
+        status_latest_sequence: body.status_latest_sequence,
         build_uuid: body.build_uuid,
       }));
       process.exit(0);
