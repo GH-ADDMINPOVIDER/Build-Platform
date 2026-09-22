@@ -1,0 +1,54 @@
+name: Phase VI Final Runtime Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/phase-vi-final-runtime-proof.yml"
+      - "scripts/verify-phase-vi-final-runtime.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auto-discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging runtime credentials from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Require owner runtime credential without exposing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || {
+            echo "::error::CONFIGURATION_REQUIRED: OGENIC_OPS_KEY missing from Infisical staging"
+            exit 1
+          }
+          echo "Owner runtime credential is present (value hidden)."
+
+      - name: Run complete owner-authenticated staging proof
+        shell: bash
+        run: bash scripts/verify-phase-vi-final-runtime.sh
