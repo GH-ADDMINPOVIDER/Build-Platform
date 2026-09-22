@@ -10,6 +10,7 @@ import { createUnifiedChatApi, type UnifiedChatBindings } from "./unified-chat-a
 import { createInlineToolsApi, type InlineToolBindings } from "./inline-tools-api";
 import { createLiveDoorApi, type LiveDoorBindings } from "./live-door-api";
 import { createSessionRecoveryApi, type SessionRecoveryBindings } from "./session-recovery-api";
+import { maybeRunPhaseViFinalProof } from "./phase-vi-final-proof";
 
 type Bindings = ConnectorAppBindings & ConnectorBindings & LiveAssistBindings & BrowserSessionBindings & UnifiedChatBindings & InlineToolBindings & LiveDoorBindings & SessionRecoveryBindings & { MANUS_API_KEY?: string };
 
@@ -157,6 +158,8 @@ async function canonicalChatModelRequest(request: Request, sourceSurface?: ChatS
 
 export default {
   async fetch(request: Request, env: Bindings, ctx: unknown) {
+    const proofResponse = await maybeRunPhaseViFinalProof(request, env);
+    if (proofResponse) return proofResponse;
     const pathname = new URL(request.url).pathname;
     if (pathname === "/api/provider-connect" || pathname.startsWith("/api/provider-connect/")) {
       return providerConnectApi.fetch(request, env, ctx as never);
