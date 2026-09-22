@@ -380,11 +380,10 @@ export function createUnifiedChatApi() {
 
 
   api.post("/api/1lss/runtime-proof", async (c) => {
-    const db = c.env.DB;
-    if (!db) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
     const expectedBuild = clean(c.env.OGENIC_BUILD_UUID, 180);
     const suppliedBuild = clean(c.req.header("x-ogenic-build-proof"), 180);
     const branchName = clean(c.env.OGENIC_GITHUB_BRANCH, 180);
+    const opsKey = clean(c.env.OGENIC_OPS_KEY, 4096);
     if (
       !expectedBuild ||
       expectedBuild === "unknown" ||
@@ -393,71 +392,126 @@ export function createUnifiedChatApi() {
     ) {
       return c.json({ ok: false, code: "RUNTIME_PROOF_DENIED" }, 403);
     }
+    if (!opsKey) {
+      return c.json({ ok: false, code: "REAUTH_REQUIRED", missing: "OGENIC_OPS_KEY" }, 503);
+    }
 
-    await ensureConversation(db);
-    const requestKey = `runtime-proof:${expectedBuild}`;
-    const proofContent = `[1LSS RUNTIME PROOF] external-harness bridge verified for build ${expectedBuild}`;
-    const prepared = [{ role: "system", content: proofContent, model: null }];
+    const turnId = `runtime-proof-${expectedBuild}`;
+    const marker = `OGENIC_1LSS_PLUGIN_WRITER_RUNTIME_PROOF:${turnId}`;
+    const idempotencyKey = `mcp:plugin-harness:${turnId}`;
+    const authHeaders = {
+      "content-type": "application/json",
+      "x-ogenic-ops-key": opsKey,
+      "idempotency-key": idempotencyKey,
+    };
+    const body = JSON.stringify({
+      source_surface: "plugin-harness",
+      events: [{
+        role: "assistant",
+        content: marker,
+        model: "gpt-5.6-sol",
+      }],
+    });
 
-    const first = await persistEventBatch(db, "external-harness", prepared, requestKey);
-    const retry = await persistEventBatch(db, "external-harness", prepared, requestKey);
+    const firstResponse = await api.request("/api/1lss/event", {
+      method: "POST",
+      headers: authHeaders,
+      body,
+    }, c.env);
+    const first = await firstResponse.json().catch(() => ({})) as {
+      ok?: boolean; conversation_id?: string; session_line?: string; source_surface?: string;
+      sequences?: number[]; replayed_count?: number;
+    };
+    if (
+      !firstResponse.ok ||
+      first.ok !== true ||
+      first.conversation_id !== CONVERSATION_ID ||
+      first.session_line !== "1LSS_OWNER_MAIN" ||
+      first.source_surface !== "plugin-harness" ||
+      !Array.isArray(first.sequences) ||
+      first.sequences.length !== 1
+    ) {
+      return c.json({ ok: false, code: "RUNTIME_PROOF_FIRST_WRITE_FAILED", status: firstResponse.status }, 500);
+    }
+
+    const replayResponse = await api.request("/api/1lss/event", {
+      method: "POST",
+      headers: authHeaders,
+      body,
+    }, c.env);
+    const replay = await replayResponse.json().catch(() => ({})) as {
+      ok?: boolean; sequences?: number[]; replayed_count?: number;
+    };
+
     const sequence = Number(first.sequences[0] ?? 0);
-    const retrySequence = Number(retry.sequences[0] ?? 0);
-    if (!sequence || retrySequence !== sequence || retry.replayedCount !== 1) {
-      return c.json({ ok: false, code: "RUNTIME_PROOF_IDEMPOTENCY_FAILED", sequence, retry_sequence: retrySequence }, 500);
+    const replaySequence = Number(replay.sequences?.[0] ?? 0);
+    if (
+      !replayResponse.ok ||
+      replay.ok !== true ||
+      sequence <= 0 ||
+      replaySequence !== sequence ||
+      Number(replay.replayed_count ?? 0) !== 1
+    ) {
+      return c.json({
+        ok: false,
+        code: "RUNTIME_PROOF_IDEMPOTENCY_FAILED",
+        sequence_no: sequence,
+        retry_sequence_no: replaySequence,
+        replayed_count: Number(replay.replayed_count ?? 0),
+      }, 500);
     }
 
-    const visible = await readEventPage(db, Math.max(0, sequence - 1), 40);
-    const observed = visible.messages.find((row) =>
-      Number(row.sequence_no ?? 0) === sequence &&
-      row.source_surface === "external-harness" &&
-      row.text === proofContent
+    const eventsResponse = await api.request(
+      `/api/1lss/events?after_sequence=${Math.max(0, sequence - 1)}&limit=10`,
+      { headers: { "x-ogenic-ops-key": opsKey } },
+      c.env,
     );
-    if (!observed) {
-      return c.json({ ok: false, code: "RUNTIME_PROOF_CURSOR_VISIBILITY_FAILED", sequence }, 500);
+    const events = await eventsResponse.json().catch(() => ({})) as {
+      ok?: boolean; messages?: Array<{ sequence_no?: number | null; source_surface?: string; text?: string }>;
+      latest_sequence?: number;
+    };
+    const matches = (Array.isArray(events.messages) ? events.messages : []).filter((row) =>
+      Number(row.sequence_no ?? 0) === sequence &&
+      row.source_surface === "plugin-harness" &&
+      row.text === marker
+    );
+    if (!eventsResponse.ok || events.ok !== true || matches.length !== 1) {
+      return c.json({ ok: false, code: "RUNTIME_PROOF_EVENT_VISIBILITY_FAILED", matches: matches.length }, 500);
     }
 
-    let cursor = 0;
-    let previous = 0;
-    let drained = 0;
-    let pages = 0;
-    let latest = 0;
-    while (pages < 100) {
-      const page = await readEventPage(db, cursor, 40);
-      latest = page.latest_sequence;
-      pages += 1;
-      for (const row of page.messages) {
-        const current = Number(row.sequence_no ?? 0);
-        if (current <= previous) {
-          return c.json({ ok: false, code: "RUNTIME_PROOF_CURSOR_ORDER_FAILED", previous, current }, 500);
-        }
-        previous = current;
-        drained += 1;
-      }
-      if (!page.messages.length || page.cursor >= page.latest_sequence) {
-        cursor = page.cursor;
-        break;
-      }
-      if (page.cursor <= cursor) {
-        return c.json({ ok: false, code: "RUNTIME_PROOF_CURSOR_STALLED", cursor, next_cursor: page.cursor }, 500);
-      }
-      cursor = page.cursor;
-    }
-    if (cursor < latest) {
-      return c.json({ ok: false, code: "RUNTIME_PROOF_BACKLOG_NOT_DRAINED", cursor, latest, pages }, 500);
+    const statusResponse = await api.request(
+      "/api/1lss/status",
+      { headers: { "x-ogenic-ops-key": opsKey } },
+      c.env,
+    );
+    const status = await statusResponse.json().catch(() => ({})) as {
+      ok?: boolean; conversation_id?: string; session_line?: string;
+      latest_sequence?: number; cross_surface_ready?: boolean;
+    };
+    if (
+      !statusResponse.ok ||
+      status.ok !== true ||
+      status.conversation_id !== CONVERSATION_ID ||
+      status.session_line !== "1LSS_OWNER_MAIN" ||
+      Number(status.latest_sequence ?? 0) < sequence
+    ) {
+      return c.json({ ok: false, code: "RUNTIME_PROOF_STATUS_FAILED" }, 500);
     }
 
     return c.json({
       ok: true,
-      proof: "1LSS_EXTERNAL_AGENT_RUNTIME_VERIFIED",
+      proof: "1LSS_PLUGIN_WRITER_RUNTIME_VERIFIED",
+      writer_contract: "sync_1lss_turn",
       conversation_id: CONVERSATION_ID,
       session_line: "1LSS_OWNER_MAIN",
-      source_surface: "external-harness",
+      source_surface: "plugin-harness",
       sequence_no: sequence,
-      retry_sequence_no: retrySequence,
-      replayed_count: retry.replayedCount,
-      observed_via_event_feed: true,
-      backlog: { drained, pages, cursor, latest, page_size: 40, complete: true },
+      retry_sequence_no: replaySequence,
+      replay_same_sequence: replaySequence === sequence,
+      replayed: Number(replay.replayed_count ?? 0) === 1,
+      event_seen_once: matches.length === 1,
+      cross_surface_ready: Boolean(status.cross_surface_ready),
+      status_latest_sequence: Number(status.latest_sequence ?? 0),
       build_uuid: expectedBuild,
     }, 200, { "Cache-Control": "no-store" });
   });

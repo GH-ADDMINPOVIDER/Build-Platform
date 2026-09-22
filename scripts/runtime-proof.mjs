@@ -17,9 +17,9 @@ for (let attempt = 1; attempt <= 12; attempt += 1) {
       body: "{}",
     });
     const body = await response.json().catch(() => ({}));
-    if (response.ok && body?.ok && body?.proof === "1LSS_EXTERNAL_AGENT_RUNTIME_VERIFIED") {
+    if (response.ok && body?.ok && body?.proof === "1LSS_PLUGIN_WRITER_RUNTIME_VERIFIED") {
       console.log("1LSS_RUNTIME_PROOF_OK " + JSON.stringify({
-        conversation_id: body.conversation_id,
+        writer_contract: body.writer_contract,\n        conversation_id: body.conversation_id,
         session_line: body.session_line,
         source_surface: body.source_surface,
         sequence_no: body.sequence_no,
