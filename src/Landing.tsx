@@ -24,9 +24,9 @@ export default function Landing() {
       <h1>Your AI,<br />in sync.</h1>
       <p className="olLead">คุย ทำงาน จัดการ ทุกอย่างในที่เดียว — หน้าบ้านคือ <b>WAVE</b> ส่วนระบบหลังบ้านยังเป็น <b>OGENIC HARNESS · capability · 1LSS</b> เหมือนเดิม</p>
       <div className="olActions">
-        <a className="olPrimary" href="/chat">เริ่มใช้งาน WAVE <span>→</span></a>
+        <a className="olPrimary" href="/chat">WAVE Chat <span>→</span></a>
         <a className="olSecondary" href="/app">App View <span>↗</span></a>
-        <a className="olSecondary" href="/overview">OGENIC Harness <span>↗</span></a>
+        <a className="olSecondary" href="/overview">WAVE Dashboard <span>↗</span></a>
       </div>
     </section>
 
