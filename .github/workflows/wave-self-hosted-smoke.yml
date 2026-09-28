@@ -41,7 +41,7 @@ jobs:
           codex --version || true
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Test + typecheck + build
         run: npm run check
