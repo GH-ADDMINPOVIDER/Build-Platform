@@ -26,8 +26,18 @@ import "./mobile-fixes.css";
 import "./landing.css";
 
 const nativeApp = Capacitor.isNativePlatform();
-const NATIVE_API_BASE = "https://wave.ogenicchocolate.com";
+const WAVE_ORIGIN = "https://wave.ogenicchocolate.com";
+const NATIVE_API_BASE = WAVE_ORIGIN;
 const NATIVE_SESSION_KEY = "ogenic.native.session.v1";
+
+function enforceCanonicalWaveHost() {
+  if (nativeApp) return;
+  if (window.location.hostname !== "candybaked.ogenicchocolate.com") return;
+  const target = new URL(`${window.location.pathname}${window.location.search}${window.location.hash}`, WAVE_ORIGIN);
+  window.location.replace(target.toString());
+}
+
+enforceCanonicalWaveHost();
 
 function installNativeApiBridge() {
   if (!nativeApp) return;
@@ -106,15 +116,47 @@ const sourceSurface = webChatRoute ? "ogenic-web" as const : "ogenic-app" as con
 document.title = landingRoute
   ? "WAVE — SAME MIND"
   : controlRoute
-    ? "WAVE — OGENIC HARNESS"
+    ? "WAVE — DASHBOARD"
     : surfaceTitle(sourceSurface);
 
 function surfaceTitle(surface: "ogenic-web" | "ogenic-app") {
   return surface === "ogenic-web" ? "WAVE — SAME MIND" : "WAVE — SAME MIND · APP";
 }
 
+function SurfaceBridge() {
+  if (landingRoute || nativeApp) return null;
+  const href = controlRoute ? "/chat" : "/overview";
+  const label = controlRoute ? "WAVE CHAT ↗" : "DASHBOARD ↗";
+  return <a
+    href={href}
+    aria-label={controlRoute ? "Open WAVE Chat" : "Open WAVE Dashboard"}
+    style={{
+      position: "fixed",
+      top: "calc(env(safe-area-inset-top) + 10px)",
+      right: "12px",
+      zIndex: 10000,
+      display: "inline-flex",
+      alignItems: "center",
+      minHeight: "38px",
+      padding: "0 14px",
+      borderRadius: "999px",
+      border: "1px solid rgba(255,255,255,.18)",
+      background: "rgba(7,12,10,.88)",
+      color: "#fff",
+      textDecoration: "none",
+      fontSize: "12px",
+      fontWeight: 800,
+      letterSpacing: ".08em",
+      boxShadow: "0 8px 28px rgba(0,0,0,.24)",
+      backdropFilter: "blur(14px)",
+      WebkitBackdropFilter: "blur(14px)",
+    }}
+  >{label}</a>;
+}
+
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
+    <SurfaceBridge />
     {landingRoute ? <Landing /> : unifiedChatSurface ? <UnifiedChat surface={sourceSurface} /> : <>
       <ControlPlaneV2 />
       <ChatModelRouter />
