@@ -4,12 +4,11 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(new URL("../" + path, import.meta.url), "utf8");
 
-test("UnifiedChat exposes honest ChatGPT, Chat API and Agent AI modes", () => {
+test("UnifiedChat exposes canonical WAVE and Agent AI modes", () => {
   const ui = read("src/UnifiedChat.tsx");
-  assert.match(ui, /"ChatGPT"/);
-  assert.match(ui, /"Chat API"/);
+  assert.match(ui, /label: "WAVE"/);
   assert.match(ui, /"Agent AI"/);
-  assert.match(ui, /ChatGPT · Bridge pending/);
+  assert.match(ui, /SAME MIND · OGENIC HARNESS · 1LSS/);
   assert.match(ui, /const \[experienceMode, setExperienceMode\] = useState<ExperienceMode>\("chat-api"\)/);
 });
 
@@ -19,7 +18,7 @@ test("Agent AI executes through OpenAI Agent Sessions and returns to owner-main 
   const entry = read("worker/entry-connectors.ts");
   assert.match(ui, /experienceMode === "agent-ai"/);
   assert.match(ui, /runAgentAI\(prompt\)/);
-  assert.match(ui, /OpenAI Agent Session · 1LSS/);
+  assert.match(ui, /OGENIC HARNESS · Agent Session · 1LSS/);
   assert.match(ui, /fetch\("\/api\/chat\/agent"/);
   assert.doesNotMatch(ui, /experienceMode === "agent-ai"\) await runHostedTools\(prompt, "auto"\)/);
   assert.match(connector, /conversation_id:\s*"owner-main"/);

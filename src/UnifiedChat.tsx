@@ -642,8 +642,8 @@ export default function UnifiedChat({ surface }: Props) {
 
     <header className="ucTopbar">
       <button className="ucBrand" onClick={() => setNewDock((value) => !value)}><img src="/assets/wave-logo.webp" alt="" /><span><b>WAVE</b><small>{surface === "ogenic-app" ? "SAME MIND · APP" : "SAME MIND · WEB"}</small></span></button>
-      <div className="ucLineState"><b>1LSS #{String(latestSequence).padStart(4, "0")}</b><span className={d1Enabled ? "on" : "off"}>D1 {d1Enabled ? "●" : "○"}</span></div>
-      <a className="ucWeb" href="/" aria-label="Open OGENIC web home">WEB ↗</a>
+      <div className="ucLineState"><b>1LSS #{String(latestSequence).padStart(4, "0")}</b><span className={d1Enabled ? "on" : "off"}>D1 {d1Enabled ? "●" : "○"}</span><span>LIVE ≤3s</span></div>
+      <a className="ucWeb" href="/overview" aria-label="Open WAVE Dashboard">DASHBOARD ↗</a>
       <button className="ucNew" onClick={() => setNewDock((value) => !value)}>＋ New</button>
       {newDock && <section className="ucNewDock"><strong>New chat viewport</strong><p>เส้นชีวิตไม่แตก ถ้าเปิด D1 จะต่อ owner-main หลังบ้าน</p><label><input type="checkbox" checked={d1Enabled} onChange={(event) => setD1Enabled(event.target.checked)} /> D1 · 1LSS Memory</label><div><button onClick={() => startNew(d1Enabled)}>Start</button><button className="ghost" onClick={() => void loadOlder()}>Load older</button><button className="ghost" onClick={() => setNewDock(false)}>Cancel</button></div>{!!sessionRefs.length && <div className="ucConnected"><small>RECENT DOORS</small><p>{sessionRefs.slice(0, 5).map((row) => `${row.label || row.source_surface} #${row.last_sequence || "?"}`).join(" · ")}</p><div>{sessionRefs.slice(0, 5).map((row) => <button key={row.id} className="ghost" onClick={() => void openKnownSession(row)}>{row.source_surface} · #{row.last_sequence || "?"}</button>)}</div></div>}</section>}
     </header>
