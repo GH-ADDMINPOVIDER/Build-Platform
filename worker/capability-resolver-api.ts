@@ -112,7 +112,7 @@ export function createCapabilityResolverApi() {
 
     const candidates = await readCandidates(c.env.DB);
     const result = resolveCapability(request, candidates);
-    const status = result.ok
+    const status: 200 | 404 | 409 | 503 = result.ok
       ? 200
       : result.status === "AMBIGUOUS"
         ? 409
