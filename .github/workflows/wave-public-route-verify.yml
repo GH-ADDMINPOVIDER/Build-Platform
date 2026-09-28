@@ -1,0 +1,31 @@
+name: WAVE Public Route Verify
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/wave-public-route-verify.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 10
+    steps:
+      - name: Verify canonical WAVE routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wave.ogenicchocolate.com'
+          for path in / /chat /overview /app; do
+            code="$(curl --silent --show-error --location --retry 3 --retry-delay 2 --output /tmp/wave-route.html --write-out '%{http_code}' "${base}${path}")"
+            test "$code" = "200" || { echo "::error::${path} returned HTTP ${code}"; exit 1; }
+            grep -qi '<html' /tmp/wave-route.html || { echo "::error::${path} did not return HTML"; exit 1; }
+            echo "WAVE_ROUTE_OK ${path} HTTP ${code}"
+          done
+          health="$(curl --fail --silent --show-error --retry 3 "${base}/api/health")"
+          printf '%s' "$health" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
+          echo 'WAVE_DOMAIN_OK wave.ogenicchocolate.com'
