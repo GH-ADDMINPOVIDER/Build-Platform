@@ -143,12 +143,11 @@ export function resolveCapability(
   const allowedStatuses = allowedProviderStatuses(request);
   const tokens = tokenize(request.intent ?? "");
 
-  let eligible = candidates.filter((candidate) => {
+  const eligible = candidates.filter((candidate) => {
     if (!candidate.capability_enabled || !candidate.provider_capability_enabled) return false;
     if (!allowedStatuses.has(normalize(candidate.provider_status))) return false;
     if (requestedCapability && normalize(candidate.capability_id) !== requestedCapability) return false;
     if (requestedProvider && normalize(candidate.provider_id) !== requestedProvider) return false;
-    if (requestedEnvironment && candidate.binding_environment && normalize(candidate.binding_environment) !== requestedEnvironment) return false;
     return true;
   });
 
@@ -215,7 +214,7 @@ export function resolveCapability(
         environment: request.environment || null,
       },
       descriptor: selected,
-      reason: "NO_READY_BINDING",
+      reason: "NO_READY_BINDING_FOR_REQUESTED_ENVIRONMENT",
     };
   }
 
