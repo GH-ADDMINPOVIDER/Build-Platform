@@ -80,4 +80,6 @@ jobs:
             exit 0
           fi
           git commit -m "ui: connect WAVE chat and dashboard"
+          git fetch origin phase-vi-provider-incentive-metering
+          git rebase origin/phase-vi-provider-incentive-metering
           git push origin HEAD:phase-vi-provider-incentive-metering
