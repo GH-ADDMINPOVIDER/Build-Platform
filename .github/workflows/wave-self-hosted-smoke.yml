@@ -1,0 +1,56 @@
+name: WAVE Self-hosted Runner Smoke
+
+on:
+  push:
+    branches:
+      - phase-vi-provider-incentive-metering
+    paths:
+      - scripts/bootstrap-wave-selfhost.sh
+      - .github/workflows/wave-self-hosted-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: wave-runner-01 smoke
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: phase-vi-provider-incentive-metering
+
+      - name: Host evidence
+        shell: bash
+        run: |
+          set -euxo pipefail
+          hostname
+          uname -a
+          free -h
+          df -h /
+          git --version
+          gh --version
+          node --version
+          npm --version
+          docker --version
+          wrangler --version
+          codex --version || true
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test + typecheck + build
+        run: npm run check
+
+      - name: Verify staging invariants
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test "${GITHUB_REF_NAME}" = "phase-vi-provider-incentive-metering"
+          grep -q 'ogenic-phase-vi-staging' wrangler.jsonc
+          grep -q 'worker/entry-yellow-stone.ts' wrangler.jsonc
+          echo "WAVE_SELF_HOSTED_SMOKE_OK"
