@@ -25,7 +25,7 @@ permissions:
 env:
   WORKER_NAME: ogenic-phase-vi-staging
   D1_DATABASE_NAME: ogenic-phase-vi-staging
-  STAGING_URL: https://ogenic-phase-vi-staging.tawatchaisamornrum11.workers.dev
+  STAGING_URL: https://wave.ogenicchocolate.com
   OGENIC_GIT_SHA: ${{ github.sha }}
   INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
   INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
@@ -36,7 +36,7 @@ env:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
