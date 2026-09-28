@@ -1,0 +1,28 @@
+name: WAVE Host Python Shim
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/wave-host-python-shim.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shim:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 10
+    steps:
+      - name: Verify python3
+        run: python3 --version
+
+      - name: Install host python compatibility shim
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm -v /usr/local/bin:/hostbin alpine:3.20 sh -c 'ln -sf /usr/bin/python3 /hostbin/python'
+          test -L /usr/local/bin/python
+          python --version
+          echo "WAVE_PYTHON_SHIM_OK"
