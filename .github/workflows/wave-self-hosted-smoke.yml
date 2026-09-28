@@ -67,16 +67,17 @@ jobs:
           grep -q 'WAVE Chat' src/ControlPlaneV2.tsx
           echo "WAVE_SELF_HOSTED_SMOKE_OK"
 
-      - name: Commit verified WAVE domain/navigation patch
+      - name: Commit verified WAVE UI/navigation patch
         shell: bash
         run: |
           set -euo pipefail
+          git restore .github/workflows/provider-incentive-staging-deploy.yml || true
           git config user.name "WAVE Self-host Runner"
           git config user.email "wave-runner@users.noreply.github.com"
-          git add src/UnifiedChat.tsx src/ControlPlaneV2.tsx tests/chat-modes-usage-ui.test.mjs tests/agent-session-runtime-contract.test.mjs .github/workflows/provider-incentive-staging-deploy.yml
+          git add src/UnifiedChat.tsx src/ControlPlaneV2.tsx tests/chat-modes-usage-ui.test.mjs tests/agent-session-runtime-contract.test.mjs
           if git diff --cached --quiet; then
-            echo "No verified patch changes to commit."
+            echo "No verified UI patch changes to commit."
             exit 0
           fi
-          git commit -m "ui: connect WAVE chat dashboard and canonical domain"
+          git commit -m "ui: connect WAVE chat and dashboard"
           git push origin HEAD:phase-vi-provider-incentive-metering
