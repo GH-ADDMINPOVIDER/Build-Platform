@@ -62,7 +62,29 @@ function candidateFromRow(row: CandidateRow): ResolverCandidate {
 
 async function readCandidates(db: D1Like) {
   const rows = await db.prepare(
-    `SELECT
+    `WITH compatibility_map(provider_id, capability_id, priority) AS (
+       VALUES
+         ('github', 'code_search', 10),
+         ('google_drive', 'drive_scan', 10),
+         ('linear', 'agent_delegate', 10),
+         ('cloudflare', 'deploy_preview', 10),
+         ('cloudflare', 'deploy_promote', 10),
+         ('cloudflare', 'context_load', 20),
+         ('cloudflare', 'runtime_verify', 10),
+         ('infisical', 'identity_health', 10),
+         ('documents', 'app_build', 10),
+         ('template_creator', 'app_build', 10),
+         ('n8n', 'workflow_run', 10)
+     ),
+     effective_map(provider_id, capability_id, priority, enabled) AS (
+       SELECT provider_id, capability_id, priority, enabled
+       FROM provider_capabilities
+       UNION ALL
+       SELECT provider_id, capability_id, priority, 1
+       FROM compatibility_map
+       WHERE NOT EXISTS (SELECT 1 FROM provider_capabilities)
+     )
+     SELECT
        c.id AS capability_id,
        c.description AS capability_description,
        c.permission_class AS permission_class,
@@ -76,7 +98,7 @@ async function readCandidates(db: D1Like) {
        b.binding_type AS binding_type,
        b.status AS binding_status,
        b.environment AS binding_environment
-     FROM provider_capabilities pc
+     FROM effective_map pc
      JOIN capabilities c ON c.id = pc.capability_id
      JOIN providers p ON p.id = pc.provider_id
      LEFT JOIN provider_bindings b ON b.provider_id = p.id
@@ -124,6 +146,7 @@ export function createCapabilityResolverApi() {
       ...result,
       read_only: true,
       runtime: "YELLOW_STONE_CAPABILITY_RESOLVER_V1",
+      mapping: "D1_PROVIDER_CAPABILITIES_OR_PHASE_VI_COMPATIBILITY_MAP",
       policy: "NO_PROVIDER_SIDE_EFFECTS",
     }, status, { "Cache-Control": "no-store" });
   });
