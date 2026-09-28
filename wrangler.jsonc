@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "ogenic-phase-vi-staging",
-  "main": "worker/entry-connectors.ts",
+  "main": "worker/entry-yellow-stone.ts",
   "compatibility_date": "2026-09-06",
   "compatibility_flags": [
     "nodejs_compat"
