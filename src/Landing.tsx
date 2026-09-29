@@ -101,7 +101,7 @@ export default function Landing() {
       <nav className="wvNav" aria-label="WAVE navigation">
         <a href="/chat">CHAT</a>
         <a href="/overview">OPERATE</a>
-        <a href="/overview">AGENTS</a>
+        <a href="/chat">AGENTS</a>
         <a href="#stones">STONES</a>
         <a href="/app">APP</a>
       </nav>
@@ -116,7 +116,7 @@ export default function Landing() {
         <div className="wvActions">
           <a className="primary" href="/chat">START IN CHAT <span>→</span></a>
           <a href="/overview">OPEN OPERATE</a>
-          <a href="/overview">AGENT DECK</a>
+          <a href="/chat">AGENT DECK</a>
         </div>
         <div className="wvMiniStatus">
           <span><b>1LSS</b> ACTIVE</span><span><b>RUNNER</b> READY</span><span><b>RUNTIME</b> CLOUDFLARE</span><span><b>MODE</b> GUARDED</span>
@@ -126,12 +126,12 @@ export default function Landing() {
     </section>
 
     <section className="wvStoneRail" id="stones" aria-label="WAVE system cores">
-      <a className="wvStone green" href="/chat">
+      <a className="wvStone green" id="green-stone" href="/chat" aria-label="Open Green Stone chat">
         <div className="wvStoneVisual"><StoneArt tone="green" /></div>
         <div className="wvStoneText"><small>01 · CONTEXT CORE</small><h2>GREEN STONE</h2><p>1LSS continuity · one canonical line · same mind.</p><span>OPEN CHAT ↗</span></div>
       </a>
       <div className="wvEnergy" aria-hidden="true"><span>INTENT</span><i /><b>WAVE</b><i /><span>EXECUTION</span></div>
-      <a className="wvStone yellow" href="/overview">
+      <a className="wvStone yellow" id="yellow-stone" href="/overview" aria-label="Open Yellow Stone operate">
         <div className="wvStoneVisual"><StoneArt tone="yellow" /></div>
         <div className="wvStoneText"><small>02 · CAPABILITY CORE</small><h2>YELLOW STONE</h2><p>Tools · skills · runtime · deploy · verify.</p><span>OPEN OPERATE ↗</span></div>
       </a>
@@ -151,7 +151,7 @@ export default function Landing() {
 
     <section className="wvDock" aria-label="WAVE quick launch">
       <div><span className="wvDot" /><b>WAVE</b><small>ONE CONTEXT · MANY AGENTS · REAL TOOLS · VERIFIED ACTIONS</small></div>
-      <nav><a href="/chat">CHAT</a><a href="/overview">OPERATE</a><a href="/overview">AGENTS</a><a href="/app">APP</a></nav>
+      <nav><a href="/chat">CHAT</a><a href="/overview">OPERATE</a><a href="/chat">AGENTS</a><a href="/app">APP</a></nav>
     </section>
 
     <footer className="wvFooter"><span>WAVE · GIMS STONE SYSTEM</span><span>GREEN KEEPS THE THREAD · YELLOW RUNS THE WORK</span></footer>
