@@ -14,15 +14,17 @@ Target: `phase-vi-provider-incentive-metering` only. Staging first. No main/prod
 - [x] Self-hosted `wave-runner-01` is the staging execution runner.
 - [x] Previous deploy failure isolated to stale landing UI assertions, not runtime/auth/D1.
 - [x] Landing tests updated to match the current v3 command UI semantics.
+- [x] Landing Agent / Agent Deck actions now route to the existing Agent AI chat surface instead of a generic dashboard target.
+- [x] CI `npm run check` passes on WAVE UI staging commit `9d0ac40308cbe5e0f73154075fbfd24d97656346`.
+- [x] Provider Incentive Staging Deploy run `36504552595` / #206 completed successfully on `wave-runner-01`.
+- [x] Staging Worker deploy, health check, owner auth, dashboard, connector hub, Browser Run bridge and Manus bridge verification passed in run #206.
 
 ## In progress / verify on staging
-- [ ] CI `npm run check` passes on latest staging HEAD.
-- [ ] Provider Incentive Staging Deploy completes successfully.
-- [ ] Verify `https://wave.ogenicchocolate.com/` render on desktop + iPhone.
-- [ ] Verify every landing action opens a real working destination.
-- [ ] Verify `/chat` send, Agent AI, Model, Tools, attachment and 1LSS controls.
-- [ ] Verify `/overview` dashboard/runtime/tool controls remain functional.
-- [ ] Verify `/app` mobile surface still shares canonical 1LSS.
+- [ ] Verify `https://wave.ogenicchocolate.com/` render visually on desktop + iPhone. (External browser fetch from this chat cannot open the private/custom runtime; workflow health is green.)
+- [ ] Verify every landing action visually opens its intended working destination. Source route contract is verified; browser click-through remains.
+- [ ] Verify `/chat` send, Agent AI, Model, Tools, attachment and 1LSS controls by live UI interaction.
+- [ ] Verify `/overview` dashboard/runtime/tool controls by live UI interaction.
+- [ ] Verify `/app` mobile surface by live UI interaction and confirm canonical 1LSS status.
 
 ## Next implementation pass
 - [ ] Add dedicated WAVE Connections surface grouping MCP / OAuth / API / Webhook / SDK adapters.
