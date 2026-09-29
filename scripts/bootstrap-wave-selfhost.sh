@@ -76,6 +76,11 @@ if ! command -v codex >/dev/null 2>&1; then
   npm install -g @openai/codex
 fi
 
+log "Installing Cloudflare cf CLI open beta if missing"
+if ! command -v cf >/dev/null 2>&1; then
+  npm install -g cf
+fi
+
 log "Verifying execution node"
 printf 'hostname: '; hostname
 printf 'kernel: '; uname -r
@@ -85,6 +90,7 @@ printf 'node: '; node --version
 printf 'npm: '; npm --version
 printf 'docker: '; docker --version
 printf 'wrangler: '; wrangler --version
+printf 'cf: '; cf --version || true
 printf 'codex: '; codex --version || true
 printf '\nMemory / swap:\n'; free -h
 printf '\nDisk:\n'; df -h /
@@ -97,4 +103,5 @@ echo "labels=self-hosted,linux,x64,${RUNNER_LABELS}"
 
 log "BOOTSTRAP COMPLETE"
 echo "Next: let GitHub Actions pick up the WAVE self-hosted smoke job."
+echo "Cloudflare cf CLI is installed alongside Wrangler; Wrangler remains the deploy fallback during cf open beta."
 echo "Codex authentication is intentionally left as a separate owner-controlled step."
