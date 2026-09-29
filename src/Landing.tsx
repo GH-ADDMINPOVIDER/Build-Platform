@@ -1,157 +1,159 @@
 type ModeKind = "chat" | "agent" | "tools" | "session" | "supervisor" | "deploy";
 type Tone = "green" | "yellow" | "mix";
 
-const modes: Array<{ kind: ModeKind; tone: Tone; title: string; detail: string; href: string }> = [
-  { kind: "chat", tone: "green", title: "CHAT & CREATE", detail: "WAVE Chat · same session line", href: "/chat" },
-  { kind: "agent", tone: "yellow", title: "AGENT RUNTIME", detail: "OpenAI Agent · execution path", href: "/chat" },
-  { kind: "tools", tone: "mix", title: "TOOLS & SKILLS", detail: "SDK · Skills · Docs · Tools", href: "/overview" },
-  { kind: "session", tone: "green", title: "1LSS SESSION", detail: "owner-main · one line · same mind", href: "/chat" },
-  { kind: "supervisor", tone: "yellow", title: "OGENIC SUPERVISOR", detail: "route · verify · return evidence", href: "/overview" },
-  { kind: "deploy", tone: "mix", title: "DEPLOY & VERIFY", detail: "self-host → Cloudflare → WAVE", href: "/overview" },
+const modes: Array<{ kind: ModeKind; tone: Tone; title: string; detail: string; href: string; meta: string }> = [
+  { kind: "chat", tone: "green", title: "CHAT & CREATE", detail: "Talk, build and continue from one canonical session.", href: "/chat", meta: "1LSS · LIVE" },
+  { kind: "agent", tone: "yellow", title: "AGENT RUNTIME", detail: "Delegate execution while WAVE keeps the same work record.", href: "/chat", meta: "AGENT · READY" },
+  { kind: "tools", tone: "mix", title: "TOOLS & SKILLS", detail: "Operate connected capabilities without leaving the workspace.", href: "/overview", meta: "TOOLS · OPERATE" },
+  { kind: "session", tone: "green", title: "1LSS SESSION", detail: "One ordered line across web and app surfaces.", href: "/chat", meta: "CONTEXT · SYNCED" },
+  { kind: "supervisor", tone: "yellow", title: "OGENIC SUPERVISOR", detail: "Route, supervise and return inspectable evidence.", href: "/overview", meta: "CONTROL · GUARDED" },
+  { kind: "deploy", tone: "mix", title: "DEPLOY & VERIFY", detail: "Runner to staging to verification in one execution path.", href: "/overview", meta: "RUNTIME · READY" },
+];
+
+const runSteps = [
+  ["01", "PLAN", "complete"],
+  ["02", "IMPLEMENT", "complete"],
+  ["03", "TEST", "complete"],
+  ["04", "DEPLOY", "approval"],
+  ["05", "VERIFY", "queued"],
 ];
 
 function StoneArt({ tone }: { tone: "green" | "yellow" }) {
-  return <svg viewBox="0 0 420 420" role="img" aria-label={`${tone} WAVE system stone`}>
-    <g className="stoneAura">
-      <circle cx="210" cy="210" r="162" fill="none" stroke="currentColor" strokeWidth="2" opacity=".18" />
-      <circle cx="210" cy="210" r="132" fill="none" stroke="currentColor" strokeWidth="1.5" opacity=".12" strokeDasharray="6 11" />
+  const id = tone === "green" ? "waveGreen" : "waveYellow";
+  return <svg viewBox="0 0 360 360" role="img" aria-label={`${tone} WAVE system stone`}>
+    <defs>
+      <radialGradient id={`${id}Core`} cx="48%" cy="44%" r="62%">
+        <stop offset="0" stopColor="#fff" stopOpacity=".96" />
+        <stop offset=".18" stopColor="currentColor" stopOpacity=".92" />
+        <stop offset=".62" stopColor="currentColor" stopOpacity=".24" />
+        <stop offset="1" stopColor="#020806" stopOpacity=".2" />
+      </radialGradient>
+      <linearGradient id={`${id}Facet`} x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#fff" stopOpacity=".36" />
+        <stop offset=".35" stopColor="currentColor" stopOpacity=".18" />
+        <stop offset="1" stopColor="#000" stopOpacity=".38" />
+      </linearGradient>
+      <filter id={`${id}Glow`} x="-70%" y="-70%" width="240%" height="240%">
+        <feGaussianBlur stdDeviation="11" result="blur" />
+        <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+      </filter>
+    </defs>
+    <g className="stoneOrbit" fill="none" stroke="currentColor">
+      <ellipse cx="180" cy="180" rx="144" ry="54" opacity=".18" strokeWidth="1.4" />
+      <ellipse cx="180" cy="180" rx="96" ry="152" opacity=".12" strokeWidth="1.2" transform="rotate(58 180 180)" />
     </g>
-    <g className="stoneBody">
-      <polygon points="210,56 326,110 356,228 289,335 167,360 69,286 67,163 140,79" fill="currentColor" opacity=".15" />
-      <polygon points="210,72 308,119 335,224 278,316 174,339 90,275 89,171 151,96" fill="none" stroke="currentColor" strokeWidth="4" opacity=".82" />
-      <path d="M118 199c46-50 81-38 113-3 33 36 60 36 104-7" fill="none" stroke="currentColor" strokeWidth="20" strokeLinecap="round" opacity=".25" />
-      <path d="M118 199c46-50 81-38 113-3 33 36 60 36 104-7" fill="none" stroke="currentColor" strokeWidth="7" strokeLinecap="round" />
-      <path d="M130 235c38-35 72-29 104 1 31 28 59 29 92 4" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" opacity=".74" />
-      <circle cx="210" cy="210" r="16" fill="currentColor" />
-      <circle cx="210" cy="210" r="32" fill="none" stroke="currentColor" strokeWidth="2" opacity=".35" />
-    </g>
-    <g fill="currentColor" opacity=".85">
-      <circle cx="82" cy="95" r="5" />
-      <circle cx="345" cy="102" r="4" />
-      <circle cx="368" cy="264" r="5" />
-      <circle cx="112" cy="336" r="4" />
+    <g className="stoneFloat">
+      <path d="M180 41 286 91l34 102-61 100-111 30-92-70 7-119 61-72Z" fill={`url(#${id}Core)`} opacity=".86" filter={`url(#${id}Glow)`} />
+      <path d="M180 41 286 91l-68 76-94-105Z" fill={`url(#${id}Facet)`} opacity=".86" />
+      <path d="m286 91 34 102-102-26Z" fill={`url(#${id}Facet)`} opacity=".48" />
+      <path d="m320 193-61 100-41-126Z" fill={`url(#${id}Facet)`} opacity=".65" />
+      <path d="m259 293-111 30 70-156Z" fill={`url(#${id}Facet)`} opacity=".38" />
+      <path d="m148 323-92-70 162-86Z" fill={`url(#${id}Facet)`} opacity=".26" />
+      <path d="M56 253l7-119 155 33Z" fill={`url(#${id}Facet)`} opacity=".32" />
+      <path d="M63 134l61-72 94 105Z" fill={`url(#${id}Facet)`} opacity=".58" />
+      <path d="M103 195c34-35 59-28 82 0 25 30 50 29 83-7" fill="none" stroke="#fff" strokeOpacity=".72" strokeWidth="4.5" strokeLinecap="round" />
+      <path d="M118 226c29-27 55-23 78 2 20 21 43 22 67 4" fill="none" stroke="currentColor" strokeOpacity=".82" strokeWidth="3.2" strokeLinecap="round" />
     </g>
   </svg>;
 }
 
 function ModeArt({ kind }: { kind: ModeKind }) {
-  return <svg viewBox="0 0 320 220" aria-hidden="true" focusable="false">
-    {kind === "chat" && <>
-      <rect x="52" y="54" width="144" height="92" rx="26" fill="currentColor" opacity=".12" stroke="currentColor" strokeWidth="3" />
-      <path d="M84 149l-22 25 6-34" fill="currentColor" opacity=".6" />
-      <rect x="120" y="86" width="148" height="90" rx="26" fill="currentColor" opacity=".16" stroke="currentColor" strokeWidth="3" />
-      <circle cx="157" cy="130" r="7" fill="currentColor" /><circle cx="190" cy="130" r="7" fill="currentColor" /><circle cx="223" cy="130" r="7" fill="currentColor" />
-    </>}
-    {kind === "agent" && <>
-      <circle cx="160" cy="112" r="58" fill="currentColor" opacity=".1" stroke="currentColor" strokeWidth="3" />
-      <circle cx="160" cy="112" r="22" fill="currentColor" opacity=".6" />
-      <path d="M160 32v36M160 156v36M80 112h36M204 112h36M103 55l25 25M192 144l25 25M217 55l-25 25M128 144l-25 25" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
-      <circle cx="160" cy="112" r="78" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="8 11" opacity=".4" />
-    </>}
-    {kind === "tools" && <>
-      <rect x="58" y="58" width="76" height="76" rx="20" fill="currentColor" opacity=".12" stroke="currentColor" strokeWidth="3" />
-      <rect x="186" y="58" width="76" height="76" rx="20" fill="currentColor" opacity=".12" stroke="currentColor" strokeWidth="3" />
-      <rect x="122" y="110" width="76" height="76" rx="20" fill="currentColor" opacity=".18" stroke="currentColor" strokeWidth="3" />
-      <path d="M96 96h128M160 96v52" stroke="currentColor" strokeWidth="5" strokeLinecap="round" opacity=".85" />
-      <circle cx="96" cy="96" r="9" fill="currentColor" /><circle cx="224" cy="96" r="9" fill="currentColor" /><circle cx="160" cy="148" r="9" fill="currentColor" />
-    </>}
-    {kind === "session" && <>
-      <circle cx="160" cy="110" r="70" fill="none" stroke="currentColor" strokeWidth="3" opacity=".25" />
-      <ellipse cx="160" cy="110" rx="112" ry="44" fill="none" stroke="currentColor" strokeWidth="4" />
-      <ellipse cx="160" cy="110" rx="44" ry="112" fill="none" stroke="currentColor" strokeWidth="3" opacity=".55" transform="rotate(62 160 110)" />
-      <circle cx="160" cy="110" r="24" fill="currentColor" opacity=".65" />
-      <circle cx="258" cy="126" r="9" fill="currentColor" />
-    </>}
-    {kind === "supervisor" && <>
-      <circle cx="160" cy="108" r="46" fill="currentColor" opacity=".12" stroke="currentColor" strokeWidth="4" />
-      <circle cx="160" cy="108" r="16" fill="currentColor" />
-      <path d="M160 62V34M118 84L87 64M202 84l31-20M120 138l-35 28M200 138l35 28M160 154v34" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
-      <g fill="currentColor"><circle cx="160" cy="28" r="9" /><circle cx="79" cy="59" r="9" /><circle cx="241" cy="59" r="9" /><circle cx="77" cy="172" r="9" /><circle cx="243" cy="172" r="9" /><circle cx="160" cy="195" r="9" /></g>
-    </>}
-    {kind === "deploy" && <>
-      <circle cx="160" cy="110" r="72" fill="none" stroke="currentColor" strokeWidth="3" opacity=".36" />
-      <ellipse cx="160" cy="110" rx="114" ry="42" fill="none" stroke="currentColor" strokeWidth="4" />
-      <path d="M80 110h160M160 38c31 26 45 50 45 72s-14 46-45 72c-31-26-45-50-45-72s14-46 45-72Z" fill="currentColor" opacity=".08" stroke="currentColor" strokeWidth="3" />
-      <path d="M225 58l36 13-30 24" fill="none" stroke="currentColor" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
-    </>}
+  return <svg viewBox="0 0 280 180" aria-hidden="true" focusable="false">
+    {kind === "chat" && <><rect x="36" y="37" width="126" height="74" rx="18" /><rect x="111" y="70" width="132" height="76" rx="18" /><path d="m65 110-20 21 6-29" /><circle cx="145" cy="108" r="5" /><circle cx="169" cy="108" r="5" /><circle cx="193" cy="108" r="5" /></>}
+    {kind === "agent" && <><circle cx="140" cy="90" r="42" /><circle cx="140" cy="90" r="15" /><path d="M140 22v28M140 130v28M72 90h28M180 90h28M91 42l22 22M167 116l22 22M189 42l-22 22M113 116l-22 22" /><circle cx="140" cy="90" r="64" className="dash" /></>}
+    {kind === "tools" && <><rect x="45" y="44" width="62" height="62" rx="15" /><rect x="173" y="44" width="62" height="62" rx="15" /><rect x="109" y="92" width="62" height="62" rx="15" /><path d="M76 75h128M140 75v48" /><circle cx="76" cy="75" r="6" /><circle cx="204" cy="75" r="6" /><circle cx="140" cy="123" r="6" /></>}
+    {kind === "session" && <><ellipse cx="140" cy="90" rx="96" ry="34" /><ellipse cx="140" cy="90" rx="34" ry="96" transform="rotate(61 140 90)" /><circle cx="140" cy="90" r="15" /><circle cx="226" cy="101" r="6" /></>}
+    {kind === "supervisor" && <><circle cx="140" cy="88" r="36" /><circle cx="140" cy="88" r="11" /><path d="M140 52V27M108 67 79 50M172 67l29-17M109 112l-32 25M171 112l32 25M140 124v27" /><circle cx="140" cy="23" r="6" /><circle cx="73" cy="47" r="6" /><circle cx="207" cy="47" r="6" /><circle cx="71" cy="141" r="6" /><circle cx="209" cy="141" r="6" /><circle cx="140" cy="156" r="6" /></>}
+    {kind === "deploy" && <><circle cx="140" cy="90" r="58" /><ellipse cx="140" cy="90" rx="94" ry="31" /><path d="M73 90h134M140 32c24 21 35 40 35 58s-11 37-35 58c-24-21-35-40-35-58s11-37 35-58Z" /><path d="m194 49 31 11-26 20" /></>}
   </svg>;
 }
 
-export default function Landing() {
-  return <main className="olShell" id="top">
-    <div className="olNebula olNebulaGreen" aria-hidden="true" />
-    <div className="olNebula olNebulaYellow" aria-hidden="true" />
+function CommandPreview() {
+  return <div className="wvCommand" aria-label="WAVE execution preview">
+    <div className="wvCommandTop">
+      <div><span className="wvDot" /><b>WAVE COMMAND</b><small>owner-main · 1LSS synced</small></div>
+      <span>GUARDED</span>
+    </div>
+    <div className="wvPrompt"><small>YOU</small><p>Make the interface production-ready, deploy staging and verify every route.</p></div>
+    <div className="wvSupervisor"><span>OGENIC · SUPERVISING</span><b>AUTO ROUTING</b></div>
+    <div className="wvAgentRows">
+      <div><i>01</i><span><b>Implementation</b><small>Codex · patch UI</small></span><em>COMPLETE</em></div>
+      <div><i>02</i><span><b>Operator</b><small>Runner · deploy staging</small></span><em className="hold">APPROVAL</em></div>
+      <div><i>03</i><span><b>Verifier</b><small>Browser · route checks</small></span><em>QUEUED</em></div>
+    </div>
+    <div className="wvRun">
+      {runSteps.map(([index, label, state]) => <div className={`wvRunStep ${state}`} key={label}><i>{index}</i><span>{label}</span><b>{state === "complete" ? "✓" : state === "approval" ? "!" : "·"}</b></div>)}
+    </div>
+    <div className="wvToolLine"><span>TOOLS</span><i>GitHub</i><i>Cloudflare</i><i>Browser</i><i>Files</i></div>
+  </div>;
+}
 
-    <header className="olTop">
-      <a className="olBrand" href="/" aria-label="WAVE home">
+export default function Landing() {
+  return <main className="wvShell" id="top">
+    <div className="wvGlow wvGlowGreen" aria-hidden="true" />
+    <div className="wvGlow wvGlowGold" aria-hidden="true" />
+
+    <header className="wvTop">
+      <a className="wvBrand" href="/" aria-label="WAVE home">
         <img src="/assets/wave-logo.webp" alt="" />
-        <span><b>WAVE</b><small>OGENIC · GIMS STONE</small></span>
+        <span><b>WAVE</b><small>HUMAN DECISION · AI EXECUTION</small></span>
       </a>
-      <nav className="olNav" aria-label="WAVE navigation">
-        <a href="#top">HOME</a>
-        <a href="#green-stone">GREEN STONE</a>
-        <a href="#yellow-stone">YELLOW STONE</a>
+      <nav className="wvNav" aria-label="WAVE navigation">
         <a href="/chat">CHAT</a>
-        <a href="/overview">DASHBOARD</a>
+        <a href="/overview">OPERATE</a>
+        <a href="/overview">AGENTS</a>
+        <a href="#stones">STONES</a>
         <a href="/app">APP</a>
       </nav>
-      <a className="olEnter" href="/chat">ENTER WAVE <span>→</span></a>
+      <a className="wvPrimary" href="/chat">OPEN WAVE <span>↗</span></a>
     </header>
 
-    <section className="olIntro">
-      <p className="olEyebrow">PHASE 2 · LIVE SYSTEM</p>
-      <h1>TWO STONES.<br /><span>ONE MIND.</span></h1>
-      <p>Green Stone keeps the line. Yellow Stone operates capability. WAVE is the surface. OGENIC is the head.</p>
-      <div className="olStatus"><span>SELF-HOSTED RUNNER ONLINE</span><i /> <span>CLOUDFLARE DEPLOY VERIFIED</span><i /> <span>1LSS SAME MIND</span></div>
-    </section>
-
-    <section className="olStoneGrid" aria-label="WAVE system stones">
-      <article className="olStonePanel green" id="green-stone">
-        <a className="olStoneFrame" href="/chat" aria-label="Open Green Stone WAVE Chat">
-          <StoneArt tone="green" />
-        </a>
-        <div className="olStoneCopy">
-          <p className="olStoneIndex">01 · CONTINUITY</p>
-          <h2>GREEN STONE</h2>
-          <strong>1LSS · ONE-LINE SESSION</strong>
-          <div className="olStoneFacts"><span>Connected chat mode</span><span>One canonical session</span><span>Same mind across Web + App</span></div>
-          <a href="/chat">OPEN GREEN STONE <span>→</span></a>
+    <section className="wvHero">
+      <div className="wvHeroCopy">
+        <div className="wvLive"><span /> SYSTEM ONLINE · SAME MIND</div>
+        <h1>ONE CONTEXT.<br /><span>MANY AGENTS.</span><br />REAL ACTIONS.</h1>
+        <p>WAVE is the operating surface where conversation, tools, agents, runtime and evidence stay in one continuous work record.</p>
+        <div className="wvActions">
+          <a className="primary" href="/chat">START IN CHAT <span>→</span></a>
+          <a href="/overview">OPEN OPERATE</a>
+          <a href="/overview">AGENT DECK</a>
         </div>
-      </article>
-
-      <article className="olStonePanel yellow" id="yellow-stone">
-        <a className="olStoneFrame" href="/overview" aria-label="Open Yellow Stone WAVE Dashboard">
-          <StoneArt tone="yellow" />
-        </a>
-        <div className="olStoneCopy">
-          <p className="olStoneIndex">02 · CAPABILITY</p>
-          <h2>YELLOW STONE</h2>
-          <strong>TOOLS CONTROL PANEL · OPERATE CAPABILITY</strong>
-          <div className="olStoneFacts"><span>Cloudflare Worker + Agent Runtime</span><span>Skills · SDK · Docs · Tools</span><span>OGENIC Supervisor · verified actions</span></div>
-          <a href="/overview">OPEN YELLOW STONE <span>→</span></a>
+        <div className="wvMiniStatus">
+          <span><b>1LSS</b> ACTIVE</span><span><b>RUNNER</b> READY</span><span><b>RUNTIME</b> CLOUDFLARE</span><span><b>MODE</b> GUARDED</span>
         </div>
-      </article>
-    </section>
-
-    <section className="olModes" aria-labelledby="mode-title">
-      <div className="olSectionHead">
-        <div><small>WAVE · OPERATE</small><h2 id="mode-title">SYSTEM MODES</h2></div>
-        <p>ทุกกรอบเป็นภาพล้วน · ชื่ออยู่ใต้ภาพ · ทุกใบกดใช้งานได้</p>
       </div>
-      <div className="olModeGrid">
-        {modes.map((mode) => <a className={`olModeCard ${mode.tone}`} href={mode.href} key={mode.title}>
-          <div className="olModeVisual"><ModeArt kind={mode.kind} /></div>
-          <div className="olModeLabel"><span>{mode.title}</span><b>↗</b></div>
-          <small>{mode.detail}</small>
+      <CommandPreview />
+    </section>
+
+    <section className="wvStoneRail" id="stones" aria-label="WAVE system cores">
+      <a className="wvStone green" href="/chat">
+        <div className="wvStoneVisual"><StoneArt tone="green" /></div>
+        <div className="wvStoneText"><small>01 · CONTEXT CORE</small><h2>GREEN STONE</h2><p>1LSS continuity · one canonical line · same mind.</p><span>OPEN CHAT ↗</span></div>
+      </a>
+      <div className="wvEnergy" aria-hidden="true"><span>INTENT</span><i /><b>WAVE</b><i /><span>EXECUTION</span></div>
+      <a className="wvStone yellow" href="/overview">
+        <div className="wvStoneVisual"><StoneArt tone="yellow" /></div>
+        <div className="wvStoneText"><small>02 · CAPABILITY CORE</small><h2>YELLOW STONE</h2><p>Tools · skills · runtime · deploy · verify.</p><span>OPEN OPERATE ↗</span></div>
+      </a>
+    </section>
+
+    <section className="wvModes" aria-labelledby="mode-title">
+      <div className="wvSectionHead"><div><small>OPERATING SURFACES</small><h2 id="mode-title">Everything routes somewhere real.</h2></div><p>No dead controls. No decorative dashboard buttons.</p></div>
+      <div className="wvModeGrid">
+        {modes.map((mode) => <a className={`wvMode ${mode.tone}`} href={mode.href} key={mode.title}>
+          <div className="wvModeVisual"><ModeArt kind={mode.kind} /></div>
+          <div className="wvModeTop"><span>{mode.meta}</span><b>↗</b></div>
+          <h3>{mode.title}</h3>
+          <p>{mode.detail}</p>
         </a>)}
       </div>
     </section>
 
-    <section className="olLaunch">
-      <div><small>ONE CONTEXT · MANY AGENTS · VERIFIED ACTIONS</small><h2>Ready to operate.</h2></div>
-      <div><a href="/chat">WAVE CHAT →</a><a href="/overview">DASHBOARD →</a><a href="/app">APP VIEW →</a></div>
+    <section className="wvDock" aria-label="WAVE quick launch">
+      <div><span className="wvDot" /><b>WAVE</b><small>ONE CONTEXT · MANY AGENTS · REAL TOOLS · VERIFIED ACTIONS</small></div>
+      <nav><a href="/chat">CHAT</a><a href="/overview">OPERATE</a><a href="/overview">AGENTS</a><a href="/app">APP</a></nav>
     </section>
 
-    <footer className="olFooter">WAVE · GREEN STONE · YELLOW STONE · OGENIC HARNESS · 1LSS</footer>
+    <footer className="wvFooter"><span>WAVE · GIMS STONE SYSTEM</span><span>GREEN KEEPS THE THREAD · YELLOW RUNS THE WORK</span></footer>
   </main>;
 }
