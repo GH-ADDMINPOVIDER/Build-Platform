@@ -13,6 +13,7 @@ import ThemeController from "./ThemeController";
 import UnifiedChat from "./UnifiedChat";
 import Landing from "./Landing";
 import "./control-plane-v2.css";
+import "./wave-control-v3.css";
 import "./usage-panel.css";
 import "./connector-panel.css";
 import "./provider-connect.css";
