@@ -22,6 +22,7 @@ import "./gag-vault.css";
 import "./dense-mobile.css";
 import "./mobile-app.css";
 import "./unified-chat.css";
+import "./wave-chat-v3.css";
 import "./mobile-fixes.css";
 import "./landing.css";
 
