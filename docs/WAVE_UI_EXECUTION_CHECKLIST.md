@@ -23,8 +23,11 @@ Target: `phase-vi-provider-incentive-metering` only. Staging first. No main/prod
 - [x] Operate v3 staging deploy #209 completed successfully.
 - [x] Latest staging commit `d301df3984d365df6c883f8ac1c11fc6869113ef` deployed successfully in Provider Incentive Staging Deploy #210 / run `36505237094`.
 - [x] Latest #210 verification passed: Infisical OIDC, D1 resolution/migrations, `npm run check`, protected bindings, Cloudflare deploy, staging health, owner auth, dashboard, connector hub, Browser Run bridge and Manus bridge state.
+- [x] Cloudflare `cf` CLI open beta added to WAVE self-host bootstrap alongside Wrangler; Wrangler remains fallback during beta.
+- [x] Self-host smoke workflow now installs `cf` into the runner user's local prefix and verifies `cf --version` + `cf --help` without making Cloudflare mutations.
 
 ## In progress / verify on staging
+- [ ] Confirm WAVE Self-hosted Runner Smoke run for `cf` CLI completes successfully on `wave-runner-01` (run `36509030687` queued at last check).
 - [ ] Verify `https://wave.ogenicchocolate.com/` visually on desktop + iPhone. Current execution environment cannot resolve/open the custom runtime for browser-level visual QA; CI/runtime verification is green.
 - [ ] Verify every landing action by live browser click-through. Source route contract is verified; interactive browser QA remains.
 - [ ] Verify `/chat` send, Agent AI, Model, Tools, attachment and 1LSS controls by live UI interaction.
@@ -32,6 +35,8 @@ Target: `phase-vi-provider-incentive-metering` only. Staging first. No main/prod
 - [ ] Verify `/app` mobile surface by live UI interaction and confirm canonical 1LSS status.
 
 ## Next implementation pass
+- [ ] Evaluate `cf` CLI for read-only account discovery and safe staging operations before replacing any Wrangler paths.
+- [ ] Evaluate Cloudflare Forge as the generator layer for Yellow Stone SDK / Docs / CLI surfaces.
 - [ ] Add dedicated WAVE Connections surface grouping MCP / OAuth / API / Webhook / SDK adapters.
 - [ ] Add Runtime Framework surface for self-host runner status, jobs, Docker/CLI capability and guarded terminal sessions.
 - [ ] Add Agent Deck / Registry surface with DIRECT / DELEGATE / COUNCIL / AUTO semantics.
@@ -44,3 +49,4 @@ Target: `phase-vi-provider-incentive-metering` only. Staging first. No main/prod
 - [x] Keep owner-main / `1LSS_OWNER_MAIN` canonical.
 - [x] WAVE stays mobile-first.
 - [x] MCP remains an adapter protocol, not the system runtime itself.
+- [x] `cf` CLI does not receive production/destructive authority by default; staging/read-only first.
