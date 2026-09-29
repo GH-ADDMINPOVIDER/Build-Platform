@@ -8,20 +8,25 @@ Target: `phase-vi-provider-incentive-metering` only. Staging first. No main/prod
 - [x] Landing redesigned into dense WAVE command surface.
 - [x] Green Stone + Yellow Stone visual system implemented.
 - [x] Landing navigation routes to existing real surfaces only: `/`, `/chat`, `/overview`, `/app`, `#stones`.
-- [x] Chat surface already exposes live Model / Agent AI / Tools / D1-1LSS controls.
-- [x] Tools dock already supports live-capability filtering and real tool routes where available.
+- [x] Landing Agent / Agent Deck actions route to the existing Agent AI chat surface instead of a generic dashboard target.
+- [x] Chat surface exposes live Model / Agent AI / Tools / D1-1LSS controls.
+- [x] Tools dock supports live-capability filtering and real tool routes where available.
 - [x] 1LSS cross-surface sync status remains visible in chat.
 - [x] Self-hosted `wave-runner-01` is the staging execution runner.
 - [x] Previous deploy failure isolated to stale landing UI assertions, not runtime/auth/D1.
 - [x] Landing tests updated to match the current v3 command UI semantics.
-- [x] Landing Agent / Agent Deck actions now route to the existing Agent AI chat surface instead of a generic dashboard target.
-- [x] CI `npm run check` passes on WAVE UI staging commit `9d0ac40308cbe5e0f73154075fbfd24d97656346`.
-- [x] Provider Incentive Staging Deploy run `36504552595` / #206 completed successfully on `wave-runner-01`.
-- [x] Staging Worker deploy, health check, owner auth, dashboard, connector hub, Browser Run bridge and Manus bridge verification passed in run #206.
+- [x] WAVE Chat v3 clean operator skin implemented and activated: calm OpenAI-like primary surface with compact controls and dense capability drawers.
+- [x] WAVE Operate v3 dense operator skin implemented and activated: compact Linear-like operational density using WAVE graphite / Green / Gold language.
+- [x] CI `npm run check` passes on the latest staging UI chain.
+- [x] Provider Incentive Staging Deploy #206 completed successfully on `wave-runner-01` after landing-route fixes.
+- [x] Chat v3 staging deploy #208 completed successfully with typecheck/build, deploy, health and protected runtime verification green.
+- [x] Operate v3 staging deploy #209 completed successfully.
+- [x] Latest staging commit `d301df3984d365df6c883f8ac1c11fc6869113ef` deployed successfully in Provider Incentive Staging Deploy #210 / run `36505237094`.
+- [x] Latest #210 verification passed: Infisical OIDC, D1 resolution/migrations, `npm run check`, protected bindings, Cloudflare deploy, staging health, owner auth, dashboard, connector hub, Browser Run bridge and Manus bridge state.
 
 ## In progress / verify on staging
-- [ ] Verify `https://wave.ogenicchocolate.com/` render visually on desktop + iPhone. (External browser fetch from this chat cannot open the private/custom runtime; workflow health is green.)
-- [ ] Verify every landing action visually opens its intended working destination. Source route contract is verified; browser click-through remains.
+- [ ] Verify `https://wave.ogenicchocolate.com/` visually on desktop + iPhone. Current execution environment cannot resolve/open the custom runtime for browser-level visual QA; CI/runtime verification is green.
+- [ ] Verify every landing action by live browser click-through. Source route contract is verified; interactive browser QA remains.
 - [ ] Verify `/chat` send, Agent AI, Model, Tools, attachment and 1LSS controls by live UI interaction.
 - [ ] Verify `/overview` dashboard/runtime/tool controls by live UI interaction.
 - [ ] Verify `/app` mobile surface by live UI interaction and confirm canonical 1LSS status.
