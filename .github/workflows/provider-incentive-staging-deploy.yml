@@ -40,6 +40,28 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect frontend-only staging changes
+        id: scope
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          UI_ONLY=false
+          if test "${GITHUB_EVENT_NAME}" = "push" && [[ "$BEFORE_SHA" =~ ^[0-9a-f]{40}$ ]] && ! [[ "$BEFORE_SHA" =~ ^0+$ ]]; then
+            if ! git cat-file -e "$BEFORE_SHA^{commit}" 2>/dev/null; then
+              git fetch --no-tags --depth=1 origin "$BEFORE_SHA"
+            fi
+            CHANGED="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA")"
+            if test -n "$CHANGED" && ! printf '%s\n' "$CHANGED" | grep -Eqv '^(src/|tests/|docs/|\.github/workflows/provider-incentive-staging-deploy\.yml$)'; then
+              UI_ONLY=true
+            fi
+          fi
+          echo "ui_only=$UI_ONLY" >> "$GITHUB_OUTPUT"
+          echo "Frontend-only deploy: $UI_ONLY; frontend changes preserve D1 schema and existing Worker secrets."
 
       - uses: actions/setup-node@v4
         with:
@@ -132,12 +154,14 @@ jobs:
           PY
 
       - name: Apply D1 migrations
+        if: steps.scope.outputs.ui_only != 'true'
         run: npx wrangler d1 migrations apply "$D1_DATABASE_NAME" --remote --config wrangler.jsonc
 
       - name: Typecheck and build
         run: npm run check
 
       - name: Prepare protected runtime secret bundle
+        if: steps.scope.outputs.ui_only != 'true'
         id: runtime_secrets
         shell: bash
         run: |
@@ -174,11 +198,17 @@ jobs:
         shell: bash
         env:
           SECRETS_FILE: ${{ steps.runtime_secrets.outputs.file }}
+          UI_ONLY: ${{ steps.scope.outputs.ui_only }}
         run: |
           set -euo pipefail
-          trap 'rm -f "$SECRETS_FILE"' EXIT
-          npx wrangler deploy --config dist/ogenic_phase_vi_staging/wrangler.json --secrets-file "$SECRETS_FILE"
-          echo "Staging code + protected bindings deployed atomically."
+          if test "$UI_ONLY" = "true"; then
+            npx wrangler deploy --config dist/ogenic_phase_vi_staging/wrangler.json --keep-vars
+            echo "Frontend-only staging code deployed; existing secrets kept; D1 migrations skipped."
+          else
+            trap 'rm -f "$SECRETS_FILE"' EXIT
+            npx wrangler deploy --config dist/ogenic_phase_vi_staging/wrangler.json --secrets-file "$SECRETS_FILE"
+            echo "Staging code + protected bindings deployed atomically."
+          fi
 
       - name: Verify staging health
         shell: bash

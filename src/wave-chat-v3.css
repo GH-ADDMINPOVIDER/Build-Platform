@@ -59,13 +59,33 @@
 .ucMessage.user {
   border-radius:12px;
   padding:10px 12px;
-  background:#151b18;
-  border:1px solid rgba(255,255,255,.045);
+  background:rgba(18,32,29,.94);
+  border:1px solid rgba(71,225,184,.46);
+  box-shadow:0 4px 20px rgba(33,207,163,.06);
 }
-.ucMessageMeta b { font-size:8px; }
-.ucMessageMeta span { font-size:8px; color:#66776e; }
+.ucMessage.assistant { padding:12px 14px; border:1px solid rgba(133,143,250,.44); border-radius:12px; background:rgba(22,25,40,.94); box-shadow:0 4px 20px rgba(128,112,246,.07); }
+@supports (backdrop-filter:blur(8px)) { .ucMessage.user,.ucMessage.assistant { backdrop-filter:blur(8px); } }
+.ucMessageMeta b { font-size:11px; }
+.ucMessageMeta span { font-size:10px; color:#a1b5aa; }
 .ucMessage p { font-size:14px; line-height:1.62; }
-.ucMessage > small { font-size:8px; color:#687970; }
+.ucMessage > small { font-size:10px; color:#a1b5aa; }
+
+.ucShell { --wave-attachment-surface:#121e1b; --wave-attachment-text:#eef7f3; --wave-attachment-muted:#b6cfc3; --wave-attachment-edge:#40dea9; --wave-attachment-warning:#f2a77c; --wave-attachment-gap:10px; --wave-attachment-radius:12px; }
+
+/* Reliable attachments stay in the composer until explicitly removed or sent. */
+.ucAttachmentList { display:flex; flex-direction:column; gap:8px; max-height:220px; overflow:auto; margin-bottom:8px; }
+.ucAttachmentCard { display:flex; align-items:center; gap:var(--wave-attachment-gap); padding:8px; border:1px solid var(--wave-attachment-edge); border-radius:var(--wave-attachment-radius); background:var(--wave-attachment-surface); color:var(--wave-attachment-text); }
+.ucAttachmentCard.failed { border-color:var(--wave-attachment-warning); }
+.ucAttachmentCard > img,.ucAttachmentIcon { width:48px; height:48px; object-fit:cover; flex:none; border-radius:8px; }
+.ucAttachmentIcon { display:grid; place-items:center; background:#26332d; font-size:24px; }
+.ucAttachmentInfo { min-width:0; flex:1; display:flex; flex-direction:column; gap:4px; }
+.ucAttachmentInfo b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.ucAttachmentInfo small { font-size:12px; color:var(--wave-attachment-muted); overflow-wrap:anywhere; }
+.ucAttachmentInfo .ucAttachmentError { color:#ffbc96; }
+.ucAttachmentCard button { min-height:44px; min-width:44px; flex:none; border:1px solid #506559; border-radius:8px; background:#1b2b23; color:#f0faf5; cursor:pointer; font-size:13px; }
+.ucAttachmentCard button:focus-visible { outline:2px solid #67eed2; outline-offset:2px; }
+.ucAttachmentInfo progress { width:100%; height:6px; accent-color:#59e8bd; }
+.ucNotice[role="alert"] { color:#ffbc96; }
 
 /* Composer is one compact command bar; tools unfold only when requested. */
 .ucComposerWrap {

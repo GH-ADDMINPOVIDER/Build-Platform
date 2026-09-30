@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ComposerAttachments, { useComposerDraft } from "./ComposerAttachments";
 
 type Surface = "ogenic-app" | "ogenic-web";
 type Role = "user" | "assistant" | "system";
@@ -37,7 +38,6 @@ type Platform = {
 };
 type ManusState = { ok?: boolean; state?: string; configured?: boolean };
 type BrowserState = { ok?: boolean; state?: string; provider?: string; human_in_the_loop?: boolean };
-type Attachment = { id: string; filename: string; mime_type: string; size_bytes: number };
 type ChatConfig = { model: string; effort: Effort; boost: 1 | 10 | 20 };
 type BridgeSurface = {
   source_surface: Surface;
@@ -125,14 +125,6 @@ function makeViewportSessionRef(surface: Surface, reuse = true) {
     return `${surface}_${crypto.randomUUID()}`;
   }
 }
-function fileToDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(reader.error || new Error("FILE_READ_FAILED"));
-    reader.readAsDataURL(file);
-  });
-}
 
 export default function UnifiedChat({ surface }: Props) {
   const [session, setSession] = useState<Session | null>(null);
@@ -149,7 +141,10 @@ export default function UnifiedChat({ surface }: Props) {
   const [viewportSessionRef, setViewportSessionRef] = useState(() => makeViewportSessionRef(surface));
   const [latestSequence, setLatestSequence] = useState(0);
   const [viewportFloor, setViewportFloor] = useState(0);
-  const [draft, setDraft] = useState("");
+  const composerDraft = useComposerDraft(Boolean(session?.authenticated));
+  const draft = composerDraft.text;
+  const attachments = composerDraft.attachments;
+  const setDraft = composerDraft.store.setText.bind(composerDraft.store);
   const [sending, setSending] = useState(false);
   const [toolDock, setToolDock] = useState(false);
   const [modelDock, setModelDock] = useState(false);
@@ -159,7 +154,6 @@ export default function UnifiedChat({ surface }: Props) {
   const [d1Enabled, setD1Enabled] = useState(() => readBool(MEMORY_KEY, true));
   const [allowPaidFallback, setAllowPaidFallback] = useState(() => readBool(PAID_FALLBACK_KEY, false));
   const [chatConfig, setChatConfig] = useState<ChatConfig>(() => readJson(CHAT_CONFIG_KEY, DEFAULT_CONFIG));
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [inlineNotice, setInlineNotice] = useState("");
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
@@ -421,18 +415,10 @@ export default function UnifiedChat({ surface }: Props) {
 
   async function upload(file: File) {
     if (!d1Enabled) { setInlineNotice("เปิด D1 ก่อนแนบไฟล์ เพื่อให้ไฟล์อยู่บน 1LSS เดียว"); return; }
-    if (file.size > 4_000_000) { setInlineNotice("ไฟล์เกิน 4 MB"); return; }
-    setInlineNotice(`กำลังแนบ ${file.name}…`);
+    if (sending) return;
+    setToolDock(false);
     try {
-      const response = await fetch("/api/chat/attachments", {
-        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: file.name, mime_type: file.type || "application/octet-stream", data_url: await fileToDataUrl(file) }),
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok || !body?.attachment) throw new Error(body?.message || body?.code || `HTTP_${response.status}`);
-      setAttachments((rows) => [...rows, body.attachment].slice(-4));
-      setInlineNotice("พร้อมส่ง");
-      setToolDock(false);
+      await composerDraft.store.add(file);
     } catch (error) { setInlineNotice(error instanceof Error ? error.message : "แนบไฟล์ไม่สำเร็จ"); }
   }
 
@@ -539,13 +525,14 @@ export default function UnifiedChat({ surface }: Props) {
   }
 
   async function runChat(prompt: string) {
+    const sentDraft = composerDraft.store.getSnapshot();
     const endpoint = d1Enabled ? "/api/chat/model" : "/api/chat/ephemeral";
     const response = await fetch(endpoint, {
       method: "POST", credentials: "same-origin",
       headers: { "Content-Type": "application/json", "Idempotency-Key": `${surface}_${crypto.randomUUID()}` },
       body: JSON.stringify({
         prompt,
-        attachment_ids: d1Enabled ? attachments.map((item) => item.id) : [],
+        attachment_ids: d1Enabled ? sentDraft.attachments.map((item) => item.uploaded!.id) : [],
         model: selectedModel.id,
         reasoning_effort: chatConfig.effort,
         token_boost: chatConfig.boost,
@@ -557,15 +544,19 @@ export default function UnifiedChat({ surface }: Props) {
       }),
     });
     const body = await response.json().catch(() => ({}));
+    if (body?.code === "ATTACHMENT_NOT_FOUND") composerDraft.store.unavailable(body.id);
     if (!response.ok || !body?.ok) throw new Error(body?.message || body?.code || `HTTP_${response.status}`);
+    composerDraft.store.consume(sentDraft.text, sentDraft.attachments.map(item => item.localId));
     if (d1Enabled) await loadHistory();
     else setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "assistant", text: body.text, model: body.model, created_at: Date.now() }]);
-    setAttachments([]);
   }
 
   async function send() {
     const prompt = draft.trim() || (attachments.length ? "วิเคราะห์ไฟล์ที่แนบมา" : "");
     if (!prompt || sending) return;
+    if (!composerDraft.ready) { setInlineNotice("กำลังอ่าน draft · รอสักครู่"); return; }
+    if (attachments.some(row => row.status !== "uploaded")) { setInlineNotice("รอ upload ให้ครบ หรือ retry/เอาไฟล์ที่ล้มเหลวออกก่อนส่ง"); return; }
+    if (attachments.length && (toolMode !== "chat" || experienceMode !== "chat-api")) { setInlineNotice("โหมดนี้ยังไม่รับไฟล์แนบ · เลือก WAVE Chat ก่อนส่ง ไฟล์ยังอยู่ครบ"); return; }
     if (quotaBlocked) { setInlineNotice("Included quota หมด · เลือก API fallback ก่อน กูจะไม่เผา token เอง"); return; }
     if (experienceMode === "agent-ai" && !d1Enabled) {
       setInlineNotice("Agent AI ต้องใช้ owner-main / 1LSS");
@@ -574,7 +565,7 @@ export default function UnifiedChat({ surface }: Props) {
     if (!d1Enabled && attachments.length) { setInlineNotice("ไฟล์แนบต้องใช้ D1; เปิด D1 หรือเอาไฟล์ออกก่อน"); return; }
     setSending(true);
     setInlineNotice("");
-    setDraft("");
+    const sentText = draft;
     setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "user", text: prompt, created_at: Date.now(), source_surface: surface }]);
     try {
       if (toolMode === "manus") await runManus(prompt);
@@ -583,8 +574,10 @@ export default function UnifiedChat({ surface }: Props) {
       else if (toolMode === "web" || toolMode === "rag") await runHostedTools(prompt);
       else if (experienceMode === "agent-ai") await runAgentAI(prompt);
       else await runChat(prompt);
+      composerDraft.store.consume(sentText, []);
       await loadRuntime();
     } catch (error) {
+      setInlineNotice(error instanceof Error ? error.message : "Request failed · draft retained");
       setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "system", text: error instanceof Error ? error.message : "Request failed", created_at: Date.now() }]);
     } finally { setSending(false); }
   }
@@ -596,7 +589,6 @@ export default function UnifiedChat({ surface }: Props) {
     if (memory) void registerSessionRef(nextRef, latestSequence + 1);
     setViewportFloor(latestSequence);
     setMessages([]);
-    setAttachments([]);
     setToolMode("chat");
     setNewDock(false);
     setInlineNotice(memory ? `New viewport · D1 ต่อจาก #${latestSequence}` : "New ephemeral chat · D1 off");
@@ -679,19 +671,20 @@ export default function UnifiedChat({ surface }: Props) {
       </section>}
 
       {toolMode !== "chat" && <div className="ucActiveTool"><span>{toolMode.toUpperCase()}</span><button onClick={() => setToolMode("chat")}>×</button></div>}
-      {attachments.length > 0 && <div className="ucAttachments">{attachments.map((file) => <button key={file.id} onClick={() => setAttachments((rows) => rows.filter((row) => row.id !== file.id))}>▧ {file.filename} ×</button>)}</div>}
+      <ComposerAttachments rows={attachments} store={composerDraft.store} disabled={sending} />
+      {composerDraft.persistenceError && <div className="ucNotice" role="alert">{composerDraft.persistenceError}</div>}
       {inlineNotice && <div className="ucNotice">{inlineNotice}</div>}
       {quotaBlocked && <div className="ucQuotaWarn"><b>Guarded quota หมด</b><span>Paid fallback ปิดอยู่ กูจะไม่ข้าม guard เอง</span><button onClick={() => setAllowPaidFallback(true)}>Allow paid fallback</button></div>}
       <div className="ucExperience" role="group" aria-label="Chat mode">
         {EXPERIENCE_MODES.map((item) => <button key={item.id} className={experienceMode === item.id ? "active" : ""} aria-pressed={experienceMode === item.id} onClick={() => selectExperience(item.id)}><b>{item.label}</b><small>{item.state}</small></button>)}
       </div>
       <section className="ucComposer">
-        <textarea rows={1} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message WAVE…"} />
+        <textarea rows={1} disabled={!composerDraft.ready} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message WAVE…"} />
         <div className="ucComposerBar">
           <button className="ucRound" onClick={() => { setToolDock((value) => !value); setModelDock(false); }}>＋</button>
           <button className="ucModel" onClick={() => { setModelDock((value) => !value); setToolDock(false); }}><i /> <b>{selectedModel.label}</b><small>{EFFORTS.find((row) => row.id === chatConfig.effort)?.label} · ×{chatConfig.boost}</small>⌄</button>
           <div className="ucQuotaMini">{pools.length ? <>{pools[0]?.state === "EXHAUSTED" ? (allowPaidFallback ? "Fallback ON" : "Guarded") : quotaMetered ? "Metered" : "Guarded"}</> : "Guarded"}</div>
-          <button className="ucSend" aria-label="Send message" disabled={sending || (!draft.trim() && !attachments.length)} onClick={() => void send()}>{sending ? "…" : "↑"}</button>
+          <button className="ucSend" aria-label="Send message" disabled={sending || !composerDraft.ready || attachments.some(row => row.status !== "uploaded") || (!draft.trim() && !attachments.length)} onClick={() => void send()}>{sending ? "…" : "↑"}</button>
         </div>
       </section>
       <div className="ucFooterLine"><span>{d1Enabled ? `WAVE · OGENIC HARNESS · 1LSS · ${bridgeLabel} · next #${latestSequence + 1}` : "ephemeral · D1 off"}</span><button onClick={() => { void loadRuntime(); void loadBridgeStatus(); }}>↻</button><button onClick={() => void signOut()}>Sign out</button></div>

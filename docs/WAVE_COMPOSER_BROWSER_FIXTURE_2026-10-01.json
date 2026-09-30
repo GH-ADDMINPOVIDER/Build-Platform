@@ -1,0 +1,24 @@
+{
+  "at": "2026-09-30T18:09:25.366Z",
+  "browser": "153.0.8010.0",
+  "viewport": "390x844 touch Chromium",
+  "api": "LOCAL FIXTURE ONLY",
+  "passed": [
+    "preview before upload",
+    "send blocked while uploading",
+    "draft+Blob across chat/app navigation",
+    "draft+Blob across reload",
+    "failed send retains draft+attachment",
+    "success consumes correct IDs",
+    "failed upload retains preview",
+    "retry same file",
+    "explicit remove",
+    "no horizontal overflow",
+    "no page errors"
+  ],
+  "limitations": [
+    "Not real iPhone Safari",
+    "Not installed Home Screen PWA",
+    "Not authenticated staging E2E"
+  ]
+}
