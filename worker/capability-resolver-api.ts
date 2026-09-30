@@ -8,14 +8,16 @@ import {
 } from "./capability-resolver";
 
 type D1Result<T = Record<string, unknown>> = { results?: T[]; success?: boolean };
-type D1Prepared = {
-  bind: (...values: unknown[]) => D1Prepared;
+export type CapabilityResolverPrepared = {
+  bind: (...values: unknown[]) => CapabilityResolverPrepared;
   all: <T = Record<string, unknown>>() => Promise<D1Result<T>>;
+  first: <T = Record<string, unknown>>() => Promise<T | null>;
+  run: () => Promise<unknown>;
 };
-type D1Like = { prepare: (query: string) => D1Prepared };
+export type CapabilityResolverD1 = { prepare: (query: string) => CapabilityResolverPrepared };
 
 export type CapabilityResolverBindings = AuthBindings & {
-  DB?: D1Like;
+  DB?: CapabilityResolverD1;
 };
 
 type ResolverEnv = { Bindings: CapabilityResolverBindings };
@@ -60,11 +62,23 @@ function candidateFromRow(row: CandidateRow): ResolverCandidate {
   };
 }
 
-async function readCandidates(db: D1Like) {
+export function normalizeResolverRequest(body: ResolverRequest): ResolverRequest {
+  return {
+    intent: compact(body.intent, 1200),
+    capability: compact(body.capability, 160),
+    provider: compact(body.provider, 120),
+    environment: compact(body.environment, 40) || "staging",
+    allowMigration: body.allowMigration === true,
+    allowOptional: body.allowOptional === true,
+  };
+}
+
+export async function readResolverCandidates(db: CapabilityResolverD1) {
   const rows = await db.prepare(
     `WITH compatibility_map(provider_id, capability_id, priority) AS (
        VALUES
          ('github', 'code_search', 10),
+         ('github', 'read_file', 11),
          ('google_drive', 'drive_scan', 10),
          ('linear', 'agent_delegate', 10),
          ('cloudflare', 'deploy_preview', 10),
@@ -119,20 +133,13 @@ export function createCapabilityResolverApi() {
     }
 
     const body = await c.req.json<ResolverRequest>().catch(() => ({} as ResolverRequest));
-    const request: ResolverRequest = {
-      intent: compact(body.intent, 1200),
-      capability: compact(body.capability, 160),
-      provider: compact(body.provider, 120),
-      environment: compact(body.environment, 40) || "staging",
-      allowMigration: body.allowMigration === true,
-      allowOptional: body.allowOptional === true,
-    };
+    const request = normalizeResolverRequest(body);
 
     if (!request.intent && !request.capability && !request.provider) {
       return c.json({ ok: false, code: "INVALID_REQUEST", message: "intent, capability or provider is required" }, 400);
     }
 
-    const candidates = await readCandidates(c.env.DB);
+    const candidates = await readResolverCandidates(c.env.DB);
     const result = resolveCapability(request, candidates);
     const status: 200 | 404 | 409 | 503 = result.ok
       ? 200
