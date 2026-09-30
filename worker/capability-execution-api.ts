@@ -226,7 +226,6 @@ export function createCapabilityExecutionApi() {
     const read = await readGitHubFile(c.env, path);
     if (!read.ok) {
       return c.json({
-        ok: false,
         ...read,
         run_id: runId,
         resolver: resolved,
