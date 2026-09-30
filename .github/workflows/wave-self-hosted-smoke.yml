@@ -61,6 +61,14 @@ jobs:
           cf --version
           codex --version || true
 
+      - name: Verify OpenAI self-host executor prerequisite
+        shell: bash
+        run: |
+          set -euo pipefail
+          codex exec-server --help >/tmp/wave-codex-exec-server-help.txt
+          test -s /tmp/wave-codex-exec-server-help.txt
+          echo "WAVE_CODEX_EXEC_SERVER_READY"
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
