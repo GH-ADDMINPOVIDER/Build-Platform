@@ -25,9 +25,11 @@ Target: `phase-vi-provider-incentive-metering` only. Staging first. No main/prod
 - [x] Latest #210 verification passed: Infisical OIDC, D1 resolution/migrations, `npm run check`, protected bindings, Cloudflare deploy, staging health, owner auth, dashboard, connector hub, Browser Run bridge and Manus bridge state.
 - [x] Cloudflare `cf` CLI open beta added to WAVE self-host bootstrap alongside Wrangler; Wrangler remains fallback during beta.
 - [x] Self-host smoke workflow now installs `cf` into the runner user's local prefix and verifies `cf --version` + `cf --help` without making Cloudflare mutations.
+- [x] WAVE Self-hosted Runner Smoke #7 / run `36509030687` completed successfully for Cloudflare `cf` CLI on `wave-runner-01`.
+- [x] Yellow Stone Slice 1 / OGE-25 deterministic read-only capability resolver verified and closed.
 
 ## In progress / verify on staging
-- [ ] Confirm WAVE Self-hosted Runner Smoke run for `cf` CLI completes successfully on `wave-runner-01` (run `36509030687` queued at last check).
+- [ ] Yellow Stone Slice 2 / OGE-26: guarded execution router + approval/evidence envelope delegated to Codex on the staging branch.
 - [ ] Verify `https://wave.ogenicchocolate.com/` visually on desktop + iPhone. Current execution environment cannot resolve/open the custom runtime for browser-level visual QA; CI/runtime verification is green.
 - [ ] Verify every landing action by live browser click-through. Source route contract is verified; interactive browser QA remains.
 - [ ] Verify `/chat` send, Agent AI, Model, Tools, attachment and 1LSS controls by live UI interaction.
