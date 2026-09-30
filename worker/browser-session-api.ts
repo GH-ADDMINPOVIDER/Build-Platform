@@ -212,7 +212,7 @@ export function createBrowserSessionApi() {
       const page = pages[0] ?? await browser.newPage();
       const [liveViewUrl, handoff] = await Promise.all([
         liveViewForPage(page),
-        handoffStateForPage(page).catch(() => ({ active: false })),
+        handoffStateForPage(page).catch((): HandoffState => ({ active: false })),
       ]);
       const currentUrl = clean(page.url(), 2000);
       const controlState: BrowserControlState = handoff.active ? "human_control" : "agent_control";
