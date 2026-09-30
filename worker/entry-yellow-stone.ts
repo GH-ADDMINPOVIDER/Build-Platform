@@ -3,8 +3,10 @@ import {
   createCapabilityResolverApi,
   type CapabilityResolverBindings,
 } from "./capability-resolver-api";
+import { createCapabilityExecutionApi } from "./capability-execution-api";
 
 const resolverApi = createCapabilityResolverApi();
+const executionApi = createCapabilityExecutionApi();
 
 type Bindings = CapabilityResolverBindings & Record<string, unknown>;
 
@@ -13,6 +15,9 @@ export default {
     const pathname = new URL(request.url).pathname;
     if (pathname === "/api/capabilities/resolve") {
       return resolverApi.fetch(request, env, ctx as never);
+    }
+    if (pathname === "/api/capabilities/execute") {
+      return executionApi.fetch(request, env, ctx as never);
     }
     return base.fetch(request, env as never, ctx);
   },
