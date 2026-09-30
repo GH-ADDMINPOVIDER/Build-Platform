@@ -366,7 +366,7 @@ export function createOpenAISelfHostApi() {
     const dispatched = await dispatchExecutor(c.env, { sessionId, environmentId, remoteUrl });
     if (!dispatched.ok) {
       try { await eventStream.body.cancel(); } catch { /* no-op */ }
-      return c.json({ ok: false, ...dispatched, agent_session_id: sessionId, environment_id: environmentId }, 503);
+      return c.json({ ...dispatched, agent_session_id: sessionId, environment_id: environmentId }, 503);
     }
 
     const proofPrompt = [
