@@ -4,9 +4,11 @@ import {
   type CapabilityResolverBindings,
 } from "./capability-resolver-api";
 import { createCapabilityExecutionApi } from "./capability-execution-api";
+import { createOpenAISelfHostApi } from "./openai-selfhost-api";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
+const selfHostApi = createOpenAISelfHostApi();
 
 type Bindings = CapabilityResolverBindings & Record<string, unknown>;
 
@@ -18,6 +20,9 @@ export default {
     }
     if (pathname === "/api/capabilities/execute") {
       return executionApi.fetch(request, env, ctx as never);
+    }
+    if (pathname.startsWith("/api/openai/selfhost/")) {
+      return selfHostApi.fetch(request, env as never, ctx as never);
     }
     return base.fetch(request, env as never, ctx);
   },
