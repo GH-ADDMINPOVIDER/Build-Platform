@@ -69,6 +69,18 @@ jobs:
           test -s /tmp/wave-codex-exec-server-help.txt
           echo "WAVE_CODEX_EXEC_SERVER_READY"
 
+      - name: Report executor environment-key readiness
+        shell: bash
+        env:
+          OPENAI_EXECUTOR_API_KEY: ${{ secrets.OPENAI_EXECUTOR_API_KEY }}
+        run: |
+          set -euo pipefail
+          if test -n "$OPENAI_EXECUTOR_API_KEY"; then
+            echo "WAVE_OPENAI_EXECUTOR_KEY_STATE=BOUND"
+          else
+            echo "WAVE_OPENAI_EXECUTOR_KEY_STATE=CONFIGURATION_REQUIRED"
+          fi
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
