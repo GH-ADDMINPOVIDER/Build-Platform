@@ -1,12 +1,12 @@
 import { Hono, type Context, type Next } from "hono";
 import { requireOwnerSession, type AuthBindings } from "./app-auth";
 import {
-  executeConnectorFunction,
   readConnectorRegistry,
   recentConnectorEvents,
   testConnector,
   type ConnectorBindings,
 } from "./connector-runtime";
+import { executeVerifiedTool, verifiedFunctionTools } from "./verified-function-tools";
 import { readIncentiveSnapshot } from "./provider-incentives";
 import { readCanonicalD1Context, recordChatUsage } from "./d1-context";
 
@@ -113,55 +113,6 @@ async function knowledgeStore(env: ConnectorAppBindings, apiKey: string, createI
     ? { state: "LIVE", id, created: true, source: "openai" }
     : { state: "ERROR", id: "", created: false, source: "openai", error: "OpenAI returned no vector store id" };
 }
-
-const functionTools = [
-  {
-    type: "function",
-    name: "connector_status",
-    description: "Read current OGENIC connector health/configuration for LINE, Meta, n8n, HTTP hooks, OpenAI webhooks, GitHub and Linear. Read-only.",
-    parameters: {
-      type: "object",
-      properties: { connector: { type: "string", description: "Optional connector id, for example line, meta, n8n, http, openai_hooks." } },
-      additionalProperties: false,
-    },
-  },
-  {
-    type: "function",
-    name: "list_recent_hook_events",
-    description: "Read recent verified/rejected webhook audit events from OGENIC D1. Read-only and metadata-redacted.",
-    parameters: {
-      type: "object",
-      properties: { limit: { type: "integer", minimum: 1, maximum: 50 } },
-      additionalProperties: false,
-    },
-  },
-  {
-    type: "function",
-    name: "http_action",
-    description: "Propose an outbound action against a preconfigured OGENIC connector. Staging requires separate Human Approval before side effects execute.",
-    parameters: {
-      type: "object",
-      properties: {
-        connector: { type: "string" },
-        action: { type: "string" },
-        summary: { type: "string" },
-      },
-      required: ["connector", "action"],
-      additionalProperties: false,
-    },
-  },
-  {
-    type: "function",
-    name: "trigger_n8n_workflow",
-    description: "Propose running a configured n8n workflow. It must not execute if n8n is quota-blocked or without separate owner approval.",
-    parameters: {
-      type: "object",
-      properties: { workflow_id: { type: "string" }, summary: { type: "string" } },
-      required: ["workflow_id"],
-      additionalProperties: false,
-    },
-  },
-];
 
 function safeModel(item: Record<string, unknown>) {
   return { id: clean(item.id, 160), owned_by: clean(item.owned_by, 100), created: Number(item.created ?? 0) };
@@ -547,7 +498,7 @@ export function createConnectorAppApi() {
     const webTool: Record<string, unknown> = { type: "web_search" };
     const fileTool: Record<string, unknown> | null = store.state === "LIVE" && store.id ? { type: "file_search", vector_store_ids: [store.id], max_num_results: 8 } : null;
     const hostedTools: Array<Record<string, unknown>> = toolMode === "web" ? [webTool] : toolMode === "rag" ? (fileTool ? [fileTool] : []) : [webTool, ...(fileTool ? [fileTool] : [])];
-    const requestTools: Array<Record<string, unknown>> = toolMode === "auto" ? [...functionTools, ...hostedTools] : hostedTools;
+    const requestTools: Array<Record<string, unknown>> = toolMode === "auto" ? [...verifiedFunctionTools, ...hostedTools] : hostedTools;
 
     let input: Array<Record<string, unknown>> = [{
       role: "user",
@@ -568,7 +519,7 @@ export function createConnectorAppApi() {
         body: JSON.stringify({
           model,
           reasoning: { effort },
-          instructions: "You are the OGENIC connector supervisor. The context block combines verified read-only D1 canonical state with live runtime evidence from the currently executing Worker version. Use it directly for OGENIC toolkit, policy, provider binding, canonical source and knowledge questions. Use only the selected hosted tool mode for web/RAG requests. Never claim an external action was executed when a function returns HUMAN_APPROVAL_REQUIRED. LINE/Meta/n8n credentials remain server-side. Prefer verified tool facts over guesses. Reply in the user's language.\n\nCANONICAL D1 + LIVE RUNTIME EVIDENCE:\n" + d1Context.text,
+          instructions: "You are the OGENIC connector supervisor. Use verified read-only function results as authoritative evidence. The GitHub repository/branch and 1LSS conversation/session are server-locked. Never request, reveal, or infer credentials. Never claim an external action occurred; writes and unknown functions return HUMAN_APPROVAL_REQUIRED. Browser MCP is an independent inspection lane, not part of these private tools. Reply in the user's language.\n\nCANONICAL D1 + LIVE RUNTIME EVIDENCE:\n" + d1Context.text,
           input,
           ...(requestTools.length ? { tools: requestTools, tool_choice: "auto", parallel_tool_calls: true, max_tool_calls: 6 } : {}),
           ...(toolMode === "web" ? { include: ["web_search_call.action.sources"] } : toolMode === "rag" && store.state === "LIVE" ? { include: ["file_search_call.results"] } : toolMode === "auto" && store.state === "LIVE" ? { include: ["web_search_call.action.sources", "file_search_call.results"] } : toolMode === "auto" ? { include: ["web_search_call.action.sources"] } : {}),
@@ -590,9 +541,9 @@ export function createConnectorAppApi() {
       if (!functionCalls.length) break;
       const toolOutputs: Array<Record<string, unknown>> = [];
       for (const call of functionCalls) {
-        let args: Record<string, unknown> = {};
-        try { args = JSON.parse(call.arguments || "{}") as Record<string, unknown>; } catch { args = {}; }
-        const result = await executeConnectorFunction(c.env, call.name!, args);
+        let args: unknown = {};
+        try { args = JSON.parse(call.arguments || "{}") as unknown; } catch { args = null; }
+        const result = await executeVerifiedTool(call.name!, args, c.env);
         calls.push({ name: call.name!, state: String((result as any).code ?? ((result as any).ok ? "OK" : "RESULT")), call_id: call.call_id! });
         toolOutputs.push({ type: "function_call_output", call_id: call.call_id!, output: JSON.stringify(result) });
       }
