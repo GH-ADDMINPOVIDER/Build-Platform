@@ -2,10 +2,55 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { build } from "esbuild";
+import { prove, permittedRequest, readOnlyD1, READ_QUERIES } from "../scripts/verify-oge-32-read-only.mjs";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 const compiled = await build({ entryPoints: [new URL("../worker/verified-function-tools.ts", import.meta.url).pathname], bundle: true, write: false, platform: "node", format: "esm" });
 const { executeVerifiedTool, verifiedFunctionTools } = await import(`data:text/javascript;base64,${Buffer.from(compiled.outputFiles[0].text).toString("base64")}`);
+
+test("server-side proof uses signed auth and only allowlisted reads with safe evidence", async () => {
+  const requests = [];
+  const env = { GITHUB_REPOSITORY: "Ogenicchocolate21debug/Build-Platform", GITHUB_REF_NAME: "codex/continue-implementation-for-oge-32-dkxg99", GITHUB_SHA: "a".repeat(40), OGENIC_OPS_KEY: "fixture-owner-key", GITHUB_TOKEN: "fixture-github-token", LINEAR_API_KEY: "fixture-linear-key", CLOUDFLARE_API_TOKEN: "fixture-cloudflare-token", CLOUDFLARE_ACCOUNT_ID: "b".repeat(32) };
+  const request = async (url, init = {}) => {
+    requests.push({ url, method: init.method ?? "GET", body: init.body });
+    if (url.endsWith("/api/health")) return Response.json({ ok: true, runtime: "cloudflare", shared_state: "D1_BOUND" });
+    if (url.endsWith("/api/session")) {
+      if (init.method === "POST") assert.equal(JSON.parse(init.body).owner_key, env.OGENIC_OPS_KEY);
+      else assert.equal(init.headers.Cookie, "ogenic_owner_session=fixture-signed-session");
+      return Response.json({ authenticated: true, user: { role: "owner" } }, { headers: { "set-cookie": "ogenic_owner_session=fixture-signed-session; HttpOnly; Secure" } });
+    }
+    if (url.endsWith("/api/dashboard")) return Response.json({ ok: true, runtime: { branch: "phase-vi-provider-incentive-metering", git_sha: "c".repeat(40) } });
+    if (url.endsWith("/api/connectors")) return Response.json({ ok: true, connectors: [] });
+    if (url.includes("api.cloudflare.com")) {
+      const { sql, params } = JSON.parse(init.body);
+      assert.ok(READ_QUERIES.has(sql));
+      if (sql.includes("chat_messages")) assert.deepEqual(params, ["owner-main", 2]);
+      const results = sql.includes("chat_messages") ? [{ role: "user", content: "fixture-github-token", sequence_no: 1 }] : [{}];
+      return Response.json({ success: true, result: [{ success: true, results, meta: { rows_written: 0 } }] });
+    }
+    if (url.includes("api.linear.app")) return Response.json({ data: { issue: { identifier: "OGE-32" }, issues: { nodes: [{ identifier: "OGE-32" }] } } });
+    if (url.includes("/contents/")) return Response.json({ type: "file", encoding: "base64", content: Buffer.from("fixture canonical file").toString("base64") });
+    if (url.includes("/branches/")) return Response.json({ commit: { sha: "d".repeat(40) } });
+    if (url.includes("/actions/runs")) return Response.json({ workflow_runs: [] });
+    throw new Error("UNEXPECTED_REQUEST");
+  };
+  const evidence = await prove({ env, dispatch: executeVerifiedTool, definitions: verifiedFunctionTools, request });
+  assert.equal(evidence.result, "PASS");
+  assert.equal(Object.keys(evidence.seven_tools).length, 7);
+  assert.equal(evidence.write_denial, "HUMAN_APPROVAL_REQUIRED");
+  assert.equal(evidence.d1_select_reads, 8);
+  assert.equal(evidence.d1_writes, 0);
+  assert.equal(evidence.agent_calls, 0);
+  assert.ok(!JSON.stringify(evidence).includes("fixture-"));
+  assert.ok(requests.every(({ url, method }) => method === "GET" || url.endsWith("/api/session") || url.includes("api.linear.app") || url.includes("api.cloudflare.com")));
+  assert.equal(permittedRequest("https://wave.ogenicchocolate.com/api/chat/functions", { method: "POST" }), false);
+  assert.equal(permittedRequest("https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/branches/main"), false);
+  assert.equal(permittedRequest("https://api.linear.app/graphql", { method: "POST", body: JSON.stringify({ query: "mutation { issueCreate { success } }" }) }), false);
+  const db = readOnlyD1(request, env.CLOUDFLARE_ACCOUNT_ID, env.CLOUDFLARE_API_TOKEN, { reads: 0, failures: 0 });
+  assert.throws(() => db.prepare("DELETE FROM chat_messages"), /D1_READ_ONLY_ALLOWLIST/);
+  await assert.rejects(db.prepare([...READ_QUERIES][0]).run(), /D1_WRITE_FORBIDDEN/);
+  await assert.rejects(prove({ env, dispatch: executeVerifiedTool, definitions: verifiedFunctionTools, request: async () => Response.json({}, { status: 401 }) }), /STAGING_HTTP_401/);
+});
 
 test("dispatcher rejects consequential actions and secret paths without upstream calls", async () => {
   for (const name of ["http_action", "trigger_n8n_workflow", "github_create_issue", "deploy", "delete"]) {
