@@ -43,6 +43,13 @@ test("server-side proof uses signed auth and only allowlisted reads with safe ev
   assert.equal(evidence.agent_calls, 0);
   assert.ok(!JSON.stringify(evidence).includes("fixture-"));
   assert.ok(requests.every(({ url, method }) => method === "GET" || url.endsWith("/api/session") || url.includes("api.linear.app") || url.includes("api.cloudflare.com")));
+  const partial = await prove({ env: { ...env, LINEAR_API_KEY: undefined }, dispatch: executeVerifiedTool, definitions: verifiedFunctionTools, request });
+  assert.equal(partial.result, "BLOCKED");
+  assert.equal(partial.owner_auth, "PASS");
+  assert.equal(partial.seven_tools.linear_get_issue, "BLOCKED_CONFIGURATION_REQUIRED");
+  assert.equal(partial.seven_tools.lss_recent_turns, "PASS");
+  assert.equal(partial.seven_tools.yellowstone_status, "PASS");
+  assert.equal(partial.write_denial, "HUMAN_APPROVAL_REQUIRED");
   assert.equal(permittedRequest("https://wave.ogenicchocolate.com/api/chat/functions", { method: "POST" }), false);
   assert.equal(permittedRequest("https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/branches/main"), false);
   assert.equal(permittedRequest("https://api.linear.app/graphql", { method: "POST", body: JSON.stringify({ query: "mutation { issueCreate { success } }" }) }), false);

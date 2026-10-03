@@ -68,7 +68,7 @@ export async function prove({ env, dispatch, definitions, request = fetch }) {
   assert.equal(env.GITHUB_REPOSITORY, REPO);
   assert.equal(env.GITHUB_REF_NAME, HEAD_BRANCH);
   assert.match(env.GITHUB_SHA, /^[a-f0-9]{40}$/);
-  const required = ["OGENIC_OPS_KEY", "GITHUB_TOKEN", "LINEAR_API_KEY", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"];
+  const required = ["OGENIC_OPS_KEY", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"];
   for (const name of required) assert.ok(env[name], `MISSING_BINDING_${name}`);
   assert.deepEqual(definitions.map(tool => tool.name), TOOL_NAMES);
   const secrets = Object.entries(env).filter(([key, value]) => /(secret|token|key|password|cookie)/i.test(key) && typeof value === "string" && value.length).map(([, value]) => value);
@@ -100,8 +100,13 @@ export async function prove({ env, dispatch, definitions, request = fetch }) {
       const name = TOOL_NAMES[index];
       const result = await dispatch(name, args[index], bindings);
       noLeak(result);
-      assert.ok(result.ok && result.read_only && result.verified, `TOOL_PROOF_FAILED_${name}`);
+      if (!result.ok || !result.read_only || !result.verified) {
+        const code = ["CONFIGURATION_REQUIRED", "UPSTREAM_READ_FAILED", "FILE_NOT_READABLE", "FILE_DECODE_FAILED"].includes(result.code) ? result.code : "ACCEPTANCE_CHECK_FAILED";
+        checks[name] = `BLOCKED_${code}`;
+        continue;
+      }
       const data = result.data;
+      try {
       if (name === "github_staging_status") assert.ok(data.repository === REPO && data.branch === BRANCH && /^[a-f0-9]{40}$/.test(data.head_sha));
       if (name === "github_fetch_file") assert.ok(data.repository === REPO && data.branch === BRANCH && data.path === "README.md" && data.content.length > 0);
       if (name === "linear_recent_issues") assert.ok(data.issues?.nodes?.length > 0);
@@ -109,6 +114,7 @@ export async function prove({ env, dispatch, definitions, request = fetch }) {
       if (name === "lss_recent_turns") assert.ok(data.conversation === "owner-main" && data.session === "1LSS_OWNER_MAIN" && data.turns.length > 0);
       if (name === "yellowstone_status") assert.ok(data.state === "LIVE" && data.counts.toolkits > 0 && data.counts.policies > 0 && counters.reads === READ_QUERIES.size && counters.failures === 0);
       checks[name] = "PASS";
+      } catch { checks[name] = "BLOCKED_ACCEPTANCE_CHECK_FAILED"; }
     }
     const before = counters.reads;
     const denied = await dispatch("github_create_issue", {}, bindings);
@@ -117,7 +123,7 @@ export async function prove({ env, dispatch, definitions, request = fetch }) {
     assert.equal(counters.reads, before);
     noLeak(denied);
   } finally { globalThis.fetch = originalFetch; }
-  const evidence = { result: "PASS", checked_at: new Date().toISOString(), repository: REPO, canonical_branch: BRANCH, conversation: "owner-main", session: "1LSS_OWNER_MAIN", source_sha: env.GITHUB_SHA, execution_surface: "GitHub-hosted Node dispatcher against live staging providers and read-only D1 adapter", worker_deployment_performed: false, worker_deployed_source_sha: /^[a-f0-9]{40}$/.test(dashboard.runtime?.git_sha) ? dashboard.runtime.git_sha : null, owner_auth: "PASS", seven_tools: checks, write_denial: "HUMAN_APPROVAL_REQUIRED", secret_leak_check: "PASS", d1_select_reads: counters.reads, d1_writes: 0, agent_calls: 0 };
+  const evidence = { result: Object.values(checks).every(status => status === "PASS") ? "PASS" : "BLOCKED", checked_at: new Date().toISOString(), repository: REPO, canonical_branch: BRANCH, conversation: "owner-main", session: "1LSS_OWNER_MAIN", source_sha: env.GITHUB_SHA, execution_surface: "GitHub-hosted Node dispatcher against live staging providers and read-only D1 adapter", worker_deployment_performed: false, worker_deployed_source_sha: /^[a-f0-9]{40}$/.test(dashboard.runtime?.git_sha) ? dashboard.runtime.git_sha : null, owner_auth: "PASS", binding_availability: Object.fromEntries(["OGENIC_OPS_KEY", "GITHUB_TOKEN", "LINEAR_API_KEY", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"].map(name => [name, Boolean(env[name])])), seven_tools: checks, write_denial: "HUMAN_APPROVAL_REQUIRED", secret_leak_check: "PASS", d1_select_reads: counters.reads, d1_writes: 0, agent_calls: 0 };
   noLeak(evidence);
   return evidence;
 }
@@ -131,6 +137,7 @@ async function main() {
     const config = await readFile("wrangler.jsonc", "utf8");
     assert.ok(config.includes('"database_name": "ogenic-phase-vi-staging"') && config.includes(`"database_id": "${DATABASE}"`));
     evidence = await prove({ env: process.env, dispatch: tools.executeVerifiedTool, definitions: tools.verifiedFunctionTools });
+    if (evidence.result !== "PASS") process.exitCode = 1;
   } catch (error) {
     const reason = String(error?.message ?? "").split("\n")[0];
     const safe = /^(?:MISSING_BINDING_[A-Z_]+|STAGING_HTTP_[0-9]{3}_[a-z_]+|TOOL_PROOF_FAILED_[a-z_]+|OWNER_SESSION_MISSING|D1_READ_FAILED|D1_WRITE_DETECTED|NETWORK_READ_ONLY_ALLOWLIST|SECRET_LEAK_DETECTED)$/;
