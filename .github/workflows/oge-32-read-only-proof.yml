@@ -1,0 +1,82 @@
+name: OGE-32 Read-only Runtime Proof
+
+on:
+  push:
+    branches: [codex/continue-implementation-for-oge-32-dkxg99]
+    paths:
+      - .github/workflows/oge-32-read-only-proof.yml
+      - scripts/verify-oge-32-read-only.mjs
+      - scripts/inspect-oge-32-linear-binding.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: staging
+
+jobs:
+  prove:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.ref == 'refs/heads/codex/continue-implementation-for-oge-32-dkxg99'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies before loading credentials
+        run: npm install --package-lock=false --ignore-scripts --no-audit --no-fund
+      - name: Discover existing Infisical project and infrastructure credential source
+        id: infisical_project
+        shell: bash
+        run: |
+          set -euo pipefail
+          DISCOVERY_LOG="$(mktemp)"
+          trap 'rm -f "$DISCOVERY_LOG"' EXIT
+          if ! bash scripts/infisical-discover-project.sh >"$DISCOVERY_LOG" 2>&1; then
+            echo '::error::INFISICAL_OIDC_DISCOVERY_FAILED; credential discovery stopped before runtime proof.'
+            exit 1
+          fi
+          echo 'Existing Infisical staging credential path discovered; values hidden.'
+      - name: Load existing Cloudflare credentials server-side
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
+          secret-path: ${{ steps.infisical_project.outputs.secret_path }}
+      - name: Load existing staging credentials server-side
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: Inspect staging Linear binding names without reading secret values
+        run: node scripts/inspect-oge-32-linear-binding.mjs
+      - name: Prove seven tools without deployment, writes, or agents
+        env:
+          # Short-lived job credential: only contents/read and actions/read above.
+          # Do not depend on an expired or differently scoped long-lived PAT.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/verify-oge-32-read-only.mjs
+      - name: Upload allowlisted verification evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge-32-read-only-proof
+          path: |
+            oge-32-proof/verification.json
+            oge-32-proof/linear-binding-metadata.json
+          if-no-files-found: ignore
+          retention-days: 14
