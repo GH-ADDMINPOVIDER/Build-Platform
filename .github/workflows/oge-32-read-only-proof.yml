@@ -62,6 +62,10 @@ jobs:
           secret-path: /
           recursive: true
       - name: Prove seven tools without deployment, writes, or agents
+        env:
+          # Short-lived job credential: only contents/read and actions/read above.
+          # Do not depend on an expired or differently scoped long-lived PAT.
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/verify-oge-32-read-only.mjs
       - name: Upload allowlisted verification evidence only
         if: always()
