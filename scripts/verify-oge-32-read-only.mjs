@@ -71,8 +71,10 @@ export async function prove({ env, dispatch, definitions, request = fetch }) {
   const required = ["OGENIC_OPS_KEY", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"];
   for (const name of required) assert.ok(env[name], `MISSING_BINDING_${name}`);
   assert.deepEqual(definitions.map(tool => tool.name), TOOL_NAMES);
-  const secrets = Object.entries(env).filter(([key, value]) => /(secret|token|key|password|cookie)/i.test(key) && typeof value === "string" && value.length).map(([, value]) => value);
-  const noLeak = (value) => { const text = JSON.stringify(value); assert.ok(secrets.every(secret => !text.includes(secret)), "SECRET_LEAK_DETECTED"); assert.doesNotMatch(text, /Bearer\s+\S+|gh[pousr]_[A-Za-z0-9_]+|sk-[A-Za-z0-9_-]{12,}|-----BEGIN [^-]*PRIVATE KEY-----/i); };
+  // Credential values only: *_SECRET_PATH and *_SECRET_ENV_SLUG are configuration,
+  // not credentials. Treating '/' or 'staging' as a secret would reject safe evidence.
+  const secrets = Object.entries(env).filter(([key, value]) => /(?:_secret|_token|_key|_password|_cookie)$/i.test(key) && typeof value === "string" && value.length).map(([, value]) => value);
+  const noLeak = (value) => { const text = JSON.stringify(value); assert.ok(secrets.every(secret => !text.includes(secret)), "SECRET_LEAK_DETECTED"); assert.doesNotMatch(text, /Bearer\s+[A-Za-z0-9._~+/=-]+|gh[pousr]_[A-Za-z0-9_]+|sk-[A-Za-z0-9_-]{12,}|-----BEGIN [^-]*PRIVATE KEY-----/i); };
   const guarded = async (url, init = {}) => { assert.ok(permittedRequest(url, init), "NETWORK_READ_ONLY_ALLOWLIST"); return request(url, { ...init, signal: init.signal ?? AbortSignal.timeout(15000) }); };
   const json = async (url, init) => { const response = await guarded(url, init); assert.ok(response.ok, `STAGING_HTTP_${response.status}_${new URL(url).pathname.replaceAll("/", "_")}`); return { response, body: await response.json() }; };
   const { body: health } = await json(`${STAGING}/api/health`);

@@ -10,7 +10,7 @@ const { executeVerifiedTool, verifiedFunctionTools } = await import(`data:text/j
 
 test("server-side proof uses signed auth and only allowlisted reads with safe evidence", async () => {
   const requests = [];
-  const env = { GITHUB_REPOSITORY: "Ogenicchocolate21debug/Build-Platform", GITHUB_REF_NAME: "codex/continue-implementation-for-oge-32-dkxg99", GITHUB_SHA: "a".repeat(40), OGENIC_OPS_KEY: "fixture-owner-key", GITHUB_TOKEN: "fixture-github-token", LINEAR_API_KEY: "fixture-linear-key", CLOUDFLARE_API_TOKEN: "fixture-cloudflare-token", CLOUDFLARE_ACCOUNT_ID: "b".repeat(32) };
+  const env = { GITHUB_REPOSITORY: "Ogenicchocolate21debug/Build-Platform", GITHUB_REF_NAME: "codex/continue-implementation-for-oge-32-dkxg99", GITHUB_SHA: "a".repeat(40), OGENIC_OPS_KEY: "fixture-owner-key", GITHUB_TOKEN: "fixture-github-token", LINEAR_API_KEY: "fixture-linear-key", CLOUDFLARE_API_TOKEN: "fixture-cloudflare-token", CLOUDFLARE_ACCOUNT_ID: "b".repeat(32), INFISICAL_SECRET_PATH: "/", INFISICAL_SECRET_ENV_SLUG: "staging" };
   const request = async (url, init = {}) => {
     requests.push({ url, method: init.method ?? "GET", body: init.body });
     if (url.endsWith("/api/health")) return Response.json({ ok: true, runtime: "cloudflare", shared_state: "D1_BOUND" });
