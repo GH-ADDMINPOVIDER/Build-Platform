@@ -33,17 +33,23 @@ const names = new Set(verifiedFunctionTools.map((tool) => tool.name));
 const clip = (value: unknown, max = 500) => String(value ?? "").trim().slice(0, max);
 const secretKey = /(authorization|cookie|credential|password|private.?key|secret|token|api.?key)/i;
 const secretValue = /(bearer\s+[a-z0-9._~+/=-]+|gh[pousr]_[a-z0-9_]+|sk-[a-z0-9_-]{12,})/gi;
+const secretAssignment = /((?:[\w.-]*(?:password|secret|token|api[_-]?key|credential)[\w.-]*)["']?\s*[:=]\s*)(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s,;\r\n}]+)/gi;
+const privateKey = /-----BEGIN [^-\r\n]*PRIVATE KEY-----[\s\S]*?(?:-----END [^-\r\n]*PRIVATE KEY-----|$)/g;
 
-function sanitized(value: unknown, depth = 0): unknown {
+function sanitized(value: unknown, depth = 0, bindings: string[] = []): unknown {
   if (depth > 7) return "[TRUNCATED]";
-  if (typeof value === "string") return value.slice(0, 12_000).replace(secretValue, "[REDACTED]");
-  if (Array.isArray(value)) return value.slice(0, 50).map((item) => sanitized(item, depth + 1));
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value as Record<string, unknown>).slice(0, 100).map(([key, item]) => [key, secretKey.test(key) ? "[REDACTED]" : sanitized(item, depth + 1)]));
+  if (typeof value === "string") {
+    let output = value;
+    for (const binding of bindings) output = output.split(binding).join("[REDACTED]");
+    return output.replace(privateKey, "[REDACTED]").replace(secretValue, "[REDACTED]").replace(secretAssignment, "$1[REDACTED]").slice(0, 12_000);
+  }
+  if (Array.isArray(value)) return value.slice(0, 50).map((item) => sanitized(item, depth + 1, bindings));
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value as Record<string, unknown>).slice(0, 100).map(([key, item]) => [key, secretKey.test(key) ? "[REDACTED]" : sanitized(item, depth + 1, bindings)]));
   return value;
 }
 
 function envelope(tool: string, data: unknown, checkedAt = new Date().toISOString()) {
-  return { ok: true, tool, verified: true, read_only: true, checked_at: checkedAt, data: sanitized(data) };
+  return { ok: true, tool, verified: true, read_only: true, checked_at: checkedAt, data };
 }
 function invalid(message: string) { return { ok: false, code: "INVALID_TOOL_ARGUMENTS", verified: false, read_only: true, message }; }
 
@@ -78,12 +84,12 @@ async function githubStatus(env: VerifiedToolBindings) {
 async function githubFile(env: VerifiedToolBindings, path: string) {
   const token = clip(env.GITHUB_TOKEN, 4000);
   if (!token) return { ok: false, code: "CONFIGURATION_REQUIRED", missing: "GITHUB_TOKEN" };
-  if (!path || path.startsWith("/") || path.includes("..") || /(^|\/)(\.env|secrets?)(\/|$)/i.test(path)) return invalid("path must be a safe repository-relative non-secret file");
+  if (!path || path.startsWith("/") || path.includes("..") || path.includes("\\") || /[\x00-\x1f\x7f]/.test(path) || /(^|\/)(?:\.env(?:\.[^/]*)?|(?:secrets?|credentials?)(?:\.[^/]*)?|id_(?:rsa|ed25519)|[^/]+\.(?:pem|key|p12|pfx))(\/|$)/i.test(path)) return invalid("path must be a safe repository-relative non-secret file");
   const result = await requestJson(`https://api.github.com/repos/${CANONICAL_REPOSITORY}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(CANONICAL_BRANCH)}`, { headers: githubHeaders(token) });
   if (!result.ok) return { ok: false, code: "UPSTREAM_READ_FAILED", provider: "github", http_status: result.status };
   if (result.body.type !== "file" || result.body.encoding !== "base64") return { ok: false, code: "FILE_NOT_READABLE" };
   let content = "";
-  try { content = atob(String(result.body.content ?? "").replace(/\s/g, "")); } catch { return { ok: false, code: "FILE_DECODE_FAILED" }; }
+  try { content = new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(atob(String(result.body.content ?? "").replace(/\s/g, "")), (char) => char.charCodeAt(0))); } catch { return { ok: false, code: "FILE_DECODE_FAILED" }; }
   return envelope("github_fetch_file", { repository: CANONICAL_REPOSITORY, branch: CANONICAL_BRANCH, path, sha: clip(result.body.sha, 80), size: Number(result.body.size ?? 0), content: content.slice(0, 20_000), truncated: content.length > 20_000 });
 }
 
@@ -96,6 +102,15 @@ async function linearQuery(env: VerifiedToolBindings, query: string, variables: 
 }
 
 export async function executeVerifiedTool(name: string, args: unknown, env: VerifiedToolBindings): Promise<Record<string, unknown>> {
+  const bindings = Object.entries(env).filter(([key, value]) => secretKey.test(key) && typeof value === "string" && value.length > 0).map(([, value]) => String(value)).sort((a, b) => b.length - a.length);
+  try {
+    return sanitized(await dispatchVerifiedTool(name, args, env), 0, bindings) as Record<string, unknown>;
+  } catch {
+    return { ok: false, code: "UPSTREAM_READ_FAILED", verified: false, read_only: true };
+  }
+}
+
+async function dispatchVerifiedTool(name: string, args: unknown, env: VerifiedToolBindings): Promise<Record<string, unknown>> {
   if (!names.has(name)) return { ok: false, code: "HUMAN_APPROVAL_REQUIRED", verified: false, message: "Only the seven registered read-only tools may execute; writes and unknown functions fail closed." };
   if (!args || typeof args !== "object" || Array.isArray(args)) return invalid("arguments must be an object");
   const input = args as Record<string, unknown>;
@@ -123,6 +138,7 @@ export async function executeVerifiedTool(name: string, args: unknown, env: Veri
     return envelope(name, { conversation: CANONICAL_CONVERSATION, session: CANONICAL_SESSION, turns: (rows.results ?? []).reverse() });
   }
   if (name === "yellowstone_status") {
+    if (!env.DB) return { ok: false, code: "CONFIGURATION_REQUIRED", verified: false, read_only: true, missing: "D1 binding DB" };
     const context = await readCanonicalD1Context(env.DB as ConnectorD1 | undefined, { git_sha: env.OGENIC_GIT_SHA, git_branch: CANONICAL_BRANCH, build_uuid: env.OGENIC_BUILD_UUID, runtime: env.OGENIC_RUNTIME, phase: env.OGENIC_PHASE, version: env.CF_VERSION_METADATA });
     return envelope(name, { runtime: "YELLOW_STONE_CAPABILITY_RESOLVER_V1", state: context.state, counts: context.counts, policy: "READ_ONLY_NO_PROVIDER_SIDE_EFFECTS", canonical_branch: CANONICAL_BRANCH });
   }
