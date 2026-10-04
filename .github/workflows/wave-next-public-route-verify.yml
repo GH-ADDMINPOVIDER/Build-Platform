@@ -1,0 +1,73 @@
+name: WAVE NEXT Public Route Verify
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/wave-next-public-route-verify.yml"
+      - "src/WaveNext.tsx"
+      - "src/wave-next.css"
+      - "src/main.tsx"
+      - "src/ComposerAttachments.tsx"
+      - "tests/wave-next-ui.test.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-public-route:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      STAGING_URL: https://wave.ogenicchocolate.com
+    steps:
+      - name: Verify public SPA route and WAVE NEXT bundle markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          HTML="$(mktemp)"
+          JS="$(mktemp)"
+          trap 'rm -f "$HTML" "$JS"' EXIT
+
+          CODE="$(curl --silent --show-error --location --retry 6 --retry-delay 3 --retry-all-errors --output "$HTML" --write-out '%{http_code}' "${STAGING_URL}/overview/next")"
+          test "$CODE" = "200" || { echo "::error::/overview/next returned HTTP $CODE"; exit 1; }
+          grep -q 'id="root"' "$HTML" || { echo "::error::SPA root missing from /overview/next"; exit 1; }
+
+          ASSET="$(grep -oE 'src="[^"]+\.js"' "$HTML" | head -n1 | cut -d'"' -f2)"
+          test -n "$ASSET" || { echo "::error::Vite JS asset not found"; exit 1; }
+          case "$ASSET" in
+            http*) ASSET_URL="$ASSET" ;;
+            /*) ASSET_URL="${STAGING_URL}${ASSET}" ;;
+            *) ASSET_URL="${STAGING_URL}/${ASSET}" ;;
+          esac
+          curl --fail --silent --show-error --location --retry 4 --retry-delay 2 "$ASSET_URL" -o "$JS"
+          grep -Fq 'Run-first control surface' "$JS" || { echo "::error::deployed bundle does not contain WAVE NEXT owner surface"; exit 1; }
+          grep -Fq 'SSH-WAVE' "$JS" || { echo "::error::deployed bundle does not contain SSH-WAVE fallback"; exit 1; }
+          grep -Fq 'owner-main' "$JS" || { echo "::error::deployed bundle does not contain canonical owner-main identity"; exit 1; }
+          if grep -Eq 'BEGIN (RSA|OPENSSH|EC) PRIVATE KEY' "$JS"; then
+            echo "::error::private key material detected in public bundle"
+            exit 1
+          fi
+          echo "WAVE_NEXT_PUBLIC_ROUTE_OK"
+
+      - name: Capture unauthenticated mobile render
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if test -z "$CHROME"; then
+            echo "Chrome is not preinstalled on this runner; route/bundle proof already passed."
+            exit 0
+          fi
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot=wave-next-mobile.png "${STAGING_URL}/overview/next"
+          test -s wave-next-mobile.png
+          echo "WAVE_NEXT_MOBILE_RENDER_CAPTURED"
+
+      - name: Upload mobile render evidence
+        if: ${{ hashFiles('wave-next-mobile.png') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: wave-next-mobile-render-${{ github.sha }}
+          path: wave-next-mobile.png
+          retention-days: 7
