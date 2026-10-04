@@ -7,12 +7,14 @@ import { createCapabilityExecutionApi } from "./capability-execution-api";
 import { createOpenAISelfHostApi } from "./openai-selfhost-api";
 import { createCodexLeftArmApi } from "./codex-left-arm-api";
 import { createMcpConfigApi } from "./mcp-config-api";
+import { createWhiteDiamondApi } from "./white-diamond-api";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
 const selfHostApi = createOpenAISelfHostApi();
 const codexLeftArmApi = createCodexLeftArmApi();
 const mcpConfigApi = createMcpConfigApi();
+const whiteDiamondApi = createWhiteDiamondApi();
 
 type Bindings = CapabilityResolverBindings & Record<string, unknown>;
 
@@ -27,6 +29,9 @@ export default {
     }
     if (pathname.startsWith("/api/mcp-config/")) {
       return mcpConfigApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/white-diamond/")) {
+      return whiteDiamondApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/openai/selfhost/")) {
       return selfHostApi.fetch(request, env as never, ctx as never);
