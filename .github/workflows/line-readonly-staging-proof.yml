@@ -1,0 +1,62 @@
+name: LINE Read-Only Staging Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/line-readonly-staging-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  verify-line-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging credentials from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Verify current LINE token without side effects
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOKEN="${LINE_CHANNEL_ACCESS_TOKEN:-}"
+          test -n "$TOKEN" || { echo "::error::LINE_CHANNEL_ACCESS_TOKEN_REQUIRED"; exit 78; }
+          echo "::add-mask::$TOKEN"
+
+          VERIFY_CODE="$(curl --silent --show-error --output /tmp/line-token.json --write-out '%{http_code}' \
+            -X POST -H 'Content-Type: application/x-www-form-urlencoded' \
+            --data-urlencode "access_token=${TOKEN}" \
+            https://api.line.me/v2/oauth/verify || true)"
+          test "$VERIFY_CODE" = "200" || { echo "::error::LINE_TOKEN_VERIFY_FAILED_HTTP_${VERIFY_CODE}"; exit 1; }
+          jq -e '.client_id or .clientId or .expires_in or .expiresIn' /tmp/line-token.json >/dev/null || true
+
+          INFO="$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H 'Accept: application/json' \
+            https://api.line.me/v2/bot/info)"
+          printf '%s' "$INFO" | jq -e '.userId and .basicId and .displayName' >/dev/null
+          echo "LINE_READ_ONLY_API_PROOF_OK"
+          echo "Verified current Messaging API credential with token verification + /v2/bot/info."
+          echo "No webhook update, message send, token rotation, or customer-visible side effect was performed."
