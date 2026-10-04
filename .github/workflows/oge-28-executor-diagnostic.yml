@@ -1,0 +1,90 @@
+name: OGE-28 Executor Diagnostic
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-28-executor-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://wave.ogenicchocolate.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+
+jobs:
+  diagnose:
+    name: diagnose wave-runner-01 executor startup
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase-vi-provider-incentive-metering
+          fetch-depth: 1
+
+      - name: Load staging bindings via Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Run sanitized executor startup diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(hostname)" = 'wave-runner-01'
+          test -n "${OGENIC_OPS_KEY:-}"
+          test -n "${OPENAI_API_KEY:-}"
+          EXECUTOR_KEY="${OPENAI_EXECUTOR_API_KEY:-${OPENAI_ENVIRONMENT_KEY:-}}"
+          test -n "$EXECUTOR_KEY" || { echo 'CONFIGURATION_REQUIRED: executor environment key'; exit 78; }
+          echo "::add-mask::$EXECUTOR_KEY"
+
+          COOKIE_JAR="$RUNNER_TEMP/oge28-diag-cookie.jar"
+          PREPARED="$RUNNER_TEMP/oge28-diag-prepared.json"
+          LOG="$RUNNER_TEMP/oge28-diag-exec.log"
+
+          printf '{"owner_key":%s}' "$(jq -Rn --arg value "$OGENIC_OPS_KEY" '$value')" \
+            | curl --fail --silent --show-error --cookie-jar "$COOKIE_JAR" \
+                --header 'Content-Type: application/json' --data-binary @- "${STAGING_URL}/api/session" \
+            | jq -e '.ok == true and .authenticated == true and .user.role == "owner"' >/dev/null
+
+          HTTP_CODE="$(curl --silent --show-error --cookie "$COOKIE_JAR" \
+            --header 'Content-Type: application/json' \
+            --header "Idempotency-Key: oge28-diag-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --data '{"approved":true,"phase":"prepare"}' \
+            --max-time 180 \
+            --output "$PREPARED" --write-out '%{http_code}' \
+            "${STAGING_URL}/api/openai/selfhost/proof")"
+          test "$HTTP_CODE" = "200" || { echo "PREPARE_HTTP_${HTTP_CODE}"; jq '{ok,code,missing,message}' "$PREPARED"; exit 1; }
+
+          ENVIRONMENT_ID="$(jq -r '.environment_id // empty' "$PREPARED")"
+          REMOTE_URL="$(jq -r '.remote_url // empty' "$PREPARED")"
+          [[ "$ENVIRONMENT_ID" == ccarenv_* ]] || { echo 'INVALID_ENVIRONMENT_ID'; exit 64; }
+          test -n "$REMOTE_URL" || { echo 'REMOTE_URL_UNAVAILABLE'; exit 64; }
+          echo "::add-mask::$ENVIRONMENT_ID"
+          echo "::add-mask::$REMOTE_URL"
+
+          codex --version
+          set +e
+          timeout 10s env CODEX_API_KEY="$EXECUTOR_KEY" codex exec-server --remote "$REMOTE_URL" --environment-id "$ENVIRONMENT_ID" >"$LOG" 2>&1
+          STATUS=$?
+          set -e
+          echo "CODEX_EXEC_SERVER_EXIT=$STATUS"
+          echo '--- SANITIZED EXECUTOR LOG ---'
+          sed -E 's#https?://[^[:space:]]+#<redacted-url>#g; s#wss?://[^[:space:]]+#<redacted-url>#g' "$LOG" | tail -n 80 || true
+          echo '--- END EXECUTOR LOG ---'
+
+          if [ "$STATUS" -eq 124 ]; then
+            echo 'EXECUTOR_STAYED_ALIVE_10S'
+            exit 0
+          fi
+          exit "$STATUS"
