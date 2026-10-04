@@ -266,7 +266,7 @@ export function createMcpConfigApi() {
 
   api.post("/api/mcp-config/action", async (c) => {
     if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
-    const body = await c.req.json<Record<string, unknown>>().catch(() => ({}));
+    const body: Record<string, unknown> = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
     const provider = clean(body.provider, 80).toLowerCase();
     const action = clean(body.action, 30).toLowerCase();
     if (!PROVIDER_ID.test(provider)) return c.json({ ok: false, code: "INVALID_PROVIDER" }, 400);
