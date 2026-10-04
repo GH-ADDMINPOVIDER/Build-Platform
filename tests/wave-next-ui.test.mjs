@@ -6,10 +6,11 @@ const read = (path) => fs.readFileSync(new URL("../" + path, import.meta.url), "
 
 test("WAVE NEXT is isolated at /overview/next while legacy overview remains available", () => {
   const main = read("src/main.tsx");
+  const ui = read("src/WaveNext.tsx");
   assert.match(main, /pathname === "\/overview\/next"/);
   assert.match(main, /nextOverviewRoute \? <WaveNext \/>/);
   assert.match(main, /<ControlPlaneV2 \/>/);
-  assert.match(main, /href=\"\/overview\/legacy\"|\/overview\/legacy/);
+  assert.match(ui, /href="\/overview\/legacy"/);
 });
 
 test("WAVE NEXT exposes run-first primary sections and real runtime endpoints", () => {
