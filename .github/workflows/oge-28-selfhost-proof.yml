@@ -127,7 +127,6 @@ jobs:
     timeout-minutes: 20
     env:
       GH_ACTIONS_TOKEN: ${{ github.token }}
-      CODEX_API_KEY: ${{ secrets.OPENAI_EXECUTOR_API_KEY }}
       HANDOFF_NAME: oge28-executor-handoff-${{ github.run_id }}-${{ github.run_attempt }}
       COMPLETE_NAME: oge28-proof-complete-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
@@ -136,12 +135,29 @@ jobs:
           ref: phase-vi-provider-incentive-metering
           fetch-depth: 1
 
-      - name: Verify canonical runner and executor capability
+      - name: Load restricted executor binding via Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Verify canonical runner and restricted executor capability
         shell: bash
         run: |
           set -euo pipefail
           test "$(hostname)" = 'wave-runner-01'
-          test -n "$CODEX_API_KEY" || { echo 'CONFIGURATION_REQUIRED: OPENAI_EXECUTOR_API_KEY'; exit 78; }
+          EXECUTOR_KEY="${OPENAI_EXECUTOR_API_KEY:-${OPENAI_ENVIRONMENT_KEY:-}}"
+          if [ -z "$EXECUTOR_KEY" ]; then
+            echo 'CONFIGURATION_REQUIRED: OPENAI_EXECUTOR_API_KEY or OPENAI_ENVIRONMENT_KEY'
+            env | cut -d= -f1 | grep -E '^OPENAI_(EXECUTOR|ENVIRONMENT)' || true
+            exit 78
+          fi
+          echo "::add-mask::$EXECUTOR_KEY"
+          printf 'CODEX_API_KEY=%s\n' "$EXECUTOR_KEY" >> "$GITHUB_ENV"
           codex --version
           codex exec-server --help >/tmp/wave-codex-exec-server-help.txt
           test -s /tmp/wave-codex-exec-server-help.txt
