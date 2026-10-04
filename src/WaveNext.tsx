@@ -1,4 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import McpConfigCenter from "./McpConfigCenter";
+import WhiteDiamondPanel from "./WhiteDiamondPanel";
 
 type SessionState = { authenticated?: boolean; user?: { label?: string; role?: string } | null };
 type Dashboard = { runtime?: { provider?: string; branch?: string }; incentives?: { policy_state?: string } };
@@ -212,12 +214,15 @@ export default function WaveNext() {
         </article>
       </section>}
 
-      {tab === "agent" && <section className="wnCard">
-        <div className="wnCardHead"><div><span className="wnKicker">WHITE DIAMOND</span><h3>Agent command lane</h3></div><State value={selfHost?.openai_app_key || "CONFIGURATION_REQUIRED"} /></div>
-        <p className="wnBody">Agent execution remains behind Yellow Stone policy. Open Chat and select Agent AI there; this surface does not claim an unverified automatic mode switch.</p>
-        <div className="wnActionRow"><button className="wnPrimary" onClick={handoff}>Open Chat with draft</button><a className="wnButtonLink" href="/chat">Open WAVE Chat</a></div>
-        <div className="wnPolicy">{selfHost?.policy || "Policy status unavailable"}</div>
-      </section>}
+      {tab === "agent" && <>
+        <WhiteDiamondPanel />
+        <section className="wnCard">
+          <div className="wnCardHead"><div><span className="wnKicker">EXECUTION</span><h3>Yellow Stone handoff</h3></div><State value={selfHost?.openai_app_key || "CONFIGURATION_REQUIRED"} /></div>
+          <p className="wnBody">White Diamond may plan and select agents, but consequential execution remains behind Yellow Stone policy and owner approval.</p>
+          <div className="wnActionRow"><button className="wnPrimary" onClick={handoff}>Open Chat with draft</button><a className="wnButtonLink" href="/chat">Open WAVE Chat</a></div>
+          <div className="wnPolicy">{selfHost?.policy || "Policy status unavailable"}</div>
+        </section>
+      </>}
 
       {tab === "session" && <section className="wnCard">
         <div className="wnCardHead"><div><span className="wnKicker">GREEN STONE</span><h3>Session continuity</h3></div><State value={bridge?.cross_surface_ready ? "READY" : "DEGRADED"} /></div>
@@ -225,11 +230,14 @@ export default function WaveNext() {
         <div className="wnRows">{sessions.slice(0, 6).map((row) => <div className="wnRow" key={row.id}><div><strong>{row.label || row.source_surface}</strong><span>{row.session_ref}</span></div><div className="wnRowMeta">seq {row.last_sequence ?? "—"}<br />{timeAgo(row.last_seen_at)}</div></div>)}{!sessions.length && <div className="wnEmpty">No session references returned.</div>}</div>
       </section>}
 
-      {tab === "connections" && <section className="wnCard">
-        <div className="wnCardHead"><div><span className="wnKicker">YELLOW STONE</span><h3>Connections</h3></div><span className="wnCount">{connectors.length}</span></div>
-        <p className="wnBody">States below come from the existing connector runtime. No fake LIVE state is added.</p>
-        <div className="wnRows">{connectors.map((row) => <div className="wnRow" key={row.id}><div><strong>{row.label}</strong><span>{row.kind || "connector"} · {row.route_mode || "—"}{row.summary ? ` · ${row.summary}` : ""}</span></div><State value={row.state} /></div>)}{!connectors.length && <div className="wnEmpty">No connector state returned.</div>}</div>
-      </section>}
+      {tab === "connections" && <>
+        <section className="wnCard">
+          <div className="wnCardHead"><div><span className="wnKicker">YELLOW STONE</span><h3>Connections</h3></div><span className="wnCount">{connectors.length}</span></div>
+          <p className="wnBody">States below come from the existing connector runtime. No fake LIVE state is added.</p>
+          <div className="wnRows">{connectors.map((row) => <div className="wnRow" key={row.id}><div><strong>{row.label}</strong><span>{row.kind || "connector"} · {row.route_mode || "—"}{row.summary ? ` · ${row.summary}` : ""}</span></div><State value={row.state} /></div>)}{!connectors.length && <div className="wnEmpty">No connector state returned.</div>}</div>
+        </section>
+        <McpConfigCenter />
+      </>}
 
       {tab === "approvals" && <section className="wnCard">
         <div className="wnCardHead"><div><span className="wnKicker">POLICY</span><h3>Approvals</h3></div><State value="HUMAN_APPROVAL_REQUIRED" /></div>
