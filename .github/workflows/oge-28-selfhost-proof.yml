@@ -1,0 +1,103 @@
+name: OGE-28 Self-host Runtime Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-28-selfhost-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://wave.ogenicchocolate.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: staging
+
+jobs:
+  prove-selfhost:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase-vi-provider-incentive-metering
+          fetch-depth: 1
+
+      - name: Resolve canonical Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging proof authorization via Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Require proof prerequisites without exposing values
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::CONFIGURATION_REQUIRED: OGENIC_OPS_KEY"; exit 1; }
+          echo "OGE28_PROOF_AUTH_READY"
+
+      - name: Execute real staging self-host proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          COOKIE_JAR="$(mktemp)"
+          RAW_RESULT="$(mktemp)"
+          SAFE_RESULT="oge28-selfhost-proof.json"
+          trap 'rm -f "$COOKIE_JAR" "$RAW_RESULT"' EXIT
+
+          printf '{"owner_key":%s}' "$(jq -Rn --arg value "$OGENIC_OPS_KEY" '$value')" \
+            | curl --fail --silent --show-error --cookie-jar "$COOKIE_JAR" \
+                --header 'Content-Type: application/json' --data-binary @- "${STAGING_URL}/api/session" \
+            | jq -e '.ok == true and .authenticated == true and .user.role == "owner"' >/dev/null
+
+          HTTP_CODE="$(curl --silent --show-error --cookie "$COOKIE_JAR" \
+            --header 'Content-Type: application/json' \
+            --header "Idempotency-Key: oge28-proof-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --data '{"approved":true}' \
+            --max-time 900 \
+            --output "$RAW_RESULT" --write-out '%{http_code}' \
+            "${STAGING_URL}/api/openai/selfhost/proof")"
+
+          jq '{ok,issue,verification,agent_session_id,environment_id,runner,branch,result_sha256,evidence_sequence,evidence_replayed,d1_canonical,conversation_id,session_line,usage_tokens,policy,code,missing,message}' "$RAW_RESULT" > "$SAFE_RESULT"
+          cat "$SAFE_RESULT"
+
+          test "$HTTP_CODE" = "200" || { echo "::error::self-host proof returned HTTP ${HTTP_CODE}"; exit 1; }
+          jq -e '
+            .ok == true and
+            .issue == "OGE-28" and
+            .verification == "verified" and
+            .runner == "wave-runner-01" and
+            .branch == "phase-vi-provider-incentive-metering" and
+            .conversation_id == "owner-main" and
+            .session_line == "1LSS_OWNER_MAIN" and
+            (.evidence_sequence | type == "number") and
+            (.result_sha256 | type == "string" and length == 64)
+          ' "$SAFE_RESULT" >/dev/null
+
+          if grep -Eqi 'sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{12,}|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|OGENIC_OPS_KEY|OPENAI_EXECUTOR_API_KEY' "$SAFE_RESULT"; then
+            echo "::error::secret-like material detected in sanitized proof"
+            exit 1
+          fi
+          echo "OGE28_REAL_SELFHOST_PROOF_OK"
+
+      - name: Upload sanitized proof evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge28-selfhost-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: oge28-selfhost-proof.json
+          retention-days: 14
