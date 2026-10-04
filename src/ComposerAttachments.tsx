@@ -2,6 +2,8 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Capacitor } from "@capacitor/core";
 import { ComposerDraftStore, deviceDraftPersistence, type DraftAttachment, type UploadedAttachment } from "./composer-draft";
 
+const WAVE_NEXT_HANDOFF_DRAFT_KEY = "ogenic.wave-next.handoff.v1";
+
 function dataUrl(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -46,7 +48,17 @@ let ownerDraft: ComposerDraftStore | undefined;
 export function useComposerDraft(authenticated: boolean) {
   const [store] = useState(() => ownerDraft ??= new ComposerDraftStore(deviceDraftPersistence("owner-main"), uploadAttachment));
   const draft = useSyncExternalStore(store.subscribe, store.getSnapshot);
-  useEffect(() => { if (authenticated) void store.restore(); }, [store, authenticated]);
+  useEffect(() => {
+    if (!authenticated) return;
+    void store.restore().then(() => {
+      try {
+        const handoff = sessionStorage.getItem(WAVE_NEXT_HANDOFF_DRAFT_KEY)?.trim();
+        if (!handoff) return;
+        store.setText(handoff);
+        sessionStorage.removeItem(WAVE_NEXT_HANDOFF_DRAFT_KEY);
+      } catch { /* noop */ }
+    });
+  }, [store, authenticated]);
   return { store, ...draft };
 }
 function AttachmentCard({ row, store, disabled }: { row: DraftAttachment; store: ComposerDraftStore; disabled: boolean }) {
