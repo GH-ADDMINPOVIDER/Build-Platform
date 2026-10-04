@@ -430,7 +430,7 @@ export function createOpenAISelfHostApi() {
   });
 
   api.post("/api/openai/selfhost/proof", async (c) => {
-    const body = await c.req.json<ProofRequest>().catch(() => ({}));
+    const body: ProofRequest = await c.req.json<ProofRequest>().catch((): ProofRequest => ({}));
     if (body.approved !== true) {
       return c.json({
         ok: false,
