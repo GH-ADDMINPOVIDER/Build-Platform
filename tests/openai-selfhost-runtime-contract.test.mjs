@@ -13,7 +13,7 @@ test("OGE-28 self-host route is owner/ops gated, staging-only and approval-gated
   assert.match(source, /ENVIRONMENT_SCOPE_MISMATCH/);
 });
 
-test("OGE-28 creates a real self-hosted Agent environment and connects the staging runner workflow", () => {
+test("OGE-28 creates a real self-hosted Agent environment and preserves the legacy full dispatch path", () => {
   const source = read("worker/openai-selfhost-api.ts");
   assert.match(source, /type: "self_hosted"/);
   assert.match(source, /workspace_directory: workspace/);
@@ -22,6 +22,17 @@ test("OGE-28 creates a real self-hosted Agent environment and connects the stagi
   assert.match(source, /environment_id: input\.environmentId/);
   assert.match(source, /remote_url: input\.remoteUrl/);
   assert.match(source, /session_id: input\.sessionId/);
+});
+
+test("OGE-28 supports external GitHub Actions dispatch without depending on the stale Worker GitHub credential", () => {
+  const source = read("worker/openai-selfhost-api.ts");
+  assert.match(source, /type ProofPhase = "full" \| "prepare" \| "verify"/);
+  assert.match(source, /phase === "prepare"/);
+  assert.match(source, /phase === "verify"/);
+  assert.match(source, /PREPARED_EXTERNAL_DISPATCH/);
+  assert.match(source, /external_dispatch_supported: true/);
+  assert.match(source, /remote_url: prepared\.remoteUrl/);
+  assert.match(source, /INVALID_PREPARED_SESSION_METADATA/);
 });
 
 test("OGE-28 sends input through Agent session events and waits for root terminal evidence", () => {

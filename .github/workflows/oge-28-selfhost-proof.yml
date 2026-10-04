@@ -5,10 +5,12 @@ on:
     branches: [phase-vi-provider-incentive-metering]
     paths:
       - ".github/workflows/oge-28-selfhost-proof.yml"
+      - "tests/openai-selfhost-runtime-contract.test.mjs"
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: write
   id-token: write
 
 env:
@@ -22,7 +24,7 @@ env:
 jobs:
   prove-selfhost:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -51,14 +53,14 @@ jobs:
           test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::CONFIGURATION_REQUIRED: OGENIC_OPS_KEY"; exit 1; }
           echo "OGE28_PROOF_AUTH_READY"
 
-      - name: Execute real staging self-host proof
+      - name: Prepare OpenAI self-host session
+        id: prepare
         shell: bash
         run: |
           set -euo pipefail
           COOKIE_JAR="$(mktemp)"
-          RAW_RESULT="$(mktemp)"
-          SAFE_RESULT="oge28-selfhost-proof.json"
-          trap 'rm -f "$COOKIE_JAR" "$RAW_RESULT"' EXIT
+          PREPARED="$(mktemp)"
+          trap 'rm -f "$COOKIE_JAR" "$PREPARED"' EXIT
 
           printf '{"owner_key":%s}' "$(jq -Rn --arg value "$OGENIC_OPS_KEY" '$value')" \
             | curl --fail --silent --show-error --cookie-jar "$COOKIE_JAR" \
@@ -67,8 +69,73 @@ jobs:
 
           HTTP_CODE="$(curl --silent --show-error --cookie "$COOKIE_JAR" \
             --header 'Content-Type: application/json' \
-            --header "Idempotency-Key: oge28-proof-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
-            --data '{"approved":true}' \
+            --header "Idempotency-Key: oge28-prepare-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --data '{"approved":true,"phase":"prepare"}' \
+            --max-time 180 \
+            --output "$PREPARED" --write-out '%{http_code}' \
+            "${STAGING_URL}/api/openai/selfhost/proof")"
+          test "$HTTP_CODE" = "200" || { jq '{ok,code,missing,message}' "$PREPARED"; echo "::error::prepare returned HTTP ${HTTP_CODE}"; exit 1; }
+          jq -e '.ok == true and .verification == "prepared" and .branch == "phase-vi-provider-incentive-metering" and .conversation_id == "owner-main" and .session_line == "1LSS_OWNER_MAIN"' "$PREPARED" >/dev/null
+
+          SESSION_ID="$(jq -r '.agent_session_id // empty' "$PREPARED")"
+          ENVIRONMENT_ID="$(jq -r '.environment_id // empty' "$PREPARED")"
+          REMOTE_URL="$(jq -r '.remote_url // empty' "$PREPARED")"
+          [[ "$SESSION_ID" == sess_* || "$SESSION_ID" == agent_* ]] || { echo "::error::invalid prepared session id"; exit 1; }
+          [[ "$ENVIRONMENT_ID" == ccarenv_* ]] || { echo "::error::invalid prepared environment id"; exit 1; }
+          test -n "$REMOTE_URL" || { echo "::error::prepared remote URL missing"; exit 1; }
+
+          echo "::add-mask::$SESSION_ID"
+          echo "::add-mask::$ENVIRONMENT_ID"
+          echo "::add-mask::$REMOTE_URL"
+          echo "session_id=$SESSION_ID" >> "$GITHUB_OUTPUT"
+          echo "environment_id=$ENVIRONMENT_ID" >> "$GITHUB_OUTPUT"
+          echo "remote_url=$REMOTE_URL" >> "$GITHUB_OUTPUT"
+          cp "$COOKIE_JAR" "$RUNNER_TEMP/oge28-cookie.jar"
+          echo "OGE28_PREPARE_OK"
+
+      - name: Dispatch executor with ephemeral GitHub Actions token
+        env:
+          GH_ACTIONS_TOKEN: ${{ github.token }}
+          SESSION_ID: ${{ steps.prepare.outputs.session_id }}
+          ENVIRONMENT_ID: ${{ steps.prepare.outputs.environment_id }}
+          REMOTE_URL: ${{ steps.prepare.outputs.remote_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(jq -n \
+            --arg ref 'phase-vi-provider-incentive-metering' \
+            --arg environment_id "$ENVIRONMENT_ID" \
+            --arg remote_url "$REMOTE_URL" \
+            --arg session_id "$SESSION_ID" \
+            '{ref:$ref,inputs:{environment_id:$environment_id,remote_url:$remote_url,session_id:$session_id}}')"
+          CODE="$(curl --silent --show-error --request POST \
+            --header "Authorization: Bearer ${GH_ACTIONS_TOKEN}" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --header 'Content-Type: application/json' \
+            --data "$BODY" \
+            --output /tmp/oge28-dispatch-response.txt --write-out '%{http_code}' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/wave-openai-selfhost-executor.yml/dispatches")"
+          test "$CODE" = "204" || { echo "::error::ephemeral GitHub dispatch returned HTTP ${CODE}"; cat /tmp/oge28-dispatch-response.txt; exit 1; }
+          echo "OGE28_EPHEMERAL_DISPATCH_OK"
+
+      - name: Verify real runner result and stamp canonical 1LSS evidence
+        env:
+          SESSION_ID: ${{ steps.prepare.outputs.session_id }}
+          ENVIRONMENT_ID: ${{ steps.prepare.outputs.environment_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          COOKIE_JAR="$RUNNER_TEMP/oge28-cookie.jar"
+          RAW_RESULT="$(mktemp)"
+          SAFE_RESULT="oge28-selfhost-proof.json"
+          trap 'rm -f "$RAW_RESULT"' EXIT
+
+          sleep 8
+          BODY="$(jq -n --arg session "$SESSION_ID" --arg environment "$ENVIRONMENT_ID" '{approved:true,phase:"verify",agent_session_id:$session,environment_id:$environment}')"
+          HTTP_CODE="$(curl --silent --show-error --cookie "$COOKIE_JAR" \
+            --header 'Content-Type: application/json' \
+            --data "$BODY" \
             --max-time 900 \
             --output "$RAW_RESULT" --write-out '%{http_code}' \
             "${STAGING_URL}/api/openai/selfhost/proof")"
@@ -76,7 +143,7 @@ jobs:
           jq '{ok,issue,verification,agent_session_id,environment_id,runner,branch,result_sha256,evidence_sequence,evidence_replayed,d1_canonical,conversation_id,session_line,usage_tokens,policy,code,missing,message}' "$RAW_RESULT" > "$SAFE_RESULT"
           cat "$SAFE_RESULT"
 
-          test "$HTTP_CODE" = "200" || { echo "::error::self-host proof returned HTTP ${HTTP_CODE}"; exit 1; }
+          test "$HTTP_CODE" = "200" || { echo "::error::verify returned HTTP ${HTTP_CODE}"; exit 1; }
           jq -e '
             .ok == true and
             .issue == "OGE-28" and
@@ -89,7 +156,7 @@ jobs:
             (.result_sha256 | type == "string" and length == 64)
           ' "$SAFE_RESULT" >/dev/null
 
-          if grep -Eqi 'sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{12,}|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|OGENIC_OPS_KEY|OPENAI_EXECUTOR_API_KEY' "$SAFE_RESULT"; then
+          if grep -Eqi 'sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{12,}|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|OGENIC_OPS_KEY|OPENAI_EXECUTOR_API_KEY|remote_url' "$SAFE_RESULT"; then
             echo "::error::secret-like material detected in sanitized proof"
             exit 1
           fi
