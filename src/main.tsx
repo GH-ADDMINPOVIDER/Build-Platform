@@ -12,6 +12,7 @@ import LiveAssist from "./LiveAssist";
 import ThemeController from "./ThemeController";
 import UnifiedChat from "./UnifiedChat";
 import Landing from "./Landing";
+import WaveNext from "./WaveNext";
 import "./control-plane-v2.css";
 import "./wave-control-v3.css";
 import "./usage-panel.css";
@@ -26,6 +27,7 @@ import "./unified-chat.css";
 import "./wave-chat-v3.css";
 import "./mobile-fixes.css";
 import "./landing.css";
+import "./wave-next.css";
 
 const nativeApp = Capacitor.isNativePlatform();
 const WAVE_ORIGIN = "https://wave.ogenicchocolate.com";
@@ -108,6 +110,7 @@ const pathname = window.location.pathname;
 const params = new URLSearchParams(window.location.search);
 const explicitAppRoute = pathname === "/app" || pathname.startsWith("/app/");
 const webChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
+const nextOverviewRoute = !nativeApp && (pathname === "/overview/next" || pathname.startsWith("/overview/next/"));
 const controlRoute = pathname === "/overview" || pathname.startsWith("/overview/");
 const shortcutApp = !webChatRoute && !controlRoute && params.get("source") === "app";
 const landingRoute = !nativeApp && pathname === "/";
@@ -117,16 +120,18 @@ const sourceSurface = webChatRoute ? "ogenic-web" as const : "ogenic-app" as con
 
 document.title = landingRoute
   ? "WAVE — SAME MIND"
-  : controlRoute
-    ? "WAVE — DASHBOARD"
-    : surfaceTitle(sourceSurface);
+  : nextOverviewRoute
+    ? "WAVE — RUN"
+    : controlRoute
+      ? "WAVE — DASHBOARD"
+      : surfaceTitle(sourceSurface);
 
 function surfaceTitle(surface: "ogenic-web" | "ogenic-app") {
   return surface === "ogenic-web" ? "WAVE — SAME MIND" : "WAVE — SAME MIND · APP";
 }
 
 function SurfaceBridge() {
-  if (landingRoute || nativeApp) return null;
+  if (landingRoute || nativeApp || nextOverviewRoute) return null;
   const href = controlRoute ? "/chat" : "/overview";
   const label = controlRoute ? "WAVE CHAT ↗" : "DASHBOARD ↗";
   return <a
@@ -159,7 +164,7 @@ function SurfaceBridge() {
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <SurfaceBridge />
-    {landingRoute ? <Landing /> : unifiedChatSurface ? <UnifiedChat surface={sourceSurface} /> : <>
+    {landingRoute ? <Landing /> : nextOverviewRoute ? <WaveNext /> : unifiedChatSurface ? <UnifiedChat surface={sourceSurface} /> : <>
       <ControlPlaneV2 />
       <ChatModelRouter />
       <AppEnhancements />
