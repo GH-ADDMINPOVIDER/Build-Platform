@@ -110,7 +110,12 @@ const pathname = window.location.pathname;
 const params = new URLSearchParams(window.location.search);
 const explicitAppRoute = pathname === "/app" || pathname.startsWith("/app/");
 const webChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
-const nextOverviewRoute = !nativeApp && (pathname === "/overview/next" || pathname.startsWith("/overview/next/"));
+const legacyOverviewRoute = !nativeApp && (pathname === "/overview/legacy" || pathname.startsWith("/overview/legacy/"));
+const waveNextRoute = !nativeApp && !legacyOverviewRoute && (
+  pathname === "/overview" ||
+  pathname === "/overview/next" ||
+  pathname.startsWith("/overview/next/")
+);
 const controlRoute = pathname === "/overview" || pathname.startsWith("/overview/");
 const shortcutApp = !webChatRoute && !controlRoute && params.get("source") === "app";
 const landingRoute = !nativeApp && pathname === "/";
@@ -120,7 +125,7 @@ const sourceSurface = webChatRoute ? "ogenic-web" as const : "ogenic-app" as con
 
 document.title = landingRoute
   ? "WAVE — SAME MIND"
-  : nextOverviewRoute
+  : waveNextRoute
     ? "WAVE — RUN"
     : controlRoute
       ? "WAVE — DASHBOARD"
@@ -131,12 +136,12 @@ function surfaceTitle(surface: "ogenic-web" | "ogenic-app") {
 }
 
 function SurfaceBridge() {
-  if (landingRoute || nativeApp || nextOverviewRoute) return null;
+  if (landingRoute || nativeApp || waveNextRoute) return null;
   const href = controlRoute ? "/chat" : "/overview";
-  const label = controlRoute ? "WAVE CHAT ↗" : "DASHBOARD ↗";
+  const label = controlRoute ? "WAVE CHAT ↗" : "WAVE RUN ↗";
   return <a
     href={href}
-    aria-label={controlRoute ? "Open WAVE Chat" : "Open WAVE Dashboard"}
+    aria-label={controlRoute ? "Open WAVE Chat" : "Open WAVE Run"}
     style={{
       position: "fixed",
       top: "calc(env(safe-area-inset-top) + 10px)",
@@ -164,7 +169,7 @@ function SurfaceBridge() {
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <SurfaceBridge />
-    {landingRoute ? <Landing /> : nextOverviewRoute ? <WaveNext /> : unifiedChatSurface ? <UnifiedChat surface={sourceSurface} /> : <>
+    {landingRoute ? <Landing /> : waveNextRoute ? <WaveNext /> : unifiedChatSurface ? <UnifiedChat surface={sourceSurface} /> : <>
       <ControlPlaneV2 />
       <ChatModelRouter />
       <AppEnhancements />

@@ -4,11 +4,13 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(new URL("../" + path, import.meta.url), "utf8");
 
-test("WAVE NEXT is isolated at /overview/next while legacy overview remains available", () => {
+test("WAVE NEXT owns /overview and /overview/next while /overview/legacy remains rollback", () => {
   const main = read("src/main.tsx");
   const ui = read("src/WaveNext.tsx");
+  assert.match(main, /pathname === "\/overview"/);
   assert.match(main, /pathname === "\/overview\/next"/);
-  assert.match(main, /nextOverviewRoute \? <WaveNext \/>/);
+  assert.match(main, /pathname === "\/overview\/legacy"/);
+  assert.match(main, /waveNextRoute \? <WaveNext \/>/);
   assert.match(main, /<ControlPlaneV2 \/>/);
   assert.match(ui, /href="\/overview\/legacy"/);
 });
