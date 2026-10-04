@@ -5,10 +5,12 @@ import {
 } from "./capability-resolver-api";
 import { createCapabilityExecutionApi } from "./capability-execution-api";
 import { createOpenAISelfHostApi } from "./openai-selfhost-api";
+import { createCodexLeftArmApi } from "./codex-left-arm-api";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
 const selfHostApi = createOpenAISelfHostApi();
+const codexLeftArmApi = createCodexLeftArmApi();
 
 type Bindings = CapabilityResolverBindings & Record<string, unknown>;
 
@@ -23,6 +25,9 @@ export default {
     }
     if (pathname.startsWith("/api/openai/selfhost/")) {
       return selfHostApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/codex/")) {
+      return codexLeftArmApi.fetch(request, env as never, ctx as never);
     }
     return base.fetch(request, env as never, ctx);
   },
