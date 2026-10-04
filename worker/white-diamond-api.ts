@@ -191,13 +191,13 @@ export function createWhiteDiamondApi() {
   });
 
   api.post("/api/white-diamond/plan", async (c) => {
-    const body = await c.req.json<PlanBody>().catch(() => ({}));
+    const body: PlanBody = await c.req.json<PlanBody>().catch(() => ({} as PlanBody));
     const result = await plan(body, c.env);
     return c.json(result.body, result.status, { "Cache-Control": "no-store" });
   });
 
   api.post("/api/white-diamond/handoff", async (c) => {
-    const body = await c.req.json<HandoffBody>().catch(() => ({}));
+    const body: HandoffBody = await c.req.json<HandoffBody>().catch(() => ({} as HandoffBody));
     const agentId = clean(body.agent_id, 100);
     const requestedPermission = permission(body.permission_class);
     const registry = buildWhiteDiamondRegistry(c.env);
