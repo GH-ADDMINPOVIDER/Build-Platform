@@ -6,11 +6,13 @@ import {
 import { createCapabilityExecutionApi } from "./capability-execution-api";
 import { createOpenAISelfHostApi } from "./openai-selfhost-api";
 import { createCodexLeftArmApi } from "./codex-left-arm-api";
+import { createMcpConfigApi } from "./mcp-config-api";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
 const selfHostApi = createOpenAISelfHostApi();
 const codexLeftArmApi = createCodexLeftArmApi();
+const mcpConfigApi = createMcpConfigApi();
 
 type Bindings = CapabilityResolverBindings & Record<string, unknown>;
 
@@ -22,6 +24,9 @@ export default {
     }
     if (pathname === "/api/capabilities/execute") {
       return executionApi.fetch(request, env, ctx as never);
+    }
+    if (pathname.startsWith("/api/mcp-config/")) {
+      return mcpConfigApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/openai/selfhost/")) {
       return selfHostApi.fetch(request, env as never, ctx as never);
