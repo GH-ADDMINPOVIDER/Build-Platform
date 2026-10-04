@@ -54,17 +54,20 @@ test("function bridge exposes only verified server-locked private tools", async 
   assert.match(api, /writes and unknown functions return HUMAN_APPROVAL_REQUIRED/);
   assert.match(api, /policy: "SIDE_EFFECTS_REQUIRE_SEPARATE_OWNER_APPROVAL"/);
   assert.match(tools, /HUMAN_APPROVAL_REQUIRED/);
-  assert.match(tools, /CANONICAL_REPO/);
+  assert.match(tools, /CANONICAL_REPOSITORY/);
   assert.match(tools, /CANONICAL_BRANCH/);
   assert.match(tools, /CANONICAL_CONVERSATION/);
-  assert.match(tools, /CANONICAL_SESSION_LINE/);
+  assert.match(tools, /CANONICAL_SESSION/);
+  assert.match(tools, /1LSS_OWNER_MAIN/);
 });
 
-test("provider connection UI is a server-backed control surface without raw secret rendering", async () => {
+test("provider connection UI is server-backed and renders only safe credential metadata", async () => {
   const ui = await read("src/ProviderConnectWizard.tsx");
   const api = await read("worker/provider-connect-api.ts");
   assert.match(ui, /\/api\/provider-connect/);
-  assert.doesNotMatch(ui, /LINE_CHANNEL_ACCESS_TOKEN|META_APP_SECRET|N8N_API_KEY|OPENAI_API_KEY/);
+  assert.match(ui, /stored server-side/);
+  assert.match(ui, /ไม่แสดงค่า secret จริง/);
+  assert.doesNotMatch(ui, /cred\.value|credential\.value|secretValue|tokenValue/);
   assert.match(api, /CONFIGURATION_REQUIRED|PARTNER_ACCESS_REQUIRED|UNSUPPORTED_DIRECT_API/);
   assert.match(api, /requireOwnerSession/);
 });
