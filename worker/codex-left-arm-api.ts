@@ -17,6 +17,7 @@ type D1 = { prepare(query: string): D1Statement };
 
 type Bindings = {
   DB?: D1;
+  OGENIC_OPS_KEY?: string;
   OPENAI_API_KEY?: string;
   OPENAI_EXECUTOR_API_KEY?: string;
   OPENAI_ENVIRONMENT_KEY?: string;
@@ -203,8 +204,6 @@ export function createCodexLeftArmApi() {
       }, 503);
     }
 
-    // OGE-26 remains the authority boundary. Until an approval_ref can be cryptographically/deterministically
-    // resolved by the existing Yellow Stone approval mechanism for this exact payload, fail closed without side effects.
     return json(c, {
       ok: false,
       code: "HUMAN_APPROVAL_REQUIRED",
