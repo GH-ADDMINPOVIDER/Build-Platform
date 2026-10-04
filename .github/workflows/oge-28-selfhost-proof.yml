@@ -5,6 +5,7 @@ on:
     branches: [phase-vi-provider-incentive-metering]
     paths:
       - ".github/workflows/oge-28-selfhost-proof.yml"
+      - "scripts/verify-oge-28-selfhost.mjs"
       - "tests/openai-selfhost-runtime-contract.test.mjs"
   workflow_dispatch:
 
@@ -13,11 +14,13 @@ permissions:
   actions: write
   id-token: write
 
+concurrency:
+  group: oge-28-selfhost-proof
+  cancel-in-progress: true
+
 env:
   STAGING_URL: https://wave.ogenicchocolate.com
   INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
-  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
-  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
   INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
   INFISICAL_ENV_SLUG: staging
 
@@ -47,22 +50,22 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Require proof authorization without exposing values
+      - name: Require proof inputs without exposing values
         shell: bash
         run: |
           set -euo pipefail
           test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::CONFIGURATION_REQUIRED: OGENIC_OPS_KEY"; exit 1; }
-          echo "OGE28_PROOF_AUTH_READY"
+          test -n "${OPENAI_API_KEY:-}" || { echo "::error::CONFIGURATION_REQUIRED: OPENAI_API_KEY"; exit 1; }
+          echo 'OGE28_CONTROL_AUTH_READY'
 
-      - name: Prepare OpenAI self-host session and publish ephemeral executor handoff
+      - name: Authenticate owner session and prepare OpenAI self-host session
         shell: bash
         run: |
           set -euo pipefail
           COOKIE_JAR="$RUNNER_TEMP/oge28-cookie.jar"
-          PREPARED="$(mktemp)"
+          PREPARED="$RUNNER_TEMP/oge28-prepared.json"
           HANDOFF_DIR="$RUNNER_TEMP/oge28-handoff"
           mkdir -p "$HANDOFF_DIR"
-          trap 'rm -f "$PREPARED"' EXIT
 
           printf '{"owner_key":%s}' "$(jq -Rn --arg value "$OGENIC_OPS_KEY" '$value')" \
             | curl --fail --silent --show-error --cookie-jar "$COOKIE_JAR" \
@@ -82,20 +85,20 @@ jobs:
           SESSION_ID="$(jq -r '.agent_session_id // empty' "$PREPARED")"
           ENVIRONMENT_ID="$(jq -r '.environment_id // empty' "$PREPARED")"
           REMOTE_URL="$(jq -r '.remote_url // empty' "$PREPARED")"
-          [[ "$SESSION_ID" == sess_* || "$SESSION_ID" == agent_* ]] || { echo "::error::invalid prepared session id"; exit 1; }
-          [[ "$ENVIRONMENT_ID" == ccarenv_* ]] || { echo "::error::invalid prepared environment id"; exit 1; }
-          test -n "$REMOTE_URL" || { echo "::error::prepared remote URL missing"; exit 1; }
-
+          [[ "$SESSION_ID" == sess_* || "$SESSION_ID" == agent_* ]] || { echo 'INVALID_AGENT_SESSION_ID'; exit 64; }
+          [[ "$ENVIRONMENT_ID" == ccarenv_* ]] || { echo 'INVALID_ENVIRONMENT_ID'; exit 64; }
+          test -n "$REMOTE_URL" || { echo 'REMOTE_URL_UNAVAILABLE'; exit 64; }
           echo "::add-mask::$SESSION_ID"
           echo "::add-mask::$ENVIRONMENT_ID"
           echo "::add-mask::$REMOTE_URL"
+
           jq -n \
             --arg session_id "$SESSION_ID" \
             --arg environment_id "$ENVIRONMENT_ID" \
             --arg remote_url "$REMOTE_URL" \
             '{session_id:$session_id,environment_id:$environment_id,remote_url:$remote_url}' \
             > "$HANDOFF_DIR/handoff.json"
-          echo "OGE28_PREPARE_OK"
+          echo 'OGE28_PREPARE_OK'
 
       - name: Upload ephemeral executor handoff
         uses: actions/upload-artifact@v4
@@ -105,53 +108,23 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      - name: Verify real runner result and stamp canonical 1LSS evidence
+      - name: Verify current Agents API turn and stamp canonical 1LSS evidence
         shell: bash
         run: |
           set -euo pipefail
-          COOKIE_JAR="$RUNNER_TEMP/oge28-cookie.jar"
           HANDOFF="$RUNNER_TEMP/oge28-handoff/handoff.json"
-          RAW_RESULT="$(mktemp)"
-          SAFE_RESULT="oge28-selfhost-proof.json"
-          trap 'rm -f "$RAW_RESULT"' EXIT
-
           SESSION_ID="$(jq -r '.session_id' "$HANDOFF")"
           ENVIRONMENT_ID="$(jq -r '.environment_id' "$HANDOFF")"
           echo "::add-mask::$SESSION_ID"
           echo "::add-mask::$ENVIRONMENT_ID"
-
-          BODY="$(jq -n --arg session "$SESSION_ID" --arg environment "$ENVIRONMENT_ID" '{approved:true,phase:"verify",agent_session_id:$session,environment_id:$environment}')"
-          HTTP_CODE="$(curl --silent --show-error --cookie "$COOKIE_JAR" \
-            --header 'Content-Type: application/json' \
-            --data "$BODY" \
-            --max-time 900 \
-            --output "$RAW_RESULT" --write-out '%{http_code}' \
-            "${STAGING_URL}/api/openai/selfhost/proof")"
-
-          jq '{ok,issue,verification,agent_session_id,environment_id,runner,branch,result_sha256,evidence_sequence,evidence_replayed,d1_canonical,conversation_id,session_line,usage_tokens,policy,code,missing,message}' "$RAW_RESULT" > "$SAFE_RESULT"
-          cat "$SAFE_RESULT"
-
-          test "$HTTP_CODE" = "200" || { echo "::error::verify returned HTTP ${HTTP_CODE}"; exit 1; }
-          jq -e '
-            .ok == true and
-            .issue == "OGE-28" and
-            .verification == "verified" and
-            .runner == "wave-runner-01" and
-            .branch == "phase-vi-provider-incentive-metering" and
-            .conversation_id == "owner-main" and
-            .session_line == "1LSS_OWNER_MAIN" and
-            (.evidence_sequence | type == "number") and
-            (.result_sha256 | type == "string" and length == 64)
-          ' "$SAFE_RESULT" >/dev/null
-
-          if grep -Eqi 'sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{12,}|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|OGENIC_OPS_KEY|OPENAI_EXECUTOR_API_KEY|remote_url' "$SAFE_RESULT"; then
-            echo "::error::secret-like material detected in sanitized proof"
-            exit 1
-          fi
-          echo "OGE28_REAL_SELFHOST_PROOF_OK"
+          SESSION_ID="$SESSION_ID" \
+          ENVIRONMENT_ID="$ENVIRONMENT_ID" \
+          RESULT_PATH="oge28-selfhost-proof.json" \
+          node scripts/verify-oge-28-selfhost.mjs
+          jq -e '.ok == true and .verification == "verified" and .runner == "wave-runner-01" and .branch == "phase-vi-provider-incentive-metering" and .conversation_id == "owner-main" and .session_line == "1LSS_OWNER_MAIN" and (.evidence_sequence | type == "number") and (.result_sha256 | type == "string" and length == 64)' oge28-selfhost-proof.json >/dev/null
+          echo 'OGE28_REAL_SELFHOST_PROOF_OK'
 
       - name: Publish proof-complete marker and sanitized evidence
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: oge28-proof-complete-${{ github.run_id }}-${{ github.run_attempt }}
@@ -191,8 +164,8 @@ jobs:
         run: |
           set -euo pipefail
           API="https://api.github.com/repos/${GITHUB_REPOSITORY}"
-          ARTIFACT_ID=""
-          for _ in $(seq 1 90); do
+          ARTIFACT_ID=''
+          for _ in $(seq 1 120); do
             JSON="$(curl --fail --silent --show-error \
               --header "Authorization: Bearer ${GH_ACTIONS_TOKEN}" \
               --header 'Accept: application/vnd.github+json' \
@@ -225,7 +198,7 @@ jobs:
           [[ "$SESSION_ID" == sess_* || "$SESSION_ID" == agent_* ]] || { echo 'INVALID_AGENT_SESSION_ID'; exit 64; }
           [[ "$ENVIRONMENT_ID" == ccarenv_* ]] || { echo 'INVALID_ENVIRONMENT_ID'; exit 64; }
           test -n "$REMOTE_URL" || { echo 'REMOTE_URL_UNAVAILABLE'; exit 64; }
-          node - <<'NODE'
+          REMOTE_URL="$REMOTE_URL" node - <<'NODE'
           const url = new URL(process.env.REMOTE_URL || '');
           if (url.protocol !== 'https:' && url.protocol !== 'wss:') throw new Error('INVALID_REMOTE_URL_PROTOCOL');
           const allowed = new Set(['api.openai.com', 'codex-cloud-environments.chatgpt.com']);
@@ -255,8 +228,8 @@ jobs:
           echo 'WAVE_EXECUTOR_CONNECTED_PROCESS_STARTED'
 
           API="https://api.github.com/repos/${GITHUB_REPOSITORY}"
-          COMPLETE_ID=""
-          for _ in $(seq 1 150); do
+          COMPLETE_ID=''
+          for _ in $(seq 1 180); do
             JSON="$(curl --fail --silent --show-error \
               --header "Authorization: Bearer ${GH_ACTIONS_TOKEN}" \
               --header 'Accept: application/vnd.github+json' \
@@ -273,12 +246,11 @@ jobs:
           done
           test -n "$COMPLETE_ID" || { echo 'PROOF_COMPLETE_MARKER_TIMEOUT'; exit 1; }
 
-          CODEx_VERSION="$(codex --version | head -n1 | tr -d '\r\n')"
           jq -n \
             --arg runner "$(hostname)" \
             --arg branch "$(git branch --show-current)" \
             --arg git_sha "$(git rev-parse HEAD)" \
-            --arg codex_version "$CODEx_VERSION" \
+            --arg codex_version "$(codex --version | head -n1 | tr -d '\r\n')" \
             '{ok:true,runner:$runner,branch:$branch,git_sha:$git_sha,codex_version:$codex_version,proof_complete:true}' \
             > oge28-executor-evidence.json
           echo 'OGE28_EXECUTOR_PROOF_COMPLETE'
