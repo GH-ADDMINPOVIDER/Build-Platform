@@ -2,3 +2,4 @@ WAVE staging deploy trigger
 self-hosted runner ready
 canonical domain: wave.ogenicchocolate.com
 verification wave: OGE-14 OGE-15 OGE-17 OGE-19 OGE-28 OGE-31 OGE-32
+contract lock: f8029d61 connector-router-provider-wizard
