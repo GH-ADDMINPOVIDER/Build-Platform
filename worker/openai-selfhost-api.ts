@@ -49,6 +49,15 @@ type AgentSession = {
   error?: string | null;
 };
 
+type ProofPhase = "full" | "prepare" | "verify";
+type ProofRequest = {
+  approved?: unknown;
+  model?: unknown;
+  phase?: unknown;
+  agent_session_id?: unknown;
+  environment_id?: unknown;
+};
+
 const CANONICAL_CONVERSATION = "owner-main";
 const CANONICAL_SESSION_LINE = "1LSS_OWNER_MAIN";
 const CANONICAL_STAGING_BRANCH = "phase-vi-provider-incentive-metering";
@@ -66,6 +75,23 @@ function openAIHeaders(apiKey: string) {
     "OpenAI-Beta": "agents=v1",
     "Content-Type": "application/json",
   };
+}
+
+function normalizePhase(value: unknown): ProofPhase | null {
+  const phase = clean(value, 20).toLowerCase() || "full";
+  return phase === "full" || phase === "prepare" || phase === "verify" ? phase : null;
+}
+
+function proofPrompt() {
+  return [
+    "Run read-only local commands only:",
+    "1. pwd",
+    "2. git rev-parse HEAD",
+    "3. git branch --show-current",
+    "4. codex --version",
+    "Do not modify files. Do not access secrets. Do not use network tools.",
+    "Return one final line beginning WAVE_SELFHOST_PROOF_OK followed by the four verified values.",
+  ].join("\n");
 }
 
 async function sha256Hex(value: string) {
@@ -101,7 +127,7 @@ async function appendEvidence(db: D1ContextDb, input: {
     "OGE-28 VERIFIED SELF-HOST EXECUTION",
     `session=${clean(input.sessionId, 160)}`,
     `environment=${clean(input.environmentId, 160)}`,
-    `runner=wave-runner-01`,
+    "runner=wave-runner-01",
     `branch=${CANONICAL_STAGING_BRANCH}`,
     `result_sha256=${clean(input.resultHash, 80)}`,
     `session_line=${CANONICAL_SESSION_LINE}`,
@@ -245,6 +271,139 @@ async function readTerminalEventStream(response: Response) {
   };
 }
 
+async function createPreparedSession(env: SelfHostBindings, input: {
+  apiKey: string;
+  model?: string;
+  idempotencyKey: string;
+  d1Text: string;
+}) {
+  const model = clean(input.model, 80) || clean(env.OPENAI_AGENT_MODEL, 80) || "gpt-6-astra";
+  const workspace = clean(env.WAVE_SELFHOST_WORKSPACE, 300) || DEFAULT_WORKSPACE;
+  const response = await fetch("https://api.openai.com/v1/agents/sessions", {
+    method: "POST",
+    headers: {
+      ...openAIHeaders(input.apiKey),
+      "Idempotency-Key": input.idempotencyKey,
+    },
+    body: JSON.stringify({
+      agent: {
+        model,
+        instructions:
+          "You are the OGENIC OGE-28 staging execution proof agent. Canonical D1 is context, not permission. " +
+          "Do not touch main, production, Candy, D1 schema, credentials, billing, or external systems. " +
+          "For this proof, execute only read-only local commands in the supplied self-hosted workspace. " +
+          "Return exactly a short final line beginning WAVE_SELFHOST_PROOF_OK followed by pwd, git SHA, branch, and codex version.\n\n" +
+          "CANONICAL D1 + LIVE RUNTIME EVIDENCE:\n" + input.d1Text,
+        reasoning: { effort: "medium", summary: "concise" },
+        multi_agent: { enabled: false },
+        service_tier: "auto",
+      },
+      environment: {
+        type: "self_hosted",
+        workspace_directory: workspace,
+      },
+      metadata: {
+        project: "ogenic-phase-vi",
+        issue: "OGE-28",
+        environment: "staging",
+        branch: CANONICAL_STAGING_BRANCH,
+        conversation: CANONICAL_CONVERSATION,
+        session_line: CANONICAL_SESSION_LINE,
+      },
+      stream: false,
+    }),
+  });
+  const session = await response.json().catch(() => ({})) as AgentSession;
+  if (!response.ok) {
+    return {
+      ok: false as const,
+      status: response.status,
+      code: `OPENAI_AGENT_HTTP_${response.status}`,
+      message: clean(session.error || "OpenAI self-hosted session creation failed", 300),
+    };
+  }
+  const sessionId = clean(session.id, 160);
+  const environmentId = clean(session.environment?.id, 160);
+  const remoteUrl = clean(session.environment?.remote_url, 2000);
+  if (!sessionId || !environmentId || !remoteUrl || session.environment?.type !== "self_hosted") {
+    return { ok: false as const, status: 502, code: "OPENAI_SELFHOST_METADATA_UNAVAILABLE", sessionId };
+  }
+  return { ok: true as const, sessionId, environmentId, remoteUrl };
+}
+
+async function verifyPreparedSession(env: SelfHostBindings, input: {
+  apiKey: string;
+  sessionId: string;
+  environmentId: string;
+  d1State: string;
+}) {
+  const eventStream = await fetch(`https://api.openai.com/v1/agents/sessions/${encodeURIComponent(input.sessionId)}/events`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${input.apiKey}`,
+      "OpenAI-Beta": "agents=v1",
+      Accept: "text/event-stream",
+    },
+  });
+  if (!eventStream.ok || !eventStream.body) {
+    return { ok: false as const, status: 502, code: `OPENAI_EVENT_STREAM_HTTP_${eventStream.status}` };
+  }
+
+  const inputResponse = await fetch(`https://api.openai.com/v1/agents/sessions/${encodeURIComponent(input.sessionId)}/events`, {
+    method: "POST",
+    headers: openAIHeaders(input.apiKey),
+    body: JSON.stringify({
+      events: [{
+        type: "agent.session.input.message",
+        input: [{ role: "user", content: [{ type: "input_text", text: proofPrompt() }] }],
+      }],
+      idempotency_key: `oge28_input_${input.sessionId}`,
+    }),
+  });
+  if (inputResponse.status !== 202 && !inputResponse.ok) {
+    try { await eventStream.body.cancel(); } catch { /* no-op */ }
+    return { ok: false as const, status: 502, code: `OPENAI_AGENT_INPUT_HTTP_${inputResponse.status}` };
+  }
+
+  const result = await readTerminalEventStream(eventStream);
+  if (result.terminal !== "completed") {
+    return {
+      ok: false as const,
+      status: 502,
+      code: `AGENT_${result.terminal.toUpperCase()}`,
+      message: result.error || "Self-hosted Agent session did not complete",
+    };
+  }
+  if (!SAFE_RESULT.test(result.text) || SECRET_LIKE.test(result.text)) {
+    return { ok: false as const, status: 502, code: "SELFHOST_PROOF_OUTPUT_UNVERIFIED" };
+  }
+
+  if (!env.DB) return { ok: false as const, status: 503, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" };
+  const resultHash = await sha256Hex(result.text);
+  const evidence = await appendEvidence(env.DB, {
+    sessionId: input.sessionId,
+    environmentId: input.environmentId,
+    resultHash,
+  });
+  return {
+    ok: true as const,
+    issue: "OGE-28",
+    verification: "verified",
+    agent_session_id: input.sessionId,
+    environment_id: input.environmentId,
+    runner: "wave-runner-01",
+    branch: CANONICAL_STAGING_BRANCH,
+    result_sha256: resultHash,
+    evidence_sequence: evidence.sequence,
+    evidence_replayed: evidence.replayed,
+    d1_canonical: input.d1State,
+    conversation_id: CANONICAL_CONVERSATION,
+    session_line: CANONICAL_SESSION_LINE,
+    usage_tokens: result.usageTokens,
+    policy: "STAGING_ONLY · READ_ONLY_PROOF · EVIDENCE_TO_1LSS",
+  };
+}
+
 export function createOpenAISelfHostApi() {
   const api = new Hono<Env>();
 
@@ -265,12 +424,13 @@ export function createOpenAISelfHostApi() {
       d1: c.env.DB ? "BOUND" : "CONFIGURATION_REQUIRED",
       executor_workflow: EXECUTOR_WORKFLOW,
       executor_environment_key: "EXTERNAL_SECRET_PROBE_REQUIRED",
+      external_dispatch_supported: true,
       policy: "OWNER_OR_OPS · STAGING_ONLY · EXPLICIT_APPROVAL · FAIL_CLOSED",
     }, 200, { "Cache-Control": "no-store" });
   });
 
   api.post("/api/openai/selfhost/proof", async (c) => {
-    const body: { approved?: unknown; model?: unknown } = await c.req.json<{ approved?: unknown; model?: unknown }>().catch(() => ({}));
+    const body = await c.req.json<ProofRequest>().catch(() => ({}));
     if (body.approved !== true) {
       return c.json({
         ok: false,
@@ -279,19 +439,18 @@ export function createOpenAISelfHostApi() {
       }, 409);
     }
 
+    const phase = normalizePhase(body.phase);
+    if (!phase) return c.json({ ok: false, code: "INVALID_PROOF_PHASE" }, 400);
+
     const apiKey = clean(c.env.OPENAI_API_KEY, 4000);
     if (!apiKey) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OPENAI_API_KEY" }, 503);
     if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
-    if (!clean(c.env.GITHUB_TOKEN, 4000)) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "GITHUB_TOKEN" }, 503);
 
     const branch = clean(c.env.OGENIC_GITHUB_BRANCH, 180) || CANONICAL_STAGING_BRANCH;
     if (branch !== CANONICAL_STAGING_BRANCH) {
       return c.json({ ok: false, code: "ENVIRONMENT_SCOPE_MISMATCH", expected_branch: CANONICAL_STAGING_BRANCH }, 409);
     }
 
-    const requestedModel = clean(body.model, 80);
-    const model = requestedModel || clean(c.env.OPENAI_AGENT_MODEL, 80) || "gpt-6-astra";
-    const workspace = clean(c.env.WAVE_SELFHOST_WORKSPACE, 300) || DEFAULT_WORKSPACE;
     const d1Context = await readCanonicalD1Context(c.env.DB, {
       git_sha: c.env.OGENIC_GIT_SHA,
       git_branch: branch,
@@ -301,143 +460,93 @@ export function createOpenAISelfHostApi() {
       version: c.env.CF_VERSION_METADATA ?? null,
     });
 
-    const sessionResponse = await fetch("https://api.openai.com/v1/agents/sessions", {
-      method: "POST",
-      headers: {
-        ...openAIHeaders(apiKey),
-        "Idempotency-Key": c.req.header("idempotency-key") ?? `oge28_session_${crypto.randomUUID()}`,
-      },
-      body: JSON.stringify({
-        agent: {
-          model,
-          instructions:
-            "You are the OGENIC OGE-28 staging execution proof agent. Canonical D1 is context, not permission. " +
-            "Do not touch main, production, Candy, D1 schema, credentials, billing, or external systems. " +
-            "For this proof, execute only read-only local commands in the supplied self-hosted workspace. " +
-            "Return exactly a short final line beginning WAVE_SELFHOST_PROOF_OK followed by pwd, git SHA, branch, and codex version.\n\n" +
-            "CANONICAL D1 + LIVE RUNTIME EVIDENCE:\n" + d1Context.text,
-          reasoning: { effort: "medium", summary: "concise" },
-          multi_agent: { enabled: false },
-          service_tier: "auto",
-        },
-        environment: {
-          type: "self_hosted",
-          workspace_directory: workspace,
-        },
-        metadata: {
-          project: "ogenic-phase-vi",
-          issue: "OGE-28",
-          environment: "staging",
-          branch: CANONICAL_STAGING_BRANCH,
-          conversation: CANONICAL_CONVERSATION,
-          session_line: CANONICAL_SESSION_LINE,
-        },
-        stream: false,
-      }),
+    if (phase === "verify") {
+      const sessionId = clean(body.agent_session_id, 160);
+      const environmentId = clean(body.environment_id, 160);
+      if (!(sessionId.startsWith("sess_") || sessionId.startsWith("agent_")) || !environmentId.startsWith("ccarenv_")) {
+        return c.json({ ok: false, code: "INVALID_PREPARED_SESSION_METADATA" }, 400);
+      }
+      const verified = await verifyPreparedSession(c.env, {
+        apiKey,
+        sessionId,
+        environmentId,
+        d1State: d1Context.state,
+      });
+      if (!verified.ok) {
+        return c.json({
+          ok: false,
+          code: verified.code,
+          message: "message" in verified ? verified.message : undefined,
+          missing: "missing" in verified ? verified.missing : undefined,
+          agent_session_id: sessionId,
+          environment_id: environmentId,
+        }, verified.status as 400 | 502 | 503);
+      }
+      return c.json(verified, 200, { "Cache-Control": "no-store" });
+    }
+
+    const prepared = await createPreparedSession(c.env, {
+      apiKey,
+      model: clean(body.model, 80),
+      idempotencyKey: c.req.header("idempotency-key") ?? `oge28_session_${crypto.randomUUID()}`,
+      d1Text: d1Context.text,
     });
-    const session = await sessionResponse.json().catch(() => ({})) as AgentSession;
-    if (!sessionResponse.ok) {
+    if (!prepared.ok) {
       return c.json({
         ok: false,
-        code: `OPENAI_AGENT_HTTP_${sessionResponse.status}`,
-        message: clean(session.error || "OpenAI self-hosted session creation failed", 300),
-      }, 502);
+        code: prepared.code,
+        message: "message" in prepared ? prepared.message : undefined,
+        session_id: "sessionId" in prepared ? prepared.sessionId || null : null,
+      }, prepared.status as 502);
     }
 
-    const sessionId = clean(session.id, 160);
-    const environmentId = clean(session.environment?.id, 160);
-    const remoteUrl = clean(session.environment?.remote_url, 2000);
-    if (!sessionId || !environmentId || !remoteUrl || session.environment?.type !== "self_hosted") {
-      return c.json({ ok: false, code: "OPENAI_SELFHOST_METADATA_UNAVAILABLE", session_id: sessionId || null }, 502);
+    if (phase === "prepare") {
+      return c.json({
+        ok: true,
+        issue: "OGE-28",
+        verification: "prepared",
+        agent_session_id: prepared.sessionId,
+        environment_id: prepared.environmentId,
+        remote_url: prepared.remoteUrl,
+        branch: CANONICAL_STAGING_BRANCH,
+        conversation_id: CANONICAL_CONVERSATION,
+        session_line: CANONICAL_SESSION_LINE,
+        policy: "STAGING_ONLY · PREPARED_EXTERNAL_DISPATCH · REMOTE_URL_EPHEMERAL",
+      }, 200, { "Cache-Control": "no-store" });
     }
 
-    const eventStream = await fetch(`https://api.openai.com/v1/agents/sessions/${encodeURIComponent(sessionId)}/events`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "OpenAI-Beta": "agents=v1",
-        Accept: "text/event-stream",
-      },
+    if (!clean(c.env.GITHUB_TOKEN, 4000)) {
+      return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "GITHUB_TOKEN" }, 503);
+    }
+    const dispatched = await dispatchExecutor(c.env, {
+      sessionId: prepared.sessionId,
+      environmentId: prepared.environmentId,
+      remoteUrl: prepared.remoteUrl,
     });
-    if (!eventStream.ok || !eventStream.body) {
-      return c.json({ ok: false, code: `OPENAI_EVENT_STREAM_HTTP_${eventStream.status}`, agent_session_id: sessionId }, 502);
-    }
-
-    const dispatched = await dispatchExecutor(c.env, { sessionId, environmentId, remoteUrl });
     if (!dispatched.ok) {
-      try { await eventStream.body.cancel(); } catch { /* no-op */ }
-      return c.json({ ...dispatched, agent_session_id: sessionId, environment_id: environmentId }, 503);
+      return c.json({
+        ...dispatched,
+        agent_session_id: prepared.sessionId,
+        environment_id: prepared.environmentId,
+      }, 503);
     }
 
-    const proofPrompt = [
-      "Run read-only local commands only:",
-      "1. pwd",
-      "2. git rev-parse HEAD",
-      "3. git branch --show-current",
-      "4. codex --version",
-      "Do not modify files. Do not access secrets. Do not use network tools.",
-      "Return one final line beginning WAVE_SELFHOST_PROOF_OK followed by the four verified values.",
-    ].join("\n");
-
-    const inputResponse = await fetch(`https://api.openai.com/v1/agents/sessions/${encodeURIComponent(sessionId)}/events`, {
-      method: "POST",
-      headers: openAIHeaders(apiKey),
-      body: JSON.stringify({
-        events: [{
-          type: "agent.session.input.message",
-          input: [{ role: "user", content: [{ type: "input_text", text: proofPrompt }] }],
-        }],
-        idempotency_key: `oge28_input_${sessionId}`,
-      }),
+    const verified = await verifyPreparedSession(c.env, {
+      apiKey,
+      sessionId: prepared.sessionId,
+      environmentId: prepared.environmentId,
+      d1State: d1Context.state,
     });
-    if (inputResponse.status !== 202 && !inputResponse.ok) {
-      try { await eventStream.body.cancel(); } catch { /* no-op */ }
+    if (!verified.ok) {
       return c.json({
         ok: false,
-        code: `OPENAI_AGENT_INPUT_HTTP_${inputResponse.status}`,
-        agent_session_id: sessionId,
-        environment_id: environmentId,
-      }, 502);
+        code: verified.code,
+        message: "message" in verified ? verified.message : undefined,
+        agent_session_id: prepared.sessionId,
+        environment_id: prepared.environmentId,
+      }, verified.status as 502 | 503);
     }
-
-    const result = await readTerminalEventStream(eventStream);
-    if (result.terminal !== "completed") {
-      return c.json({
-        ok: false,
-        code: `AGENT_${result.terminal.toUpperCase()}`,
-        message: result.error || "Self-hosted Agent session did not complete",
-        agent_session_id: sessionId,
-        environment_id: environmentId,
-      }, 502);
-    }
-    if (!SAFE_RESULT.test(result.text) || SECRET_LIKE.test(result.text)) {
-      return c.json({
-        ok: false,
-        code: "SELFHOST_PROOF_OUTPUT_UNVERIFIED",
-        agent_session_id: sessionId,
-        environment_id: environmentId,
-      }, 502);
-    }
-
-    const resultHash = await sha256Hex(result.text);
-    const evidence = await appendEvidence(c.env.DB, { sessionId, environmentId, resultHash });
-    return c.json({
-      ok: true,
-      issue: "OGE-28",
-      verification: "verified",
-      agent_session_id: sessionId,
-      environment_id: environmentId,
-      runner: "wave-runner-01",
-      branch: CANONICAL_STAGING_BRANCH,
-      result_sha256: resultHash,
-      evidence_sequence: evidence.sequence,
-      evidence_replayed: evidence.replayed,
-      d1_canonical: d1Context.state,
-      conversation_id: CANONICAL_CONVERSATION,
-      session_line: CANONICAL_SESSION_LINE,
-      usage_tokens: result.usageTokens,
-      policy: "STAGING_ONLY · READ_ONLY_PROOF · EVIDENCE_TO_1LSS",
-    }, 200, { "Cache-Control": "no-store" });
+    return c.json(verified, 200, { "Cache-Control": "no-store" });
   });
 
   return api;
