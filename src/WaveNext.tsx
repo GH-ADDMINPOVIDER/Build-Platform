@@ -19,7 +19,6 @@ type SessionRef = { id: string; source_surface: string; session_ref: string; lab
 type Tab = "run" | "agent" | "session" | "connections" | "approvals" | "history";
 
 const HANDOFF_DRAFT_KEY = "ogenic.wave-next.handoff.v1";
-const HANDOFF_MODE_KEY = "ogenic.wave-next.mode.v1";
 const SSH_HOST = "165.232.174.32";
 const SSH_USER = "wave";
 
@@ -132,10 +131,10 @@ export default function WaveNext() {
     setSession(body);
   }
 
-  function handoff(mode: "chat-api" | "agent-ai") {
+  function handoff() {
     try {
-      sessionStorage.setItem(HANDOFF_DRAFT_KEY, command.trim());
-      sessionStorage.setItem(HANDOFF_MODE_KEY, mode);
+      const text = command.trim();
+      if (text) sessionStorage.setItem(HANDOFF_DRAFT_KEY, text);
     } catch { /* no-op */ }
     window.location.assign("/chat");
   }
@@ -175,12 +174,12 @@ export default function WaveNext() {
         <div className="wnHeroCopy">
           <span className="wnKicker">RUN / COMMAND</span>
           <h2>What should WAVE do?</h2>
-          <p>Command here, then hand it to the existing WAVE Chat or Agent lane. Canonical memory stays on 1LSS.</p>
+          <p>Command here, then hand it to the existing WAVE Chat. Canonical memory stays on 1LSS; Agent AI remains selectable inside Chat until a verified direct-mode handoff contract is added.</p>
         </div>
         <textarea value={command} onChange={(e) => setCommand(e.target.value)} placeholder="Tell WAVE what to do…" rows={5} />
         <div className="wnRunActions">
-          <button className="wnPrimary" onClick={() => handoff("chat-api")}>Run with WAVE Chat</button>
-          <button onClick={() => handoff("agent-ai")}>Run with Agent AI</button>
+          <button className="wnPrimary" onClick={handoff}>Open WAVE Chat with draft</button>
+          <button onClick={() => { setTab("agent"); }}>Agent controls</button>
         </div>
       </section>
 
@@ -215,8 +214,8 @@ export default function WaveNext() {
 
       {tab === "agent" && <section className="wnCard">
         <div className="wnCardHead"><div><span className="wnKicker">WHITE DIAMOND</span><h3>Agent command lane</h3></div><State value={selfHost?.openai_app_key || "CONFIGURATION_REQUIRED"} /></div>
-        <p className="wnBody">Agent execution remains behind Yellow Stone policy. No direct execution bypass is exposed here.</p>
-        <div className="wnActionRow"><button className="wnPrimary" onClick={() => handoff("agent-ai")}>Open Agent AI</button><a className="wnButtonLink" href="/chat">Open WAVE Chat</a></div>
+        <p className="wnBody">Agent execution remains behind Yellow Stone policy. Open Chat and select Agent AI there; this surface does not claim an unverified automatic mode switch.</p>
+        <div className="wnActionRow"><button className="wnPrimary" onClick={handoff}>Open Chat with draft</button><a className="wnButtonLink" href="/chat">Open WAVE Chat</a></div>
         <div className="wnPolicy">{selfHost?.policy || "Policy status unavailable"}</div>
       </section>}
 
