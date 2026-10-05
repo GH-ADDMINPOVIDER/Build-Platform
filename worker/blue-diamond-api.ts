@@ -39,6 +39,7 @@ const CANONICAL_CONVERSATION = "owner-main";
 const CANONICAL_SESSION = "1LSS_OWNER_MAIN";
 const CONTROL_POLICY = "OWNER_CONTINUITY_ATHENA_CHECKIN_AGENT_PRE_RUN";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
+const MATURITY_POLICY = "EVIDENCE_REQUIRED_FOR_PROMOTION";
 const permissions = new Set<PermissionClass>(["READ", "WRITE", "EXECUTE", "DANGEROUS"]);
 const checkinEvents = new Set<CheckinEvent>(["NEW_CHAT", "RESUME_SESSION", "CONTEXT_SHIFT"]);
 const preflightEvents = new Set<PreflightEvent>(["NEW_CHAT", "RESUME_SESSION", "CONTEXT_SHIFT", "AGENT_PRE_RUN"]);
@@ -118,6 +119,8 @@ export function createBlueDiamondApi() {
       runtime: "BLUE_DIAMOND_AGENT_COMMAND_V0_1",
       stone: 4,
       identity: "ATHENA",
+      athena_maturity: "COMMANDER_CANDIDATE",
+      maturity_policy: MATURITY_POLICY,
       control_policy: CONTROL_POLICY,
       execution_authority: EXECUTION_AUTHORITY,
       read_before_run: true,
@@ -158,6 +161,7 @@ export function createBlueDiamondApi() {
       athena: safeActor(athena),
       canonical,
       control_policy: CONTROL_POLICY,
+      maturity_policy: MATURITY_POLICY,
       read_before_run: true,
       reconciliation_state: "PENDING_FRESH_TOOL_READS",
       authoritative_sources: ["1LSS", "GitHub", "Linear", "runtime-evidence-as-needed"],
@@ -261,6 +265,7 @@ export function createBlueDiamondApi() {
       read_before_run: true,
       canonical,
       control_policy: CONTROL_POLICY,
+      maturity_policy: MATURITY_POLICY,
       athena_required: actor.actor_id !== "chatgpt-main-controller",
       reconciliation_state: "PENDING_FRESH_TOOL_READS",
       fresh_verification_claimed: false,
