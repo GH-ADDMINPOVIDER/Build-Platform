@@ -5,6 +5,10 @@ on:
     branches: [phase-vi-provider-incentive-metering]
     paths:
       - ".github/workflows/oge-36-staging-cloud-fallback.yml"
+      - "config/staging-runtime-bindings.json"
+      - "tests/staging-provider-secret-coverage.test.mjs"
+      - "worker/blue-diamond-registry.ts"
+      - "worker/white-diamond-registry.ts"
       - "worker/athena-command-planner.ts"
       - "worker/entry-yellow-stone.ts"
   workflow_dispatch:
@@ -59,24 +63,50 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Normalize canonical connector secret names
+      - name: Normalize canonical runtime secret names
         shell: bash
         run: |
           set -euo pipefail
-          if test -n "${GITHUB_TOKEN_OGE34:-}"; then
-            printf 'GITHUB_TOKEN=%s\n' "$GITHUB_TOKEN_OGE34" >> "$GITHUB_ENV"
-          fi
-          if test -z "${LINE_SECRET_CHANNEL:-}" && test -n "${LINE_CHANNEL_SECRET:-}"; then
-            printf 'LINE_SECRET_CHANNEL=%s\n' "$LINE_CHANNEL_SECRET" >> "$GITHUB_ENV"
-          fi
-          if test -z "${META_PAGE_ACCESS_TOKEN:-}" && test -n "${META_ACCESS_TOKEN:-}"; then
-            printf 'META_PAGE_ACCESS_TOKEN=%s\n' "$META_ACCESS_TOKEN" >> "$GITHUB_ENV"
-          fi
-          if test -z "${N8N_API_KEY:-}" && test -n "${N8N_REGISTRY_API_KEY:-}"; then
-            printf 'N8N_API_KEY=%s\n' "$N8N_REGISTRY_API_KEY" >> "$GITHUB_ENV"
-          elif test -z "${N8N_API_KEY:-}" && test -n "${N8N_CORE_API_KEY:-}"; then
-            printf 'N8N_API_KEY=%s\n' "$N8N_CORE_API_KEY" >> "$GITHUB_ENV"
-          fi
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          manifest = json.loads(Path('config/staging-runtime-bindings.json').read_text())
+          env_file = os.environ['GITHUB_ENV']
+          normalized = 0
+          with open(env_file, 'a', encoding='utf-8') as output:
+              for canonical, aliases in manifest.get('aliases', {}).items():
+                  if os.environ.get(canonical):
+                      continue
+                  for alias in aliases:
+                      value = os.environ.get(alias)
+                      if value:
+                          output.write(f'{canonical}={value}\n')
+                          normalized += 1
+                          break
+          print(f'Normalized {normalized} runtime secret aliases; values not printed.')
+          PY
+
+      - name: Report staging runtime binding coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          manifest = json.loads(Path('config/staging-runtime-bindings.json').read_text())
+          keys = manifest['required'] + manifest['provider_optional']
+          configured = [key for key in keys if os.environ.get(key)]
+          missing = [key for key in keys if not os.environ.get(key)]
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
+              summary.write('### Staging runtime binding coverage\n\n')
+              summary.write('| Binding | State |\n|---|---|\n')
+              for key in keys:
+                  summary.write(f'| `{key}` | {"CONFIGURED" if os.environ.get(key) else "MISSING"} |\n')
+              summary.write('\nNo secret values are printed.\n')
+          print(f'Runtime binding coverage: {len(configured)} configured, {len(missing)} missing; values not printed.')
+          PY
 
       - name: Require staging authorization
         shell: bash
@@ -133,26 +163,24 @@ jobs:
           export SECRETS_FILE
           python - <<'PY'
           import json, os
-          keys = [
-              'OPENAI_API_KEY', 'OGENIC_OPS_KEY',
-              'GITHUB_TOKEN', 'LINEAR_API_KEY',
-              'N8N_API_KEY', 'N8N_BASE_URL',
-              'LINE_CHANNEL_ACCESS_TOKEN', 'LINE_SECRET_CHANNEL', 'LINE_ID_USE',
-              'META_PAGE_ACCESS_TOKEN', 'META_APP_SECRET', 'META_VERIFY_TOKEN',
-              'META_ID_PAGE', 'META_ID',
-              'INSTAGRAM_ACCESS_TOKEN', 'IG_ACCESS_TOKEN', 'INSTAGRAM_BUSINESS_ACCOUNT_ID', 'META_IG_USER_ID',
-              'WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_TOKEN', 'META_WHATSAPP_ACCESS_TOKEN',
-              'WHATSAPP_BUSINESS_ACCOUNT_ID', 'WABA_ID', 'WHATSAPP_PHONE_NUMBER_ID',
-              'THREADS_ACCESS_TOKEN', 'META_THREADS_ACCESS_TOKEN',
-              'OPENAI_WEBHOOK_SECRET', 'OGENIC_GENERIC_HOOK_SECRET',
-              'MANUS_API_KEY',
-          ]
+          from pathlib import Path
+
+          manifest = json.loads(Path('config/staging-runtime-bindings.json').read_text())
+          keys = manifest['required'] + manifest['provider_optional'] + manifest['connector_optional']
           payload = {key: os.environ[key] for key in keys if os.environ.get(key)}
-          if not payload.get('OPENAI_API_KEY') or not payload.get('OGENIC_OPS_KEY'):
-              raise SystemExit('required Worker runtime secret missing')
-          with open(os.environ['SECRETS_FILE'], 'w', encoding='utf-8') as f:
-              json.dump(payload, f)
-          print(f"Prepared {len(payload)} protected runtime bindings; values not printed.")
+          missing_required = [key for key in manifest['required'] if not payload.get(key)]
+          if missing_required:
+              raise SystemExit('required Worker runtime secret missing: ' + ', '.join(missing_required))
+
+          with open(os.environ['SECRETS_FILE'], 'w', encoding='utf-8') as output:
+              json.dump(payload, output)
+
+          actor_map = manifest.get('actor_map', {})
+          expected = [actor for key, actor in actor_map.items() if payload.get(key)]
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write('expected_actor_ids=' + ','.join(expected) + '\n')
+          print(f'Prepared {len(payload)} protected runtime bindings; values not printed.')
+          print(f'Expecting {len(expected)} Blue runtime actors to expose server-side references.')
           PY
           echo "file=$SECRETS_FILE" >> "$GITHUB_OUTPUT"
 
@@ -173,3 +201,23 @@ jobs:
           BODY="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 --retry-all-errors "${STAGING_URL}/api/health")"
           printf '%s' "$BODY" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
           echo "OGE36_STAGING_CLOUD_FALLBACK_OK"
+
+      - name: Verify configured provider bindings in Blue registry
+        shell: bash
+        env:
+          EXPECTED_ACTORS: ${{ steps.runtime_secrets.outputs.expected_actor_ids }}
+        run: |
+          set -euo pipefail
+          REGISTRY="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 --retry-all-errors \
+            -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" \
+            "${STAGING_URL}/api/blue-diamond/registry")"
+          printf '%s' "$REGISTRY" | jq -e '.ok == true' >/dev/null
+          IFS=',' read -r -a ACTORS <<< "${EXPECTED_ACTORS:-}"
+          for actor in "${ACTORS[@]}"; do
+            test -n "$actor" || continue
+            printf '%s' "$REGISTRY" | jq -e --arg actor "$actor" \
+              '.actors[] | select(.actor_id == $actor) | (.state != "CONFIGURATION_REQUIRED" and .state != "OFFLINE" and .auth_ref == "SERVER_SIDE_REFERENCE_PRESENT")' >/dev/null \
+              || { echo "::error::runtime binding verification failed for ${actor}"; exit 1; }
+          done
+          printf '%s' "$REGISTRY" | jq -r '.actors[] | select(.actor_id | test("^(athena-command|codex-execution-agent|manus-candidate|perplexity-candidate|deepseek-candidate|claude-candidate|gemini-candidate|grok-candidate)$")) | "\(.actor_id)=\(.state)"' >> "$GITHUB_STEP_SUMMARY"
+          echo "STAGING_PROVIDER_BINDINGS_VERIFIED"
