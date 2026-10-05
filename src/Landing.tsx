@@ -3,10 +3,10 @@ type Tone = "green" | "yellow" | "mix";
 
 const modes: Array<{ kind: ModeKind; tone: Tone; title: string; detail: string; href: string; meta: string }> = [
   { kind: "chat", tone: "green", title: "CHAT & CREATE", detail: "Talk, build and continue from one canonical session.", href: "/chat", meta: "1LSS · LIVE" },
-  { kind: "agent", tone: "yellow", title: "AGENT RUNTIME", detail: "Delegate execution while WAVE keeps the same work record.", href: "/chat", meta: "AGENT · READY" },
+  { kind: "agent", tone: "yellow", title: "AGENT DECK", detail: "See real interactive Agents, hierarchy, status and evidence-backed accuracy.", href: "/agents", meta: "VIOLET · AGENTS" },
   { kind: "tools", tone: "mix", title: "TOOLS & SKILLS", detail: "Operate connected capabilities without leaving the workspace.", href: "/overview", meta: "TOOLS · OPERATE" },
   { kind: "session", tone: "green", title: "1LSS SESSION", detail: "One ordered line across web and app surfaces.", href: "/chat", meta: "CONTEXT · SYNCED" },
-  { kind: "supervisor", tone: "yellow", title: "OGENIC SUPERVISOR", detail: "Route, supervise and return inspectable evidence.", href: "/overview", meta: "CONTROL · GUARDED" },
+  { kind: "supervisor", tone: "yellow", title: "WAVE COMMAND", detail: "Send guarded natural-language commands through ATHENA and Yellow Stone.", href: "/command", meta: "COMMAND · GUARDED" },
   { kind: "deploy", tone: "mix", title: "DEPLOY & VERIFY", detail: "Runner to staging to verification in one execution path.", href: "/overview", meta: "RUNTIME · READY" },
 ];
 
@@ -69,10 +69,10 @@ function ModeArt({ kind }: { kind: ModeKind }) {
 }
 
 function CommandPreview() {
-  return <div className="wvCommand" aria-label="WAVE execution preview">
+  return <a className="wvCommand" href="/command" aria-label="Open WAVE Command Center">
     <div className="wvCommandTop">
       <div><span className="wvDot" /><b>WAVE COMMAND</b><small>owner-main · 1LSS synced</small></div>
-      <span>GUARDED</span>
+      <span>OPEN ↗</span>
     </div>
     <div className="wvPrompt"><small>YOU</small><p>Make the interface production-ready, deploy staging and verify every route.</p></div>
     <div className="wvSupervisor"><span>OGENIC · SUPERVISING</span><b>AUTO ROUTING</b></div>
@@ -85,7 +85,7 @@ function CommandPreview() {
       {runSteps.map(([index, label, state]) => <div className={`wvRunStep ${state}`} key={label}><i>{index}</i><span>{label}</span><b>{state === "complete" ? "✓" : state === "approval" ? "!" : "·"}</b></div>)}
     </div>
     <div className="wvToolLine"><span>TOOLS</span><i>GitHub</i><i>Cloudflare</i><i>Browser</i><i>Files</i></div>
-  </div>;
+  </a>;
 }
 
 export default function Landing() {
@@ -94,18 +94,18 @@ export default function Landing() {
     <div className="wvGlow wvGlowGold" aria-hidden="true" />
 
     <header className="wvTop">
-      <a className="wvBrand" href="/" aria-label="WAVE home">
+      <a className="wvBrand" href="/" aria-label="WAVE web home">
         <img src="/assets/wave-logo.webp" alt="" />
         <span><b>WAVE</b><small>HUMAN DECISION · AI EXECUTION</small></span>
       </a>
       <nav className="wvNav" aria-label="WAVE navigation">
+        <a href="/">WEB</a>
         <a href="/chat">CHAT</a>
+        <a href="/command">COMMAND</a>
+        <a href="/agents">AGENTS</a>
         <a href="/overview">OPERATE</a>
-        <a href="/chat">AGENTS</a>
-        <a href="#stones">STONES</a>
-        <a href="/app">APP</a>
       </nav>
-      <a className="wvPrimary" href="/chat">OPEN WAVE <span>↗</span></a>
+      <a className="wvPrimary" href="/command">OPEN COMMAND <span>↗</span></a>
     </header>
 
     <section className="wvHero">
@@ -115,8 +115,9 @@ export default function Landing() {
         <p>WAVE is the operating surface where conversation, tools, agents, runtime and evidence stay in one continuous work record.</p>
         <div className="wvActions">
           <a className="primary" href="/chat">START IN CHAT <span>→</span></a>
-          <a href="/overview">OPEN OPERATE</a>
-          <a href="/chat">AGENT DECK</a>
+          <a href="/command">OPEN COMMAND</a>
+          <a href="/agents">AGENT DECK</a>
+          <a href="/overview">OPERATE</a>
         </div>
         <div className="wvMiniStatus">
           <span><b>1LSS</b> ACTIVE</span><span><b>RUNNER</b> READY</span><span><b>RUNTIME</b> CLOUDFLARE</span><span><b>MODE</b> GUARDED</span>
@@ -131,9 +132,9 @@ export default function Landing() {
         <div className="wvStoneText"><small>01 · CONTEXT CORE</small><h2>GREEN STONE</h2><p>1LSS continuity · one canonical line · same mind.</p><span>OPEN CHAT ↗</span></div>
       </a>
       <div className="wvEnergy" aria-hidden="true"><span>INTENT</span><i /><b>WAVE</b><i /><span>EXECUTION</span></div>
-      <a className="wvStone yellow" id="yellow-stone" href="/overview" aria-label="Open Yellow Stone operate">
+      <a className="wvStone yellow" id="yellow-stone" href="/command" aria-label="Open Yellow Stone command">
         <div className="wvStoneVisual"><StoneArt tone="yellow" /></div>
-        <div className="wvStoneText"><small>02 · CAPABILITY CORE</small><h2>YELLOW STONE</h2><p>Tools · skills · runtime · deploy · verify.</p><span>OPEN OPERATE ↗</span></div>
+        <div className="wvStoneText"><small>02 · CAPABILITY CORE</small><h2>YELLOW STONE</h2><p>Tools · policy · approval · execution · verify.</p><span>OPEN COMMAND ↗</span></div>
       </a>
     </section>
 
@@ -151,9 +152,9 @@ export default function Landing() {
 
     <section className="wvDock" aria-label="WAVE quick launch">
       <div><span className="wvDot" /><b>WAVE</b><small>ONE CONTEXT · MANY AGENTS · REAL TOOLS · VERIFIED ACTIONS</small></div>
-      <nav><a href="/chat">CHAT</a><a href="/overview">OPERATE</a><a href="/chat">AGENTS</a><a href="/app">APP</a></nav>
+      <nav><a href="/">WEB</a><a href="/chat">CHAT</a><a href="/command">COMMAND</a><a href="/agents">AGENTS</a><a href="/overview">OPERATE</a></nav>
     </section>
 
-    <footer className="wvFooter"><span>WAVE · GIMS STONE SYSTEM</span><span>GREEN KEEPS THE THREAD · YELLOW RUNS THE WORK</span></footer>
+    <footer className="wvFooter"><span>WAVE · OGENIC STONE SYSTEM</span><span>GREEN KEEPS THE THREAD · YELLOW RUNS THE WORK · VIOLET ORCHESTRATES AGENTS</span></footer>
   </main>;
 }
