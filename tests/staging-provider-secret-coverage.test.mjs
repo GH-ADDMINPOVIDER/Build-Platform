@@ -46,13 +46,19 @@ test("model/provider bindings are explicitly allowlisted and mapped to Blue acto
   }
 });
 
-test("staging deployment loads the manifest, never prints values, and verifies configured actors", async () => {
-  const workflow = await read(".github/workflows/oge-36-staging-cloud-fallback.yml");
-  assert.match(workflow, /config\/staging-runtime-bindings\.json/);
-  assert.match(workflow, /expected_actor_ids/);
-  assert.match(workflow, /x-ogenic-ops-key/);
-  assert.match(workflow, /SERVER_SIDE_REFERENCE_PRESENT/);
-  assert.match(workflow, /values not printed/);
-  assert.match(workflow, /Deploy staging Worker without D1 schema changes/);
-  assert.doesNotMatch(workflow, /wrangler d1 migrations apply/);
+test("both staging deploy paths use the same secret manifest and verify configured actors", async () => {
+  const fallback = await read(".github/workflows/oge-36-staging-cloud-fallback.yml");
+  const primary = await read(".github/workflows/provider-incentive-staging-deploy.yml");
+  for (const workflow of [fallback, primary]) {
+    assert.match(workflow, /config\/staging-runtime-bindings\.json/);
+    assert.match(workflow, /expected_actor_ids/);
+    assert.match(workflow, /x-ogenic-ops-key/);
+    assert.match(workflow, /SERVER_SIDE_REFERENCE_PRESENT/);
+    assert.match(workflow, /values not printed/);
+  }
+  assert.match(fallback, /Deploy staging Worker without D1 schema changes/);
+  assert.doesNotMatch(fallback, /wrangler d1 migrations apply/);
+  assert.match(primary, /db_changed/);
+  assert.match(primary, /if: steps\.scope\.outputs\.db_changed == 'true'/);
+  assert.match(primary, /Apply D1 migrations only for database changes/);
 });
