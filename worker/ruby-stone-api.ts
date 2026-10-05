@@ -395,7 +395,7 @@ export function createRubyStoneApi() {
   api.get("/api/ruby/scorecard", async (c) => c.json(await runScorecard(c.env), 200, { "Cache-Control": "no-store" }));
 
   api.post("/api/ruby/evaluate", async (c) => {
-    const body = await c.req.json<EvalBody>().catch(() => ({}));
+    const body: EvalBody = await c.req.json<EvalBody>().catch(() => ({} as EvalBody));
     const scorecard = await runScorecard(c.env);
     const record = body.record === true;
     const recording = record ? await recordAgentEvaluations(c.env.DB, scorecard) : { recorded: 0, code: "NOT_REQUESTED" };
