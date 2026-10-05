@@ -6,10 +6,13 @@ on:
     paths:
       - ".github/workflows/wave-next-public-route-verify.yml"
       - "src/WaveNext.tsx"
+      - "src/Landing.tsx"
       - "src/wave-next.css"
+      - "src/wave-route-polish.css"
       - "src/main.tsx"
       - "src/ComposerAttachments.tsx"
       - "tests/wave-next-ui.test.mjs"
+      - "tests/wave-surface-routes.test.mjs"
   workflow_dispatch:
 
 permissions:
@@ -30,7 +33,7 @@ jobs:
           JS="$(mktemp)"
           trap 'rm -f "$HTML" "$JS"' EXIT
 
-          for ROUTE in /overview /overview/next /overview/legacy; do
+          for ROUTE in / /chat /command /agents /overview /overview/next /overview/legacy; do
             CODE="$(curl --silent --show-error --location --retry 6 --retry-delay 3 --retry-all-errors --output "$HTML" --write-out '%{http_code}' "${STAGING_URL}${ROUTE}")"
             test "$CODE" = "200" || { echo "::error::${ROUTE} returned HTTP $CODE"; exit 1; }
             grep -q 'id="root"' "$HTML" || { echo "::error::SPA root missing from ${ROUTE}"; exit 1; }
@@ -44,16 +47,19 @@ jobs:
             *) ASSET_URL="${STAGING_URL}/${ASSET}" ;;
           esac
           curl --fail --silent --show-error --location --retry 4 --retry-delay 2 "$ASSET_URL" -o "$JS"
-          grep -Fq 'Run-first control surface' "$JS" || { echo "::error::deployed bundle does not contain WAVE NEXT owner surface"; exit 1; }
-          grep -Fq 'SSH-WAVE' "$JS" || { echo "::error::deployed bundle does not contain SSH-WAVE fallback"; exit 1; }
+          grep -Fq 'Command Center' "$JS" || { echo "::error::deployed bundle missing Command Center"; exit 1; }
+          grep -Fq 'Agent Deck' "$JS" || { echo "::error::deployed bundle missing Agent Deck"; exit 1; }
+          grep -Fq 'Operations Dashboard' "$JS" || { echo "::error::deployed bundle missing Operations Dashboard"; exit 1; }
           grep -Fq 'owner-main' "$JS" || { echo "::error::deployed bundle does not contain canonical owner-main identity"; exit 1; }
+          grep -Fq '/command' "$JS" || { echo "::error::deployed bundle missing /command route"; exit 1; }
+          grep -Fq '/agents' "$JS" || { echo "::error::deployed bundle missing /agents route"; exit 1; }
           if grep -Eq 'BEGIN (RSA|OPENSSH|EC) PRIVATE KEY' "$JS"; then
             echo "::error::private key material detected in public bundle"
             exit 1
           fi
-          echo "WAVE_NEXT_PUBLIC_ROUTES_OK"
+          echo "WAVE_DISTINCT_PUBLIC_ROUTES_OK"
 
-      - name: Capture unauthenticated mobile /overview render
+      - name: Capture unauthenticated mobile surfaces
         shell: bash
         run: |
           set -euo pipefail
@@ -62,14 +68,18 @@ jobs:
             echo "Chrome is not preinstalled on this runner; route/bundle proof already passed."
             exit 0
           fi
-          "$CHROME" --headless=new --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot=wave-next-mobile.png "${STAGING_URL}/overview"
-          test -s wave-next-mobile.png
-          echo "WAVE_NEXT_MOBILE_RENDER_CAPTURED"
+          for ITEM in "web:/" "chat:/chat" "command:/command" "agents:/agents" "operate:/overview"; do
+            NAME="${ITEM%%:*}"
+            ROUTE="${ITEM#*:}"
+            "$CHROME" --headless=new --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot="wave-${NAME}-mobile.png" "${STAGING_URL}${ROUTE}"
+            test -s "wave-${NAME}-mobile.png"
+          done
+          echo "WAVE_SURFACE_MOBILE_RENDERS_CAPTURED"
 
       - name: Upload mobile render evidence
-        if: ${{ hashFiles('wave-next-mobile.png') != '' }}
+        if: ${{ hashFiles('wave-*-mobile.png') != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: wave-next-mobile-render-${{ github.sha }}
-          path: wave-next-mobile.png
+          name: wave-surface-mobile-renders-${{ github.sha }}
+          path: wave-*-mobile.png
           retention-days: 7
