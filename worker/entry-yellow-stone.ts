@@ -82,7 +82,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
     }, { status: 503 });
   }
 
-  const body = await request.clone().json<WaveCommandBody>().catch(() => null);
+  const body = await request.clone().json().catch(() => null) as WaveCommandBody | null;
   if (!body || typeof body !== "object") {
     return Response.json({
       ok: false,
@@ -128,7 +128,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
     const planned = planAthenaCommand(intent);
     commandPlan = planned as unknown as Record<string, unknown>;
     if (planned.status !== "READY") {
-      const status = planned.status === "AMBIGUOUS" ? 409 : planned.status === "BLOCKED" ? 422 : 422;
+      const status = planned.status === "AMBIGUOUS" ? 409 : 422;
       return Response.json({
         ok: false,
         code: `ATHENA_PLAN_${planned.status}`,
