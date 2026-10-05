@@ -6,6 +6,11 @@ on:
     paths:
       - ".github/workflows/oge-35-athena-guarded-command-proof.yml"
       - "scripts/verify-oge-35-runtime.mjs"
+      - "tests/athena-guarded-command-handoff.test.mjs"
+      - "worker/entry-yellow-stone.ts"
+      - "worker/capability-execution-api.ts"
+      - "worker/athena-chat-api.ts"
+      - "src/WaveNext.tsx"
   workflow_dispatch:
 
 permissions:
