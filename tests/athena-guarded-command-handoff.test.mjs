@@ -30,7 +30,7 @@ test("guarded command does not implement a second resolver or provider adapter",
 test("OGE-34 default ATHENA chat remains the exact seven-tool READ-only lane", () => {
   const chat = read("worker/athena-chat-api.ts");
   const entry = read("worker/entry-connectors.ts");
-  assert.match(chat, /exactly the seven private function tools/);
+  assert.match(chat, /exactly seven private function tools/i);
   assert.match(chat, /permission_class: "READ"/);
   assert.match(chat, /exact_private_tool_count: verifiedFunctionTools\.length/);
   assert.match(entry, /defaultWaveTextOnly/);
