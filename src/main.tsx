@@ -110,13 +110,15 @@ const pathname = window.location.pathname;
 const params = new URLSearchParams(window.location.search);
 const explicitAppRoute = pathname === "/app" || pathname.startsWith("/app/");
 const webChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
+const commandRoute = !nativeApp && (pathname === "/command" || pathname.startsWith("/command/"));
+const agentsRoute = !nativeApp && (pathname === "/agents" || pathname.startsWith("/agents/"));
 const legacyOverviewRoute = !nativeApp && (pathname === "/overview/legacy" || pathname.startsWith("/overview/legacy/"));
 const waveNextRoute = !nativeApp && !legacyOverviewRoute && (
   pathname === "/overview" ||
   pathname === "/overview/next" ||
   pathname.startsWith("/overview/next/")
 );
-const controlRoute = pathname === "/overview" || pathname.startsWith("/overview/");
+const controlRoute = commandRoute || agentsRoute || pathname === "/overview" || pathname.startsWith("/overview/");
 const shortcutApp = !webChatRoute && !controlRoute && params.get("source") === "app";
 const landingRoute = !nativeApp && pathname === "/";
 const appRoute = explicitAppRoute || (!webChatRoute && !controlRoute && (params.get("mobile") === "1" || shortcutApp));
@@ -124,61 +126,87 @@ const unifiedChatSurface = !controlRoute && !landingRoute && (nativeApp || appRo
 const sourceSurface = webChatRoute ? "ogenic-web" as const : "ogenic-app" as const;
 
 document.title = landingRoute
-  ? "WAVE — SAME MIND"
-  : waveNextRoute
-    ? "WAVE — RUN"
-    : controlRoute
-      ? "WAVE — DASHBOARD"
-      : surfaceTitle(sourceSurface);
+  ? "WAVE — WEB"
+  : commandRoute
+    ? "WAVE — COMMAND"
+    : agentsRoute
+      ? "WAVE — AGENTS"
+      : waveNextRoute
+        ? "WAVE — OPERATE"
+        : controlRoute
+          ? "WAVE — DASHBOARD"
+          : surfaceTitle(sourceSurface);
 
 function surfaceTitle(surface: "ogenic-web" | "ogenic-app") {
-  return surface === "ogenic-web" ? "WAVE — SAME MIND" : "WAVE — SAME MIND · APP";
+  return surface === "ogenic-web" ? "WAVE — CHAT" : "WAVE — SAME MIND · APP";
 }
 
 function SurfaceBridge() {
-  if (landingRoute || nativeApp || waveNextRoute) return null;
-  const href = controlRoute ? "/chat" : "/overview";
-  const label = controlRoute ? "WAVE CHAT ↗" : "WAVE RUN ↗";
-  return <a
-    href={href}
-    aria-label={controlRoute ? "Open WAVE Chat" : "Open WAVE Run"}
+  if (landingRoute || nativeApp || waveNextRoute || commandRoute || agentsRoute) return null;
+  const links = controlRoute
+    ? [["WEB", "/"], ["CHAT", "/chat"], ["COMMAND", "/command"]]
+    : [["WEB", "/"], ["COMMAND", "/command"], ["OPERATE", "/overview"]];
+  return <nav
+    aria-label="WAVE surface navigation"
     style={{
       position: "fixed",
       top: "calc(env(safe-area-inset-top) + 10px)",
       right: "12px",
       zIndex: 10000,
       display: "inline-flex",
+      gap: "6px",
       alignItems: "center",
-      minHeight: "38px",
-      padding: "0 14px",
+      padding: "5px",
       borderRadius: "999px",
       border: "1px solid rgba(255,255,255,.18)",
       background: "rgba(7,12,10,.88)",
-      color: "#fff",
-      textDecoration: "none",
-      fontSize: "12px",
-      fontWeight: 800,
-      letterSpacing: ".08em",
       boxShadow: "0 8px 28px rgba(0,0,0,.24)",
       backdropFilter: "blur(14px)",
       WebkitBackdropFilter: "blur(14px)",
     }}
-  >{label}</a>;
+  >
+    {links.map(([label, href]) => <a
+      key={href}
+      href={href}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        minHeight: "32px",
+        padding: "0 10px",
+        borderRadius: "999px",
+        color: "#fff",
+        textDecoration: "none",
+        fontSize: "10px",
+        fontWeight: 800,
+        letterSpacing: ".08em",
+      }}
+    >{label}</a>)}
+  </nav>;
 }
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <SurfaceBridge />
-    {landingRoute ? <Landing /> : waveNextRoute ? <WaveNext /> : unifiedChatSurface ? <UnifiedChat surface={sourceSurface} /> : <>
-      <ControlPlaneV2 />
-      <ChatModelRouter />
-      <AppEnhancements />
-      <WorkspacePolish />
-      <ConnectorPanel />
-      <ProviderConnectWizard />
-      <GagVault />
-      <LiveAssist />
-      <ThemeController />
-    </>}
+    {landingRoute
+      ? <Landing />
+      : commandRoute
+        ? <WaveNext initialTab="run" surface="command" />
+        : agentsRoute
+          ? <WaveNext initialTab="agent" surface="agents" />
+          : waveNextRoute
+            ? <WaveNext initialTab="run" surface="operate" />
+            : unifiedChatSurface
+              ? <UnifiedChat surface={sourceSurface} />
+              : <>
+                <ControlPlaneV2 />
+                <ChatModelRouter />
+                <AppEnhancements />
+                <WorkspacePolish />
+                <ConnectorPanel />
+                <ProviderConnectWizard />
+                <GagVault />
+                <LiveAssist />
+                <ThemeController />
+              </>}
   </React.StrictMode>,
 );
