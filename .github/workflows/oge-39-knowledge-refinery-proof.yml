@@ -1,0 +1,59 @@
+name: OGE-39 Knowledge Refinery Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "worker/knowledge-refinery.ts"
+      - "infra/knowledge-sandbox/Dockerfile"
+      - "scripts/knowledge-sandbox-smoke.mjs"
+      - "tests/knowledge-refinery-contract.test.mjs"
+      - ".github/workflows/oge-39-knowledge-refinery-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Knowledge Refinery contract
+        run: node --test tests/knowledge-refinery-contract.test.mjs
+
+      - name: Full regression check
+        run: npm run check
+
+      - name: Build isolated Docker knowledge worker
+        run: docker build -f infra/knowledge-sandbox/Dockerfile -t wave-knowledge-sandbox:${GITHUB_SHA} .
+
+      - name: Prove Docker worker isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --network=none \
+            --read-only \
+            --cap-drop=ALL \
+            --security-opt=no-new-privileges \
+            wave-knowledge-sandbox:${GITHUB_SHA} > oge-39-docker-proof.json
+          jq -e '.ok == true and .runtime == "DOCKER_WORKER" and .agent == false and .network_policy == "DISABLED_AT_RUNTIME" and .filesystem_policy == "READ_ONLY_AT_RUNTIME"' oge-39-docker-proof.json >/dev/null
+          echo "OGE_39_DOCKER_WORKER_OK"
+
+      - name: Publish sanitized proof artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge-39-knowledge-refinery-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: oge-39-docker-proof.json
+          retention-days: 14
+          if-no-files-found: error
