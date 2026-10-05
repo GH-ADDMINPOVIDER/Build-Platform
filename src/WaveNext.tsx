@@ -17,6 +17,18 @@ type SelfHost = {
 };
 type BridgeStatus = { ok?: boolean; cross_surface_ready?: boolean; latest_sequence?: number; checked_at?: number };
 type SessionRef = { id: string; source_surface: string; session_ref: string; label?: string | null; last_sequence?: number | null; last_seen_at?: number };
+type CommandResult = {
+  ok?: boolean;
+  code?: string;
+  run_id?: string;
+  policy?: string;
+  verification?: { status?: string; reason?: string };
+  approval?: { required?: boolean; permission_class?: string; capability_id?: string; provider_id?: string; environment?: string | null };
+  resolver?: { status?: string; descriptor?: { capability_id?: string; provider_id?: string; permission_class?: string } };
+  result?: { path?: string; sha?: string; content_excerpt?: string; content_redacted?: boolean };
+  canonical?: { conversation_id?: string; session_line?: string; sequence?: number; replayed?: boolean };
+  command_handoff?: { admission?: string; actor_id?: string; execution_authority?: string; yellow_stone_route?: string; direct_execution_bypass?: boolean };
+};
 
 type Tab = "run" | "agent" | "session" | "connections" | "approvals" | "history";
 
@@ -31,8 +43,8 @@ function upper(value: unknown, fallback = "OFFLINE") {
 
 function stateTone(value: unknown) {
   const state = upper(value);
-  if (["LIVE", "READY", "BOUND", "CONFIGURED", "OPERATIONAL"].includes(state)) return "is-live";
-  if (["DEGRADED", "HUMAN_APPROVAL_REQUIRED", "APPROVAL_REQUIRED"].includes(state)) return "is-warn";
+  if (["LIVE", "READY", "BOUND", "CONFIGURED", "OPERATIONAL", "VERIFIED"].includes(state)) return "is-live";
+  if (["DEGRADED", "HUMAN_APPROVAL_REQUIRED", "APPROVAL_REQUIRED", "BLOCKED", "PARTIALLY_VERIFIED"].includes(state)) return "is-warn";
   if (["ERROR", "FAILED", "OFFLINE"].includes(state)) return "is-offline";
   return "is-config";
 }
@@ -57,6 +69,9 @@ export default function WaveNext() {
   const [authError, setAuthError] = useState("");
   const [tab, setTab] = useState<Tab>("run");
   const [command, setCommand] = useState("");
+  const [resourcePath, setResourcePath] = useState("");
+  const [commandBusy, setCommandBusy] = useState(false);
+  const [commandResult, setCommandResult] = useState<CommandResult | null>(null);
   const [dashboard, setDashboard] = useState<Dashboard>({});
   const [connectors, setConnectors] = useState<Connector[]>([]);
   const [selfHost, setSelfHost] = useState<SelfHost | null>(null);
@@ -141,6 +156,39 @@ export default function WaveNext() {
     window.location.assign("/chat");
   }
 
+  async function runGuardedCommand() {
+    const intent = command.trim();
+    const path = resourcePath.trim();
+    if (!intent && !path) return;
+    setCommandBusy(true);
+    setCommandResult(null);
+    try {
+      const requestBody: Record<string, unknown> = {
+        intent: intent || `read file ${path}`,
+        environment: "staging",
+      };
+      if (path) {
+        requestBody.capability = "read_file";
+        requestBody.provider = "github";
+        requestBody.input = { path };
+      }
+      const response = await fetch("/api/wave/command", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+      const body = await response.json().catch(() => ({ ok: false, code: `HTTP_${response.status}` }));
+      setCommandResult(body as CommandResult);
+      if (body?.canonical?.sequence) void load();
+    } catch (cause) {
+      setCommandResult({ ok: false, code: cause instanceof Error ? cause.message : "COMMAND_UNAVAILABLE" });
+    } finally {
+      setCommandBusy(false);
+    }
+  }
+
   if (session === null) {
     return <main className="wnRoot"><div className="wnLoading">Loading WAVE…</div></main>;
   }
@@ -176,13 +224,31 @@ export default function WaveNext() {
         <div className="wnHeroCopy">
           <span className="wnKicker">RUN / COMMAND</span>
           <h2>What should WAVE do?</h2>
-          <p>Command here, then hand it to the existing WAVE Chat. Canonical memory stays on 1LSS; Agent AI remains selectable inside Chat until a verified direct-mode handoff contract is added.</p>
+          <p>Guarded Run enters through ATHENA admission and always delegates execution authority to Yellow Stone. Higher-risk actions stop at owner approval; no provider can execute directly from this surface.</p>
         </div>
         <textarea value={command} onChange={(e) => setCommand(e.target.value)} placeholder="Tell WAVE what to do…" rows={5} />
+        <input value={resourcePath} onChange={(e) => setResourcePath(e.target.value)} placeholder="Optional GitHub file path for verified READ, e.g. package.json" />
         <div className="wnRunActions">
-          <button className="wnPrimary" onClick={handoff}>Open WAVE Chat with draft</button>
+          <button className="wnPrimary" onClick={() => void runGuardedCommand()} disabled={commandBusy || (!command.trim() && !resourcePath.trim())}>{commandBusy ? "Routing…" : "Run guarded command"}</button>
+          <button onClick={handoff}>Open WAVE Chat with draft</button>
           <button onClick={() => { setTab("agent"); }}>Agent controls</button>
         </div>
+        {commandResult && <article className="wnCard">
+          <div className="wnCardHead">
+            <div><span className="wnKicker">COMMAND RESULT</span><h3>{commandResult.ok ? "Yellow Stone result" : "Guarded stop"}</h3></div>
+            <State value={commandResult.verification?.status || commandResult.code || (commandResult.ok ? "VERIFIED" : "BLOCKED")} />
+          </div>
+          <dl className="wnFacts">
+            <div><dt>Admission</dt><dd>{commandResult.command_handoff?.admission || "—"}</dd></div>
+            <div><dt>Authority</dt><dd>{commandResult.command_handoff?.execution_authority || "YELLOW_STONE_ONLY"}</dd></div>
+            <div><dt>Capability</dt><dd>{commandResult.approval?.capability_id || commandResult.resolver?.descriptor?.capability_id || "—"}</dd></div>
+            <div><dt>Provider</dt><dd>{commandResult.approval?.provider_id || commandResult.resolver?.descriptor?.provider_id || "—"}</dd></div>
+            <div><dt>Run</dt><dd>{commandResult.run_id || "—"}</dd></div>
+            <div><dt>1LSS</dt><dd>{commandResult.canonical?.sequence ? `#${commandResult.canonical.sequence}` : commandResult.code || commandResult.verification?.reason || "no new evidence"}</dd></div>
+          </dl>
+          {commandResult.approval?.required && <div className="wnPolicy">Owner approval required · {commandResult.approval.permission_class || "NON_READ"}. No side effect executed.</div>}
+          {commandResult.result?.path && <div className="wnPolicy">Verified READ · {commandResult.result.path} · {commandResult.result.sha || "sha unavailable"}</div>}
+        </article>}
       </section>
 
       <nav className="wnTabs" aria-label="WAVE NEXT sections">
@@ -219,7 +285,7 @@ export default function WaveNext() {
         <section className="wnCard">
           <div className="wnCardHead"><div><span className="wnKicker">EXECUTION</span><h3>Yellow Stone handoff</h3></div><State value={selfHost?.openai_app_key || "CONFIGURATION_REQUIRED"} /></div>
           <p className="wnBody">White Diamond may plan and select agents, but consequential execution remains behind Yellow Stone policy and owner approval.</p>
-          <div className="wnActionRow"><button className="wnPrimary" onClick={handoff}>Open Chat with draft</button><a className="wnButtonLink" href="/chat">Open WAVE Chat</a></div>
+          <div className="wnActionRow"><button className="wnPrimary" onClick={() => void runGuardedCommand()} disabled={commandBusy || (!command.trim() && !resourcePath.trim())}>Run guarded command</button><button onClick={handoff}>Open Chat with draft</button><a className="wnButtonLink" href="/chat">Open WAVE Chat</a></div>
           <div className="wnPolicy">{selfHost?.policy || "Policy status unavailable"}</div>
         </section>
       </>}
