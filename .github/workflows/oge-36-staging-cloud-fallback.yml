@@ -22,6 +22,7 @@ env:
   INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
   INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
   INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  N8N_BASE_URL: ${{ vars.N8N_BASE_URL || 'https://ogenic-registry.app.n8n.cloud' }}
 
 jobs:
   deploy:
@@ -58,12 +59,23 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Normalize canonical GitHub credential name
+      - name: Normalize canonical connector secret names
         shell: bash
         run: |
           set -euo pipefail
           if test -n "${GITHUB_TOKEN_OGE34:-}"; then
             printf 'GITHUB_TOKEN=%s\n' "$GITHUB_TOKEN_OGE34" >> "$GITHUB_ENV"
+          fi
+          if test -z "${LINE_SECRET_CHANNEL:-}" && test -n "${LINE_CHANNEL_SECRET:-}"; then
+            printf 'LINE_SECRET_CHANNEL=%s\n' "$LINE_CHANNEL_SECRET" >> "$GITHUB_ENV"
+          fi
+          if test -z "${META_PAGE_ACCESS_TOKEN:-}" && test -n "${META_ACCESS_TOKEN:-}"; then
+            printf 'META_PAGE_ACCESS_TOKEN=%s\n' "$META_ACCESS_TOKEN" >> "$GITHUB_ENV"
+          fi
+          if test -z "${N8N_API_KEY:-}" && test -n "${N8N_REGISTRY_API_KEY:-}"; then
+            printf 'N8N_API_KEY=%s\n' "$N8N_REGISTRY_API_KEY" >> "$GITHUB_ENV"
+          elif test -z "${N8N_API_KEY:-}" && test -n "${N8N_CORE_API_KEY:-}"; then
+            printf 'N8N_API_KEY=%s\n' "$N8N_CORE_API_KEY" >> "$GITHUB_ENV"
           fi
 
       - name: Require staging authorization
@@ -122,10 +134,18 @@ jobs:
           python - <<'PY'
           import json, os
           keys = [
-              'OPENAI_API_KEY', 'OGENIC_OPS_KEY', 'GITHUB_TOKEN', 'LINEAR_API_KEY',
-              'N8N_API_KEY', 'N8N_BASE_URL', 'LINE_CHANNEL_ACCESS_TOKEN', 'LINE_SECRET_CHANNEL',
+              'OPENAI_API_KEY', 'OGENIC_OPS_KEY',
+              'GITHUB_TOKEN', 'LINEAR_API_KEY',
+              'N8N_API_KEY', 'N8N_BASE_URL',
+              'LINE_CHANNEL_ACCESS_TOKEN', 'LINE_SECRET_CHANNEL', 'LINE_ID_USE',
               'META_PAGE_ACCESS_TOKEN', 'META_APP_SECRET', 'META_VERIFY_TOKEN',
-              'MANUS_API_KEY', 'OPENAI_WEBHOOK_SECRET', 'OGENIC_GENERIC_HOOK_SECRET'
+              'META_ID_PAGE', 'META_ID',
+              'INSTAGRAM_ACCESS_TOKEN', 'IG_ACCESS_TOKEN', 'INSTAGRAM_BUSINESS_ACCOUNT_ID', 'META_IG_USER_ID',
+              'WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_TOKEN', 'META_WHATSAPP_ACCESS_TOKEN',
+              'WHATSAPP_BUSINESS_ACCOUNT_ID', 'WABA_ID', 'WHATSAPP_PHONE_NUMBER_ID',
+              'THREADS_ACCESS_TOKEN', 'META_THREADS_ACCESS_TOKEN',
+              'OPENAI_WEBHOOK_SECRET', 'OGENIC_GENERIC_HOOK_SECRET',
+              'MANUS_API_KEY',
           ]
           payload = {key: os.environ[key] for key in keys if os.environ.get(key)}
           if not payload.get('OPENAI_API_KEY') or not payload.get('OGENIC_OPS_KEY'):
