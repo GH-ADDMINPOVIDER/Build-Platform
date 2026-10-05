@@ -1,0 +1,144 @@
+name: OGE-38 Ruby Stone Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-38-ruby-stone-proof.yml"
+      - "worker/ruby-stone-api.ts"
+      - "worker/violet-stone-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "tests/ruby-stone-contract.test.mjs"
+      - "tests/violet-stone-contract.test.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://wave.ogenicchocolate.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Ruby and Violet contracts
+        run: node --test tests/ruby-stone-contract.test.mjs tests/violet-stone-contract.test.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging proof authorization via Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Wait for live Ruby marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(mktemp)"
+          trap 'rm -f "$BODY"' EXIT
+          READY=false
+          for ATTEMPT in $(seq 1 60); do
+            CODE="$(curl --silent --show-error --location --output "$BODY" --write-out '%{http_code}' "${STAGING_URL}/api/ruby/health" || true)"
+            if test "$CODE" = "200" \
+              && jq -e '.ok == true and .runtime == "RUBY_STONE_TEST_LAYER_V1" and .yellow_execution_authority == "YELLOW_STONE_ONLY" and .blue_admission_required == true and .direct_execution_bypass == false and .schema_change == false and .secrets_exposed == false' "$BODY" >/dev/null; then
+              READY=true
+              break
+            fi
+            echo "Ruby staging marker not live yet (${ATTEMPT}/60)"
+            sleep 5
+          done
+          test "$READY" = "true" || { echo "::error::Ruby staging runtime marker was not verified"; exit 1; }
+          echo "OGE_38_RUBY_RUNTIME_OK"
+
+      - name: Run live Ruby scorecard and record evaluation evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::missing OGENIC_OPS_KEY"; exit 1; }
+          BODY="$(mktemp)"
+          trap 'rm -f "$BODY"' EXIT
+          CODE="$(curl --silent --show-error --location \
+            --request POST \
+            --header 'content-type: application/json' \
+            --header "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" \
+            --data '{"record":true}' \
+            --output "$BODY" \
+            --write-out '%{http_code}' \
+            "${STAGING_URL}/api/ruby/evaluate")"
+
+          jq -e '.runtime == "RUBY_STONE_TEST_LAYER_V1"' "$BODY" >/dev/null
+          jq -e '.policy.yellow_execution_authority == "YELLOW_STONE_ONLY" and .policy.blue_admission_required == true and .policy.direct_execution_bypass == false and .policy.schema_change == false and .policy.secrets_exposed == false' "$BODY" >/dev/null
+          jq -e '.summary.total >= 8' "$BODY" >/dev/null
+          jq -e '.summary.fail == 0' "$BODY" >/dev/null || { echo "::error::Ruby found one or more verified FAIL results"; jq '{summary,tests:[.tests[]|{test_id,state,evidence_ref}]}' "$BODY"; exit 1; }
+          jq -e '[.tests[] | select((.state == "PASS" or .state == "FAIL") and (.evidence_ref|length > 0))] | length > 0' "$BODY" >/dev/null
+          jq -e '.recording.recorded >= 1' "$BODY" >/dev/null
+          test "$CODE" = "200" || { echo "::error::Ruby evaluate returned HTTP $CODE"; exit 1; }
+
+          jq '{
+            ok,
+            runtime,
+            run_id,
+            started_at,
+            finished_at,
+            summary,
+            recording,
+            canonical,
+            policy,
+            tests:[.tests[]|{test_id,domain,state,agent_id,agent,provider,runtime,duration_ms,evidence_ref}]
+          }' "$BODY" > oge-38-ruby-proof.json
+          echo "OGE_38_RUBY_SCORECARD_OK"
+
+      - name: Verify Ruby evidence appears in Violet Accuracy telemetry
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(mktemp)"
+          trap 'rm -f "$BODY"' EXIT
+          CODE="$(curl --silent --show-error --location \
+            --header "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" \
+            --output "$BODY" \
+            --write-out '%{http_code}' \
+            "${STAGING_URL}/api/violet/status")"
+          test "$CODE" = "200" || { echo "::error::Violet telemetry returned HTTP $CODE"; exit 1; }
+          jq -e '[.agents[] | select(.stats.accuracy_state == "MEASURED" and .stats.accuracy_sample_size >= 1)] | length >= 1' "$BODY" >/dev/null
+          jq '{agents:[.agents[]|{agent_id,visible_identity,status,stats:{accuracy:.stats.accuracy,accuracy_state:.stats.accuracy_state,accuracy_sample_size:.stats.accuracy_sample_size}}]}' "$BODY" > oge-38-violet-accuracy.json
+          echo "OGE_38_VIOLET_ACCURACY_OK"
+
+      - name: Publish sanitized Ruby proof artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge-38-ruby-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            oge-38-ruby-proof.json
+            oge-38-violet-accuracy.json
+          retention-days: 14
+          if-no-files-found: error
