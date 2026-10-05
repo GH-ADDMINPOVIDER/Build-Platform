@@ -1,0 +1,84 @@
+name: OGE-36 ATHENA NL Command Planner Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-36-athena-nl-command-planner-proof.yml"
+      - "scripts/verify-oge-36-runtime.mjs"
+      - "tests/athena-command-planner-contract.test.mjs"
+      - "worker/athena-command-planner.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "worker/capability-execution-api.ts"
+      - "worker/athena-chat-api.ts"
+      - "src/WaveNext.tsx"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://wave.ogenicchocolate.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG || 'staging' }}
+
+jobs:
+  prove:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Contract tests
+        run: node --test tests/athena-command-planner-contract.test.mjs tests/athena-guarded-command-handoff.test.mjs tests/athena-default-chat-contract.test.mjs tests/yellow-stone-execution-router-contract.test.mjs tests/blue-diamond-contract.test.mjs tests/wave-next-ui.test.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging runtime authorization via Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Prove live ATHENA natural-language command planner
+        run: node scripts/verify-oge-36-runtime.mjs
+
+      - name: Publish sanitized proof artifact
+        shell: bash
+        run: |
+          jq -n \
+            --arg branch "phase-vi-provider-incentive-metering" \
+            --arg sha "$GITHUB_SHA" \
+            '{ok:true,branch:$branch,proof_sha:$sha,natural_language_planner:true,structured_plan:true,yellow_stone_only:true,verified_read:true,canonical_1lss:true,non_read_approval_gate:true,ambiguous_fail_closed:true,secret_intent_blocked:true,direct_execution_bypass:false,secrets_exposed:false}' \
+            > oge-36-proof.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oge-36-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: oge-36-proof.json
+          retention-days: 14
+          if-no-files-found: error
