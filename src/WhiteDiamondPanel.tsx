@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type Agent = {
   agent_id: string;
@@ -23,10 +23,31 @@ type PlanResponse = {
   direct_execution_rejected?: boolean;
 };
 
+type VioletIdentity = {
+  app: string;
+  rank: string;
+  position: "BRAIN" | "LEFT ARM" | "RIGHT ARM";
+};
+
+const VIOLET_AGENT_IDENTITIES: Record<string, VioletIdentity> = {
+  "white-diamond-manager": { app: "OpenAI", rank: "CEO", position: "BRAIN" },
+  "codex-left-arm": { app: "Codex", rank: "CTO", position: "LEFT ARM" },
+  "manus-specialist": { app: "Manus", rank: "COO", position: "RIGHT ARM" },
+};
+
+function violetIdentity(agent: Agent) {
+  return VIOLET_AGENT_IDENTITIES[agent.agent_id] ?? null;
+}
+
+function violetLabel(agent: Agent) {
+  const identity = violetIdentity(agent);
+  return identity ? `${identity.app} • Agent • ${identity.rank}` : agent.label;
+}
+
 function tone(value: string) {
   const state = String(value || "CONFIGURATION_REQUIRED").toUpperCase();
   if (state === "LIVE") return "is-live";
-  if (state === "DEGRADED" || state === "SIMULATED") return "is-warn";
+  if (state === "DEGRADED" || state === "SIMULATED" || state === "BRIDGE_ONLY") return "is-warn";
   if (state === "OFFLINE") return "is-offline";
   return "is-config";
 }
@@ -38,6 +59,16 @@ export default function WhiteDiamondPanel() {
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const executiveAgents = useMemo(
+    () => (registry.agents || []).filter((agent) => violetIdentity(agent)),
+    [registry.agents],
+  );
+
+  const supportRegistry = useMemo(
+    () => (registry.agents || []).filter((agent) => !violetIdentity(agent)),
+    [registry.agents],
+  );
 
   const load = useCallback(async () => {
     setError("");
@@ -69,28 +100,52 @@ export default function WhiteDiamondPanel() {
     } finally { setBusy(false); }
   }
 
-  return <section className="wnCard">
-    <div className="wnCardHead"><div><span className="wnKicker">WHITE DIAMOND</span><h3>Agent Registry + Commander</h3></div><span className="wnCount">{registry.agents?.length || 0}/15</span></div>
-    <p className="wnBody">White Diamond plans and selects agents. Execution authority stays with Yellow Stone; this panel never bypasses approval or creates a second memory line.</p>
-    {error && <div className="wnError">{error}</div>}
+  return <>
+    <section className="wnCard">
+      <div className="wnCardHead">
+        <div><span className="wnKicker">VIOLET STONE</span><h3>Agent Command Line</h3></div>
+        <span className="wnCount">{executiveAgents.length}/3</span>
+      </div>
+      <p className="wnBody">One brain, two arms. Only interactive Agent identities are promoted here; tools, runtimes and executors remain separate.</p>
+      <div className="wnRows">
+        {executiveAgents.map((agent) => {
+          const identity = violetIdentity(agent)!;
+          return <div className="wnRow" key={`violet:${agent.agent_id}`}>
+            <div>
+              <strong>{violetLabel(agent)}</strong>
+              <span>{identity.position} · Accuracy N/A · evidence required</span>
+            </div>
+            <span className={`wnState ${tone(agent.state)}`}>{agent.state}</span>
+          </div>;
+        })}
+        {!executiveAgents.length && <div className="wnEmpty">Violet Agent identities unavailable.</div>}
+      </div>
+      <div className="wnPolicy">Accuracy remains N/A until Ruby Stone has verified evaluation samples.</div>
+    </section>
 
-    <form onSubmit={submit} className="wnAuthForm">
-      <input value={intent} onChange={(e) => setIntent(e.target.value)} placeholder="Read-only planning intent…" required />
-      <select value={mode} onChange={(e) => setMode(e.target.value)} aria-label="Agent routing mode">
-        <option>SOLO</option><option>TEAM_3</option><option>TEAM_5</option><option>TEAM_10</option><option>FULL_15</option>
-      </select>
-      <button type="submit" disabled={busy}>{busy ? "Planning…" : "Plan agent run"}</button>
-    </form>
+    <section className="wnCard">
+      <div className="wnCardHead"><div><span className="wnKicker">WHITE DIAMOND</span><h3>Agent Registry + Commander</h3></div><span className="wnCount">{registry.agents?.length || 0}/15</span></div>
+      <p className="wnBody">White Diamond plans and selects agents. Execution authority stays with Yellow Stone; this panel never bypasses approval or creates a second memory line.</p>
+      {error && <div className="wnError">{error}</div>}
 
-    {plan && <div className="wnRows">
-      <div className="wnRow"><div><strong>{plan.run_id || plan.code || "Plan"}</strong><span>{plan.mode || mode} · Yellow Stone {plan.yellow_stone_required ? "required" : "status unknown"}</span></div><span className={`wnState ${plan.ok ? "is-live" : "is-warn"}`}>{plan.ok ? "PLAN READY" : String(plan.code || "BLOCKED")}</span></div>
-      {(plan.selected_agents || []).map((agent) => <div className="wnRow" key={`plan:${agent.agent_id}`}><div><strong>{agent.label}</strong><span>{agent.kind} · {agent.provider} · {agent.runtime}</span></div><span className={`wnState ${tone(agent.state)}`}>{agent.state}</span></div>)}
-    </div>}
+      <form onSubmit={submit} className="wnAuthForm">
+        <input value={intent} onChange={(e) => setIntent(e.target.value)} placeholder="Read-only planning intent…" required />
+        <select value={mode} onChange={(e) => setMode(e.target.value)} aria-label="Agent routing mode">
+          <option>SOLO</option><option>TEAM_3</option><option>TEAM_5</option><option>TEAM_10</option><option>FULL_15</option>
+        </select>
+        <button type="submit" disabled={busy}>{busy ? "Planning…" : "Plan agent run"}</button>
+      </form>
 
-    <div className="wnRows">
-      {(registry.agents || []).map((agent) => <div className="wnRow" key={agent.agent_id}><div><strong>{agent.label}</strong><span>{agent.kind} · {agent.provider} · {agent.capabilities.slice(0, 4).join(" · ")}</span></div><span className={`wnState ${tone(agent.state)}`}>{agent.state}</span></div>)}
-      {!registry.agents?.length && <div className="wnEmpty">Agent registry unavailable.</div>}
-    </div>
-    <div className="wnPolicy">owner-main / 1LSS_OWNER_MAIN · latest seq {registry.canonical?.latest_sequence ?? "—"} · {registry.policy || "NO_DIRECT_EXECUTION_BYPASS"}</div>
-  </section>;
+      {plan && <div className="wnRows">
+        <div className="wnRow"><div><strong>{plan.run_id || plan.code || "Plan"}</strong><span>{plan.mode || mode} · Yellow Stone {plan.yellow_stone_required ? "required" : "status unknown"}</span></div><span className={`wnState ${plan.ok ? "is-live" : "is-warn"}`}>{plan.ok ? "PLAN READY" : String(plan.code || "BLOCKED")}</span></div>
+        {(plan.selected_agents || []).map((agent) => <div className="wnRow" key={`plan:${agent.agent_id}`}><div><strong>{violetLabel(agent)}</strong><span>{agent.kind} · {agent.provider} · {agent.runtime}</span></div><span className={`wnState ${tone(agent.state)}`}>{agent.state}</span></div>)}
+      </div>}
+
+      <div className="wnRows">
+        {supportRegistry.map((agent) => <div className="wnRow" key={agent.agent_id}><div><strong>{agent.label}</strong><span>{agent.kind} · {agent.provider} · {agent.capabilities.slice(0, 4).join(" · ")}</span></div><span className={`wnState ${tone(agent.state)}`}>{agent.state}</span></div>)}
+        {!registry.agents?.length && <div className="wnEmpty">Agent registry unavailable.</div>}
+      </div>
+      <div className="wnPolicy">owner-main / 1LSS_OWNER_MAIN · latest seq {registry.canonical?.latest_sequence ?? "—"} · {registry.policy || "NO_DIRECT_EXECUTION_BYPASS"}</div>
+    </section>
+  </>;
 }
