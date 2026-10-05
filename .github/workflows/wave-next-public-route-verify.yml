@@ -85,7 +85,7 @@ jobs:
           for ITEM in "web:/" "chat:/chat" "command:/command" "agents:/agents" "operate:/overview"; do
             NAME="${ITEM%%:*}"
             ROUTE="${ITEM#*:}"
-            "$CHROME" --headless=new --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,844 --screenshot="wave-${NAME}-mobile.png" "${STAGING_URL}${ROUTE}"
+            "$CHROME" --headless=new --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=3500 --window-size=390,844 --screenshot="wave-${NAME}-mobile.png" "${STAGING_URL}${ROUTE}"
             test -s "wave-${NAME}-mobile.png"
           done
           echo "WAVE_SURFACE_MOBILE_RENDERS_CAPTURED"
