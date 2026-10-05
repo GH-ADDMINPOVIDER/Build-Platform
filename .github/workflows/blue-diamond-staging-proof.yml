@@ -1,0 +1,144 @@
+name: Blue Diamond Staging Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/blue-diamond-staging-proof.yml"
+      - "worker/blue-diamond-*.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "tests/blue-diamond-contract.test.mjs"
+      - "docs/BLUE_DIAMOND_ARCHITECTURE_V0_1.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://wave.ogenicchocolate.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  prove:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Blue Diamond contracts
+        run: node --test tests/blue-diamond-contract.test.mjs
+
+      - name: Typecheck Blue Diamond integration
+        run: npm run typecheck
+
+      - name: Auto-discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging owner proof credential via Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Prove Blue Diamond owner auth and runtime contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::missing OGENIC_OPS_KEY"; exit 1; }
+
+          COOKIE_JAR="$(mktemp)"
+          BODY="$(mktemp)"
+          trap 'rm -f "$COOKIE_JAR" "$BODY"' EXIT
+
+          CODE="$(curl --silent --show-error --output "$BODY" --write-out '%{http_code}' "${STAGING_URL}/api/blue-diamond/registry")"
+          test "$CODE" = "401" || { echo "::error::Blue Diamond registry must fail closed without owner auth; HTTP $CODE"; cat "$BODY"; exit 1; }
+          jq -e '.ok == false and .code == "REAUTH_REQUIRED"' "$BODY" >/dev/null
+
+          printf '{"owner_key":%s}' "$(jq -Rn --arg value "$OGENIC_OPS_KEY" '$value')" \
+            | curl --fail --silent --show-error --cookie-jar "$COOKIE_JAR" \
+                --header 'Content-Type: application/json' --data-binary @- "${STAGING_URL}/api/session" \
+            | jq -e '.ok == true and .authenticated == true and .user.role == "owner"' >/dev/null
+
+          REGISTRY="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" "${STAGING_URL}/api/blue-diamond/registry")"
+          printf '%s' "$REGISTRY" | jq -e '
+            .ok == true and
+            .stone == 4 and
+            .identity == "ATHENA" and
+            .athena_maturity == "COMMANDER_CANDIDATE" and
+            .maturity_policy == "EVIDENCE_REQUIRED_FOR_PROMOTION" and
+            .execution_authority == "YELLOW_STONE_ONLY" and
+            .read_before_run == true and
+            .canonical.conversation_id == "owner-main" and
+            .canonical.session_line == "1LSS_OWNER_MAIN" and
+            ([.actors[].actor_id] | index("chatgpt-main-controller") != null) and
+            ([.actors[].actor_id] | index("athena-command") != null) and
+            ([.actors[].actor_id] | index("codex-execution-agent") != null) and
+            ([.actors[].actor_id] | index("github-evidence-arm") != null) and
+            ([.actors[].actor_id] | index("linear-task-arm") != null)
+          ' >/dev/null
+
+          CHECKIN="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" \
+            --header 'Content-Type: application/json' \
+            --data '{"event":"NEW_CHAT","intent":"Blue Diamond runtime proof"}' \
+            "${STAGING_URL}/api/blue-diamond/check-in")"
+          printf '%s' "$CHECKIN" | jq -e '
+            .ok == true and
+            .status == "READY_WITH_LIMITS" and
+            .event == "NEW_CHAT" and
+            .controller == "chatgpt-main-controller" and
+            .athena.actor_id == "athena-command" and
+            .reconciliation_state == "PENDING_FRESH_TOOL_READS" and
+            .fresh_verification_claimed == false and
+            .execution_authority == "YELLOW_STONE_ONLY"
+          ' >/dev/null
+
+          PREFLIGHT="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" \
+            --header 'Content-Type: application/json' \
+            --data '{"actor_id":"athena-command","event":"AGENT_PRE_RUN","intent":"read-only route proof","permission_class":"READ"}' \
+            "${STAGING_URL}/api/blue-diamond/preflight")"
+          printf '%s' "$PREFLIGHT" | jq -e '
+            .ok == true and
+            (.status == "READY" or .status == "READY_WITH_LIMITS") and
+            .actor.actor_id == "athena-command" and
+            .read_before_run == true and
+            .fresh_verification_claimed == false and
+            .yellow_stone_required == true and
+            .execution_authority == "YELLOW_STONE_ONLY"
+          ' >/dev/null
+
+          WRITE_CODE="$(curl --silent --show-error --cookie "$COOKIE_JAR" --output "$BODY" --write-out '%{http_code}' \
+            --header 'Content-Type: application/json' \
+            --data '{"actor_id":"athena-command","event":"AGENT_PRE_RUN","intent":"write proof","permission_class":"WRITE","execute":true}' \
+            "${STAGING_URL}/api/blue-diamond/preflight")"
+          test "$WRITE_CODE" = "409" || { echo "::error::ATHENA write preflight must fail closed with HTTP 409; got $WRITE_CODE"; cat "$BODY"; exit 1; }
+          jq -e '
+            .ok == false and
+            .code == "HUMAN_APPROVAL_REQUIRED" and
+            .direct_execution_rejected == true and
+            .yellow_stone_required == true and
+            .execution_authority == "YELLOW_STONE_ONLY"
+          ' "$BODY" >/dev/null
+
+          TOOL_CODE="$(curl --silent --show-error --cookie "$COOKIE_JAR" --output "$BODY" --write-out '%{http_code}' \
+            --header 'Content-Type: application/json' \
+            --data '{"actor_id":"github-evidence-arm","event":"AGENT_PRE_RUN","intent":"tool classification proof","permission_class":"READ"}' \
+            "${STAGING_URL}/api/blue-diamond/preflight")"
+          test "$TOOL_CODE" = "422" || { echo "::error::GitHub arm must not be treated as an executable agent; got HTTP $TOOL_CODE"; cat "$BODY"; exit 1; }
+          jq -e '.ok == false and .code == "NOT_AGENT_EXECUTABLE" and .actor.agent_eligible == false' "$BODY" >/dev/null
+
+          echo "BLUE_DIAMOND_STAGING_PROOF_OK"
