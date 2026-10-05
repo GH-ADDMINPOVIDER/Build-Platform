@@ -52,6 +52,20 @@ function envelope(tool: string, data: unknown, checkedAt = new Date().toISOStrin
   return { ok: true, tool, verified: true, read_only: true, checked_at: checkedAt, data };
 }
 function invalid(message: string) { return { ok: false, code: "INVALID_TOOL_ARGUMENTS", verified: false, read_only: true, message }; }
+function upstreamReadFailure(provider: string, status: number) {
+  if (status === 401 || status === 403) {
+    return {
+      ok: false,
+      code: "REAUTH_REQUIRED",
+      provider,
+      http_status: status,
+      verified: false,
+      read_only: true,
+      message: `${provider} read credential was rejected; refresh the server-side credential before fresh verification.`,
+    };
+  }
+  return { ok: false, code: "UPSTREAM_READ_FAILED", provider, http_status: status, verified: false, read_only: true };
+}
 
 async function requestJson(url: string, init: RequestInit) {
   const controller = new AbortController();
@@ -69,13 +83,13 @@ function githubHeaders(token: string) {
 
 async function githubStatus(env: VerifiedToolBindings) {
   const token = clip(env.GITHUB_TOKEN, 4000);
-  if (!token) return { ok: false, code: "CONFIGURATION_REQUIRED", missing: "GITHUB_TOKEN" };
+  if (!token) return { ok: false, code: "CONFIGURATION_REQUIRED", missing: "GITHUB_TOKEN", verified: false, read_only: true };
   const base = `https://api.github.com/repos/${CANONICAL_REPOSITORY}`;
   const [branch, runs] = await Promise.all([
     requestJson(`${base}/branches/${encodeURIComponent(CANONICAL_BRANCH)}`, { headers: githubHeaders(token) }),
     requestJson(`${base}/actions/runs?branch=${encodeURIComponent(CANONICAL_BRANCH)}&per_page=5`, { headers: githubHeaders(token) }),
   ]);
-  if (!branch.ok || !runs.ok) return { ok: false, code: "UPSTREAM_READ_FAILED", provider: "github", http_status: !branch.ok ? branch.status : runs.status };
+  if (!branch.ok || !runs.ok) return upstreamReadFailure("github", !branch.ok ? branch.status : runs.status);
   const commit = (branch.body.commit ?? {}) as Record<string, unknown>;
   const workflowRuns = Array.isArray(runs.body.workflow_runs) ? runs.body.workflow_runs as Array<Record<string, unknown>> : [];
   return envelope("github_staging_status", { repository: CANONICAL_REPOSITORY, branch: CANONICAL_BRANCH, head_sha: clip(commit.sha, 80), protected: branch.body.protected === true, workflow_runs: workflowRuns.slice(0, 5).map((run) => ({ id: clip(run.id, 80), name: clip(run.name, 160), status: clip(run.status, 40), conclusion: clip(run.conclusion, 40) || null, url: clip(run.html_url, 500) })) });
@@ -83,21 +97,22 @@ async function githubStatus(env: VerifiedToolBindings) {
 
 async function githubFile(env: VerifiedToolBindings, path: string) {
   const token = clip(env.GITHUB_TOKEN, 4000);
-  if (!token) return { ok: false, code: "CONFIGURATION_REQUIRED", missing: "GITHUB_TOKEN" };
+  if (!token) return { ok: false, code: "CONFIGURATION_REQUIRED", missing: "GITHUB_TOKEN", verified: false, read_only: true };
   if (!path || path.startsWith("/") || path.includes("..") || path.includes("\\") || /[\x00-\x1f\x7f]/.test(path) || /(^|\/)(?:\.env(?:\.[^/]*)?|(?:secrets?|credentials?)(?:\.[^/]*)?|id_(?:rsa|ed25519)|[^/]+\.(?:pem|key|p12|pfx))(\/|$)/i.test(path)) return invalid("path must be a safe repository-relative non-secret file");
   const result = await requestJson(`https://api.github.com/repos/${CANONICAL_REPOSITORY}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(CANONICAL_BRANCH)}`, { headers: githubHeaders(token) });
-  if (!result.ok) return { ok: false, code: "UPSTREAM_READ_FAILED", provider: "github", http_status: result.status };
-  if (result.body.type !== "file" || result.body.encoding !== "base64") return { ok: false, code: "FILE_NOT_READABLE" };
+  if (!result.ok) return upstreamReadFailure("github", result.status);
+  if (result.body.type !== "file" || result.body.encoding !== "base64") return { ok: false, code: "FILE_NOT_READABLE", verified: false, read_only: true };
   let content = "";
-  try { content = new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(atob(String(result.body.content ?? "").replace(/\s/g, "")), (char) => char.charCodeAt(0))); } catch { return { ok: false, code: "FILE_DECODE_FAILED" }; }
+  try { content = new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(atob(String(result.body.content ?? "").replace(/\s/g, "")), (char) => char.charCodeAt(0))); } catch { return { ok: false, code: "FILE_DECODE_FAILED", verified: false, read_only: true }; }
   return envelope("github_fetch_file", { repository: CANONICAL_REPOSITORY, branch: CANONICAL_BRANCH, path, sha: clip(result.body.sha, 80), size: Number(result.body.size ?? 0), content: content.slice(0, 20_000), truncated: content.length > 20_000 });
 }
 
 async function linearQuery(env: VerifiedToolBindings, query: string, variables: Record<string, unknown>) {
   const token = clip(env.LINEAR_API_KEY, 4000);
-  if (!token) return { ok: false as const, error: { ok: false, code: "CONFIGURATION_REQUIRED", missing: "LINEAR_API_KEY" } };
+  if (!token) return { ok: false as const, error: { ok: false, code: "CONFIGURATION_REQUIRED", missing: "LINEAR_API_KEY", verified: false, read_only: true } };
   const result = await requestJson("https://api.linear.app/graphql", { method: "POST", headers: { Authorization: token, "Content-Type": "application/json" }, body: JSON.stringify({ query, variables }) });
-  if (!result.ok || Array.isArray(result.body.errors)) return { ok: false as const, error: { ok: false, code: "UPSTREAM_READ_FAILED", provider: "linear", http_status: result.status } };
+  if (!result.ok) return { ok: false as const, error: upstreamReadFailure("linear", result.status) };
+  if (Array.isArray(result.body.errors)) return { ok: false as const, error: { ok: false, code: "UPSTREAM_READ_FAILED", provider: "linear", http_status: result.status, verified: false, read_only: true } };
   return { ok: true as const, data: (result.body.data ?? {}) as Record<string, unknown> };
 }
 
@@ -111,7 +126,7 @@ export async function executeVerifiedTool(name: string, args: unknown, env: Veri
 }
 
 async function dispatchVerifiedTool(name: string, args: unknown, env: VerifiedToolBindings): Promise<Record<string, unknown>> {
-  if (!names.has(name)) return { ok: false, code: "HUMAN_APPROVAL_REQUIRED", verified: false, message: "Only the seven registered read-only tools may execute; writes and unknown functions fail closed." };
+  if (!names.has(name)) return { ok: false, code: "HUMAN_APPROVAL_REQUIRED", verified: false, read_only: true, message: "Only the seven registered read-only tools may execute; writes and unknown functions fail closed." };
   if (!args || typeof args !== "object" || Array.isArray(args)) return invalid("arguments must be an object");
   const input = args as Record<string, unknown>;
   const allowed = name === "github_fetch_file" ? ["path"] : name === "linear_get_issue" ? ["identifier"] : (name === "linear_recent_issues" || name === "lss_recent_turns") ? ["limit"] : [];
@@ -133,7 +148,7 @@ async function dispatchVerifiedTool(name: string, args: unknown, env: VerifiedTo
   if (name === "lss_recent_turns") {
     const limit = Number(input.limit);
     if (!Number.isInteger(limit) || limit < 1 || limit > 30) return invalid("limit must be an integer from 1 to 30");
-    if (!env.DB) return { ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" };
+    if (!env.DB) return { ok: false, code: "CONFIGURATION_REQUIRED", verified: false, read_only: true, missing: "D1 binding DB" };
     const rows = await env.DB.prepare("SELECT role, content, model, created_at, sequence_no, source_surface FROM chat_messages WHERE conversation_id = ? ORDER BY sequence_no DESC, created_at DESC LIMIT ?").bind(CANONICAL_CONVERSATION, limit).all<Record<string, unknown>>();
     return envelope(name, { conversation: CANONICAL_CONVERSATION, session: CANONICAL_SESSION, turns: (rows.results ?? []).reverse() });
   }
