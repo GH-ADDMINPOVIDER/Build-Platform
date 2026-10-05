@@ -31,6 +31,8 @@ type CommandResult = {
 };
 
 type Tab = "run" | "agent" | "session" | "connections" | "approvals" | "history";
+type Surface = "operate" | "command" | "agents";
+type Props = { initialTab?: Tab; surface?: Surface };
 
 const HANDOFF_DRAFT_KEY = "ogenic.wave-next.handoff.v1";
 const SSH_HOST = "165.232.174.32";
@@ -63,11 +65,17 @@ function State({ value }: { value: unknown }) {
   return <span className={`wnState ${stateTone(state)}`}>{state}</span>;
 }
 
-export default function WaveNext() {
+function surfaceTitle(surface: Surface) {
+  if (surface === "command") return "Command Center";
+  if (surface === "agents") return "Agent Deck";
+  return "Operations Dashboard";
+}
+
+export default function WaveNext({ initialTab = "run", surface = "operate" }: Props) {
   const [session, setSession] = useState<SessionState | null>(null);
   const [ownerKey, setOwnerKey] = useState("");
   const [authError, setAuthError] = useState("");
-  const [tab, setTab] = useState<Tab>("run");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [command, setCommand] = useState("");
   const [resourcePath, setResourcePath] = useState("");
   const [commandBusy, setCommandBusy] = useState(false);
@@ -197,14 +205,14 @@ export default function WaveNext() {
     return <main className="wnRoot">
       <section className="wnAuth">
         <div className="wnKicker">WAVE · OWNER ACCESS</div>
-        <h1>Run-first control surface</h1>
+        <h1>{surfaceTitle(surface)}</h1>
         <p>Owner authentication is required before operational state is shown.</p>
         <form onSubmit={signIn} className="wnAuthForm">
           <input type="password" value={ownerKey} onChange={(e) => setOwnerKey(e.target.value)} placeholder="Owner key" autoComplete="current-password" />
           <button type="submit">Sign in</button>
         </form>
         {authError && <div className="wnError">{authError}</div>}
-        <a className="wnTextLink" href="/overview/legacy">Open legacy overview</a>
+        <div className="wnActionRow"><a className="wnButtonLink" href="/">Web</a><a className="wnButtonLink" href="/chat">Chat</a><a className="wnButtonLink" href="/command">Command</a></div>
       </section>
     </main>;
   }
@@ -214,13 +222,21 @@ export default function WaveNext() {
       <header className="wnHeader">
         <div>
           <div className="wnKicker">OGENIC / WAVE</div>
-          <h1>Harness Capability</h1>
+          <h1>{surfaceTitle(surface)}</h1>
           <p>owner-main · 1LSS_OWNER_MAIN</p>
         </div>
         <div className="wnHeaderState"><State value={runtimeState} /><button onClick={() => void load()} disabled={loading}>{loading ? "Checking…" : "Refresh"}</button></div>
       </header>
 
-      <section className="wnHero">
+      <nav className="wnTabs" aria-label="WAVE surfaces">
+        <a className={surface === "operate" ? "active" : ""} href="/">WEB</a>
+        <a href="/chat">CHAT</a>
+        <a className={surface === "command" ? "active" : ""} href="/command">COMMAND</a>
+        <a className={surface === "agents" ? "active" : ""} href="/agents">AGENTS</a>
+        <a className={surface === "operate" ? "active" : ""} href="/overview">OPERATE</a>
+      </nav>
+
+      {surface === "command" && <section className="wnHero">
         <div className="wnHeroCopy">
           <span className="wnKicker">RUN / COMMAND</span>
           <h2>What should WAVE do?</h2>
@@ -231,7 +247,7 @@ export default function WaveNext() {
         <div className="wnRunActions">
           <button className="wnPrimary" onClick={() => void runGuardedCommand()} disabled={commandBusy || (!command.trim() && !resourcePath.trim())}>{commandBusy ? "Routing…" : "Run guarded command"}</button>
           <button onClick={handoff}>Open WAVE Chat with draft</button>
-          <button onClick={() => { setTab("agent"); }}>Agent controls</button>
+          <a className="wnButtonLink" href="/agents">Agent controls</a>
         </div>
         {commandResult && <article className="wnCard">
           <div className="wnCardHead">
@@ -249,9 +265,9 @@ export default function WaveNext() {
           {commandResult.approval?.required && <div className="wnPolicy">Owner approval required · {commandResult.approval.permission_class || "NON_READ"}. No side effect executed.</div>}
           {commandResult.result?.path && <div className="wnPolicy">Verified READ · {commandResult.result.path} · {commandResult.result.sha || "sha unavailable"}</div>}
         </article>}
-      </section>
+      </section>}
 
-      <nav className="wnTabs" aria-label="WAVE NEXT sections">
+      <nav className="wnTabs" aria-label="WAVE dashboard sections">
         {(["run", "agent", "session", "connections", "approvals", "history"] as Tab[]).map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}
       </nav>
 
@@ -285,7 +301,7 @@ export default function WaveNext() {
         <section className="wnCard">
           <div className="wnCardHead"><div><span className="wnKicker">EXECUTION</span><h3>Yellow Stone handoff</h3></div><State value={selfHost?.openai_app_key || "CONFIGURATION_REQUIRED"} /></div>
           <p className="wnBody">White Diamond may plan and select agents, but consequential execution remains behind Yellow Stone policy and owner approval.</p>
-          <div className="wnActionRow"><button className="wnPrimary" onClick={() => void runGuardedCommand()} disabled={commandBusy || (!command.trim() && !resourcePath.trim())}>Run guarded command</button><button onClick={handoff}>Open Chat with draft</button><a className="wnButtonLink" href="/chat">Open WAVE Chat</a></div>
+          <div className="wnActionRow"><a className="wnButtonLink wnPrimary" href="/command">Open Command</a><a className="wnButtonLink" href="/chat">Open WAVE Chat</a><a className="wnButtonLink" href="/overview">Open Operate</a></div>
           <div className="wnPolicy">{selfHost?.policy || "Policy status unavailable"}</div>
         </section>
       </>}
@@ -317,7 +333,7 @@ export default function WaveNext() {
       </section>}
 
       <footer className="wnFooter">
-        <a href="/chat">Chat</a><a href="/overview/legacy">Legacy overview</a><span>Private keys stay local</span>
+        <a href="/">Web</a><a href="/chat">Chat</a><a href="/command">Command</a><a href="/agents">Agents</a><a href="/overview">Operate</a><span>Private keys stay local</span>
       </footer>
     </div>
   </main>;
