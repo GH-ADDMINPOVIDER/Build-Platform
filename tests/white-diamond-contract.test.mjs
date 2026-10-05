@@ -10,9 +10,9 @@ test("White Diamond is mounted behind the canonical Yellow Stone entry", async (
   assert.match(entry, /pathname\.startsWith\("\/api\/white-diamond\/"\)/);
 });
 
-test("registry is bounded to 15 agents with safe runtime metadata", async () => {
+test("registry is bounded to 15 entries with safe runtime metadata", async () => {
   const registry = await read("worker/white-diamond-registry.ts");
-  assert.match(registry, /MAX_AGENT_COUNT = 15/);
+  assert.match(registry, /return agents\.slice\(0, 15\)/);
   assert.match(registry, /agent_id/);
   assert.match(registry, /capabilities/);
   assert.match(registry, /runtime/);
@@ -20,10 +20,12 @@ test("registry is bounded to 15 agents with safe runtime metadata", async () => 
   assert.doesNotMatch(registry, /BEGIN (RSA|OPENSSH|EC) PRIVATE KEY/);
 });
 
-test("routing modes are explicit and bounded", async () => {
+test("routing modes are explicit and bounded to FULL_15", async () => {
   const api = await read("worker/white-diamond-api.ts");
   for (const mode of ["SOLO", "TEAM_3", "TEAM_5", "TEAM_10", "FULL_15"]) assert.match(api, new RegExp(mode));
-  assert.match(api, /MAX_AGENT_COUNT/);
+  assert.match(api, /MODE_SIZE:[^\n]*FULL_15: 15/);
+  assert.match(api, /max_agents: 15/);
+  assert.match(api, /max_active_specialists: 15/);
 });
 
 test("TEAM plans keep manager plus specialists and expose explicit handoff", async () => {
@@ -33,17 +35,21 @@ test("TEAM plans keep manager plus specialists and expose explicit handoff", asy
   assert.match(api, /handoff/);
 });
 
-test("parallel fanout is read-only and direct execution bypass is rejected", async () => {
+test("parallel fanout is read-only and direct execution fails closed", async () => {
   const api = await read("worker/white-diamond-api.ts");
-  assert.match(api, /READ/);
-  assert.match(api, /DIRECT_EXECUTION_BYPASS_DENIED/);
+  assert.match(api, /parallel: wantsParallel && requestedPermission === "READ"/);
+  assert.match(api, /wantsExecution \|\| requestedPermission !== "READ"/);
+  assert.match(api, /HUMAN_APPROVAL_REQUIRED/);
+  assert.match(api, /direct_execution_rejected: true/);
 });
 
-test("all execution authority remains Yellow Stone only", async () => {
+test("all execution authority remains Yellow Stone only via resolver handoff", async () => {
   const api = await read("worker/white-diamond-api.ts");
-  assert.match(api, /YELLOW_STONE_ONLY/);
-  assert.match(api, /\/api\/capabilities\/execute/);
-  assert.match(api, /direct_execution_bypass: false/);
+  assert.match(api, /execution_authority: "YELLOW_STONE_ONLY"/);
+  assert.match(api, /next: "\/api\/capabilities\/resolve"/);
+  assert.match(api, /yellow_stone_required: true/);
+  assert.match(api, /WHITE_DIAMOND_MAY_PLAN_BUT_CANNOT_BYPASS_OGE25_OGE26/);
+  assert.doesNotMatch(api, /fetch\([^)]*provider|axios\([^)]*provider/);
 });
 
 test("White Diamond reads canonical 1LSS context and creates no second memory store", async () => {
