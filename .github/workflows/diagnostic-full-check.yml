@@ -1,0 +1,48 @@
+name: Diagnostic Full Check
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/diagnostic-full-check.yml"
+      - "worker/ruby-stone-api.ts"
+      - "worker/violet-stone-api.ts"
+      - "src/WhiteDiamondPanel.tsx"
+      - "tests/white-diamond-contract.test.mjs"
+      - "tests/ruby-stone-contract.test.mjs"
+      - "tests/violet-stone-contract.test.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+      - name: Capture npm run check
+        id: full_check
+        shell: bash
+        run: |
+          set +e
+          npm run check > check.log 2>&1
+          CODE=$?
+          echo "exit_code=${CODE}" >> "$GITHUB_OUTPUT"
+          echo "--- CHECK LOG TAIL ---"
+          tail -n 220 check.log || true
+          exit "$CODE"
+      - name: Upload diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostic-full-check-${{ github.run_id }}-${{ github.run_attempt }}
+          path: check.log
+          retention-days: 2
+          if-no-files-found: error
