@@ -67,3 +67,5 @@ test("Ruby is mounted in the canonical Worker without a new schema migration", (
   assert.match(entry, /pathname\.startsWith\("\/api\/ruby\/"\)/);
   assert.doesNotMatch(ruby, /CREATE TABLE|ALTER TABLE|DROP TABLE/i);
 });
+
+// Proof refresh: keep Stone VI live evidence on the current staging HEAD.
