@@ -4,15 +4,21 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(new URL("../" + path, import.meta.url), "utf8");
 
-test("WAVE NEXT owns /overview and /overview/next while /overview/legacy remains rollback", () => {
+test("WAVE NEXT owns operate command and agents while legacy remains rollback", () => {
   const main = read("src/main.tsx");
   const ui = read("src/WaveNext.tsx");
   assert.match(main, /pathname === "\/overview"/);
   assert.match(main, /pathname === "\/overview\/next"/);
   assert.match(main, /pathname === "\/overview\/legacy"/);
-  assert.match(main, /waveNextRoute \? <WaveNext \/>/);
+  assert.match(main, /pathname === "\/command"/);
+  assert.match(main, /pathname === "\/agents"/);
+  assert.match(main, /<WaveNext initialTab="run" surface="operate" \/>/);
+  assert.match(main, /<WaveNext initialTab="run" surface="command" \/>/);
+  assert.match(main, /<WaveNext initialTab="agent" surface="agents" \/>/);
   assert.match(main, /<ControlPlaneV2 \/>/);
-  assert.match(ui, /href="\/overview\/legacy"/);
+  assert.match(ui, /href="\/overview"/);
+  assert.match(ui, /href="\/command"/);
+  assert.match(ui, /href="\/agents"/);
 });
 
 test("WAVE NEXT exposes run-first primary sections and real runtime endpoints", () => {
