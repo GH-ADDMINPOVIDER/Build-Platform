@@ -7,24 +7,6 @@ if (!ownerKey) throw new Error("CONFIGURATION_REQUIRED: OGENIC_OPS_KEY");
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const json = (response) => response.json().catch(() => ({}));
 
-async function waitForPlannerRoute() {
-  for (let attempt = 1; attempt <= 60; attempt += 1) {
-    const response = await fetch(`${base}/api/wave/command`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ intent: "อ่าน `tests/athena-command-planner-contract.test.mjs` ให้หน่อย" }),
-    }).catch(() => null);
-    if (response?.status === 401) {
-      const body = await json(response);
-      if (body?.code === "REAUTH_REQUIRED") return;
-    }
-    await sleep(5000);
-  }
-  throw new Error("OGE36_PLANNER_ROUTE_NOT_READY");
-}
-
-await waitForPlannerRoute();
-
 const auth = await fetch(`${base}/api/session`, {
   method: "POST",
   headers: { "content-type": "application/json" },
@@ -37,6 +19,29 @@ assert.equal(authBody?.user?.role, "owner", "owner role");
 const setCookie = auth.headers.get("set-cookie") || "";
 const cookie = setCookie.split(";", 1)[0];
 assert.ok(cookie.includes("="), "session cookie returned");
+
+async function waitForPlannerRuntime() {
+  for (let attempt = 1; attempt <= 60; attempt += 1) {
+    const response = await fetch(`${base}/api/wave/command`, {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie },
+      body: JSON.stringify({ intent: "deploy this" }),
+    }).catch(() => null);
+    if (response) {
+      const body = await json(response);
+      if (
+        response.status === 409 &&
+        body?.code === "ATHENA_PLAN_AMBIGUOUS" &&
+        body?.command_plan?.plan_version === "ATHENA_COMMAND_PLAN_V1" &&
+        body?.command_plan?.direct_execution_bypass === false
+      ) return;
+    }
+    await sleep(5000);
+  }
+  throw new Error("OGE36_PLANNER_RUNTIME_NOT_READY");
+}
+
+await waitForPlannerRuntime();
 
 const readIntent = "อ่าน `tests/athena-command-planner-contract.test.mjs` ให้หน่อย";
 const readResponse = await fetch(`${base}/api/wave/command`, {
