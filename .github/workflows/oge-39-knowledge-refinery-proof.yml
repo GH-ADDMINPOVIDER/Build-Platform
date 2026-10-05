@@ -5,6 +5,8 @@ on:
     branches: [phase-vi-provider-incentive-metering]
     paths:
       - "worker/knowledge-refinery.ts"
+      - "worker/knowledge-refinery-api.ts"
+      - "worker/entry-yellow-stone.ts"
       - "infra/knowledge-sandbox/Dockerfile"
       - "scripts/knowledge-sandbox-smoke.mjs"
       - "tests/knowledge-refinery-contract.test.mjs"
@@ -13,6 +15,9 @@ on:
 
 permissions:
   contents: read
+
+env:
+  STAGING_URL: https://wave.ogenicchocolate.com
 
 jobs:
   proof:
@@ -50,10 +55,33 @@ jobs:
           jq -e '.ok == true and .runtime == "DOCKER_WORKER" and .agent == false and .network_policy == "DISABLED_AT_RUNTIME" and .filesystem_policy == "READ_ONLY_AT_RUNTIME"' oge-39-docker-proof.json >/dev/null
           echo "OGE_39_DOCKER_WORKER_OK"
 
+      - name: Wait for live Knowledge Refinery marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(mktemp)"
+          trap 'rm -f "$BODY"' EXIT
+          READY=false
+          for ATTEMPT in $(seq 1 60); do
+            CODE="$(curl --silent --show-error --location --output "$BODY" --write-out '%{http_code}' "${STAGING_URL}/api/knowledge-refinery/health" || true)"
+            if test "$CODE" = "200" \
+              && jq -e '.ok == true and .runtime == "KNOWLEDGE_REFINERY_V1" and .yellow_execution_authority == "YELLOW_STONE_ONLY" and .docker_is_worker_not_agent == true and .cursor_activation == "ON_DEMAND" and .new_d1_schema == false and .secrets_exposed == false' "$BODY" >/dev/null; then
+              READY=true
+              break
+            fi
+            echo "Knowledge Refinery staging marker not live yet (${ATTEMPT}/60)"
+            sleep 5
+          done
+          test "$READY" = "true" || { echo "::error::Knowledge Refinery staging marker was not verified"; exit 1; }
+          cp "$BODY" oge-39-runtime-proof.json
+          echo "OGE_39_KNOWLEDGE_REFINERY_RUNTIME_OK"
+
       - name: Publish sanitized proof artifact
         uses: actions/upload-artifact@v4
         with:
           name: oge-39-knowledge-refinery-proof-${{ github.run_id }}-${{ github.run_attempt }}
-          path: oge-39-docker-proof.json
+          path: |
+            oge-39-docker-proof.json
+            oge-39-runtime-proof.json
           retention-days: 14
           if-no-files-found: error

@@ -4,6 +4,8 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(new URL("../" + path, import.meta.url), "utf8");
 const refinery = read("worker/knowledge-refinery.ts");
+const api = read("worker/knowledge-refinery-api.ts");
+const entry = read("worker/entry-yellow-stone.ts");
 const blue = read("worker/blue-diamond-registry.ts");
 const violet = read("worker/violet-stone-api.ts");
 const ruby = read("worker/ruby-stone-api.ts");
@@ -74,6 +76,17 @@ test("Ruby verification gates Green retention and no new D1 schema is introduced
   assert.doesNotMatch(refinery, /CREATE TABLE|ALTER TABLE|DROP TABLE/i);
   assert.match(violet, /RUBY_EVAL_PASS/);
   assert.match(ruby, /YELLOW_STONE_ONLY/);
+});
+
+test("Knowledge Refinery API is mounted in the canonical Worker", () => {
+  assert.match(api, /createKnowledgeRefineryApi/);
+  assert.match(api, /\/api\/knowledge-refinery\/health/);
+  assert.match(api, /\/api\/knowledge-refinery\/actors/);
+  assert.match(api, /\/api\/knowledge-refinery\/plan/);
+  assert.match(api, /\/api\/knowledge-refinery\/idle-decision/);
+  assert.match(api, /hasOwnerOrOpsAccess/);
+  assert.match(entry, /createKnowledgeRefineryApi/);
+  assert.match(entry, /pathname\.startsWith\("\/api\/knowledge-refinery\/"\)/);
 });
 
 test("Docker proof runs isolated with no network and a read-only filesystem", () => {
