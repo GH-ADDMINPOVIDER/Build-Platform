@@ -96,42 +96,45 @@ jobs:
             --data "$PAYLOAD" \
             "${STAGING_URL}/api/chat/model")"
 
+          echo "ATHENA_RESPONSE_SUMMARY"
+          jq '{
+            http_expected: 200,
+            ok,
+            code,
+            runtime,
+            conversation_id,
+            session_line,
+            function_calls: ((.function_calls // []) | map({name,state,verified})),
+            blue_diamond: (.blue_diamond // null),
+            text_preview: ((.text // "") | .[0:180])
+          }' "$BODY"
+
           if test "$CODE" = "429"; then
             jq -e '.code == "INCENTIVE_CAP_GUARD" and .paid_fallback == false' "$BODY" >/dev/null
             echo "::error::OGE-34 runtime proof blocked by guarded included quota; paid fallback remains disabled by policy"
-            cat "$BODY"
             exit 1
           fi
 
-          test "$CODE" = "200" || { echo "::error::default WAVE chat returned HTTP $CODE"; cat "$BODY"; exit 1; }
-          jq -e '
-            .ok == true and
-            .runtime == "BLUE_DIAMOND_ATHENA_VERIFIED_CHAT_V0_1" and
-            .conversation_id == "owner-main" and
-            .session_line == "1LSS_OWNER_MAIN" and
-            .blue_diamond.stone == 4 and
-            .blue_diamond.identity == "ATHENA" and
-            .blue_diamond.actor_id == "athena-command" and
-            .blue_diamond.maturity == "COMMANDER_CANDIDATE" and
-            .blue_diamond.admitted == true and
-            .blue_diamond.preflight_event == "AGENT_PRE_RUN" and
-            .blue_diamond.permission_class == "READ" and
-            .blue_diamond.exact_private_tool_count == 7 and
-            .blue_diamond.execution_authority == "YELLOW_STONE_ONLY" and
-            .blue_diamond.fresh_verification_claimed == true and
-            (.blue_diamond.verified_tool_calls | index("github_staging_status") != null) and
-            (.blue_diamond.verified_tool_calls | index("linear_get_issue") != null) and
-            ([.function_calls[].name] | index("github_staging_status") != null) and
-            ([.function_calls[].name] | index("linear_get_issue") != null)
-          ' "$BODY" >/dev/null
+          test "$CODE" = "200" || { echo "::error::default WAVE chat returned HTTP $CODE"; exit 1; }
+
+          jq -e '.ok == true and .runtime == "BLUE_DIAMOND_ATHENA_VERIFIED_CHAT_V0_1" and .conversation_id == "owner-main" and .session_line == "1LSS_OWNER_MAIN"' "$BODY" >/dev/null \
+            || { echo "::error::ATHENA route/canonical contract mismatch"; exit 1; }
+
+          jq -e '.blue_diamond.stone == 4 and .blue_diamond.identity == "ATHENA" and .blue_diamond.actor_id == "athena-command" and .blue_diamond.maturity == "COMMANDER_CANDIDATE" and .blue_diamond.admitted == true and .blue_diamond.preflight_event == "AGENT_PRE_RUN" and .blue_diamond.permission_class == "READ" and .blue_diamond.exact_private_tool_count == 7 and .blue_diamond.execution_authority == "YELLOW_STONE_ONLY"' "$BODY" >/dev/null \
+            || { echo "::error::Blue Diamond admission metadata mismatch"; exit 1; }
+
+          jq -e '([.function_calls[]?.name] | index("github_staging_status") != null) and ([.function_calls[]?.name] | index("linear_get_issue") != null)' "$BODY" >/dev/null \
+            || { echo "::error::ATHENA did not invoke both required verified-read functions"; exit 1; }
+
+          jq -e '.blue_diamond.fresh_verification_claimed == true and (.blue_diamond.verified_tool_calls | index("github_staging_status") != null) and (.blue_diamond.verified_tool_calls | index("linear_get_issue") != null)' "$BODY" >/dev/null \
+            || { echo "::error::required tool call executed but did not produce verified evidence"; exit 1; }
 
           HISTORY="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" "${STAGING_URL}/api/chat/history")"
-          printf '%s' "$HISTORY" | jq -e '
-            .ok == true and
-            .conversation_id == "owner-main" and
-            .session_line == "1LSS_OWNER_MAIN" and
-            ([.messages[].text] | any(. == "[TOOL github_staging_status] OK")) and
-            ([.messages[].text] | any(. == "[TOOL linear_get_issue] OK"))
-          ' >/dev/null
+          echo "ATHENA_HISTORY_TOOL_MARKERS"
+          printf '%s' "$HISTORY" | jq '[.messages[] | select(.role == "system" and ((.text // "") | startswith("[TOOL "))) | {text,sequence_no,source_surface}] | .[-10:]'
+          printf '%s' "$HISTORY" | jq -e '.ok == true and .conversation_id == "owner-main" and .session_line == "1LSS_OWNER_MAIN"' >/dev/null \
+            || { echo "::error::canonical 1LSS history contract mismatch"; exit 1; }
+          printf '%s' "$HISTORY" | jq -e '([.messages[].text] | any(. == "[TOOL github_staging_status] OK")) and ([.messages[].text] | any(. == "[TOOL linear_get_issue] OK"))' >/dev/null \
+            || { echo "::error::verified tool evidence was not stamped into 1LSS history"; exit 1; }
 
           echo "OGE34_ATHENA_DEFAULT_CHAT_PROOF_OK"
