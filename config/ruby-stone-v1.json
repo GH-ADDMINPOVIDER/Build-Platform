@@ -6,6 +6,7 @@
   "blue_admission_required": true,
   "yellow_execution_authority": "YELLOW_STONE_ONLY",
   "accuracy_evidence_events": ["RUBY_EVAL_PASS", "RUBY_EVAL_FAIL"],
+  "validation_contract": "npm run check",
   "direct_execution_bypass": false,
   "schema_change": false
 }
