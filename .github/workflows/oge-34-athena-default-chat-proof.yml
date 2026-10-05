@@ -1,0 +1,137 @@
+name: OGE-34 ATHENA Default WAVE Chat Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-34-athena-default-chat-proof.yml"
+      - "worker/athena-chat-api.ts"
+      - "worker/entry-connectors.ts"
+      - "tests/athena-default-chat-contract.test.mjs"
+      - "worker/verified-function-tools.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://wave.ogenicchocolate.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: staging
+
+jobs:
+  prove:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Verify ATHENA default chat contracts
+        run: node --test tests/athena-default-chat-contract.test.mjs tests/oge-32-function-tools-contract.test.mjs tests/blue-diamond-contract.test.mjs
+
+      - name: Typecheck integration
+        run: npm run typecheck
+
+      - name: Build WAVE
+        run: npm run build
+
+      - name: Auto-discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging owner proof credential via Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Prove default WAVE text chat invokes ATHENA verified reads
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::missing OGENIC_OPS_KEY"; exit 1; }
+
+          COOKIE_JAR="$(mktemp)"
+          BODY="$(mktemp)"
+          trap 'rm -f "$COOKIE_JAR" "$BODY"' EXIT
+
+          CODE="$(curl --silent --show-error --output "$BODY" --write-out '%{http_code}' "${STAGING_URL}/api/chat/athena")"
+          test "$CODE" = "404" -o "$CODE" = "405" -o "$CODE" = "401" || { echo "::error::unexpected unauthenticated ATHENA probe HTTP $CODE"; cat "$BODY"; exit 1; }
+
+          printf '{"owner_key":%s}' "$(jq -Rn --arg value "$OGENIC_OPS_KEY" '$value')" \
+            | curl --fail --silent --show-error --cookie-jar "$COOKIE_JAR" \
+                --header 'Content-Type: application/json' --data-binary @- "${STAGING_URL}/api/session" \
+            | jq -e '.ok == true and .authenticated == true and .user.role == "owner"' >/dev/null
+
+          KEY="oge34_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          PAYLOAD='{
+            "prompt":"Fresh verify the current canonical staging branch HEAD and the Linear state of OGE-34. You MUST call github_staging_status and linear_get_issue for OGE-34 before answering. Do not use hosted web search or file search. Return a concise status.",
+            "model":"gpt-5.6-sol",
+            "reasoning_effort":"medium",
+            "token_boost":1,
+            "source_surface":"ogenic-web",
+            "attachment_ids":[],
+            "allow_paid_fallback":false
+          }'
+
+          CODE="$(curl --silent --show-error --cookie "$COOKIE_JAR" --output "$BODY" --write-out '%{http_code}' \
+            --header 'Content-Type: application/json' \
+            --header "Idempotency-Key: ${KEY}" \
+            --data "$PAYLOAD" \
+            "${STAGING_URL}/api/chat/model")"
+
+          if test "$CODE" = "429"; then
+            jq -e '.code == "INCENTIVE_CAP_GUARD" and .paid_fallback == false' "$BODY" >/dev/null
+            echo "::error::OGE-34 runtime proof blocked by guarded included quota; paid fallback remains disabled by policy"
+            cat "$BODY"
+            exit 1
+          fi
+
+          test "$CODE" = "200" || { echo "::error::default WAVE chat returned HTTP $CODE"; cat "$BODY"; exit 1; }
+          jq -e '
+            .ok == true and
+            .runtime == "BLUE_DIAMOND_ATHENA_VERIFIED_CHAT_V0_1" and
+            .conversation_id == "owner-main" and
+            .session_line == "1LSS_OWNER_MAIN" and
+            .blue_diamond.stone == 4 and
+            .blue_diamond.identity == "ATHENA" and
+            .blue_diamond.actor_id == "athena-command" and
+            .blue_diamond.maturity == "COMMANDER_CANDIDATE" and
+            .blue_diamond.admitted == true and
+            .blue_diamond.preflight_event == "AGENT_PRE_RUN" and
+            .blue_diamond.permission_class == "READ" and
+            .blue_diamond.exact_private_tool_count == 7 and
+            .blue_diamond.execution_authority == "YELLOW_STONE_ONLY" and
+            .blue_diamond.fresh_verification_claimed == true and
+            (.blue_diamond.verified_tool_calls | index("github_staging_status") != null) and
+            (.blue_diamond.verified_tool_calls | index("linear_get_issue") != null) and
+            ([.function_calls[].name] | index("github_staging_status") != null) and
+            ([.function_calls[].name] | index("linear_get_issue") != null)
+          ' "$BODY" >/dev/null
+
+          HISTORY="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" "${STAGING_URL}/api/chat/history")"
+          printf '%s' "$HISTORY" | jq -e '
+            .ok == true and
+            .conversation_id == "owner-main" and
+            .session_line == "1LSS_OWNER_MAIN" and
+            ([.messages[].text] | any(. == "[TOOL github_staging_status] OK")) and
+            ([.messages[].text] | any(. == "[TOOL linear_get_issue] OK"))
+          ' >/dev/null
+
+          echo "OGE34_ATHENA_DEFAULT_CHAT_PROOF_OK"
