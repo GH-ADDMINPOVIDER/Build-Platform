@@ -82,3 +82,16 @@ test("owner or ops access is mandatory", async () => {
   assert.match(api, /hasOwnerOrOpsAccess/);
   assert.match(api, /REAUTH_REQUIRED/);
 });
+
+test("Violet Stone dashboard shows one brain and two interactive arms with no fake accuracy", async () => {
+  const panel = await read("src/WhiteDiamondPanel.tsx");
+  assert.match(panel, /OpenAI.*CEO/);
+  assert.match(panel, /Codex.*CTO/);
+  assert.match(panel, /Manus.*COO/);
+  assert.match(panel, /BRAIN/);
+  assert.match(panel, /LEFT ARM/);
+  assert.match(panel, /RIGHT ARM/);
+  assert.match(panel, /Accuracy N\/A/);
+  assert.doesNotMatch(panel, /Agent #0?1/);
+  assert.doesNotMatch(panel, /Tier|Tire/);
+});
