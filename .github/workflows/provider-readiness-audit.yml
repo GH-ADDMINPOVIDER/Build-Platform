@@ -48,10 +48,37 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Audit LINE, Meta and n8n without side effects
+      - name: Audit GitHub, LINE, Meta and n8n without side effects
         shell: bash
         run: |
           set -euo pipefail
+          GITHUB_STATE=TOKEN_MISSING
+          GITHUB_BRANCH_HTTP=000
+          GITHUB_ACTIONS_HTTP=000
+          if test -n "${GITHUB_TOKEN:-}"; then
+            GITHUB_BRANCH_HTTP="$(curl --silent --show-error --output /tmp/github-branch.json --write-out '%{http_code}' \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              'https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/branches/phase-vi-provider-incentive-metering' || true)"
+            GITHUB_ACTIONS_HTTP="$(curl --silent --show-error --output /tmp/github-actions.json --write-out '%{http_code}' \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              'https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/actions/runs?branch=phase-vi-provider-incentive-metering&per_page=1' || true)"
+            if test "$GITHUB_BRANCH_HTTP" = "200" && test "$GITHUB_ACTIONS_HTTP" = "200"; then
+              GITHUB_STATE=LIVE
+            elif test "$GITHUB_BRANCH_HTTP" = "401" || test "$GITHUB_ACTIONS_HTTP" = "401"; then
+              GITHUB_STATE=REAUTH_REQUIRED
+            elif test "$GITHUB_BRANCH_HTTP" = "404" || test "$GITHUB_ACTIONS_HTTP" = "404"; then
+              GITHUB_STATE=REPO_OR_PERMISSION_NOT_FOUND
+            elif test "$GITHUB_BRANCH_HTTP" = "403" || test "$GITHUB_ACTIONS_HTTP" = "403"; then
+              GITHUB_STATE=PERMISSION_REQUIRED
+            else
+              GITHUB_STATE=DEGRADED
+            fi
+          fi
+
           LINE_TOKEN="${LINE_CHANNEL_ACCESS_TOKEN:-}"
           LINE_CHANNEL="${LINE_CHANNEL_ID:-${LINE_ID_USE:-}}"
           META_TOKEN="${META_PAGE_ACCESS_TOKEN:-${META_ACCESS_TOKEN:-}}"
@@ -87,10 +114,11 @@ jobs:
             if test "$N8N_HTTP" = "200"; then N8N_STATE=LIVE; elif test "$N8N_HTTP" = "401" || test "$N8N_HTTP" = "403"; then N8N_STATE=REAUTH_REQUIRED; else N8N_STATE=DEGRADED_HTTP_${N8N_HTTP}; fi
           fi
 
-          echo "PROVIDER_READINESS LINE=${LINE_STATE} META=${META_STATE} N8N=${N8N_STATE}"
+          echo "PROVIDER_READINESS GITHUB=${GITHUB_STATE} GITHUB_BRANCH_HTTP=${GITHUB_BRANCH_HTTP} GITHUB_ACTIONS_HTTP=${GITHUB_ACTIONS_HTTP} LINE=${LINE_STATE} META=${META_STATE} N8N=${N8N_STATE}"
           {
             echo '### OGENIC Provider Readiness'
             echo ''
+            echo "- GitHub: \`${GITHUB_STATE}\` (branch HTTP \`${GITHUB_BRANCH_HTTP}\`, Actions HTTP \`${GITHUB_ACTIONS_HTTP}\`)"
             echo "- LINE: \`${LINE_STATE}\`"
             echo "- Meta: \`${META_STATE}\`"
             echo "- n8n: \`${N8N_STATE}\`"
