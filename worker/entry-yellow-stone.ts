@@ -9,6 +9,8 @@ import { createCodexLeftArmApi } from "./codex-left-arm-api";
 import { createMcpConfigApi } from "./mcp-config-api";
 import { createWhiteDiamondApi } from "./white-diamond-api";
 import { createBlueDiamondApi } from "./blue-diamond-api";
+import { hasOwnerOrOpsAccess } from "./app-auth";
+import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
@@ -18,7 +20,81 @@ const mcpConfigApi = createMcpConfigApi();
 const whiteDiamondApi = createWhiteDiamondApi();
 const blueDiamondApi = createBlueDiamondApi();
 
-type Bindings = CapabilityResolverBindings & Record<string, unknown>;
+const ATHENA_ACTOR_ID = "athena-command";
+const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
+
+type Bindings = CapabilityResolverBindings & BlueDiamondRegistryEnv & Record<string, unknown>;
+
+async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknown) {
+  if (request.method !== "POST") {
+    return Response.json({ ok: false, code: "METHOD_NOT_ALLOWED", allowed: ["POST"] }, { status: 405 });
+  }
+  if (!(await hasOwnerOrOpsAccess(request, env))) {
+    return Response.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, { status: 401 });
+  }
+
+  const athena = buildBlueDiamondRegistry(env).find((actor) => actor.actor_id === ATHENA_ACTOR_ID);
+  if (!athena) {
+    return Response.json({
+      ok: false,
+      code: "ATHENA_NOT_REGISTERED",
+      execution_authority: EXECUTION_AUTHORITY,
+    }, { status: 503 });
+  }
+  if (!athena.agent_eligible) {
+    return Response.json({
+      ok: false,
+      code: "ATHENA_NOT_AGENT_EXECUTABLE",
+      actor_id: ATHENA_ACTOR_ID,
+      execution_authority: EXECUTION_AUTHORITY,
+    }, { status: 503 });
+  }
+  if (athena.state === "CONFIGURATION_REQUIRED" || athena.state === "OFFLINE") {
+    return Response.json({
+      ok: false,
+      code: "CONFIGURATION_REQUIRED",
+      actor_id: ATHENA_ACTOR_ID,
+      state: athena.state,
+      execution_authority: EXECUTION_AUTHORITY,
+    }, { status: 503 });
+  }
+
+  const url = new URL(request.url);
+  url.pathname = "/api/capabilities/execute";
+  const raw = await request.text();
+  const headers = new Headers(request.headers);
+  headers.set("x-ogenic-command-origin", "blue-diamond-athena");
+  const delegated = new Request(url.toString(), {
+    method: "POST",
+    headers,
+    body: raw || undefined,
+    redirect: request.redirect,
+  });
+
+  const response = await executionApi.fetch(delegated, env as never, ctx as never);
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) return response;
+
+  const payload = await response.clone().json().catch(() => ({})) as Record<string, unknown>;
+  const responseHeaders = new Headers(response.headers);
+  responseHeaders.set("Cache-Control", "no-store");
+  return new Response(JSON.stringify({
+    ...payload,
+    command_handoff: {
+      source_surface: "WAVE",
+      admission: "BLUE_DIAMOND_ATHENA",
+      actor_id: ATHENA_ACTOR_ID,
+      maturity: athena.maturity,
+      admitted: true,
+      execution_authority: EXECUTION_AUTHORITY,
+      yellow_stone_route: "/api/capabilities/execute",
+      direct_execution_bypass: false,
+    },
+  }), {
+    status: response.status,
+    headers: responseHeaders,
+  });
+}
 
 export default {
   async fetch(request: Request, env: Bindings, ctx: unknown) {
@@ -28,6 +104,9 @@ export default {
     }
     if (pathname === "/api/capabilities/execute") {
       return executionApi.fetch(request, env, ctx as never);
+    }
+    if (pathname === "/api/wave/command") {
+      return athenaGuardedCommand(request, env, ctx);
     }
     if (pathname.startsWith("/api/mcp-config/")) {
       return mcpConfigApi.fetch(request, env as never, ctx as never);
