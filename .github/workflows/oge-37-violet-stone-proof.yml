@@ -1,0 +1,65 @@
+name: OGE-37 Violet Stone Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-37-violet-stone-proof.yml"
+      - "worker/violet-stone-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "tests/violet-stone-contract.test.mjs"
+      - "src/WhiteDiamondPanel.tsx"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  STAGING_URL: https://wave.ogenicchocolate.com
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Violet contract
+        run: node --test tests/violet-stone-contract.test.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Wait for live Violet marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(mktemp)"
+          trap 'rm -f "$BODY"' EXIT
+          READY=false
+          for ATTEMPT in $(seq 1 48); do
+            CODE="$(curl --silent --show-error --location --output "$BODY" --write-out '%{http_code}' "${STAGING_URL}/api/violet/health" || true)"
+            if test "$CODE" = "200" \
+              && grep -Fq 'VIOLET_STONE_ORCHESTRATOR_V1' "$BODY" \
+              && grep -Fq 'YELLOW_STONE_ONLY' "$BODY" \
+              && grep -Fq 'NOT_MEASURED_UNTIL_RUBY_EVIDENCE' "$BODY" \
+              && grep -Fq '"schema_change":false' "$BODY"; then
+              READY=true
+              break
+            fi
+            echo "Violet staging marker not live yet (${ATTEMPT}/48)"
+            sleep 5
+          done
+          test "$READY" = "true" || { echo "::error::Violet staging runtime marker was not verified"; cat "$BODY"; exit 1; }
+          echo "OGE_37_VIOLET_RUNTIME_OK"
