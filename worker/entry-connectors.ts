@@ -5,19 +5,21 @@ import { createPublicHookApi, type ConnectorBindings } from "./connector-runtime
 import { createLiveAssistApi, type LiveAssistBindings } from "./live-assist-api";
 import { createBrowserSessionApi, type BrowserSessionBindings } from "./browser-session-api";
 import { createChatModelApi } from "./chat-model-api";
+import { createAthenaChatApi, type AthenaChatBindings } from "./athena-chat-api";
 import { createManusApi } from "./manus-api";
 import { createUnifiedChatApi, type UnifiedChatBindings } from "./unified-chat-api";
 import { createInlineToolsApi, type InlineToolBindings } from "./inline-tools-api";
 import { createLiveDoorApi, type LiveDoorBindings } from "./live-door-api";
 import { createSessionRecoveryApi, type SessionRecoveryBindings } from "./session-recovery-api";
 
-type Bindings = ConnectorAppBindings & ConnectorBindings & LiveAssistBindings & BrowserSessionBindings & UnifiedChatBindings & InlineToolBindings & LiveDoorBindings & SessionRecoveryBindings & { MANUS_API_KEY?: string };
+type Bindings = ConnectorAppBindings & ConnectorBindings & AthenaChatBindings & LiveAssistBindings & BrowserSessionBindings & UnifiedChatBindings & InlineToolBindings & LiveDoorBindings & SessionRecoveryBindings & { MANUS_API_KEY?: string };
 
 const connectorApi = createConnectorAppApi();
 const providerConnectApi = createProviderConnectApi();
 const liveAssistApi = createLiveAssistApi();
 const browserSessionApi = createBrowserSessionApi();
 const chatModelApi = createChatModelApi();
+const athenaChatApi = createAthenaChatApi();
 const manusApi = createManusApi();
 const unifiedChatApi = createUnifiedChatApi();
 const inlineToolsApi = createInlineToolsApi();
@@ -27,7 +29,7 @@ const publicHooks = createPublicHookApi();
 
 const ONE_LINE_ID = "owner-main";
 type ChatSurface = "ogenic-web" | "chatgpt-dev" | "external-harness";
-type FunctionTurnBody = { prompt?: unknown; source_surface?: unknown; idempotency_key?: unknown };
+type FunctionTurnBody = { prompt?: unknown; source_surface?: unknown; idempotency_key?: unknown; attachment_ids?: unknown };
 type FunctionTurnResponse = {
   ok?: boolean;
   text?: unknown;
@@ -210,6 +212,25 @@ async function canonicalChatModelRequest(request: Request, sourceSurface?: ChatS
   });
 }
 
+async function athenaChatRequest(request: Request) {
+  const url = new URL(request.url);
+  url.pathname = "/api/chat/athena";
+  const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.text();
+  return new Request(url.toString(), {
+    method: request.method,
+    headers: request.headers,
+    body: body || undefined,
+    redirect: request.redirect,
+  });
+}
+
+async function defaultWaveTextOnly(request: Request) {
+  if (request.method !== "POST") return false;
+  const body = await request.clone().json().catch(() => ({})) as FunctionTurnBody;
+  const attachments = Array.isArray(body.attachment_ids) ? body.attachment_ids.filter(Boolean) : [];
+  return attachments.length === 0 && Boolean(clip(body.prompt, 7000));
+}
+
 export default {
   async fetch(request: Request, env: Bindings, ctx: unknown) {
     const pathname = new URL(request.url).pathname;
@@ -242,6 +263,12 @@ export default {
     if (pathname === "/api/chat/history") {
       return chatModelApi.fetch(request, env, ctx as never);
     }
+    if (pathname === "/api/chat/athena") {
+      const stampRequest = request.clone();
+      const response = await athenaChatApi.fetch(request, env, ctx as never);
+      await stampFunctionTurn(stampRequest, response, env).catch(() => undefined);
+      return response;
+    }
     if (
       pathname === "/api/chat/model" ||
       pathname === "/api/chat" ||
@@ -258,6 +285,14 @@ export default {
       const canonicalRequest = pathname === "/api/chat/model"
         ? request
         : await canonicalChatModelRequest(request, sourceSurface);
+
+      if (pathname === "/api/chat/model" && await defaultWaveTextOnly(canonicalRequest)) {
+        const stampRequest = canonicalRequest.clone();
+        const athenaRequest = await athenaChatRequest(canonicalRequest);
+        const response = await athenaChatApi.fetch(athenaRequest, env, ctx as never);
+        await stampFunctionTurn(stampRequest, response, env).catch(() => undefined);
+        return response;
+      }
       return chatModelApi.fetch(canonicalRequest, env, ctx as never);
     }
     if (pathname === "/api/manus/status" || pathname === "/api/manus/task") {
