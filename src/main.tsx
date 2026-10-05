@@ -28,6 +28,7 @@ import "./wave-chat-v3.css";
 import "./mobile-fixes.css";
 import "./landing.css";
 import "./wave-next.css";
+import "./wave-route-polish.css";
 
 const nativeApp = Capacitor.isNativePlatform();
 const WAVE_ORIGIN = "https://wave.ogenicchocolate.com";
