@@ -50,3 +50,12 @@ test("ATHENA uses per-round idempotency and stamps verified tool evidence back t
   assert.match(entry, /\[TOOL \$\{name\}\] \$\{state\}/);
   assert.match(entry, /appendOneLine\(env, "assistant"/);
 });
+
+test("verified private reads surface rejected provider credentials as REAUTH_REQUIRED instead of generic failure", async () => {
+  const verified = await read("worker/verified-function-tools.ts");
+  assert.match(verified, /status === 401 \|\| status === 403/);
+  assert.match(verified, /code: "REAUTH_REQUIRED"/);
+  assert.match(verified, /refresh the server-side credential before fresh verification/);
+  assert.match(verified, /verified: false/);
+  assert.match(verified, /read_only: true/);
+});
