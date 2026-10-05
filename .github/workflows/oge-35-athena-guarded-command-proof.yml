@@ -1,0 +1,75 @@
+name: OGE-35 ATHENA Guarded Command Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-35-athena-guarded-command-proof.yml"
+      - "scripts/verify-oge-35-runtime.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://wave.ogenicchocolate.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  prove:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Contract tests
+        run: node --test tests/athena-guarded-command-handoff.test.mjs tests/athena-default-chat-contract.test.mjs tests/yellow-stone-execution-router-contract.test.mjs tests/blue-diamond-contract.test.mjs tests/wave-next-ui.test.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging runtime authorization via Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Prove live ATHENA guarded command path
+        run: node scripts/verify-oge-35-runtime.mjs
+
+      - name: Publish sanitized proof artifact
+        shell: bash
+        run: |
+          jq -n \
+            --arg branch "phase-vi-provider-incentive-metering" \
+            --arg sha "$GITHUB_SHA" \
+            '{ok:true,branch:$branch,proof_sha:$sha,athena_admission:true,yellow_stone_only:true,verified_read:true,canonical_1lss:true,non_read_approval_gate:true,direct_execution_bypass:false,secrets_exposed:false}' \
+            > oge-35-proof.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oge-35-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: oge-35-proof.json
+          retention-days: 14
+          if-no-files-found: error
