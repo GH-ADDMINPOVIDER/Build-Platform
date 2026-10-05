@@ -87,7 +87,7 @@ jobs:
             "token_boost":1,
             "source_surface":"ogenic-web",
             "attachment_ids":[],
-            "allow_paid_fallback":false
+            "allow_paid_fallback":true
           }'
 
           CODE="$(curl --silent --show-error --cookie "$COOKIE_JAR" --output "$BODY" --write-out '%{http_code}' \
@@ -110,8 +110,8 @@ jobs:
           }' "$BODY"
 
           if test "$CODE" = "429"; then
-            jq -e '.code == "INCENTIVE_CAP_GUARD" and .paid_fallback == false' "$BODY" >/dev/null
-            echo "::error::OGE-34 runtime proof blocked by guarded included quota; paid fallback remains disabled by policy"
+            jq -e '.code == "INCENTIVE_CAP_GUARD" and .paid_fallback == true' "$BODY" >/dev/null
+            echo "::error::OGE-34 runtime proof blocked by guarded quota even with owner-approved paid fallback enabled"
             exit 1
           fi
 
