@@ -1,0 +1,155 @@
+name: OGE-36 Staging Cloud Fallback
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-36-staging-cloud-fallback.yml"
+      - "worker/athena-command-planner.ts"
+      - "worker/entry-yellow-stone.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  WORKER_NAME: ogenic-phase-vi-staging
+  D1_DATABASE_NAME: ogenic-phase-vi-staging
+  STAGING_URL: https://wave.ogenicchocolate.com
+  OGENIC_GIT_SHA: ${{ github.sha }}
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load Cloudflare credentials from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
+          secret-path: ${{ steps.infisical_project.outputs.secret_path }}
+
+      - name: Load staging runtime secrets from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Normalize canonical GitHub credential name
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -n "${GITHUB_TOKEN_OGE34:-}"; then
+            printf 'GITHUB_TOKEN=%s\n' "$GITHUB_TOKEN_OGE34" >> "$GITHUB_ENV"
+          fi
+
+      - name: Require staging authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "::error::missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "::error::missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          test -n "${OPENAI_API_KEY:-}" || { echo "::error::missing OPENAI_API_KEY"; exit 1; }
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::missing OGENIC_OPS_KEY"; exit 1; }
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Resolve staging D1 database
+        id: d1
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB_ID="$(npx wrangler d1 list --json | jq -r --arg NAME "$D1_DATABASE_NAME" '.[] | select(.name == $NAME) | .uuid' | head -n1)"
+          test -n "$DB_ID" && test "$DB_ID" != "null" || { echo "::error::staging D1 database not found"; exit 1; }
+          echo "database_id=$DB_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Generate staging binding
+        env:
+          D1_DATABASE_ID: ${{ steps.d1.outputs.database_id }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path('wrangler.jsonc')
+          cfg = json.loads(path.read_text())
+          cfg['name'] = os.environ['WORKER_NAME']
+          cfg.setdefault('vars', {})['OGENIC_GIT_SHA'] = os.environ['OGENIC_GIT_SHA']
+          cfg['d1_databases'] = [{
+              'binding': 'DB',
+              'database_name': os.environ['D1_DATABASE_NAME'],
+              'database_id': os.environ['D1_DATABASE_ID'],
+              'migrations_dir': 'database/migrations'
+          }]
+          path.write_text(json.dumps(cfg, indent=2) + '\n')
+          PY
+
+      - name: Typecheck and build
+        run: npm run check
+
+      - name: Prepare protected runtime secret bundle
+        id: runtime_secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          SECRETS_FILE="$(mktemp)"
+          chmod 600 "$SECRETS_FILE"
+          export SECRETS_FILE
+          python - <<'PY'
+          import json, os
+          keys = [
+              'OPENAI_API_KEY', 'OGENIC_OPS_KEY', 'GITHUB_TOKEN', 'LINEAR_API_KEY',
+              'N8N_API_KEY', 'N8N_BASE_URL', 'LINE_CHANNEL_ACCESS_TOKEN', 'LINE_SECRET_CHANNEL',
+              'META_PAGE_ACCESS_TOKEN', 'META_APP_SECRET', 'META_VERIFY_TOKEN',
+              'MANUS_API_KEY', 'OPENAI_WEBHOOK_SECRET', 'OGENIC_GENERIC_HOOK_SECRET'
+          ]
+          payload = {key: os.environ[key] for key in keys if os.environ.get(key)}
+          if not payload.get('OPENAI_API_KEY') or not payload.get('OGENIC_OPS_KEY'):
+              raise SystemExit('required Worker runtime secret missing')
+          with open(os.environ['SECRETS_FILE'], 'w', encoding='utf-8') as f:
+              json.dump(payload, f)
+          print(f"Prepared {len(payload)} protected runtime bindings; values not printed.")
+          PY
+          echo "file=$SECRETS_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy staging Worker without D1 schema changes
+        shell: bash
+        env:
+          SECRETS_FILE: ${{ steps.runtime_secrets.outputs.file }}
+        run: |
+          set -euo pipefail
+          trap 'rm -f "$SECRETS_FILE"' EXIT
+          npx wrangler deploy --config dist/ogenic_phase_vi_staging/wrangler.json --secrets-file "$SECRETS_FILE"
+          echo "OGE-36 staging fallback deployed; D1 migrations intentionally skipped."
+
+      - name: Verify staging health
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 --retry-all-errors "${STAGING_URL}/api/health")"
+          printf '%s' "$BODY" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
+          echo "OGE36_STAGING_CLOUD_FALLBACK_OK"
