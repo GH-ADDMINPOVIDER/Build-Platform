@@ -56,7 +56,7 @@ jobs:
               git fetch --no-tags --depth=1 origin "$BEFORE_SHA"
             fi
             CHANGED="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA")"
-            if test -n "$CHANGED" && ! printf '%s\n' "$CHANGED" | grep -Eqv '^(src/|tests/|docs/|\.github/workflows/provider-incentive-staging-deploy\.yml$)'; then
+            if test -n "$CHANGED" && ! printf '%s\n' "$CHANGED" | grep -Eqv '^(src/|tests/|docs/)'; then
               UI_ONLY=true
             fi
           fi
@@ -95,6 +95,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if test -n "${GITHUB_TOKEN_OGE34:-}"; then
+            printf 'GITHUB_TOKEN=%s\n' "$GITHUB_TOKEN_OGE34" >> "$GITHUB_ENV"
+            echo "Mapped GITHUB_TOKEN_OGE34 -> GITHUB_TOKEN"
+          fi
           if test -z "${LINE_SECRET_CHANNEL:-}" && test -n "${LINE_CHANNEL_SECRET:-}"; then
             printf 'LINE_SECRET_CHANNEL=%s\n' "$LINE_CHANNEL_SECRET" >> "$GITHUB_ENV"
             echo "Mapped LINE_CHANNEL_SECRET -> LINE_SECRET_CHANNEL"
