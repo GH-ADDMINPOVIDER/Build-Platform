@@ -225,3 +225,109 @@ button { color: inherit; }
 .ucConnectorStates em{font-size:9px;color:var(--uc-sub);font-style:normal}
 .ucConnectorStates strong{font-size:9px;letter-spacing:.05em;color:var(--uc-sub);white-space:nowrap}
 @media (max-width:700px){.ucCapabilityNav{grid-template-columns:1fr}.ucCapabilityNav a{text-align:left;padding:10px 12px}}
+
+
+/* OGE-63 · acrylic role depth + real message actions */
+.ucMessage{position:relative}
+.ucMessage.user{
+  border:1px solid color-mix(in srgb,#5dffbe 38%,transparent);
+  background:linear-gradient(145deg,rgba(10,41,29,.78),rgba(4,22,18,.62));
+  backdrop-filter:blur(18px) saturate(135%);
+  box-shadow:0 12px 34px rgba(0,0,0,.22),0 0 22px rgba(70,255,190,.08),inset 0 1px 0 rgba(255,255,255,.04);
+}
+.ucMessage.assistant{
+  max-width:760px;
+  padding:14px 15px 11px;
+  border:1px solid color-mix(in srgb,#8f82ff 34%,transparent);
+  border-radius:22px 22px 22px 7px;
+  background:linear-gradient(145deg,rgba(18,20,48,.78),rgba(8,13,30,.64));
+  backdrop-filter:blur(18px) saturate(135%);
+  box-shadow:0 12px 34px rgba(0,0,0,.22),0 0 24px rgba(108,96,255,.08),inset 0 1px 0 rgba(255,255,255,.04);
+}
+.ucMessage.system{
+  border:1px solid color-mix(in srgb,var(--uc-warn) 28%,transparent);
+  border-left:2px solid var(--uc-warn);
+  border-radius:16px;
+  background:color-mix(in srgb,var(--uc-card) 82%,transparent);
+  padding:11px 13px;
+}
+.ucMessageMeta{justify-content:space-between}
+.ucMessageMeta b{font-weight:900}
+.ucMessage.user .ucMessageMeta b{color:#87ffd0}
+.ucMessage.assistant .ucMessageMeta b{color:#b7b0ff}
+.ucMessageMeta span{font-variant-numeric:tabular-nums}
+.ucMessageActions{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  margin-top:10px;
+  padding-top:8px;
+  border-top:1px solid color-mix(in srgb,var(--uc-line) 72%,transparent);
+  overflow:visible;
+}
+.ucMessageActions>button{
+  border:0;
+  background:transparent;
+  color:var(--uc-sub);
+  border-radius:9px;
+  padding:6px 7px;
+  font-size:9px;
+  font-weight:750;
+  cursor:pointer;
+}
+.ucMessageActions>button:hover,
+.ucMessageActions>button:focus-visible{
+  color:var(--uc-text);
+  background:var(--uc-accent-soft);
+  outline:none;
+}
+.ucMessageMore{
+  position:absolute;
+  right:0;
+  bottom:36px;
+  z-index:18;
+  width:188px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  padding:10px;
+  border:1px solid var(--uc-line);
+  border-radius:15px;
+  background:color-mix(in srgb,var(--uc-panel) 96%,transparent);
+  backdrop-filter:blur(22px) saturate(135%);
+  box-shadow:var(--uc-shadow);
+}
+.ucMessageMore>small{
+  grid-column:1/-1;
+  color:var(--uc-sub);
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.11em;
+}
+.ucMessageMore>div{
+  grid-column:1/-1;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:4px;
+}
+.ucMessageMore button{
+  min-height:31px;
+  border:1px solid var(--uc-line);
+  background:var(--uc-card);
+  color:var(--uc-text);
+  border-radius:9px;
+  padding:6px;
+  font-size:9px;
+  font-weight:750;
+  cursor:pointer;
+}
+.ucMessageMore>div button{font-size:15px}
+@media (max-width:700px){
+  .ucMessage.user{max-width:91%;padding:11px 13px}
+  .ucMessage.assistant{padding:12px 13px 10px;border-radius:19px 19px 19px 6px}
+  .ucMessageActions{overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
+  .ucMessageActions::-webkit-scrollbar{display:none}
+  .ucMessageActions>button{flex:0 0 auto;padding:7px 8px}
+  .ucMessageMore{position:fixed;left:12px;right:12px;bottom:calc(176px + env(safe-area-inset-bottom));width:auto;grid-template-columns:1fr 1fr}
+}
