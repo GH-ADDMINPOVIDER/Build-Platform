@@ -46,7 +46,7 @@ function evidence(task: MaopTask, capability: MaopCapability, actor: MaopActor, 
     capability_id: capability.capability_id,
     actor_id: actor.actor_id,
     source_ref: clean(sourceRef, 500),
-    created_at: "2026-10-06T00:00:00.000Z",
+    created_at: new Date().toISOString(),
     verification_state: state,
   }));
 }
@@ -165,6 +165,16 @@ export class MaopReferenceRuntime {
         ...baseResult(task, actor, capability, { id: capability.adapter_id, version: "0", interface_family: "sdk", readiness: async () => ({ state: "OFFLINE", checked_at: "" }), execute: async () => ({ ok: false, evidence_refs: [] }) }, stages),
         ok: false,
         safe_error: { code: "TASK_SCOPE_MISMATCH" },
+        evidence: [],
+        ruby_verified: false,
+        retention_eligible: false,
+      };
+    }
+    if (!Array.isArray(task.supported_protocol_versions) || !task.supported_protocol_versions.includes(MAOP_PROTOCOL_VERSION)) {
+      return {
+        ...baseResult(task, actor, capability, { id: capability.adapter_id, version: "0", interface_family: "sdk", readiness: async () => ({ state: "OFFLINE", checked_at: "" }), execute: async () => ({ ok: false, evidence_refs: [] }) }, stages),
+        ok: false,
+        safe_error: { code: "PROTOCOL_VERSION_UNSUPPORTED" },
         evidence: [],
         ruby_verified: false,
         retention_eligible: false,
