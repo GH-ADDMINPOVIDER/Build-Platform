@@ -162,30 +162,14 @@ jobs:
       - name: Install dependencies
         run: npm install --package-lock-only && npm ci
 
-      - name: DeepSeek pilot — one-pass live smoke
+      - name: Paid provider live smoke deferred by owner
         if: steps.scope.outputs.ui_only != 'true'
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${DEEPSEEK_API_KEY:-}" || { echo "::error::missing canonical DEEPSEEK_API_KEY after Infisical normalization"; exit 1; }
-
-          set +e
-          DEEPSEEK_RESULT="$(npm run --silent deepseek:smoke)"
-          DEEPSEEK_EXIT=$?
-          set -e
-          if test "$DEEPSEEK_EXIT" -ne 0 || ! printf '%s\n' "$DEEPSEEK_RESULT" | jq -e '.ok == true and .http_status == 200 and .content_present == true' >/dev/null; then
-            echo "::error::DeepSeek pilot failed"
-            printf '%s\n' "$DEEPSEEK_RESULT" | jq '{ok, code, http_status, model, finish_reason, content_present, total_tokens}' || true
-            exit 1
-          fi
-
-          {
-            echo 'OGENIC_READINESS_DEEPSEEK_API=REACHABLE'
-            echo 'OGENIC_READINESS_DEEPSEEK_QUOTA=AVAILABLE'
-            echo 'OGENIC_READINESS_DEEPSEEK_BILLING=ACTIVE'
-          } >> "$GITHUB_ENV"
-
-          echo "DeepSeek one-pass live smoke verified; Perplexity live smoke deferred by owner pending billing. No secret values or model output printed."
+          echo "DeepSeek and Perplexity live smoke are billing-deferred by owner."
+          echo "No paid provider call is allowed to block unrelated staging deploys."
+          echo "Readiness attestations remain unchanged until a dedicated provider proof succeeds."
 
       - name: Resolve staging D1 database
         id: d1
