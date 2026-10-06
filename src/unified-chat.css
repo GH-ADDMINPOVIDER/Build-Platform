@@ -195,3 +195,17 @@ button { color: inherit; }
   .ucExperience button { padding: 8px 7px; text-align: center; }
   .ucExperience small { font-size: 7px; }
 }
+
+
+.ucAttachmentList{display:flex;gap:8px;overflow-x:auto;margin-bottom:7px!important;padding:2px 1px 4px;scrollbar-width:thin}
+.ucAttachmentCard{flex:0 0 min(310px,82vw);display:grid;grid-template-columns:48px minmax(0,1fr) auto auto;align-items:center;gap:8px;border:1px solid var(--uc-line);background:var(--uc-card);border-radius:16px;padding:8px}
+.ucAttachmentCard img,.ucAttachmentIcon{width:48px;height:48px;border-radius:11px;object-fit:cover;background:var(--uc-accent-soft);display:grid;place-items:center}
+.ucAttachmentInfo{min-width:0;display:grid;gap:3px}
+.ucAttachmentInfo b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ucAttachmentInfo small{font-size:9px;color:var(--uc-sub)}
+.ucAttachmentInfo progress{width:100%;height:5px;accent-color:var(--uc-accent)}
+.ucAttachmentError{color:var(--uc-warn)!important;white-space:normal;overflow-wrap:anywhere}
+.ucAttachmentCard>button{border:1px solid var(--uc-line);background:var(--uc-accent-soft);color:var(--uc-text);border-radius:10px;padding:6px 8px;font-size:10px;cursor:pointer}
+.ucAttachmentCard.failed{border-color:color-mix(in srgb,var(--uc-warn) 55%,var(--uc-line))}
+.ucAttachmentCard.uploaded{border-color:color-mix(in srgb,var(--uc-accent) 45%,var(--uc-line))}
+@media (max-width:700px){.ucAttachmentCard{flex-basis:min(292px,88vw);grid-template-columns:42px minmax(0,1fr) auto auto}.ucAttachmentCard img,.ucAttachmentIcon{width:42px;height:42px}}
