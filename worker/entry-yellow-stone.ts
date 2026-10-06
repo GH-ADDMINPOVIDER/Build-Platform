@@ -19,6 +19,7 @@ import { createGeminiApi, type GeminiBindings } from "./gemini-api";
 import { createTaskInboxApi, type TaskInboxBindings } from "./task-inbox-api";
 import { createChatMessageActionApi, type ChatMessageActionBindings } from "./chat-message-action-api";
 import { createMaopLabApi } from "./maop-lab-api";
+import { createN8nMigrationApi } from "./n8n-migration-api";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { planAthenaCommand } from "./athena-command-planner";
@@ -40,6 +41,7 @@ const geminiApi = createGeminiApi();
 const taskInboxApi = createTaskInboxApi();
 const chatMessageActionApi = createChatMessageActionApi();
 const maopLabApi = createMaopLabApi();
+const n8nMigrationApi = createN8nMigrationApi();
 
 const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
@@ -247,6 +249,9 @@ export default {
     }
     if (pathname.startsWith("/api/maop/lab")) {
       return maopLabApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/n8n/migration")) {
+      return n8nMigrationApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/openai/selfhost/")) {
       return selfHostApi.fetch(request, env as never, ctx as never);
