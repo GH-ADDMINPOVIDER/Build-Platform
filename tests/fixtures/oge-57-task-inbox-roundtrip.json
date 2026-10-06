@@ -1,0 +1,27 @@
+{
+  "conversation_id": "owner-main",
+  "sessions": [
+    "session-origin",
+    "session-target",
+    "session-other"
+  ],
+  "assignment": {
+    "idempotency_key": "oge57-fixture-0001",
+    "title": "Review OGE-57 cross-session handoff",
+    "origin_session_ref": "session-origin",
+    "target_session_ref": "session-target",
+    "priority": 72
+  },
+  "result": {
+    "session_ref": "session-target",
+    "status": "DONE",
+    "result_ref": "evidence://oge-57/fixture-result",
+    "summary": "Target session completed the assigned fixture task."
+  },
+  "wrong_target_result": {
+    "session_ref": "session-other",
+    "status": "DONE",
+    "result_ref": "evidence://oge-57/wrong-target",
+    "summary": "This must be rejected."
+  }
+}
