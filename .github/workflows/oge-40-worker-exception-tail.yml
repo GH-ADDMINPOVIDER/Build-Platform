@@ -1,0 +1,144 @@
+name: OGE-40 Worker Exception Tail
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-40-worker-exception-tail.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  WORKER_NAME: ogenic-phase-vi-staging
+  STAGING_URL: https://wave.ogenicchocolate.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG || 'staging' }}
+
+jobs:
+  tail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load Cloudflare credentials from Infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
+          secret-path: ${{ steps.infisical_project.outputs.secret_path }}
+
+      - name: Load staging runtime authorization
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Require diagnostic credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "::error::missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "::error::missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::missing OGENIC_OPS_KEY"; exit 1; }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Capture only Worker exceptions while reproducing READ failure
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .oge40tail
+          timeout 30s npx wrangler tail "$WORKER_NAME" --format json > .oge40tail/raw.jsonl 2>/dev/null &
+          TAIL_PID=$!
+          sleep 6
+
+          curl --silent --show-error --output .oge40tail/execute.body --write-out '%{http_code}'             -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}"             -H 'content-type: application/json'             --data-binary '{"intent":"OGE-40 exception tail","capability":"read_file","provider":"github","environment":"staging","input":{"path":"tests/athena-guarded-command-handoff.test.mjs"}}'             "${STAGING_URL}/api/capabilities/execute" > .oge40tail/execute.status || true
+
+          curl --silent --show-error --output .oge40tail/wave.body --write-out '%{http_code}'             -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}"             -H 'content-type: application/json'             --data-binary '{"intent":"OGE-40 exception tail","capability":"read_file","provider":"github","environment":"staging","input":{"path":"tests/athena-guarded-command-handoff.test.mjs"}}'             "${STAGING_URL}/api/wave/command" > .oge40tail/wave.status || true
+
+          wait "$TAIL_PID" || true
+
+          python - <<'PY'
+          import json, re
+          from pathlib import Path
+
+          root=Path(".oge40tail")
+          patterns=[
+            re.compile(r"sk-[A-Za-z0-9_-]{8,}"),
+            re.compile(r"gh[pousr]_[A-Za-z0-9_]{8,}",re.I),
+            re.compile(r"Bearer\s+[A-Za-z0-9._~+/=-]{8,}",re.I),
+            re.compile(r"(?i)(api[_ -]?key|token|secret|password)\s*[:=]\s*[^\s,;]+"),
+          ]
+          def clean(v,limit=3000):
+            s=str(v or "")
+            for p in patterns: s=p.sub("[REDACTED]",s)
+            return s[:limit]
+
+          exceptions=[]
+          raw=root/"raw.jsonl"
+          if raw.exists():
+            for line in raw.read_text(errors="replace").splitlines():
+              try: obj=json.loads(line)
+              except Exception: continue
+              for ex in obj.get("exceptions") or []:
+                if not isinstance(ex,dict): continue
+                exceptions.append({
+                  "name":clean(ex.get("name"),200),
+                  "message":clean(ex.get("message"),1200),
+                  "stack":clean(ex.get("stack"),3000),
+                })
+              if len(exceptions)>=10: break
+
+          def st(name):
+            try:return int((root/f"{name}.status").read_text().strip())
+            except Exception:return 0
+
+          evidence={
+            "schema":"OGE40_WORKER_EXCEPTION_TAIL_V1",
+            "statuses":{"execute":st("execute"),"wave":st("wave")},
+            "exceptions":exceptions,
+            "exception_count":len(exceptions),
+            "request_headers_persisted":False,
+            "secret_values_included":False,
+          }
+          out=Path("docs/evidence/oge-40-worker-exception-tail-latest.json")
+          out.parent.mkdir(parents=True,exist_ok=True)
+          out.write_text(json.dumps(evidence,indent=2,ensure_ascii=False)+"\n")
+          print(json.dumps(evidence,indent=2,ensure_ascii=False))
+          PY
+
+      - name: Commit sanitized exception evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ogenic-runtime-proof"
+          git config user.email "runtime-proof@users.noreply.github.com"
+          git add docs/evidence/oge-40-worker-exception-tail-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -m "test(oge-40): capture Worker exception boundary"
+          git fetch origin phase-vi-provider-incentive-metering
+          git rebase origin/phase-vi-provider-incentive-metering
+          git push origin HEAD:phase-vi-provider-incentive-metering
