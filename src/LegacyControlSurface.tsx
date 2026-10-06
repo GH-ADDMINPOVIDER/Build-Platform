@@ -6,7 +6,6 @@ import ConnectorPanel from "./ConnectorPanel";
 import ProviderConnectWizard from "./ProviderConnectWizard";
 import GagVault from "./GagVault";
 import LiveAssist from "./LiveAssist";
-import ThemeController from "./ThemeController";
 
 import "./control-plane-v2.css";
 import "./wave-control-v3.css";
@@ -31,6 +30,5 @@ export default function LegacyControlSurface() {
     <ProviderConnectWizard />
     <GagVault />
     <LiveAssist />
-    <ThemeController />
   </>;
 }
