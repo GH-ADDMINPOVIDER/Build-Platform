@@ -55,6 +55,9 @@ test("both staging deploy paths use the same secret manifest and verify configur
     assert.match(workflow, /x-ogenic-ops-key/);
     assert.match(workflow, /SERVER_SIDE_REFERENCE_PRESENT/);
     assert.match(workflow, /values not printed/);
+    assert.match(workflow, /canonical == 'GITHUB_TOKEN'/);
+    assert.match(workflow, /GITHUB_TOKEN_OGE34/);
+    assert.match(workflow, /proven_github/);
   }
   assert.match(fallback, /Deploy staging Worker without D1 schema changes/);
   assert.doesNotMatch(fallback, /wrangler d1 migrations apply/);
