@@ -1,0 +1,41 @@
+name: OGE-44 WAVE Surface Routing Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "worker/entry-connectors.ts"
+      - "worker/connector-app-api.ts"
+      - "worker/athena-chat-api.ts"
+      - "src/main.tsx"
+      - "src/UnifiedChat.tsx"
+      - "src/WaveNext.tsx"
+      - "tests/wave-surface-routes.test.mjs"
+      - ".github/workflows/oge-44-wave-routing-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: WAVE surface-routing regression
+        run: node --test tests/wave-surface-routes.test.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
