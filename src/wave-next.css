@@ -25,3 +25,78 @@
 
 .wnEvidenceLink{display:inline-flex;margin-top:5px;font-size:11px;font-weight:700;text-decoration:none}
 .wnEvidenceRef{display:block;margin-top:5px;font-size:10px;opacity:.64;overflow-wrap:anywhere;max-width:100%}
+
+
+/* OGE-65 · explicit shared theme state */
+:root[data-og-theme="light"]{color-scheme:light}
+:root[data-og-theme="light"] .wnRoot{background:#f5f5f3;color:#101114}
+:root[data-og-theme="light"] .wnHeader{border-color:#d8d8d3}
+:root[data-og-theme="light"] .wnHeader p,
+:root[data-og-theme="light"] .wnBody,
+:root[data-og-theme="light"] .wnHero p,
+:root[data-og-theme="light"] .wnKicker,
+:root[data-og-theme="light"] .wnRow span,
+:root[data-og-theme="light"] .wnRowMeta,
+:root[data-og-theme="light"] .wnFacts dt,
+:root[data-og-theme="light"] .wnFooter{color:#686a70}
+:root[data-og-theme="light"] .wnHero,
+:root[data-og-theme="light"] .wnCard,
+:root[data-og-theme="light"] .wnAuth{background:#fff;border-color:#d8d8d3;box-shadow:0 10px 32px rgba(22,22,18,.04)}
+:root[data-og-theme="light"] .wnHero textarea,
+:root[data-og-theme="light"] .wnHeaderState button,
+:root[data-og-theme="light"] .wnRunActions button,
+:root[data-og-theme="light"] .wnActionRow button,
+:root[data-og-theme="light"] .wnButtonLink,
+:root[data-og-theme="light"] .wnAuthForm button,
+:root[data-og-theme="light"] .wnTabs button,
+:root[data-og-theme="light"] .wnAuthForm input{background:#fff;color:#101114;border-color:#c9c9c4}
+:root[data-og-theme="light"] .wnPrimary,
+:root[data-og-theme="light"] .wnTabs button.active{background:#111218!important;color:#fff!important;border-color:#111218!important}
+:root[data-og-theme="light"] .wnTabs{background:rgba(245,245,243,.92)}
+:root[data-og-theme="light"] .wnFacts,
+:root[data-og-theme="light"] .wnRows,
+:root[data-og-theme="light"] .wnFacts div,
+:root[data-og-theme="light"] .wnRow{border-color:#ecece8}
+:root[data-og-theme="light"] .wnPolicy{background:#f4f4f1;color:#55575e}
+:root[data-og-theme="light"] .wnFooter a,
+:root[data-og-theme="light"] .wnTextLink{color:#101114}
+:root[data-og-theme="light"] .wnStatusCard{background:rgba(255,255,255,.72);border-color:rgba(16,17,20,.1)}
+
+:root[data-og-theme="dark"]{color-scheme:dark}
+:root[data-og-theme="dark"] .wnRoot{background:#0b0c0f;color:#f5f5f2}
+:root[data-og-theme="dark"] .wnHeader{border-color:#2a2b31}
+:root[data-og-theme="dark"] .wnHeader p,
+:root[data-og-theme="dark"] .wnBody,
+:root[data-og-theme="dark"] .wnHero p,
+:root[data-og-theme="dark"] .wnKicker,
+:root[data-og-theme="dark"] .wnRow span,
+:root[data-og-theme="dark"] .wnRowMeta,
+:root[data-og-theme="dark"] .wnFacts dt,
+:root[data-og-theme="dark"] .wnFooter{color:#9a9ca4}
+:root[data-og-theme="dark"] .wnHero,
+:root[data-og-theme="dark"] .wnCard,
+:root[data-og-theme="dark"] .wnAuth{background:#121317;border-color:#2b2c32;box-shadow:none}
+:root[data-og-theme="dark"] .wnHero textarea,
+:root[data-og-theme="dark"] .wnHeaderState button,
+:root[data-og-theme="dark"] .wnRunActions button,
+:root[data-og-theme="dark"] .wnActionRow button,
+:root[data-og-theme="dark"] .wnButtonLink,
+:root[data-og-theme="dark"] .wnAuthForm button,
+:root[data-og-theme="dark"] .wnTabs button,
+:root[data-og-theme="dark"] .wnAuthForm input{background:#17181d;color:#f4f4f1;border-color:#33343b}
+:root[data-og-theme="dark"] .wnPrimary,
+:root[data-og-theme="dark"] .wnTabs button.active{background:#f3f3ef!important;color:#101114!important;border-color:#f3f3ef!important}
+:root[data-og-theme="dark"] .wnTabs{background:rgba(11,12,15,.92)}
+:root[data-og-theme="dark"] .wnFacts,
+:root[data-og-theme="dark"] .wnRows,
+:root[data-og-theme="dark"] .wnFacts div,
+:root[data-og-theme="dark"] .wnRow{border-color:#28292f}
+:root[data-og-theme="dark"] .wnPolicy{background:#1a1b20;color:#b9bbc2}
+:root[data-og-theme="dark"] .wnFooter a,
+:root[data-og-theme="dark"] .wnTextLink{color:#f4f4f1}
+:root[data-og-theme="dark"] .wnState{background:#1a1b20;border-color:#33343a;color:#bbb}
+:root[data-og-theme="dark"] .wnState.is-offline{background:#1a1b20;color:#a8aab1}
+:root[data-og-theme="dark"] .wnState.is-config{background:#1a1720;border-color:#3b334a;color:#c8badb}
+:root[data-og-theme="dark"] .wnError{background:#2a1414;border-color:#573030;color:#f0baba}
+:root[data-og-theme="dark"] .wnStatusCard{background:rgba(18,19,23,.86);border-color:#2b2c32}
+:root[data-og-theme="dark"] .wnMeter{background:rgba(255,255,255,.12)}
