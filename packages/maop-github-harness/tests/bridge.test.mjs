@@ -106,3 +106,26 @@ test("cancellation signal is honored before Yellow", async () => {
   assert.equal(result.safe_error.code, "CANCELED");
   assert.equal(called, 0);
 });
+
+
+test("input normalization is bounded and does not mutate caller data", async () => {
+  const calls = [];
+  const bridge = new MaopGithubBridge({
+    async executeYellow(request) {
+      calls.push(request);
+      return verifiedYellow(request);
+    },
+    verifyRuby: verifiedRuby,
+  });
+
+  const original = { path: "  README.md  " };
+  const result = await bridge.execute("github.file.read", original);
+  assert.equal(result.ok, true);
+  assert.equal(original.path, "  README.md  ");
+  assert.equal(calls[0].input.path, "README.md");
+
+  const tooLong = await bridge.execute("github.file.read", { path: "x".repeat(501) });
+  assert.equal(tooLong.ok, false);
+  assert.equal(tooLong.safe_error.code, "INVALID_INPUT");
+  assert.equal(calls.length, 1);
+});
