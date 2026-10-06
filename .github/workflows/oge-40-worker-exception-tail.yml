@@ -63,15 +63,12 @@ jobs:
           test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "::error::missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
           test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::missing OGENIC_OPS_KEY"; exit 1; }
 
-      - name: Install dependencies
-        run: npm ci
-
       - name: Capture only Worker exceptions while reproducing READ failure
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .oge40tail
-          timeout 30s npx wrangler tail "$WORKER_NAME" --format json > .oge40tail/raw.jsonl 2>/dev/null &
+          timeout 30s npx --yes wrangler tail "$WORKER_NAME" --format json > .oge40tail/raw.jsonl 2>/dev/null &
           TAIL_PID=$!
           sleep 6
 
