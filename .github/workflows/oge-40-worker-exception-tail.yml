@@ -95,6 +95,7 @@ jobs:
             return s[:limit]
 
           exceptions=[]
+          logs=[]
           raw=root/"raw.jsonl"
           if raw.exists():
             for line in raw.read_text(errors="replace").splitlines():
@@ -107,7 +108,14 @@ jobs:
                   "message":clean(ex.get("message"),1200),
                   "stack":clean(ex.get("stack"),3000),
                 })
-              if len(exceptions)>=10: break
+              for item in obj.get("logs") or []:
+                if not isinstance(item,dict): continue
+                level=clean(item.get("level"),80)
+                message=item.get("message")
+                if isinstance(message,list):
+                  message=" ".join(str(v) for v in message)
+                logs.append({"level":level,"message":clean(message,3000)})
+              if len(exceptions)>=10 or len(logs)>=30: break
 
           def st(name):
             try:return int((root/f"{name}.status").read_text().strip())
@@ -118,6 +126,8 @@ jobs:
             "statuses":{"execute":st("execute"),"wave":st("wave")},
             "exceptions":exceptions,
             "exception_count":len(exceptions),
+            "logs":logs[:30],
+            "log_count":len(logs),
             "request_headers_persisted":False,
             "secret_values_included":False,
           }
