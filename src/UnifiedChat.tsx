@@ -147,6 +147,7 @@ export default function UnifiedChat({ surface }: Props) {
   const setDraft = composerDraft.store.setText.bind(composerDraft.store);
   const [sending, setSending] = useState(false);
   const [toolDock, setToolDock] = useState(false);
+  const [capabilityQuery, setCapabilityQuery] = useState("");
   const [modelDock, setModelDock] = useState(false);
   const [newDock, setNewDock] = useState(false);
   const [toolMode, setToolMode] = useState<ToolMode>("chat");
@@ -610,16 +611,23 @@ export default function UnifiedChat({ surface }: Props) {
   if (session === null) return <main className="ucSplash"><img src="/assets/wave-logo.webp" alt="" /><b>WAVE — SAME MIND</b><span>Joining 1LSS…</span></main>;
   if (!session.authenticated) return <main className="ucAuth"><section><img src="/assets/wave-logo.webp" alt="" /><small>OWNER ACCESS</small><h1>WAVE — SAME MIND</h1><p>One clean chat · one canonical line.</p><input type="password" value={ownerKey} onChange={(event) => setOwnerKey(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void signIn(); }} placeholder="Owner access key" /><button onClick={() => void signIn()}>Continue</button>{authError && <em>{authError}</em>}</section></main>;
 
-  const toolRows: Array<{ id: ToolMode; label: string; sub: string; live: boolean }> = [
-    { id: "web", label: "Web search", sub: "Fresh web sources", live: toolLive(platformTools.get("web_search")?.state) },
-    { id: "rag", label: "RAG memory", sub: "OGENIC HARNESS · D1 canonical · 1LSS", live: toolLive(platformTools.get("d1_canonical")?.state) || toolLive(platformTools.get("file_search")?.state) },
-    { id: "github", label: "GitHub", sub: liveTools.get("github")?.summary || "Repository + CI", live: toolLive(liveTools.get("github")?.state) },
-    { id: "linear", label: "Linear", sub: liveTools.get("linear")?.summary || "Issues + projects", live: toolLive(liveTools.get("linear")?.state) },
-    { id: "n8n", label: "n8n", sub: liveTools.get("n8n")?.summary || "Workflows", live: toolLive(liveTools.get("n8n")?.state) },
-    { id: "meta", label: "Meta Facebook", sub: liveTools.get("meta")?.summary || "Facebook Page · Messenger · Instagram optional", live: toolLive(liveTools.get("meta")?.state) },
-    { id: "manus", label: "Manus", sub: "Delegate a task", live: toolLive(manus?.state) || manus?.configured === true },
-    { id: "live", label: "Live door", sub: "Browser quota · stop before secrets", live: toolLive(browser?.state) },
+  const toolRows: Array<{ id: ToolMode; label: string; sub: string; live: boolean; state: string }> = [
+    { id: "web", label: "Web search", sub: "Fresh web sources", live: toolLive(platformTools.get("web_search")?.state), state: String(platformTools.get("web_search")?.state || "NOT_MEASURED") },
+    { id: "rag", label: "RAG memory", sub: "OGENIC HARNESS · D1 canonical · 1LSS", live: toolLive(platformTools.get("d1_canonical")?.state) || toolLive(platformTools.get("file_search")?.state), state: String(platformTools.get("d1_canonical")?.state || platformTools.get("file_search")?.state || "NOT_MEASURED") },
+    { id: "github", label: "GitHub", sub: liveTools.get("github")?.summary || "Repository + CI", live: toolLive(liveTools.get("github")?.state), state: String(liveTools.get("github")?.state || "NOT_MEASURED") },
+    { id: "linear", label: "Linear", sub: liveTools.get("linear")?.summary || "Issues + projects", live: toolLive(liveTools.get("linear")?.state), state: String(liveTools.get("linear")?.state || "NOT_MEASURED") },
+    { id: "n8n", label: "n8n", sub: liveTools.get("n8n")?.summary || "Workflows", live: toolLive(liveTools.get("n8n")?.state), state: String(liveTools.get("n8n")?.state || "NOT_MEASURED") },
+    { id: "meta", label: "Meta Facebook", sub: liveTools.get("meta")?.summary || "Facebook Page · Messenger · Instagram optional", live: toolLive(liveTools.get("meta")?.state), state: String(liveTools.get("meta")?.state || "NOT_MEASURED") },
+    { id: "manus", label: "Manus", sub: "Delegate a task", live: toolLive(manus?.state) || manus?.configured === true, state: String(manus?.state || (manus?.configured ? "CONFIGURED" : "NOT_MEASURED")) },
+    { id: "live", label: "Live door", sub: "Browser quota · stop before secrets", live: toolLive(browser?.state), state: String(browser?.state || "NOT_MEASURED") },
   ];
+  const normalizedCapabilityQuery = capabilityQuery.trim().toLowerCase();
+  const matchesCapabilityQuery = (label: string, sub = "") =>
+    !normalizedCapabilityQuery || `${label} ${sub}`.toLowerCase().includes(normalizedCapabilityQuery);
+  const visibleTools = toolRows.filter((row) => row.live && matchesCapabilityQuery(row.label, row.sub));
+  const visibleConnectorStates = connectors
+    .filter((row) => matchesCapabilityQuery(row.label, `${row.kind || ""} ${row.summary || ""}`))
+    .slice(0, 12);
   const connected = connectors.filter((row) => toolLive(row.state)).slice(0, 8);
   const webBridge = bridgeStatus?.surfaces?.find((row) => row.source_surface === "ogenic-web");
   const appBridge = bridgeStatus?.surfaces?.find((row) => row.source_surface === "ogenic-app");
@@ -655,10 +663,18 @@ export default function UnifiedChat({ surface }: Props) {
     <footer className="ucComposerWrap">
       {(toolDock || modelDock) && <section className="ucDock">
         {toolDock && <>
-          <div className="ucDockHead"><div><b>Capabilities</b><small>แสดงเฉพาะตัวที่ใช้งานได้จริง</small></div><button onClick={() => setToolDock(false)}>×</button></div>
+          <div className="ucDockHead"><div><b>Capabilities</b><small>Live execution only · other states are read-only status</small></div><button onClick={() => setToolDock(false)}>×</button></div>
+          <input className="ucCapabilitySearch" value={capabilityQuery} onChange={(event) => setCapabilityQuery(event.target.value)} placeholder="Search capabilities…" aria-label="Search capabilities" />
+          <div className="ucCapabilityNav">
+            <a href="/overview?tab=connections">Manage Connections</a>
+            <a href="/agents">Agents</a>
+            <a href="/overview?tab=run">Runtime</a>
+          </div>
           <div className="ucMemoryRow"><span><b>D1 · 1LSS</b><small>{d1Enabled ? "Canonical memory ON" : "Ephemeral · no memory write"}</small></span><button className={d1Enabled ? "toggle on" : "toggle"} disabled={experienceMode === "agent-ai"} aria-label={experienceMode === "agent-ai" ? "Agent AI requires 1LSS memory" : "Toggle 1LSS memory"} onClick={() => setD1Enabled((value) => !value)}><i /></button></div>
           <button className="ucCapability" onClick={() => fileInput.current?.click()}><span>▧</span><div><b>Photos & files</b><small>Attach to this turn</small></div><em>＋</em></button>
-          {toolRows.filter((row) => row.live).map((row) => <button key={row.id} className={`ucCapability ${toolMode === row.id ? "active" : ""}`} onClick={() => { setToolMode(row.id); setToolDock(false); }}><span>{row.id === "live" ? "◎" : row.id === "manus" ? "◉" : row.id === "github" ? "⌘" : row.id === "rag" ? "◇" : "✦"}</span><div><b>{row.label}</b><small>{row.sub}</small></div><em>{toolMode === row.id ? "✓" : "›"}</em></button>)}
+          {visibleTools.map((row) => <button key={row.id} className={`ucCapability ${toolMode === row.id ? "active" : ""}`} onClick={() => { setToolMode(row.id); setToolDock(false); }}><span>{row.id === "live" ? "◎" : row.id === "manus" ? "◉" : row.id === "github" ? "⌘" : row.id === "rag" ? "◇" : "✦"}</span><div><b>{row.label}</b><small>{row.sub} · {row.state}</small></div><em>{toolMode === row.id ? "✓" : "›"}</em></button>)}
+          {!visibleTools.length && <div className="ucCapabilityEmpty">No executable capability matches this search.</div>}
+          {!!visibleConnectorStates.length && <div className="ucConnectorStates"><small>CONNECTION STATES</small>{visibleConnectorStates.map((row) => <div key={row.id}><span><b>{row.label}</b><em>{row.kind || "connector"}</em></span><strong>{String(row.state || "NOT_MEASURED").toUpperCase()}</strong></div>)}</div>}
           {!!connected.length && <div className="ucConnected"><small>CONNECTED</small><p>{connected.map((row) => row.label).join(" · ")}</p></div>}
           <div className="ucQuotaRow"><span><b>Quota route</b><small>{dashboard.incentives?.routing_mode || "quota-first"}{exhausted ? " · EXHAUSTED" : quotaMetered ? " · metered" : " · metering pending"}</small></span><button className={allowPaidFallback ? "ucFallback on" : "ucFallback"} onClick={() => setAllowPaidFallback((value) => !value)}>{allowPaidFallback ? "Paid fallback ON" : "Paid fallback OFF"}</button></div>
         </>}
