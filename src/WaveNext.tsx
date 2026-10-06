@@ -81,6 +81,14 @@ type SelfHost = {
 };
 type BridgeStatus = { ok?: boolean; cross_surface_ready?: boolean; latest_sequence?: number; checked_at?: number };
 type SessionRef = { id: string; source_surface: string; session_ref: string; label?: string | null; last_sequence?: number | null; last_seen_at?: number };
+type RuntimeSignal = {
+  id: string;
+  kind: "NEW" | "APPROVAL" | "BLOCKED" | "RESULT" | "SYNCED" | "DEGRADED_PROVIDER";
+  title: string;
+  detail: string;
+  source: string;
+};
+
 type CommandResult = {
   ok?: boolean;
   code?: string;
@@ -143,6 +151,75 @@ function safeExternalHref(value: unknown) {
   }
 }
 
+export function buildRuntimeSignals(
+  dashboard: Dashboard,
+  connectors: Connector[],
+  bridge: BridgeStatus | null,
+): RuntimeSignal[] {
+  const out: RuntimeSignal[] = [];
+  const seen = new Set<string>();
+  const push = (signal: RuntimeSignal) => {
+    const key = `${signal.kind}:${signal.id}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(signal);
+  };
+
+  for (const task of dashboard.tasks ?? []) {
+    const state = upper(task.status, "");
+    if (["QUEUED", "NEW"].includes(state)) push({
+      id: task.id, kind: "NEW", title: task.title || "New task",
+      detail: task.capability || state, source: "D1 agent_tasks",
+    });
+    if (state === "BLOCKED") push({
+      id: task.id, kind: "BLOCKED", title: task.title || "Blocked task",
+      detail: task.capability || state, source: "D1 agent_tasks",
+    });
+    if (["DONE", "COMPLETE", "COMPLETED", "SUCCESS", "SUCCEEDED"].includes(state)) push({
+      id: task.id, kind: "RESULT", title: task.title || "Task result",
+      detail: state, source: "D1 agent_tasks",
+    });
+  }
+
+  for (const event of dashboard.events ?? []) {
+    const eventType = upper(event.event_type, "");
+    if (!eventType) continue;
+    if (eventType.includes("APPROVAL")) push({
+      id: event.id, kind: "APPROVAL", title: "Approval required",
+      detail: event.task_id || eventType, source: "D1 agent_events",
+    });
+    else if (eventType.includes("BLOCK")) push({
+      id: event.id, kind: "BLOCKED", title: "Runtime blocked",
+      detail: event.task_id || eventType, source: "D1 agent_events",
+    });
+    else if (eventType.includes("RESULT") || eventType.includes("COMPLETE") || eventType.includes("SUCCESS")) push({
+      id: event.id, kind: "RESULT", title: "New result",
+      detail: event.task_id || eventType, source: "D1 agent_events",
+    });
+    else if (eventType.includes("TASK_CREATED") || eventType === "NEW") push({
+      id: event.id, kind: "NEW", title: "New task event",
+      detail: event.task_id || eventType, source: "D1 agent_events",
+    });
+  }
+
+  if (bridge?.cross_surface_ready === true) push({
+    id: "1lss-cross-surface", kind: "SYNCED", title: "1LSS cross-surface synced",
+    detail: bridge.latest_sequence ? `latest #${bridge.latest_sequence}` : "canonical surfaces caught up",
+    source: "/api/1lss/status",
+  });
+
+  for (const connector of connectors) {
+    const state = upper(connector.state, "");
+    if (["DEGRADED", "OFFLINE", "ERROR", "FAILED"].includes(state)) push({
+      id: connector.id, kind: "DEGRADED_PROVIDER", title: `${connector.label} · ${state}`,
+      detail: connector.summary || connector.route_mode || "provider state degraded",
+      source: "/api/connectors",
+    });
+  }
+
+  return out.slice(0, 20);
+}
+
 function State({ value }: { value: unknown }) {
   const state = upper(value);
   return <span className={`wnState ${stateTone(state)}`}>{state}</span>;
@@ -201,6 +278,11 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
     if (dashboard.runtime?.provider) return "LIVE";
     return "DEGRADED";
   }, [dashboard.runtime?.provider, session?.authenticated]);
+
+  const runtimeSignals = useMemo(
+    () => buildRuntimeSignals(dashboard, connectors, bridge),
+    [dashboard, connectors, bridge],
+  );
 
   const load = useCallback(async () => {
     if (!session?.authenticated) return;
@@ -426,6 +508,18 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
               <div className="wnRowMeta"><State value={run.status || "NOT_MEASURED"} /><br />{timestampAgo(run.updated_at ?? run.created_at)}</div>
             </div>)}
             {!dashboard.runs?.length && <div className="wnEmpty">No execution rows returned by canonical D1.</div>}
+          </div>
+        </article>
+
+        <article className="wnCard">
+          <div className="wnCardHead"><div><span className="wnKicker">SIGNALS</span><h3>Real runtime notifications</h3></div><span className="wnCount">{runtimeSignals.length}</span></div>
+          <p className="wnBody">Only evidence-backed state is shown. No fake notification dots or synthetic counts.</p>
+          <div className="wnRows">
+            {runtimeSignals.slice(0, 8).map((signal) => <div className="wnRow" key={`${signal.kind}:${signal.id}`}>
+              <div><strong>{signal.title}</strong><span>{signal.detail} · {signal.source}</span></div>
+              <State value={signal.kind} />
+            </div>)}
+            {!runtimeSignals.length && <div className="wnEmpty">No current runtime signals.</div>}
           </div>
         </article>
       </section>}
