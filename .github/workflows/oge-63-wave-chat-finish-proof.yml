@@ -1,0 +1,47 @@
+name: OGE-63 WAVE Chat Finish Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "src/UnifiedChat.tsx"
+      - "src/unified-chat.css"
+      - "worker/chat-message-action-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "tests/oge-63-wave-chat-finish.test.mjs"
+      - ".github/workflows/oge-63-wave-chat-finish-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: OGE-63 deterministic contracts
+        run: node --test tests/oge-63-wave-chat-finish.test.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Existing-schema and no-fake-action guard
+        run: |
+          set -euo pipefail
+          ! grep -E 'CREATE TABLE|ALTER TABLE|DROP TABLE' worker/chat-message-action-api.ts
+          grep -q 'navigator.clipboard' src/UnifiedChat.tsx
+          grep -q 'navigator.share' src/UnifiedChat.tsx
+          grep -q 'SpeechSynthesisUtterance' src/UnifiedChat.tsx
+          grep -q '/overview?tab=run' src/UnifiedChat.tsx
