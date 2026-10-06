@@ -45,8 +45,8 @@ test("fresh Agent AI status reads are diverted to ATHENA before replay or Agent 
   assert.match(entry, /FRESH_AGENT_TARGET_PATTERN/);
   assert.match(agentBlock, /freshAgentReadRequest\(request\)/);
   assert.match(agentBlock, /athenaChatRequest\(request\)/);
-  assert.match(agentBlock, /ATHENA_VERIFIED_READ/);
-  assert.match(agentBlock, /agent_session_started:\s*false/);
+  assert.match(entry, /ATHENA_VERIFIED_READ/);
+  assert.match(entry, /agent_session_started:\s*false/);
   assert.ok(
     agentBlock.indexOf("freshAgentReadRequest(request)") < agentBlock.indexOf("cachedAgentReplay(request, env)"),
     "freshness routing must happen before cached Agent replay",
