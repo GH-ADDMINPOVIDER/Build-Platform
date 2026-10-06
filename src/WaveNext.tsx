@@ -249,6 +249,17 @@ function MetricBar({ label, value, detail }: { label: string; value: unknown; de
   </div>;
 }
 
+function initialDashboardTab(fallback: Tab) {
+  try {
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    return (["run", "agent", "session", "connections", "approvals", "history"] as Tab[]).includes(requested as Tab)
+      ? requested as Tab
+      : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function surfaceTitle(surface: Surface) {
   if (surface === "command") return "Command Center";
   if (surface === "agents") return "Agent Deck";
@@ -259,7 +270,7 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
   const [session, setSession] = useState<SessionState | null>(null);
   const [ownerKey, setOwnerKey] = useState("");
   const [authError, setAuthError] = useState("");
-  const [tab, setTab] = useState<Tab>(initialTab);
+  const [tab, setTab] = useState<Tab>(() => initialDashboardTab(initialTab));
   const [command, setCommand] = useState("");
   const [resourcePath, setResourcePath] = useState("");
   const [commandBusy, setCommandBusy] = useState(false);
