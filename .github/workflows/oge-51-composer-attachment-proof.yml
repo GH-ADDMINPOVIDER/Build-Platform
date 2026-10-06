@@ -1,0 +1,43 @@
+name: OGE-51 Composer Attachment Reliability Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "src/composer-draft.ts"
+      - "src/ComposerAttachments.tsx"
+      - "src/UnifiedChat.tsx"
+      - "src/unified-chat.css"
+      - "tests/composer-draft.test.mjs"
+      - "tests/composer-attachment-reliability.test.mjs"
+      - ".github/workflows/oge-51-composer-attachment-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Existing draft persistence regression
+        run: node --test tests/composer-draft.test.mjs
+
+      - name: Attachment reliability contract
+        run: node --test tests/composer-attachment-reliability.test.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
