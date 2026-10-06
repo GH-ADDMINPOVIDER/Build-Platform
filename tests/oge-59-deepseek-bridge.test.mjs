@@ -43,6 +43,7 @@ test("staging performs exactly one smoke per configured research provider and pr
   assert.match(deploy, /npm run --silent deepseek:smoke/);
   assert.match(deploy, /OGENIC_READINESS_PERPLEXITY_API=REACHABLE/);
   assert.match(deploy, /OGENIC_READINESS_DEEPSEEK_API=REACHABLE/);
-  assert.match(deploy, /vars\['OGENIC_READINESS_PERPLEXITY_API'\]/);
-  assert.match(deploy, /vars\['OGENIC_READINESS_DEEPSEEK_API'\]/);
+  assert.match(deploy, /'OGENIC_READINESS_PERPLEXITY_API'/);
+  assert.match(deploy, /'OGENIC_READINESS_DEEPSEEK_API'/);
+  assert.match(deploy, /vars\[key\] = os\.environ\[key\]/);
 });

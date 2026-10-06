@@ -1,5 +1,5 @@
 {
-  "version": "STAGING_RUNTIME_BINDINGS_V1",
+  "version": "STAGING_RUNTIME_BINDINGS_V2",
   "required": [
     "OPENAI_API_KEY",
     "OGENIC_OPS_KEY"
