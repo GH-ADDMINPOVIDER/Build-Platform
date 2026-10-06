@@ -17,6 +17,7 @@ import { createPerplexityAgentApi, type PerplexityAgentBindings } from "./perple
 import { createDeepSeekApi, type DeepSeekBindings } from "./deepseek-api";
 import { createGeminiApi, type GeminiBindings } from "./gemini-api";
 import { createTaskInboxApi, type TaskInboxBindings } from "./task-inbox-api";
+import { createChatMessageActionApi, type ChatMessageActionBindings } from "./chat-message-action-api";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { planAthenaCommand } from "./athena-command-planner";
@@ -36,11 +37,12 @@ const perplexityAgentApi = createPerplexityAgentApi();
 const deepSeekApi = createDeepSeekApi();
 const geminiApi = createGeminiApi();
 const taskInboxApi = createTaskInboxApi();
+const chatMessageActionApi = createChatMessageActionApi();
 
 const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
 
-type Bindings = CapabilityResolverBindings & BlueDiamondRegistryEnv & PerplexityAgentBindings & DeepSeekBindings & GeminiBindings & TaskInboxBindings & Record<string, unknown>;
+type Bindings = CapabilityResolverBindings & BlueDiamondRegistryEnv & PerplexityAgentBindings & DeepSeekBindings & GeminiBindings & TaskInboxBindings & ChatMessageActionBindings & Record<string, unknown>;
 type WaveCommandBody = {
   intent?: unknown;
   capability?: unknown;
@@ -237,6 +239,9 @@ export default {
     }
     if (pathname.startsWith("/api/task-inbox")) {
       return taskInboxApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname === "/api/chat/message-action") {
+      return chatMessageActionApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/openai/selfhost/")) {
       return selfHostApi.fetch(request, env as never, ctx as never);
