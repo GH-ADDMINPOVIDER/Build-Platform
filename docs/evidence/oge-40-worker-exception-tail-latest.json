@@ -1,0 +1,11 @@
+{
+  "schema": "OGE40_WORKER_EXCEPTION_TAIL_V1",
+  "statuses": {
+    "execute": 500,
+    "wave": 500
+  },
+  "exceptions": [],
+  "exception_count": 0,
+  "request_headers_persisted": false,
+  "secret_values_included": false
+}
