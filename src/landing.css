@@ -281,3 +281,63 @@ body { margin:0; }
   .stoneFloat,.stoneOrbit,.wvEnergy i::after { animation:none !important; }
   .wvStone,.wvMode,.wvActions a { transition:none; }
 }
+
+
+/* OGE-65 · explicit shared theme state */
+:root[data-og-theme="dark"]{color-scheme:dark}
+:root[data-og-theme="light"]{color-scheme:light;background:#eef3ef}
+:root[data-og-theme="light"] .wvShell{
+  --bg:#eef3ef;
+  --panel:#ffffff;
+  --panel-2:#f6f8f6;
+  --line:rgba(25,61,43,.12);
+  --line-strong:rgba(25,61,43,.22);
+  --text:#101713;
+  --muted:#66766d;
+  --green:#15945c;
+  --green-deep:#0d7045;
+  --gold:#9b7317;
+  --gold-deep:#74530b;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 12% 8%,rgba(32,173,121,.1),transparent 28%),
+    radial-gradient(circle at 88% 18%,rgba(185,150,73,.09),transparent 30%),
+    linear-gradient(180deg,#f6faf7 0%,#edf4ef 45%,#e8efea 100%);
+}
+:root[data-og-theme="light"] .wvTop{
+  background:rgba(255,255,255,.82);
+  box-shadow:0 14px 44px rgba(36,58,45,.09);
+}
+:root[data-og-theme="light"] .wvBrand small,
+:root[data-og-theme="light"] .wvNav a,
+:root[data-og-theme="light"] .wvHeroCopy>p,
+:root[data-og-theme="light"] .wvLive,
+:root[data-og-theme="light"] .wvMiniStatus span{color:var(--muted)}
+:root[data-og-theme="light"] .wvNav a:hover,
+:root[data-og-theme="light"] .wvNav a:focus-visible{color:var(--text);background:rgba(20,80,49,.06)}
+:root[data-og-theme="light"] .wvHero h1 span{color:#4d5b53}
+:root[data-og-theme="light"] .wvActions a{
+  background:rgba(255,255,255,.7);
+}
+:root[data-og-theme="light"] .wvActions a.primary{
+  background:#122019;
+  color:#f7fbf8;
+  border-color:#122019;
+}
+:root[data-og-theme="light"] .wvCommand{
+  background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(245,249,246,.98));
+  box-shadow:0 34px 100px rgba(38,57,45,.14),inset 0 1px rgba(255,255,255,.8);
+}
+:root[data-og-theme="light"] .wvCommandTop{background:rgba(240,246,242,.82)}
+:root[data-og-theme="light"] .wvPrompt,
+:root[data-og-theme="light"] .wvAgentRows>div,
+:root[data-og-theme="light"] .wvRunStep{background:rgba(23,90,54,.025)}
+:root[data-og-theme="light"] .wvPrompt p{color:#24342b}
+:root[data-og-theme="light"] .wvAgentRows small,
+:root[data-og-theme="light"] .wvCommandTop small{color:#718077}
+:root[data-og-theme="light"] .wvAgentRows em{color:#627168}
+:root[data-og-theme="light"] .wvMode,
+:root[data-og-theme="light"] .wvDock{
+  background:rgba(255,255,255,.72);
+  box-shadow:0 14px 44px rgba(34,57,43,.08);
+}
