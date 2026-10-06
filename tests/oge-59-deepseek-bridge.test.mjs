@@ -37,13 +37,13 @@ test("OGE-59 routes DeepSeek and keeps smoke output secret-safe", () => {
   assert.doesNotMatch(smoke, /process\.stdout\.write\(key|console\.log\(key/);
 });
 
-test("staging performs exactly one smoke per configured research provider and promotes readiness attestations", () => {
-  assert.match(deploy, /One-pass provider smoke — Perplexity \+ DeepSeek/);
-  assert.match(deploy, /npm run --silent perplexity:smoke/);
+test("staging pilots DeepSeek live while Perplexity remains deferred and un-attested", () => {
+  assert.match(deploy, /DeepSeek pilot — one-pass live smoke/);
   assert.match(deploy, /npm run --silent deepseek:smoke/);
-  assert.match(deploy, /OGENIC_READINESS_PERPLEXITY_API=REACHABLE/);
+  assert.doesNotMatch(deploy, /PPLX_RESULT=/);
+  assert.doesNotMatch(deploy, /npm run --silent perplexity:smoke/);
   assert.match(deploy, /OGENIC_READINESS_DEEPSEEK_API=REACHABLE/);
-  assert.match(deploy, /'OGENIC_READINESS_PERPLEXITY_API'/);
+  assert.doesNotMatch(deploy, /OGENIC_READINESS_PERPLEXITY_API=REACHABLE/);
   assert.match(deploy, /'OGENIC_READINESS_DEEPSEEK_API'/);
   assert.match(deploy, /vars\[key\] = os\.environ\[key\]/);
 });

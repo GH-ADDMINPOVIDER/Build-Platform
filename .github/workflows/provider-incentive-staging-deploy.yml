@@ -162,6 +162,24 @@ jobs:
       - name: Install dependencies
         run: npm install --package-lock-only && npm ci
 
+      - name: DeepSeek pilot — one-pass live smoke
+        if: steps.scope.outputs.ui_only != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEEPSEEK_API_KEY:-}" || { echo "::error::missing canonical DEEPSEEK_API_KEY after Infisical normalization"; exit 1; }
+
+          DEEPSEEK_RESULT="$(npm run --silent deepseek:smoke)"
+          printf '%s\n' "$DEEPSEEK_RESULT" | jq -e '.ok == true and .http_status == 200 and .content_present == true' >/dev/null
+
+          {
+            echo 'OGENIC_READINESS_DEEPSEEK_API=REACHABLE'
+            echo 'OGENIC_READINESS_DEEPSEEK_QUOTA=AVAILABLE'
+            echo 'OGENIC_READINESS_DEEPSEEK_BILLING=ACTIVE'
+          } >> "$GITHUB_ENV"
+
+          echo "DeepSeek one-pass live smoke verified; Perplexity live smoke deferred by owner pending billing. No secret values or model output printed."
+
       - name: Resolve staging D1 database
         id: d1
         shell: bash
@@ -209,31 +227,6 @@ jobs:
 
       - name: Typecheck and build
         run: npm run check
-
-      - name: One-pass provider smoke — Perplexity + DeepSeek
-        if: steps.scope.outputs.ui_only != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "${PERPLEXITY_API_KEY:-}" || { echo "::error::missing canonical PERPLEXITY_API_KEY after Infisical normalization"; exit 1; }
-          test -n "${DEEPSEEK_API_KEY:-}" || { echo "::error::missing canonical DEEPSEEK_API_KEY after Infisical normalization"; exit 1; }
-
-          PPLX_RESULT="$(npm run --silent perplexity:smoke)"
-          printf '%s\n' "$PPLX_RESULT" | jq -e '.ok == true and .status == "completed" and .output_text_present == true' >/dev/null
-
-          DEEPSEEK_RESULT="$(npm run --silent deepseek:smoke)"
-          printf '%s\n' "$DEEPSEEK_RESULT" | jq -e '.ok == true and .http_status == 200 and .content_present == true' >/dev/null
-
-          {
-            echo 'OGENIC_READINESS_PERPLEXITY_API=REACHABLE'
-            echo 'OGENIC_READINESS_PERPLEXITY_QUOTA=AVAILABLE'
-            echo 'OGENIC_READINESS_PERPLEXITY_BILLING=ACTIVE'
-            echo 'OGENIC_READINESS_DEEPSEEK_API=REACHABLE'
-            echo 'OGENIC_READINESS_DEEPSEEK_QUOTA=AVAILABLE'
-            echo 'OGENIC_READINESS_DEEPSEEK_BILLING=ACTIVE'
-          } >> "$GITHUB_ENV"
-
-          echo "Perplexity and DeepSeek one-pass smoke verified; no secret values or model output printed."
 
       - name: Prepare protected runtime secret bundle
         if: steps.scope.outputs.ui_only != 'true'
