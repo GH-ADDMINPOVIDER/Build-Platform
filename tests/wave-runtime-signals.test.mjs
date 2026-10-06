@@ -34,7 +34,7 @@ test("notifications are deterministic deduplicated and honestly empty", () => {
 });
 
 test("notification surface adds no side-effect endpoint", () => {
-  const block = wave.slice(wave.indexOf("export function buildRuntimeSignals"), wave.indexOf("async function signIn"));
+  const block = wave.slice(wave.indexOf("export function buildRuntimeSignals"), wave.indexOf("function State"));
   assert.doesNotMatch(block, /fetch\s*\(/);
   assert.doesNotMatch(block, /POST|PUT|PATCH|DELETE/);
 });
