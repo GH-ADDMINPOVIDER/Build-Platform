@@ -10,7 +10,8 @@ test("Agent AI uses real OpenAI Agent Sessions and preserves canonical 1LSS stam
   const ui = read("src/UnifiedChat.tsx");
 
   assert.match(connector, /api\.post\("\/api\/chat\/agent"/);
-  assert.match(connector, /https:\/\/api\.openai\.com\/v1\/agents\/sessions/);
+  assert.match(connector, /const OPENAI_API_BASE = "https:\/\/api\.openai\.com\/v1"/);
+  assert.match(connector, /\/agents\/sessions/);
   assert.doesNotMatch(connector, /name:\s*"OGENIC Agent AI"/);
   assert.doesNotMatch(connector, /multi_agent:\s*\{ enabled: false, max_concurrent_subagents:/);
   assert.match(connector, /"OpenAI-Beta": "agents=v1"/);
