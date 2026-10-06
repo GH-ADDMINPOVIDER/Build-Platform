@@ -1,0 +1,32 @@
+{
+  "schema": "OGE49_MAOP_ZERO_COST_FIXTURES_V1",
+  "zero_cost": true,
+  "provider_calls": false,
+  "interfaces": [
+    {
+      "family": "mcp",
+      "capability_id": "fixture.mcp.read",
+      "adapter_id": "reference-mcp"
+    },
+    {
+      "family": "rest",
+      "capability_id": "fixture.rest.read",
+      "adapter_id": "reference-rest"
+    },
+    {
+      "family": "sdk",
+      "capability_id": "fixture.sdk.read",
+      "adapter_id": "reference-sdk"
+    },
+    {
+      "family": "webhook",
+      "capability_id": "fixture.webhook.read",
+      "adapter_id": "reference-webhook"
+    },
+    {
+      "family": "cli",
+      "capability_id": "fixture.cli.read",
+      "adapter_id": "reference-cli"
+    }
+  ]
+}
