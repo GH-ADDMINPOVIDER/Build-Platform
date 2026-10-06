@@ -43,12 +43,12 @@ const workDigest = sha(JSON.stringify({
 const selfChecks = {
   scope_ok: repository === REPOSITORY && branch === BRANCH,
   artifact_only: true,
-  provider_call_attempted: false,
-  canonical_write_attempted: false,
-  d1_schema_write_attempted: false,
+  no_provider_call: true,
+  no_canonical_write: true,
+  no_d1_schema_write: true,
   attempt_budget_ok: true
 };
-const selfVerifyPass = Object.values(selfChecks).every((value) => value === true);
+const selfVerifyPass = Object.values(selfChecks).every(Boolean);
 const evidenceDigest = sha(JSON.stringify({
   runtime_id: runtimeId,
   revision,
