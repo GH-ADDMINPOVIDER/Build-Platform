@@ -190,3 +190,15 @@ test("evidence timestamps are generated at runtime", async () => {
     assert.ok(createdAt >= before && createdAt <= after);
   }
 });
+
+
+test("reference adapter readiness uses a live timestamp", async () => {
+  const adapter = new ReferenceReadAdapter("sdk", "reference-sdk-time");
+  const before = Date.now();
+  const readiness = await adapter.readiness({});
+  const after = Date.now();
+  const checkedAt = Date.parse(readiness.checked_at);
+  assert.equal(readiness.state, "VERIFIED");
+  assert.equal(Number.isNaN(checkedAt), false);
+  assert.ok(checkedAt >= before && checkedAt <= after);
+});
