@@ -1,0 +1,37 @@
+name: OGE-54 Durable Agent Session Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "worker/connector-app-api.ts"
+      - "worker/session-recovery-api.ts"
+      - "worker/entry-connectors.ts"
+      - "src/UnifiedChat.tsx"
+      - "tests/oge-54-durable-agent-session.test.mjs"
+      - "tests/wave-surface-routes.test.mjs"
+      - ".github/workflows/oge-54-durable-agent-session-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+      - name: Durable Agent Session contract
+        run: node --test tests/oge-54-durable-agent-session.test.mjs
+      - name: OGE-44 freshness routing regression
+        run: node --test tests/wave-surface-routes.test.mjs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
