@@ -20,7 +20,8 @@ if (!key) {
         model: "deepseek-flash",
         messages: [{ role: "user", content: "Reply with only DEEPSEEK_OK." }],
         stream: false,
-        max_tokens: 16,
+        thinking: { type: "disabled" },
+        max_tokens: 64,
       }),
     });
 

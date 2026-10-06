@@ -32,7 +32,8 @@ test("OGE-59 routes DeepSeek and keeps smoke output secret-safe", () => {
   assert.match(entry, /createDeepSeekApi/);
   assert.match(entry, /pathname\.startsWith\("\/api\/deepseek\/"\)/);
   assert.equal(pkg.scripts["deepseek:smoke"], "node scripts/deepseek-smoke.mjs");
-  assert.match(smoke, /max_tokens: 16/);
+  assert.match(smoke, /thinking: \{ type: "disabled" \}/);
+  assert.match(smoke, /max_tokens: 64/);
   assert.match(smoke, /content_present/);
   assert.doesNotMatch(smoke, /process\.stdout\.write\(key|console\.log\(key/);
 });
@@ -40,6 +41,8 @@ test("OGE-59 routes DeepSeek and keeps smoke output secret-safe", () => {
 test("staging pilots DeepSeek live while Perplexity remains deferred and un-attested", () => {
   assert.match(deploy, /DeepSeek pilot — one-pass live smoke/);
   assert.match(deploy, /npm run --silent deepseek:smoke/);
+  assert.match(deploy, /DEEPSEEK_EXIT=\$\?/);
+  assert.match(deploy, /jq '\{ok, code, http_status, model, finish_reason, content_present, total_tokens\}'/);
   assert.doesNotMatch(deploy, /PPLX_RESULT=/);
   assert.doesNotMatch(deploy, /npm run --silent perplexity:smoke/);
   assert.match(deploy, /OGENIC_READINESS_DEEPSEEK_API=REACHABLE/);
