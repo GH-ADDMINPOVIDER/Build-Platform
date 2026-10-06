@@ -1,1 +1,47 @@
-name: OGE-65 Shared Theme Proof\n\non:\n  push:\n    branches: [phase-vi-provider-incentive-metering]\n    paths:\n      - "src/WaveThemeToggle.tsx"\n      - "src/wave-theme.css"\n      - "src/main.tsx"\n      - "src/LegacyControlSurface.tsx"\n      - "src/unified-chat.css"\n      - "src/landing.css"\n      - "src/wave-next.css"\n      - "tests/oge-65-shared-theme.test.mjs"\n      - ".github/workflows/oge-65-shared-theme-proof.yml"\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\njobs:\n  proof:\n    runs-on: ubuntu-latest\n    timeout-minutes: 10\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: 22\n\n      - name: Install dependencies\n        run: npm install --no-audit --no-fund\n\n      - name: OGE-65 deterministic theme contract\n        run: node --test tests/oge-65-shared-theme.test.mjs\n\n      - name: Typecheck\n        run: npm run typecheck\n\n      - name: Build\n        run: npm run build\n\n      - name: One-controller guard\n        run: |\n          set -euo pipefail\n          test "$(grep -o '<WaveThemeToggle />' src/main.tsx | wc -l | tr -d ' ')" = "1"\n          ! grep -Eq 'WaveThemeToggle|ThemeController' src/LegacyControlSurface.tsx\n
+name: OGE-65 Shared Theme Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "src/WaveThemeToggle.tsx"
+      - "src/wave-theme.css"
+      - "src/main.tsx"
+      - "src/LegacyControlSurface.tsx"
+      - "src/unified-chat.css"
+      - "src/landing.css"
+      - "src/wave-next.css"
+      - "tests/oge-65-shared-theme.test.mjs"
+      - ".github/workflows/oge-65-shared-theme-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: OGE-65 deterministic theme contract
+        run: node --test tests/oge-65-shared-theme.test.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: One-controller guard
+        run: |
+          set -euo pipefail
+          test "$(grep -o '<WaveThemeToggle />' src/main.tsx | wc -l | tr -d ' ')" = "1"
+          ! grep -Eq 'WaveThemeToggle|ThemeController' src/LegacyControlSurface.tsx
