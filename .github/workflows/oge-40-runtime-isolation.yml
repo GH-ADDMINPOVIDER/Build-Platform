@@ -1,0 +1,219 @@
+name: OGE-40 Runtime Isolation
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-40-runtime-isolation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  WORKER_NAME: ogenic-phase-vi-staging
+  STAGING_URL: https://wave.ogenicchocolate.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  isolate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load Cloudflare credentials from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
+          secret-path: ${{ steps.infisical_project.outputs.secret_path }}
+
+      - name: Load staging runtime authorization via Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Require diagnostic authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::missing OGENIC_OPS_KEY"; exit 1; }
+          test -n "${CLOUDFLARE_API_TOKEN:-}" || { echo "::error::missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}" || { echo "::error::missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run isolated runtime probes with Worker tail
+        id: probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .oge40
+          TAIL_RAW=".oge40/tail.raw"
+          timeout 35s npx wrangler tail "$WORKER_NAME" --format json >"$TAIL_RAW" 2>&1 &
+          TAIL_PID=$!
+          sleep 6
+
+          probe_post() {
+            local name="$1"
+            local route="$2"
+            local data="$3"
+            local body=".oge40/${name}.json"
+            local code
+            code="$(curl --silent --show-error --output "$body" --write-out '%{http_code}'               -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}"               -H 'content-type: application/json'               --data-binary "$data"               "${STAGING_URL}${route}" || true)"
+            test -n "$code" || code="000"
+            printf '%s' "$code" > ".oge40/${name}.status"
+          }
+
+          curl --silent --show-error --output .oge40/health.json --write-out '%{http_code}'             "${STAGING_URL}/api/health" > .oge40/health.status || true
+
+          probe_post resolve "/api/capabilities/resolve"             '{"intent":"OGE-40 runtime isolation read","capability":"read_file","provider":"github","environment":"staging"}'
+
+          probe_post execute "/api/capabilities/execute"             '{"intent":"OGE-40 runtime isolation read","capability":"read_file","provider":"github","environment":"staging","input":{"path":"tests/athena-guarded-command-handoff.test.mjs"}}'
+
+          probe_post wave "/api/wave/command"             '{"intent":"OGE-40 runtime isolation read","capability":"read_file","provider":"github","environment":"staging","input":{"path":"tests/athena-guarded-command-handoff.test.mjs"}}'
+
+          probe_post planner "/api/wave/command"             '{"intent":"deploy this"}'
+
+          probe_post invalid_path "/api/capabilities/execute"             '{"intent":"OGE-40 invalid path control","capability":"read_file","provider":"github","environment":"staging","input":{"path":"../secret"}}'
+
+          wait "$TAIL_PID" || true
+
+          python - <<'PY'
+          import json, os, re
+          from pathlib import Path
+
+          root = Path(".oge40")
+          def status(name):
+              try: return int((root / f"{name}.status").read_text().strip() or "0")
+              except Exception: return 0
+
+          def body(name):
+              p = root / f"{name}.json"
+              try: return json.loads(p.read_text())
+              except Exception: return {}
+
+          def safe_summary(obj):
+              if not isinstance(obj, dict): return {}
+              out = {}
+              for key in ("ok","code","status","runtime","policy"):
+                  if key in obj: out[key] = obj[key]
+              resolver = obj.get("resolver")
+              if isinstance(resolver, dict):
+                  descriptor = resolver.get("descriptor")
+                  if isinstance(descriptor, dict):
+                      out["descriptor"] = {
+                          k: descriptor.get(k)
+                          for k in ("capability_id","provider_id","permission_class","environment")
+                          if k in descriptor
+                      }
+              verification = obj.get("verification")
+              if isinstance(verification, dict):
+                  out["verification"] = {
+                      k: verification.get(k)
+                      for k in ("status","reason","provider_id","capability_id")
+                      if k in verification
+                  }
+              return out
+
+          resolve_s = status("resolve")
+          execute_s = status("execute")
+          wave_s = status("wave")
+          planner_s = status("planner")
+          invalid_s = status("invalid_path")
+
+          if resolve_s == 200 and execute_s == 500 and wave_s == 500:
+              classification = "EXECUTION_READ_ADAPTER_OR_EXTERNAL_EGRESS"
+          elif resolve_s == 500:
+              classification = "RESOLVER_OR_D1"
+          elif execute_s == 200 and wave_s == 500:
+              classification = "ATHENA_WRAPPER"
+          elif execute_s == 200 and wave_s == 200:
+              classification = "TRANSIENT_CLEARED"
+          else:
+              classification = "MIXED_REQUIRES_TAIL"
+
+          redactions = [
+              re.compile(r"sk-[A-Za-z0-9_-]{8,}"),
+              re.compile(r"gh[pousr]_[A-Za-z0-9_]{8,}", re.I),
+              re.compile(r"Bearer\s+[A-Za-z0-9._~+/=-]{8,}", re.I),
+              re.compile(r"(?i)(api[_ -]?key|token|secret|password)\s*[:=]\s*[^\s,;]+"),
+          ]
+          def redact(text):
+              for rx in redactions:
+                  text = rx.sub("[REDACTED]", text)
+              return text[:12000]
+
+          interesting = []
+          tail = root / "tail.raw"
+          if tail.exists():
+              for line in tail.read_text(errors="replace").splitlines():
+                  low = line.lower()
+                  if any(k in low for k in ("exception","error","uncaught","github","d1","internal")):
+                      interesting.append(redact(line))
+                  if len(interesting) >= 30:
+                      break
+
+          health = body("health")
+          evidence = {
+              "schema": "OGE40_RUNTIME_ISOLATION_V1",
+              "tested_commit": os.environ.get("GITHUB_SHA"),
+              "staging_url": os.environ.get("STAGING_URL"),
+              "classification": classification,
+              "statuses": {
+                  "health": status("health"),
+                  "resolve": resolve_s,
+                  "execute": execute_s,
+                  "wave": wave_s,
+                  "planner": planner_s,
+                  "invalid_path": invalid_s,
+              },
+              "bodies": {
+                  "health": safe_summary(health),
+                  "resolve": safe_summary(body("resolve")),
+                  "execute": safe_summary(body("execute")),
+                  "wave": safe_summary(body("wave")),
+                  "planner": safe_summary(body("planner")),
+                  "invalid_path": safe_summary(body("invalid_path")),
+              },
+              "tail_excerpt": interesting,
+              "secret_values_included": False,
+          }
+          out = Path("docs/evidence/oge-40-runtime-isolation-latest.json")
+          out.parent.mkdir(parents=True, exist_ok=True)
+          out.write_text(json.dumps(evidence, indent=2, ensure_ascii=False) + "\n")
+          print(json.dumps(evidence, indent=2, ensure_ascii=False))
+          PY
+
+      - name: Commit sanitized diagnostic evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ogenic-runtime-proof"
+          git config user.email "runtime-proof@users.noreply.github.com"
+          git add docs/evidence/oge-40-runtime-isolation-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -m "test(oge-40): capture runtime isolation evidence"
+          git fetch origin phase-vi-provider-incentive-metering
+          git rebase origin/phase-vi-provider-incentive-metering
+          git push origin HEAD:phase-vi-provider-incentive-metering
