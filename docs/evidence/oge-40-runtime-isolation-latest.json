@@ -1,0 +1,60 @@
+{
+  "schema": "OGE40_RUNTIME_ISOLATION_V2",
+  "tested_commit": "d0a1a3fd269299683356737b636104e4c6ba21ea",
+  "classification": "EXECUTION_AFTER_RESOLVER",
+  "statuses": {
+    "health": 200,
+    "resolve": 200,
+    "execute": 500,
+    "wave": 500,
+    "planner": 409,
+    "invalid_path": 400
+  },
+  "responses": {
+    "resolve": {
+      "content_type": "application/json",
+      "ok": true,
+      "status": "RESOLVED",
+      "runtime": "YELLOW_STONE_CAPABILITY_RESOLVER_V1",
+      "policy": "NO_PROVIDER_SIDE_EFFECTS"
+    },
+    "execute": {
+      "content_type": "text/plain; charset=UTF-8"
+    },
+    "wave": {
+      "content_type": "text/plain; charset=UTF-8"
+    },
+    "planner": {
+      "content_type": "application/json",
+      "ok": false,
+      "code": "ATHENA_PLAN_AMBIGUOUS",
+      "verification": {
+        "status": "blocked",
+        "reason": "DEPLOY_TARGET_REQUIRED_PREVIEW_OR_PROMOTE"
+      }
+    },
+    "invalid_path": {
+      "content_type": "application/json",
+      "ok": false,
+      "code": "INVALID_OR_SENSITIVE_PATH",
+      "descriptor": {
+        "capability_id": "read_file",
+        "provider_id": "github",
+        "permission_class": "READ",
+        "environment": "staging"
+      },
+      "verification": {
+        "status": "blocked",
+        "reason": "PATH_REQUIRED_AND_MUST_NOT_TARGET_SECRET_MATERIAL"
+      }
+    }
+  },
+  "interpretation": {
+    "resolve_200_rules_out_resolver_query_for_same_fixture": true,
+    "execute_500_after_resolve_200_points_after_resolution": true,
+    "wave_matches_execute": true,
+    "planner_structured": true,
+    "invalid_path_structured": true
+  },
+  "secret_values_included": false
+}
