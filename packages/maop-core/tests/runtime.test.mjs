@@ -156,3 +156,37 @@ test("Ruby rejection prevents Green retention even when adapter returns success"
   assert.equal(result.retention_eligible, false);
   assert.equal(result.evidence.every((item) => item.verification_state !== "verified"), true);
 });
+
+
+test("unsupported protocol version fails closed before adapter execution", async () => {
+  const row = fixtures.interfaces[0];
+  const rt = runtime();
+  rt.registerActor(actor([row.capability_id]));
+  rt.registerCapability(capability(row));
+  rt.registerAdapter(new ReferenceReadAdapter(row.family, row.adapter_id));
+  const request = task(row.capability_id, "protocol-mismatch");
+  request.supported_protocol_versions = ["9.9.9"];
+  const result = await rt.run(request);
+  assert.equal(result.ok, false);
+  assert.equal(result.safe_error.code, "PROTOCOL_VERSION_UNSUPPORTED");
+  assert.equal(result.lifecycle.includes("OPERATE"), false);
+  assert.equal(result.retention_eligible, false);
+});
+
+test("evidence timestamps are generated at runtime", async () => {
+  const row = fixtures.interfaces[0];
+  const rt = runtime();
+  rt.registerActor(actor([row.capability_id]));
+  rt.registerCapability(capability(row));
+  rt.registerAdapter(new ReferenceReadAdapter(row.family, row.adapter_id));
+  const before = Date.now();
+  const result = await rt.run(task(row.capability_id, "fresh-evidence-time"));
+  const after = Date.now();
+  assert.equal(result.ok, true);
+  assert.ok(result.evidence.length > 0);
+  for (const item of result.evidence) {
+    const createdAt = Date.parse(item.created_at);
+    assert.equal(Number.isNaN(createdAt), false);
+    assert.ok(createdAt >= before && createdAt <= after);
+  }
+});
