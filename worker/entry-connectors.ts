@@ -231,6 +231,34 @@ async function defaultWaveTextOnly(request: Request) {
   return attachments.length === 0 && Boolean(clip(body.prompt, 7000));
 }
 
+const FRESH_AGENT_TIME_PATTERN = /\b(?:current|currently|latest|live|now|today|status|health|up[ -]?to[ -]?date)\b|สถานะ|ล่าสุด|ปัจจุบัน|ตอนนี้|วันนี้/i;
+const FRESH_AGENT_TARGET_PATTERN = /\b(?:wave|ogenic|system|repo(?:sitory)?|github|ci|workflow|linear|runtime|provider|quota|roadmap|agent|deploy(?:ment)?|build|branch|commit|1lss|d1)\b|ระบบ|รันไทม์|โควตา|โรดแมป|กิตฮับ|ลิเนียร์|ดีพลอย|บิลด์|บรাঞ্চ|คอมมิต/i;
+
+export function isFreshAgentReadRequest(prompt: unknown) {
+  const text = clip(prompt, 7000);
+  return Boolean(text && FRESH_AGENT_TIME_PATTERN.test(text) && FRESH_AGENT_TARGET_PATTERN.test(text));
+}
+
+async function freshAgentReadRequest(request: Request) {
+  if (request.method !== "POST") return false;
+  const body = await request.clone().json().catch(() => ({})) as FunctionTurnBody;
+  return isFreshAgentReadRequest(body.prompt);
+}
+
+async function withFreshAgentHandoffEvidence(response: Response) {
+  const body = await response.clone().json().catch(() => null) as Record<string, unknown> | null;
+  if (!body || typeof body !== "object") return response;
+  return Response.json({
+    ...body,
+    agent_freshness_handoff: true,
+    agent_session_started: false,
+    agent_route: "ATHENA_VERIFIED_READ",
+  }, {
+    status: response.status,
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+
 export default {
   async fetch(request: Request, env: Bindings, ctx: unknown) {
     const pathname = new URL(request.url).pathname;
@@ -299,6 +327,14 @@ export default {
       return manusApi.fetch(request, env, ctx as never);
     }
     if (pathname === "/api/chat/agent") {
+      if (await freshAgentReadRequest(request)) {
+        const stampRequest = request.clone();
+        const athenaRequest = await athenaChatRequest(request);
+        const athenaResponse = await athenaChatApi.fetch(athenaRequest, env, ctx as never);
+        const response = await withFreshAgentHandoffEvidence(athenaResponse);
+        await stampFunctionTurn(stampRequest, response, env).catch(() => undefined);
+        return response;
+      }
       const cached = await cachedAgentReplay(request, env);
       if (cached) return cached;
       const stampRequest = request.clone();
