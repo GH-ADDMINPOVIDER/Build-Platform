@@ -12,6 +12,7 @@ import { createBlueDiamondApi } from "./blue-diamond-api";
 import { createVioletStoneApi } from "./violet-stone-api";
 import { createRubyStoneApi } from "./ruby-stone-api";
 import { createKnowledgeRefineryApi } from "./knowledge-refinery-api";
+import { createProviderReadinessApi } from "./provider-readiness-api";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { planAthenaCommand } from "./athena-command-planner";
@@ -26,6 +27,7 @@ const blueDiamondApi = createBlueDiamondApi();
 const violetStoneApi = createVioletStoneApi();
 const rubyStoneApi = createRubyStoneApi();
 const knowledgeRefineryApi = createKnowledgeRefineryApi();
+const providerReadinessApi = createProviderReadinessApi();
 
 const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
@@ -212,6 +214,9 @@ export default {
     }
     if (pathname.startsWith("/api/knowledge-refinery/")) {
       return knowledgeRefineryApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/provider-readiness")) {
+      return providerReadinessApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/openai/selfhost/")) {
       return selfHostApi.fetch(request, env as never, ctx as never);
