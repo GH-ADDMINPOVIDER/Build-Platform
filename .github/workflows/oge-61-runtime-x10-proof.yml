@@ -1,0 +1,124 @@
+name: OGE-61 Runtime x10 Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "scripts/runtime-x10-clone.mjs"
+      - "scripts/reduce-runtime-x10.mjs"
+      - "tests/oge-61-runtime-x10.test.mjs"
+      - ".github/workflows/oge-61-runtime-x10-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  OGENIC_AGENT_TASK: "OGE-61 ten-runtime zero-cost parallel proof"
+
+jobs:
+  runtime-clones:
+    name: Clone / ${{ matrix.runtime_id }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        include:
+          - runtime_id: runtime-01
+            profile: linearcodex
+          - runtime_id: runtime-02
+            profile: codex
+          - runtime_id: runtime-03
+            profile: claude
+          - runtime_id: runtime-04
+            profile: codex
+          - runtime_id: runtime-05
+            profile: claude
+          - runtime_id: runtime-06
+            profile: linearcodex
+          - runtime_id: runtime-07
+            profile: codex
+          - runtime_id: runtime-08
+            profile: claude
+          - runtime_id: runtime-09
+            profile: codex
+          - runtime_id: runtime-10
+            profile: claude
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Prepare isolated clone exactly once
+        env:
+          OGENIC_RUNTIME_ID: ${{ matrix.runtime_id }}
+          OGENIC_RUNTIME_PROFILE: ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          node scripts/runtime-x10-clone.mjs             --runtime="${OGENIC_RUNTIME_ID}"             --profile="${OGENIC_RUNTIME_PROFILE}"             --output=".ogenic-runtime/${OGENIC_RUNTIME_ID}/result.json"
+
+      - name: Assert clone policy
+        env:
+          OGENIC_RUNTIME_ID: ${{ matrix.runtime_id }}
+        run: |
+          set -euo pipefail
+          jq -e '
+            .ok == true and
+            .state == "PREPARED" and
+            .artifact_only == true and
+            .provider_call_attempted == false and
+            .paid_call_performed == false and
+            .policy.attempt_budget == 1 and
+            .policy.auto_retry == false and
+            .policy.canonical_write == "DENIED_FROM_CLONE" and
+            .policy.d1_schema_write == "DENIED"
+          ' ".ogenic-runtime/${OGENIC_RUNTIME_ID}/result.json" >/dev/null
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oge-61-${{ matrix.runtime_id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .ogenic-runtime/${{ matrix.runtime_id }}/
+          retention-days: 7
+          if-no-files-found: error
+
+  reducer:
+    name: Reducer / verify 10 of 10
+    needs: runtime-clones
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: oge-61-runtime-*
+          path: runtime-x10-results
+
+      - name: Verify exactly ten isolated runtime results
+        run: |
+          set -euo pipefail
+          node scripts/reduce-runtime-x10.mjs             --input=runtime-x10-results             --output=docs/evidence/oge-61-runtime-x10-latest.json
+          jq -e '
+            .ok == true and
+            .state == "RUNTIME_X10_VERIFIED" and
+            .expected_runtime_count == 10 and
+            .verified_runtime_count == 10 and
+            (.runtimes | length) == 10 and
+            ([.runtimes[].state] | all(. == "PREPARED"))
+          ' docs/evidence/oge-61-runtime-x10-latest.json >/dev/null
+          node --test tests/oge-61-runtime-x10.test.mjs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oge-61-runtime-x10-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: docs/evidence/oge-61-runtime-x10-latest.json
+          retention-days: 14
+          if-no-files-found: error
