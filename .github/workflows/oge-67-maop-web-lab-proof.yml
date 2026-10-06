@@ -1,0 +1,47 @@
+name: OGE-67 MA-OP Web Lab Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "src/MaopLab.tsx"
+      - "src/maop-lab.css"
+      - "src/main.tsx"
+      - "worker/maop-lab-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "packages/maop-core/**"
+      - "packages/maop-github-harness/**"
+      - "tests/oge-67-maop-web-lab.test.mjs"
+      - ".github/workflows/oge-67-maop-web-lab-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install root dependencies
+        run: npm install
+      - name: MA-OP web route and security contract
+        run: node --test tests/oge-67-maop-web-lab.test.mjs
+      - name: MA-OP core
+        working-directory: packages/maop-core
+        run: |
+          npm install
+          npm test
+      - name: MA-OP GitHub bridge
+        working-directory: packages/maop-github-harness
+        run: |
+          npm install
+          npm test
+      - name: Root typecheck and build
+        run: |
+          npm run typecheck
+          npm run build
