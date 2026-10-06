@@ -1,0 +1,51 @@
+name: OGE-42 Knowledge Refinery V2 Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "worker/knowledge-refinery-v2.ts"
+      - "tests/knowledge-refinery-v2-contract.test.mjs"
+      - "tests/fixtures/oge-42-knowledge-refinery-v2.json"
+      - "scripts/knowledge-refinery-v2-proof.mjs"
+      - ".github/workflows/oge-42-knowledge-refinery-v2-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Knowledge Refinery V2 contract
+        run: node --test tests/knowledge-refinery-v2-contract.test.mjs
+
+      - name: Deterministic reproduce → rule → second fixture → Ruby proof
+        env:
+          VERIFIED_AT: "2026-10-06T00:00:00Z"
+        run: node scripts/knowledge-refinery-v2-proof.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish sanitized OGE-42 proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge-42-knowledge-refinery-v2-${{ github.run_id }}-${{ github.run_attempt }}
+          path: docs/evidence/oge-42-knowledge-refinery-v2-latest.json
+          retention-days: 14
+          if-no-files-found: error
