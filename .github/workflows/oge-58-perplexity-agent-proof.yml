@@ -1,0 +1,43 @@
+name: OGE-58 Perplexity Agent Bridge Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "package.json"
+      - "worker/perplexity-agent-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "scripts/perplexity-agent-smoke.mjs"
+      - "tests/oge-58-perplexity-agent.test.mjs"
+      - ".github/workflows/oge-58-perplexity-agent-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install project dependencies
+        run: npm install --no-audit --no-fund
+      - name: OGE-58 deterministic contract
+        run: node --test tests/oge-58-perplexity-agent.test.mjs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Smoke command safety gate (no provider call)
+        run: |
+          set -euo pipefail
+          set +e
+          output="$(env -u PERPLEXITY_API_KEY npm run --silent perplexity:smoke 2>/dev/null)"
+          status=$?
+          set -e
+          test "$status" -eq 2
+          printf '%s\n' "$output" | jq -e '.code == "CONFIGURATION_REQUIRED" and .missing == "PERPLEXITY_API_KEY"' >/dev/null

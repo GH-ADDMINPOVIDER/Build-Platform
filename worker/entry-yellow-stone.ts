@@ -13,6 +13,7 @@ import { createVioletStoneApi } from "./violet-stone-api";
 import { createRubyStoneApi } from "./ruby-stone-api";
 import { createKnowledgeRefineryApi } from "./knowledge-refinery-api";
 import { createProviderReadinessApi } from "./provider-readiness-api";
+import { createPerplexityAgentApi, type PerplexityAgentBindings } from "./perplexity-agent-api";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { planAthenaCommand } from "./athena-command-planner";
@@ -28,11 +29,12 @@ const violetStoneApi = createVioletStoneApi();
 const rubyStoneApi = createRubyStoneApi();
 const knowledgeRefineryApi = createKnowledgeRefineryApi();
 const providerReadinessApi = createProviderReadinessApi();
+const perplexityAgentApi = createPerplexityAgentApi();
 
 const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
 
-type Bindings = CapabilityResolverBindings & BlueDiamondRegistryEnv & Record<string, unknown>;
+type Bindings = CapabilityResolverBindings & BlueDiamondRegistryEnv & PerplexityAgentBindings & Record<string, unknown>;
 type WaveCommandBody = {
   intent?: unknown;
   capability?: unknown;
@@ -217,6 +219,9 @@ export default {
     }
     if (pathname.startsWith("/api/provider-readiness")) {
       return providerReadinessApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/perplexity/")) {
+      return perplexityAgentApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/openai/selfhost/")) {
       return selfHostApi.fetch(request, env as never, ctx as never);
