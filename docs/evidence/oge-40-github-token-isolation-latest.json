@@ -1,0 +1,20 @@
+{
+  "schema": "OGE40_GITHUB_TOKEN_ISOLATION_V2",
+  "canonical": {
+    "present": true,
+    "http_status": 0,
+    "request_ok": false,
+    "contains_control_chars": true,
+    "exception_type": "ValueError"
+  },
+  "oge34_alias": {
+    "present": true,
+    "http_status": 200,
+    "request_ok": true,
+    "contains_control_chars": false,
+    "exception_type": null
+  },
+  "same_value": false,
+  "values_or_hashes_persisted": false,
+  "classification": "CANONICAL_GITHUB_TOKEN_REGRESSION_ALIAS_HEALTHY"
+}
