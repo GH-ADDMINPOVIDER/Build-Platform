@@ -1,5 +1,5 @@
 {
-  "version": "STAGING_RUNTIME_BINDINGS_V2",
+  "version": "STAGING_RUNTIME_BINDINGS_V3",
   "required": [
     "OPENAI_API_KEY",
     "OGENIC_OPS_KEY"
@@ -59,7 +59,8 @@
       "CLAUDE_API_KEY"
     ],
     "GEMINI_API_KEY": [
-      "GOOGLE_API_KEY"
+      "GOOGLE_API_KEY",
+      "SECRET_GOOGLE"
     ],
     "XAI_API_KEY": [
       "GROK_API_KEY"
