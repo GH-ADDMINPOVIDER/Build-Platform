@@ -328,6 +328,12 @@ jobs:
             rm -f "$BODY_FILE"
           done
           echo "WAVE Web / Chat / Operate staging routes verified after shared-theme build."
+          {
+            echo "### OGE-65 shared-theme staging routes"
+            echo ""
+            echo "PASS — /, /chat, and /overview returned the canonical WAVE app root."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: OGE-57 live staging task inbox roundtrip
         if: steps.scope.outputs.ui_only != 'true'
         shell: bash
