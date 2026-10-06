@@ -157,14 +157,14 @@ type AgentStreamEvent = {
   };
 };
 
-async function readAgentSessionStream(response: Response) {
+async function readAgentSessionStream(response: Response, expectedSessionId = "") {
   if (!response.body) {
     return { sessionId: "", terminal: "failed", text: "", usageTokens: 0, error: "AGENT_STREAM_UNAVAILABLE" };
   }
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let sessionId = "";
+  let sessionId = clean(expectedSessionId, 220);
   let terminal = "";
   let finalText = "";
   let streamedText = "";
@@ -221,6 +221,7 @@ async function readAgentSessionStream(response: Response) {
     }
   };
 
+  let endedByTurn = false;
   while (true) {
     const chunk = await reader.read();
     if (chunk.done) break;
@@ -229,11 +230,19 @@ async function readAgentSessionStream(response: Response) {
     while (split >= 0) {
       consumeBlock(buffer.slice(0, split));
       buffer = buffer.slice(split + 2);
+      if (terminal) {
+        endedByTurn = true;
+        await reader.cancel().catch(() => undefined);
+        break;
+      }
       split = buffer.indexOf("\n\n");
     }
+    if (endedByTurn) break;
   }
-  buffer += decoder.decode().replace(/\r\n/g, "\n");
-  if (buffer.trim()) consumeBlock(buffer);
+  if (!endedByTurn) {
+    buffer += decoder.decode().replace(/\r\n/g, "\n");
+    if (buffer.trim()) consumeBlock(buffer);
+  }
 
   return {
     sessionId,
@@ -241,6 +250,177 @@ async function readAgentSessionStream(response: Response) {
     text: finalText || streamedText.trim() || fallbackText,
     usageTokens,
     error: streamError,
+  };
+}
+
+type StoredAgentSessionRef = {
+  session_ref: string;
+  label?: string | null;
+  last_seen_at?: number | null;
+};
+
+async function latestStoredAgentSession(env: ConnectorAppBindings) {
+  if (!env.DB) return null;
+  return env.DB.prepare(
+    `SELECT session_ref, label, last_seen_at
+     FROM chat_session_refs
+     WHERE conversation_id = 'owner-main' AND source_surface = 'openai-agent'
+     ORDER BY last_seen_at DESC
+     LIMIT 1`,
+  ).first<StoredAgentSessionRef>().catch(() => null);
+}
+
+async function rememberAgentSession(env: ConnectorAppBindings, sessionId: string, label: string) {
+  if (!env.DB || !sessionId) return;
+  const now = Date.now();
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO chat_conversations(id, owner_id, title, created_at, updated_at)
+     VALUES ('owner-main', 'owner', 'OGENIC SAME MIND', ?, ?)`,
+  ).bind(now, now).run();
+  const conversation = await env.DB.prepare(
+    `SELECT last_sequence FROM chat_conversations WHERE id = 'owner-main' LIMIT 1`,
+  ).first<{ last_sequence?: number }>().catch(() => null);
+  const sequence = Math.max(0, Number(conversation?.last_sequence ?? 0)) || null;
+  await env.DB.prepare(
+    `INSERT INTO chat_session_refs(
+       id, conversation_id, source_surface, session_ref, session_url, label,
+       first_sequence, last_sequence, first_seen_at, last_seen_at
+     ) VALUES (?, 'owner-main', 'openai-agent', ?, NULL, ?, ?, ?, ?, ?)
+     ON CONFLICT(conversation_id, source_surface, session_ref) DO UPDATE SET
+       label = excluded.label,
+       last_sequence = CASE
+         WHEN excluded.last_sequence IS NULL THEN chat_session_refs.last_sequence
+         WHEN chat_session_refs.last_sequence IS NULL THEN excluded.last_sequence
+         ELSE MAX(chat_session_refs.last_sequence, excluded.last_sequence)
+       END,
+       last_seen_at = excluded.last_seen_at`,
+  ).bind(
+    `agent_session_${crypto.randomUUID()}`,
+    clean(sessionId, 220),
+    clean(label, 160),
+    sequence,
+    sequence,
+    now,
+    now,
+  ).run();
+}
+
+async function touchAgentSession(env: ConnectorAppBindings, sessionId: string, label: string) {
+  if (!env.DB || !sessionId) return;
+  await env.DB.prepare(
+    `UPDATE chat_session_refs
+     SET label = ?, last_seen_at = ?
+     WHERE conversation_id = 'owner-main' AND source_surface = 'openai-agent' AND session_ref = ?`,
+  ).bind(clean(label, 160), Date.now(), clean(sessionId, 220)).run().catch(() => undefined);
+}
+
+function requestedAgentSessionLabel(model: string, effort: string) {
+  return `OpenAI Agent Session · ${clean(model, 80)} · ${clean(effort, 20)}`;
+}
+
+function safeAgentSessionStatus(body: Record<string, unknown>) {
+  return clean(body.status, 40).toLowerCase();
+}
+
+function agentSessionSettings(body: Record<string, unknown>) {
+  const agent = body.agent && typeof body.agent === "object" ? body.agent as Record<string, unknown> : {};
+  const reasoning = agent.reasoning && typeof agent.reasoning === "object" ? agent.reasoning as Record<string, unknown> : {};
+  return {
+    model: clean(agent.model, 80),
+    effort: clean(reasoning.effort, 20),
+  };
+}
+
+async function continueAgentSession(input: {
+  apiKey: string;
+  sessionId: string;
+  prompt: string;
+  idempotencyKey: string;
+  model: string;
+  effort: string;
+}) {
+  const session = await openAIRequest(input.apiKey, `/agents/sessions/${encodeURIComponent(input.sessionId)}`, {
+    headers: { "OpenAI-Beta": "agents=v1" },
+  });
+  if (!session.ok) {
+    return {
+      ok: false as const,
+      code: session.status === 404 ? "AGENT_SESSION_RESET_REQUIRED" : `OPENAI_AGENT_SESSION_HTTP_${session.status}`,
+      message: session.status === 404 ? "Saved Agent Session no longer exists. Start a new Agent session explicitly." : openAIError(session),
+    };
+  }
+
+  const status = safeAgentSessionStatus(session.body);
+  if (status !== "idle") {
+    return {
+      ok: false as const,
+      code: status === "failed" ? "AGENT_SESSION_RESET_REQUIRED" : "AGENT_SESSION_NOT_IDLE",
+      message: status === "failed"
+        ? "Saved Agent Session failed. Start a new Agent session explicitly."
+        : `Agent Session is ${status || "not idle"}; one-pass policy will not steer or retry it automatically.`,
+    };
+  }
+
+  const settings = agentSessionSettings(session.body);
+  if ((settings.model && settings.model !== input.model) || (settings.effort && settings.effort !== input.effort)) {
+    return {
+      ok: false as const,
+      code: "AGENT_SESSION_SETTINGS_CHANGE_REQUIRES_NEW_SESSION",
+      message: "Model or reasoning effort changed. Start a new Agent session explicitly.",
+    };
+  }
+
+  const streamResponse = await fetch(
+    `${OPENAI_API_BASE}/agents/sessions/${encodeURIComponent(input.sessionId)}/events`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${input.apiKey}`,
+        "OpenAI-Beta": "agents=v1",
+        Accept: "text/event-stream",
+      },
+    },
+  );
+  if (!streamResponse.ok || !streamResponse.body) {
+    return {
+      ok: false as const,
+      code: `OPENAI_AGENT_STREAM_HTTP_${streamResponse.status}`,
+      message: "Could not subscribe to the saved Agent Session event stream.",
+    };
+  }
+
+  const submitted = await openAIRequest(
+    input.apiKey,
+    `/agents/sessions/${encodeURIComponent(input.sessionId)}/events`,
+    {
+      method: "POST",
+      headers: {
+        "OpenAI-Beta": "agents=v1",
+        "Idempotency-Key": input.idempotencyKey,
+      },
+      body: JSON.stringify({
+        events: [{
+          type: "agent.session.input.message",
+          input: [{
+            role: "user",
+            content: [{ type: "input_text", text: input.prompt }],
+          }],
+        }],
+      }),
+    },
+  );
+  if (!submitted.ok) {
+    await streamResponse.body.cancel().catch(() => undefined);
+    return {
+      ok: false as const,
+      code: `OPENAI_AGENT_EVENT_HTTP_${submitted.status}`,
+      message: openAIError(submitted),
+    };
+  }
+
+  return {
+    ok: true as const,
+    agent: await readAgentSessionStream(streamResponse, input.sessionId),
   };
 }
 
