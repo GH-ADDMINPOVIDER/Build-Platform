@@ -1,0 +1,99 @@
+name: OGE-60 Gemini Free Pilot Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "worker/gemini-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "scripts/gemini-smoke.mjs"
+      - "config/staging-runtime-bindings.json"
+      - "package.json"
+      - "tests/oge-60-gemini-free-pilot.test.mjs"
+      - ".github/workflows/oge-60-gemini-free-pilot-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  proof:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Auto-discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging runtime secrets from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Normalize Gemini binding without printing secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          manifest = json.loads(Path('config/staging-runtime-bindings.json').read_text())
+          canonical = 'GEMINI_API_KEY'
+          value = os.environ.get(canonical)
+          if not value:
+              for alias in manifest.get('aliases', {}).get(canonical, []):
+                  value = os.environ.get(alias)
+                  if value:
+                      break
+          if not value:
+              raise SystemExit('GEMINI_API_KEY missing after Infisical alias resolution')
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write(f'{canonical}={value}\n')
+          print('Gemini canonical binding resolved; value not printed.')
+          PY
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Contract
+        run: node --test tests/oge-60-gemini-free-pilot.test.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: One-pass Gemini live smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          RESULT="$(npm run --silent gemini:smoke)"
+          STATUS=$?
+          set -e
+          if test "$STATUS" -ne 0 || ! printf '%s\n' "$RESULT" | jq -e '.ok == true and .http_status == 200 and .content_present == true' >/dev/null; then
+            echo "::error::Gemini live smoke failed"
+            printf '%s\n' "$RESULT" | jq '{ok, code, http_status, model, finish_reason, content_present, total_tokens}' || true
+            exit 1
+          fi
+          printf '%s\n' "$RESULT" | jq '{ok, http_status, model, finish_reason, content_present, total_tokens}'
+          echo "GEMINI_FREE_PILOT_VERIFIED"
