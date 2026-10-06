@@ -4,12 +4,14 @@ import { Capacitor, CapacitorHttp } from "@capacitor/core";
 import UnifiedChat from "./UnifiedChat";
 import Landing from "./Landing";
 import WaveNext from "./WaveNext";
+import WaveThemeToggle from "./WaveThemeToggle";
 
 const LegacyControlSurface = lazy(() => import("./LegacyControlSurface"));
 import "./unified-chat.css";
 import "./landing.css";
 import "./wave-next.css";
 import "./wave-route-polish.css";
+import "./wave-theme.css";
 
 const nativeApp = Capacitor.isNativePlatform();
 const WAVE_ORIGIN = "https://wave.ogenicchocolate.com";
@@ -168,6 +170,7 @@ function SurfaceBridge() {
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
+    <WaveThemeToggle />
     <SurfaceBridge />
     {landingRoute
       ? <Landing />
