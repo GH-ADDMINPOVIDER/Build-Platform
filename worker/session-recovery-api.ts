@@ -48,6 +48,7 @@ const SURFACES = new Set([
   "manus",
   "external-harness",
   "plugin-harness",
+  "openai-agent",
   "unknown",
 ]);
 
