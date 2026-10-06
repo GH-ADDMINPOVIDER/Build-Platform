@@ -13,9 +13,41 @@ type IncentivePool = {
   state: string;
   telemetry: string;
 };
+type JobRow = {
+  id: string;
+  title?: string;
+  capability?: string | null;
+  status?: string;
+  priority?: number;
+  claimed_by?: string | null;
+  source_ref?: string | null;
+  updated_at?: number | string | null;
+  created_at?: number | string | null;
+};
+type RunRow = {
+  id: string;
+  workflow_id?: string | null;
+  workflow_version?: number | string | null;
+  status?: string;
+  current_node_id?: string | null;
+  error_json?: string | null;
+  updated_at?: number | string | null;
+  created_at?: number | string | null;
+};
+type EventRow = {
+  id: string;
+  task_id?: string | null;
+  event_type?: string;
+  actor?: string | null;
+  external_ref?: string | null;
+  created_at?: number | string | null;
+};
 type Dashboard = {
   runtime?: { provider?: string; branch?: string };
   incentives?: { policy_state?: string; reset_at?: string; pools?: IncentivePool[] };
+  tasks?: JobRow[];
+  runs?: RunRow[];
+  events?: EventRow[];
 };
 type AgentTelemetry = {
   agent_id: string;
@@ -90,6 +122,25 @@ function timeAgo(ts?: number | null) {
   if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m`;
   if (delta < 86_400_000) return `${Math.floor(delta / 3_600_000)}h`;
   return `${Math.floor(delta / 86_400_000)}d`;
+}
+
+function timestampAgo(value: unknown) {
+  if (value === null || value === undefined || value === "") return "—";
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) return timeAgo(numeric < 1_000_000_000_000 ? numeric * 1000 : numeric);
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? timeAgo(parsed) : "—";
+}
+
+function safeExternalHref(value: unknown) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  try {
+    const url = new URL(text);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
 }
 
 function State({ value }: { value: unknown }) {
@@ -355,6 +406,28 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
             <div><dt>Runner</dt><dd>wave-runner-01</dd></div>
           </dl>
         </article>
+
+        <article className="wnCard">
+          <div className="wnCardHead"><div><span className="wnKicker">JOBS</span><h3>Current task queue</h3></div><span className="wnCount">{dashboard.tasks?.length ?? 0}</span></div>
+          <div className="wnRows">
+            {(dashboard.tasks ?? []).slice(0, 6).map((job) => <div className="wnRow" key={job.id}>
+              <div><strong>{job.title || job.id}</strong><span>{job.capability || "capability not set"} · {job.claimed_by || "unclaimed"}</span></div>
+              <div className="wnRowMeta"><State value={job.status || "NOT_MEASURED"} /><br />{timestampAgo(job.updated_at ?? job.created_at)}</div>
+            </div>)}
+            {!dashboard.tasks?.length && <div className="wnEmpty">No task rows returned by canonical D1.</div>}
+          </div>
+        </article>
+
+        <article className="wnCard">
+          <div className="wnCardHead"><div><span className="wnKicker">RUNS</span><h3>Recent execution</h3></div><span className="wnCount">{dashboard.runs?.length ?? 0}</span></div>
+          <div className="wnRows">
+            {(dashboard.runs ?? []).slice(0, 6).map((run) => <div className="wnRow" key={run.id}>
+              <div><strong>{run.workflow_id || run.id}</strong><span>{run.current_node_id || "node —"}{run.error_json ? " · redacted error available" : ""}</span></div>
+              <div className="wnRowMeta"><State value={run.status || "NOT_MEASURED"} /><br />{timestampAgo(run.updated_at ?? run.created_at)}</div>
+            </div>)}
+            {!dashboard.runs?.length && <div className="wnEmpty">No execution rows returned by canonical D1.</div>}
+          </div>
+        </article>
       </section>}
 
       {tab === "agent" && <>
@@ -453,10 +526,26 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
         <dl className="wnFacts"><div><dt>Self-host policy</dt><dd>{selfHost?.policy || "—"}</dd></div><div><dt>Executor workflow</dt><dd>{selfHost?.executor_workflow || "—"}</dd></div></dl>
       </section>}
 
-      {tab === "history" && <section className="wnCard">
-        <div className="wnCardHead"><div><span className="wnKicker">HISTORY</span><h3>Recent 1LSS sessions</h3></div><State value={bridge?.ok ? "READY" : "DEGRADED"} /></div>
-        <div className="wnRows">{sessions.map((row) => <div className="wnRow" key={row.id}><div><strong>{row.label || row.source_surface}</strong><span>{row.source_surface}</span></div><div className="wnRowMeta">#{row.last_sequence ?? "—"}<br />{timeAgo(row.last_seen_at)}</div></div>)}{!sessions.length && <div className="wnEmpty">No history returned.</div>}</div>
-      </section>}
+      {tab === "history" && <>
+        <section className="wnCard">
+          <div className="wnCardHead"><div><span className="wnKicker">HISTORY</span><h3>Recent 1LSS sessions</h3></div><State value={bridge?.ok ? "READY" : "DEGRADED"} /></div>
+          <div className="wnRows">{sessions.map((row) => <div className="wnRow" key={row.id}><div><strong>{row.label || row.source_surface}</strong><span>{row.source_surface}</span></div><div className="wnRowMeta">#{row.last_sequence ?? "—"}<br />{timeAgo(row.last_seen_at)}</div></div>)}{!sessions.length && <div className="wnEmpty">No session history returned.</div>}</div>
+        </section>
+
+        <section className="wnCard">
+          <div className="wnCardHead"><div><span className="wnKicker">EXECUTION HISTORY</span><h3>Canonical D1 runs</h3></div><span className="wnCount">{dashboard.runs?.length ?? 0}</span></div>
+          <div className="wnRows">{(dashboard.runs ?? []).map((run) => <div className="wnRow" key={run.id}><div><strong>{run.workflow_id || run.id}</strong><span>{run.id} · {run.current_node_id || "node —"}</span></div><div className="wnRowMeta"><State value={run.status || "NOT_MEASURED"} /><br />{timestampAgo(run.updated_at ?? run.created_at)}</div></div>)}{!dashboard.runs?.length && <div className="wnEmpty">No execution history returned.</div>}</div>
+        </section>
+
+        <section className="wnCard">
+          <div className="wnCardHead"><div><span className="wnKicker">EVIDENCE / REFERENCES</span><h3>Recent runtime events</h3></div><span className="wnCount">{dashboard.events?.length ?? 0}</span></div>
+          <p className="wnBody">References come from canonical event rows. WAVE only creates a link when the stored reference is an actual http(s) URL.</p>
+          <div className="wnRows">{(dashboard.events ?? []).map((event) => {
+            const href = safeExternalHref(event.external_ref);
+            return <div className="wnRow" key={event.id}><div><strong>{event.event_type || "EVENT"}</strong><span>{event.actor || "actor —"} · {event.task_id || "task —"}</span>{event.external_ref && (href ? <a className="wnEvidenceLink" href={href} target="_blank" rel="noreferrer">Open reference ↗</a> : <small className="wnEvidenceRef">{event.external_ref}</small>)}</div><div className="wnRowMeta">{timestampAgo(event.created_at)}</div></div>;
+          })}{!dashboard.events?.length && <div className="wnEmpty">No event/evidence references returned.</div>}</div>
+        </section>
+      </>}
 
       <footer className="wnFooter">
         <a href="/">Web</a><a href="/chat">Chat</a><a href="/command">Command</a><a href="/agents">Agents</a><a href="/overview">Operate</a><span>Private keys stay local</span>
