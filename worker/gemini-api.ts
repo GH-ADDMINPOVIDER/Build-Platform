@@ -22,8 +22,8 @@ type GeminiResponse = {
   error?: { code?: number; message?: string; status?: string };
 };
 
-const MODELS = new Set(["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]);
-const DEFAULT_MODEL = "gemini-3.8-flash";
+const MODELS = new Set(["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash"]);
+const DEFAULT_MODEL = "gemini-3.7-flash";
 const clean = (value: unknown, max = 500) => String(value ?? "").trim().slice(0, max);
 
 function collectText(result: GeminiResponse) {

@@ -1,5 +1,5 @@
 const key = String(process.env.GEMINI_API_KEY ?? "").trim();
-const model = "gemini-3.8-flash";
+const model = "gemini-3.7-flash";
 
 if (!key) {
   process.stdout.write(JSON.stringify({
