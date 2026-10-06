@@ -1,31 +1,12 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { Capacitor, CapacitorHttp } from "@capacitor/core";
-import ControlPlaneV2 from "./ControlPlaneV2";
-import ChatModelRouter from "./ChatModelRouter";
-import AppEnhancements from "./AppEnhancements";
-import WorkspacePolish from "./WorkspacePolish";
-import ConnectorPanel from "./ConnectorPanel";
-import ProviderConnectWizard from "./ProviderConnectWizard";
-import GagVault from "./GagVault";
-import LiveAssist from "./LiveAssist";
-import ThemeController from "./ThemeController";
 import UnifiedChat from "./UnifiedChat";
 import Landing from "./Landing";
 import WaveNext from "./WaveNext";
-import "./control-plane-v2.css";
-import "./wave-control-v3.css";
-import "./usage-panel.css";
-import "./connector-panel.css";
-import "./provider-connect.css";
-import "./live-assist.css";
-import "./openai-platform-theme.css";
-import "./gag-vault.css";
-import "./dense-mobile.css";
-import "./mobile-app.css";
+
+const LegacyControlSurface = lazy(() => import("./LegacyControlSurface"));
 import "./unified-chat.css";
-import "./wave-chat-v3.css";
-import "./mobile-fixes.css";
 import "./landing.css";
 import "./wave-next.css";
 import "./wave-route-polish.css";
@@ -198,16 +179,8 @@ createRoot(document.getElementById("root")!).render(
             ? <WaveNext initialTab="run" surface="operate" />
             : unifiedChatSurface
               ? <UnifiedChat surface={sourceSurface} />
-              : <>
-                <ControlPlaneV2 />
-                <ChatModelRouter />
-                <AppEnhancements />
-                <WorkspacePolish />
-                <ConnectorPanel />
-                <ProviderConnectWizard />
-                <GagVault />
-                <LiveAssist />
-                <ThemeController />
-              </>}
+              : <Suspense fallback={<main style={{ minHeight: "100dvh", background: "#050807" }} aria-label="Loading legacy WAVE surface" />}>
+                <LegacyControlSurface />
+              </Suspense>}
   </React.StrictMode>,
 );
