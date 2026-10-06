@@ -35,3 +35,32 @@ test("command remains guarded and agents remain separate from execution authorit
   assert.match(wave, /href="\/overview">OPERATE/);
   assert.doesNotMatch(wave, /CREATE TABLE|ALTER TABLE|DROP TABLE/);
 });
+
+
+test("fresh Agent AI status reads are diverted to ATHENA before replay or Agent Session", async () => {
+  const entry = await read("worker/entry-connectors.ts");
+  const agentBlock = entry.slice(entry.indexOf('if (pathname === "/api/chat/agent")'));
+  assert.match(entry, /export function isFreshAgentReadRequest/);
+  assert.match(entry, /FRESH_AGENT_TIME_PATTERN/);
+  assert.match(entry, /FRESH_AGENT_TARGET_PATTERN/);
+  assert.match(agentBlock, /freshAgentReadRequest\(request\)/);
+  assert.match(agentBlock, /athenaChatRequest\(request\)/);
+  assert.match(agentBlock, /ATHENA_VERIFIED_READ/);
+  assert.match(agentBlock, /agent_session_started:\s*false/);
+  assert.ok(
+    agentBlock.indexOf("freshAgentReadRequest(request)") < agentBlock.indexOf("cachedAgentReplay(request, env)"),
+    "freshness routing must happen before cached Agent replay",
+  );
+  assert.ok(
+    agentBlock.indexOf("athenaChatApi.fetch") < agentBlock.indexOf("connectorApi.fetch"),
+    "verified READ handoff must happen before an Agent Session path",
+  );
+});
+
+test("ordinary Agent AI prompts retain the existing Agent Session path", async () => {
+  const entry = await read("worker/entry-connectors.ts");
+  const agentBlock = entry.slice(entry.indexOf('if (pathname === "/api/chat/agent")'));
+  assert.match(agentBlock, /cachedAgentReplay\(request, env\)/);
+  assert.match(agentBlock, /connectorApi\.fetch\(request, env/);
+  assert.doesNotMatch(agentBlock, /CREATE TABLE|ALTER TABLE|DROP TABLE/);
+});
