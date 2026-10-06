@@ -171,6 +171,44 @@ jobs:
           echo "No paid provider call is allowed to block unrelated staging deploys."
           echo "Readiness attestations remain unchanged until a dedicated provider proof succeeds."
 
+      - name: Load verified provider readiness attestations
+        if: steps.scope.outputs.ui_only != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          path = Path('config/provider-readiness-attestations.json')
+          if not path.exists():
+              print('No checked-in provider readiness attestation file; leaving readiness unchanged.')
+              raise SystemExit(0)
+
+          payload = json.loads(path.read_text())
+          allowed_api = {'REACHABLE', 'UNREACHABLE'}
+          allowed_quota = {'AVAILABLE', 'EXHAUSTED', 'RATE_LIMITED'}
+          allowed_billing = {'ACTIVE', 'INACTIVE'}
+          exported = []
+
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              for provider, row in payload.get('providers', {}).items():
+                  if str(row.get('verification_state', '')).upper() != 'VERIFIED':
+                      continue
+                  prefix = provider.upper().replace('-', '_')
+                  api = str(row.get('api', '')).upper()
+                  quota = str(row.get('quota', '')).upper()
+                  billing = str(row.get('billing', '')).upper()
+                  if api not in allowed_api or quota not in allowed_quota or billing not in allowed_billing:
+                      raise SystemExit(f'invalid readiness attestation for {provider}')
+                  output.write(f'OGENIC_READINESS_{prefix}_API={api}\n')
+                  output.write(f'OGENIC_READINESS_{prefix}_QUOTA={quota}\n')
+                  output.write(f'OGENIC_READINESS_{prefix}_BILLING={billing}\n')
+                  exported.append(provider)
+
+          print(f'Loaded verified readiness attestations for {len(exported)} provider(s); no secret values printed.')
+          PY
+
       - name: Resolve staging D1 database
         id: d1
         shell: bash
@@ -200,6 +238,9 @@ jobs:
               'OGENIC_READINESS_DEEPSEEK_API',
               'OGENIC_READINESS_DEEPSEEK_QUOTA',
               'OGENIC_READINESS_DEEPSEEK_BILLING',
+              'OGENIC_READINESS_GEMINI_API',
+              'OGENIC_READINESS_GEMINI_QUOTA',
+              'OGENIC_READINESS_GEMINI_BILLING',
           ]:
               if os.environ.get(key):
                   vars[key] = os.environ[key]
