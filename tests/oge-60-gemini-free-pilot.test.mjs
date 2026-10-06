@@ -18,6 +18,7 @@ test("OGE-60 uses official Gemini generateContent and current stable Flash", () 
   assert.match(api, /generativelanguage\.googleapis\.com\/v1beta\/models/);
   assert.match(api, /:generateContent/);
   assert.match(api, /"x-goog-api-key": apiKey/);
+  assert.match(api, /const DEFAULT_MODEL = "gemini-3\.7-flash"/);
   assert.match(api, /gemini-3\.8-flash/);
   assert.match(api, /hasOwnerSession/);
   assert.match(api, /automatic_retry: false/);
@@ -32,7 +33,7 @@ test("OGE-60 routes Gemini through Yellow Stone", () => {
 });
 
 test("OGE-60 smoke is minimal and secret-safe", () => {
-  assert.match(smoke, /gemini-3\.8-flash/);
+  assert.match(smoke, /gemini-3\.7-flash/);
   assert.match(smoke, /maxOutputTokens: 128/);
   assert.match(smoke, /content_present/);
   assert.doesNotMatch(smoke, /process\.stdout\.write\(key|console\.log\(key/);
