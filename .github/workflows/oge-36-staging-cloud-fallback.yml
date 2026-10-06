@@ -76,6 +76,16 @@ jobs:
           normalized = 0
           with open(env_file, 'a', encoding='utf-8') as output:
               for canonical, aliases in manifest.get('aliases', {}).items():
+                  # OGE-40 regression isolation proved the staging GITHUB_TOKEN
+                  # binding can be malformed while the established OGE34 alias is healthy.
+                  # Preserve the last-known-good authoritative GitHub READ binding without
+                  # exposing or mutating the secret at rest.
+                  if canonical == 'GITHUB_TOKEN':
+                      proven_github = os.environ.get('GITHUB_TOKEN_OGE34')
+                      if proven_github:
+                          output.write(f'{canonical}={proven_github}\n')
+                          normalized += 1
+                          continue
                   if os.environ.get(canonical):
                       continue
                   for alias in aliases:
