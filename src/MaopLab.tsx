@@ -96,6 +96,18 @@ export default function MaopLab() {
     }
   }
 
+  async function inspectLegacyN8n() {
+    setBusy("n8n");
+    setTitle("Legacy n8n · migration source inventory");
+    try {
+      const response = await fetch("/api/n8n/migration/status", { credentials: "include", cache: "no-store" });
+      if (response.status === 401) setAuthRequired(true);
+      setResult(await response.json());
+    } finally {
+      setBusy("");
+    }
+  }
+
   return <main className="mlRoot">
     <div className="mlFrame">
       <header className="mlHeader">
@@ -166,6 +178,18 @@ export default function MaopLab() {
         </div>
         <p className="mlBody">รัน scorecard จริงของระบบโดยไม่บันทึก evaluation เพิ่ม</p>
         <button className="mlRuby" disabled={Boolean(busy)} onClick={() => void runRuby()}>{busy === "ruby" ? "RUNNING…" : "Run Ruby scorecard"}</button>
+      </section>
+
+      <section className="mlCard">
+        <div className="mlCardHead">
+          <div>
+            <span>LEGACY SOURCE</span>
+            <h2>n8n migration inventory</h2>
+          </div>
+          <b>READ ONLY</b>
+        </div>
+        <p className="mlBody">อ่าน workflow metadata จาก n8n Cloud เก่าเพื่อย้ายต่อโดยไม่สร้างใหม่จากศูนย์ และไม่ดึง credential secrets ออกมา</p>
+        <button className="mlRuby" disabled={Boolean(busy)} onClick={() => void inspectLegacyN8n()}>{busy === "n8n" ? "READING…" : "Inspect old n8n"}</button>
       </section>
 
       <ResultCard title={title} value={result} />
