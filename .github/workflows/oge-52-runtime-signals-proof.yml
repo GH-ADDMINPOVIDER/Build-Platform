@@ -1,0 +1,31 @@
+name: OGE-52 Real Runtime Signals Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "src/WaveNext.tsx"
+      - "tests/wave-runtime-signals.test.mjs"
+      - ".github/workflows/oge-52-runtime-signals-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+      - name: Real notification regression
+        run: node --test tests/wave-runtime-signals.test.mjs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
