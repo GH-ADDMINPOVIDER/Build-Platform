@@ -5,6 +5,7 @@ import UnifiedChat from "./UnifiedChat";
 import Landing from "./Landing";
 import WaveNext from "./WaveNext";
 import WaveThemeToggle from "./WaveThemeToggle";
+import MaopLab from "./MaopLab";
 
 const LegacyControlSurface = lazy(() => import("./LegacyControlSurface"));
 import "./unified-chat.css";
@@ -12,6 +13,7 @@ import "./landing.css";
 import "./wave-next.css";
 import "./wave-route-polish.css";
 import "./wave-theme.css";
+import "./maop-lab.css";
 
 const nativeApp = Capacitor.isNativePlatform();
 const WAVE_ORIGIN = "https://wave.ogenicchocolate.com";
@@ -96,13 +98,14 @@ const explicitAppRoute = pathname === "/app" || pathname.startsWith("/app/");
 const webChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
 const commandRoute = !nativeApp && (pathname === "/command" || pathname.startsWith("/command/"));
 const agentsRoute = !nativeApp && (pathname === "/agents" || pathname.startsWith("/agents/"));
+const maopLabRoute = !nativeApp && (pathname === "/maop" || pathname.startsWith("/maop/"));
 const legacyOverviewRoute = !nativeApp && (pathname === "/overview/legacy" || pathname.startsWith("/overview/legacy/"));
 const waveNextRoute = !nativeApp && !legacyOverviewRoute && (
   pathname === "/overview" ||
   pathname === "/overview/next" ||
   pathname.startsWith("/overview/next/")
 );
-const controlRoute = commandRoute || agentsRoute || pathname === "/overview" || pathname.startsWith("/overview/");
+const controlRoute = commandRoute || agentsRoute || maopLabRoute || pathname === "/overview" || pathname.startsWith("/overview/");
 const shortcutApp = !webChatRoute && !controlRoute && params.get("source") === "app";
 const landingRoute = !nativeApp && pathname === "/";
 const appRoute = explicitAppRoute || (!webChatRoute && !controlRoute && (params.get("mobile") === "1" || shortcutApp));
@@ -115,6 +118,8 @@ document.title = landingRoute
     ? "WAVE — COMMAND"
     : agentsRoute
       ? "WAVE — AGENTS"
+      : maopLabRoute
+        ? "WAVE — MA-OP LAB"
       : waveNextRoute
         ? "WAVE — OPERATE"
         : controlRoute
@@ -178,6 +183,8 @@ createRoot(document.getElementById("root")!).render(
         ? <WaveNext initialTab="run" surface="command" />
         : agentsRoute
           ? <WaveNext initialTab="agent" surface="agents" />
+          : maopLabRoute
+            ? <MaopLab />
           : waveNextRoute
             ? <WaveNext initialTab="run" surface="operate" />
             : unifiedChatSurface
