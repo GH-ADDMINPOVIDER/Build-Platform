@@ -40,7 +40,7 @@ export class ReferenceReadAdapter implements MaopAdapter<Record<string, unknown>
   async readiness(_context: AdapterContext): Promise<AdapterReadiness> {
     return {
       state: "VERIFIED",
-      checked_at: "2026-10-06T00:00:00.000Z",
+      checked_at: new Date().toISOString(),
       evidence_ref: `local:${this.id}:readiness`,
     };
   }
