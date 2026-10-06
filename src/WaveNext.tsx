@@ -3,7 +3,39 @@ import McpConfigCenter from "./McpConfigCenter";
 import WhiteDiamondPanel from "./WhiteDiamondPanel";
 
 type SessionState = { authenticated?: boolean; user?: { label?: string; role?: string } | null };
-type Dashboard = { runtime?: { provider?: string; branch?: string }; incentives?: { policy_state?: string } };
+type IncentivePool = {
+  id: string;
+  label: string;
+  used: number;
+  cap: number | null;
+  remaining: number | null;
+  percent: number | null;
+  state: string;
+  telemetry: string;
+};
+type Dashboard = {
+  runtime?: { provider?: string; branch?: string };
+  incentives?: { policy_state?: string; reset_at?: string; pools?: IncentivePool[] };
+};
+type AgentTelemetry = {
+  agent_id: string;
+  visible_identity?: string;
+  app?: string;
+  rank?: string;
+  availability_state?: string;
+  status?: string;
+  stats?: {
+    jobs_assigned?: number;
+    completed?: number;
+    failed?: number;
+    blocked?: number;
+    success_rate?: number | null;
+    accuracy?: number | null;
+    accuracy_state?: string;
+    accuracy_sample_size?: number;
+  };
+};
+type VioletStatus = { ok?: boolean; agents?: AgentTelemetry[]; evidence?: string };
 type Connector = { id: string; label: string; state: string; summary?: string; route_mode?: string; kind?: string };
 type SelfHost = {
   ok?: boolean;
@@ -65,6 +97,30 @@ function State({ value }: { value: unknown }) {
   return <span className={`wnState ${stateTone(state)}`}>{state}</span>;
 }
 
+function percentValue(value: unknown) {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 && n <= 100 ? n : null;
+}
+
+function formatCount(value: unknown) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.round(n)).toLocaleString() : "—";
+}
+
+function MetricBar({ label, value, detail }: { label: string; value: unknown; detail?: string }) {
+  const percent = percentValue(value);
+  return <div className="wnMetric">
+    <div className="wnMetricHead">
+      <span>{label}</span>
+      <strong>{percent === null ? "NOT_MEASURED" : `${percent.toFixed(1)}%`}</strong>
+    </div>
+    {percent !== null && <div className="wnMeter" aria-label={`${label} ${percent.toFixed(1)}%`}>
+      <span className="wnMeterFill" style={{ width: `${percent}%` }} />
+    </div>}
+    {detail && <small>{detail}</small>}
+  </div>;
+}
+
 function surfaceTitle(surface: Surface) {
   if (surface === "command") return "Command Center";
   if (surface === "agents") return "Agent Deck";
@@ -84,6 +140,7 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
   const [connectors, setConnectors] = useState<Connector[]>([]);
   const [selfHost, setSelfHost] = useState<SelfHost | null>(null);
   const [bridge, setBridge] = useState<BridgeStatus | null>(null);
+  const [violet, setViolet] = useState<VioletStatus>({ agents: [] });
   const [sessions, setSessions] = useState<SessionRef[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -99,19 +156,21 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
     setLoading(true);
     setError("");
     try {
-      const [dashR, connectorR, selfHostR, bridgeR, sessionsR] = await Promise.all([
+      const [dashR, connectorR, selfHostR, bridgeR, sessionsR, violetR] = await Promise.all([
         fetch("/api/dashboard", { credentials: "same-origin", cache: "no-store" }),
         fetch("/api/connectors", { credentials: "same-origin", cache: "no-store" }),
         fetch("/api/openai/selfhost/readiness", { credentials: "same-origin", cache: "no-store" }),
         fetch("/api/1lss/status", { credentials: "same-origin", cache: "no-store" }),
         fetch("/api/1lss/sessions?limit=12", { credentials: "same-origin", cache: "no-store" }),
+        fetch("/api/violet/status", { credentials: "same-origin", cache: "no-store" }),
       ]);
-      const [dashB, connectorB, selfHostB, bridgeB, sessionsB] = await Promise.all([
+      const [dashB, connectorB, selfHostB, bridgeB, sessionsB, violetB] = await Promise.all([
         dashR.json().catch(() => ({})),
         connectorR.json().catch(() => ({})),
         selfHostR.json().catch(() => ({})),
         bridgeR.json().catch(() => ({})),
         sessionsR.json().catch(() => ({})),
+        violetR.json().catch(() => ({})),
       ]);
       if (dashR.ok) setDashboard(dashB as Dashboard);
       if (connectorR.ok && Array.isArray(connectorB.connectors)) setConnectors(connectorB.connectors as Connector[]);
@@ -119,6 +178,8 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
       else setSelfHost({ ok: false, policy: String(selfHostB?.code || `HTTP_${selfHostR.status}`) });
       if (bridgeR.ok) setBridge(bridgeB as BridgeStatus);
       if (sessionsR.ok && Array.isArray(sessionsB.sessions)) setSessions(sessionsB.sessions as SessionRef[]);
+      if (violetR.ok && Array.isArray(violetB.agents)) setViolet(violetB as VioletStatus);
+      else setViolet({ agents: [] });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Runtime status unavailable");
     } finally {
@@ -298,6 +359,71 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
 
       {tab === "agent" && <>
         <WhiteDiamondPanel />
+
+        <section className="wnStatusSection">
+          <div className="wnStatusTitle">
+            <div><span className="wnKicker">CAPACITY / QUOTA</span><h3>Evidence-backed capacity</h3></div>
+            <State value={dashboard.incentives?.policy_state || "NOT_MEASURED"} />
+          </div>
+          <div className="wnStatusGrid">
+            {(dashboard.incentives?.pools ?? []).map((pool) => <article className="wnStatusCard" key={pool.id}>
+              <div className="wnCardHead"><div><strong>{pool.label}</strong><span>{pool.telemetry || "NOT_MEASURED"}</span></div><State value={pool.state} /></div>
+              <MetricBar
+                label="Used"
+                value={pool.percent}
+                detail={pool.cap === null ? "Cap NOT_MEASURED" : `${formatCount(pool.remaining)} remaining / ${formatCount(pool.cap)} cap`}
+              />
+              <small className="wnStatusFoot">Reset {dashboard.incentives?.reset_at || "NOT_MEASURED"}</small>
+            </article>)}
+            {!dashboard.incentives?.pools?.length && <article className="wnStatusCard">
+              <div className="wnCardHead"><div><strong>Provider capacity</strong><span>Telemetry unavailable</span></div><State value="NOT_MEASURED" /></div>
+              <MetricBar label="Used" value={null} />
+            </article>}
+
+            <article className="wnStatusCard">
+              <div className="wnCardHead"><div><strong>Codex quota</strong><span>Separate from runtime readiness</span></div><State value="NOT_MEASURED" /></div>
+              <MetricBar label="Quota used" value={null} detail="No verified measurable quota source is bound." />
+            </article>
+
+            <article className="wnStatusCard">
+              <div className="wnCardHead"><div><strong>Self-host runtime</strong><span>Availability only · not token quota</span></div><State value={selfHost?.openai_app_key || selfHost?.github_dispatch || "CONFIGURATION_REQUIRED"} /></div>
+              <div className="wnStatusFacts"><span>Executor</span><strong>{selfHost?.executor_workflow || "NOT_MEASURED"}</strong></div>
+            </article>
+          </div>
+        </section>
+
+        <section className="wnStatusSection">
+          <div className="wnStatusTitle">
+            <div><span className="wnKicker">AGENT STATUS</span><h3>Violet / Ruby telemetry</h3></div>
+            <span className="wnCount">{violet.agents?.length ?? 0}</span>
+          </div>
+          <div className="wnStatusGrid">
+            {(violet.agents ?? []).map((agent) => <article className="wnStatusCard" key={agent.agent_id}>
+              <div className="wnCardHead">
+                <div><strong>{agent.visible_identity || `${agent.app || agent.agent_id} • Agent • ${agent.rank || "—"}`}</strong><span>{agent.agent_id}</span></div>
+                <State value={agent.status || agent.availability_state || "NOT_MEASURED"} />
+              </div>
+              <MetricBar label="Success" value={agent.stats?.success_rate} />
+              <MetricBar
+                label="Accuracy"
+                value={agent.stats?.accuracy}
+                detail={agent.stats?.accuracy_state === "MEASURED" ? `n=${formatCount(agent.stats?.accuracy_sample_size)}` : "Ruby evidence NOT_MEASURED"}
+              />
+              <div className="wnStatusFacts">
+                <span>Jobs {formatCount(agent.stats?.jobs_assigned)}</span>
+                <span>Done {formatCount(agent.stats?.completed)}</span>
+                <span>Failed {formatCount(agent.stats?.failed)}</span>
+                <span>Blocked {formatCount(agent.stats?.blocked)}</span>
+              </div>
+            </article>)}
+            {!violet.agents?.length && <article className="wnStatusCard">
+              <div className="wnCardHead"><div><strong>Agent telemetry</strong><span>Only verified Violet Agents are rendered.</span></div><State value="NOT_MEASURED" /></div>
+              <MetricBar label="Success" value={null} />
+              <MetricBar label="Accuracy" value={null} />
+            </article>}
+          </div>
+        </section>
+
         <section className="wnCard">
           <div className="wnCardHead"><div><span className="wnKicker">EXECUTION</span><h3>Yellow Stone handoff</h3></div><State value={selfHost?.openai_app_key || "CONFIGURATION_REQUIRED"} /></div>
           <p className="wnBody">White Diamond may plan and select agents, but consequential execution remains behind Yellow Stone policy and owner approval.</p>
