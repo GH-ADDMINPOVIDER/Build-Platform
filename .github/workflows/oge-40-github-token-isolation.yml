@@ -1,0 +1,118 @@
+name: OGE-40 GitHub Token Isolation
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-40-github-token-isolation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG || 'staging' }}
+
+jobs:
+  isolate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging runtime bindings
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Compare canonical and OGE34 GitHub bindings without exposing values
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .oge40token
+
+          python - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+
+          canonical = os.environ.get("GITHUB_TOKEN", "")
+          alias = os.environ.get("GITHUB_TOKEN_OGE34", "")
+          url = "https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/contents/tests/athena-guarded-command-handoff.test.mjs?ref=phase-vi-provider-incentive-metering"
+
+          def has_control(value):
+              return any(ord(ch) < 32 or ord(ch) == 127 for ch in value)
+
+          def probe(value):
+              if not value:
+                  return {"present": False, "http_status": 0, "curl_ok": False}
+              env = os.environ.copy()
+              env["PROBE_TOKEN"] = value
+              proc = subprocess.run(
+                  [
+                      "bash", "-lc",
+                      """curl --silent --show-error --output /dev/null --write-out '%{http_code}'                         -H 'Accept: application/vnd.github+json'                         -H "Authorization: Bearer ${PROBE_TOKEN}"                         -H 'User-Agent: ogenic-token-isolation'                         -H 'X-GitHub-Api-Version: 2022-11-28'                         "$1"""",
+                      "probe", url,
+                  ],
+                  env=env, text=True, capture_output=True,
+              )
+              status_text = (proc.stdout or "").strip()
+              try:
+                  status = int(status_text)
+              except Exception:
+                  status = 0
+              return {
+                  "present": True,
+                  "http_status": status,
+                  "curl_ok": proc.returncode == 0,
+                  "contains_control_chars": has_control(value),
+              }
+
+          evidence = {
+              "schema": "OGE40_GITHUB_TOKEN_ISOLATION_V1",
+              "canonical": probe(canonical),
+              "oge34_alias": probe(alias),
+              "same_value": bool(canonical and alias and canonical == alias),
+              "values_or_hashes_persisted": False,
+          }
+          if evidence["canonical"]["http_status"] != 200 and evidence["oge34_alias"]["http_status"] == 200:
+              evidence["classification"] = "CANONICAL_GITHUB_TOKEN_REGRESSION_ALIAS_HEALTHY"
+          elif evidence["canonical"]["http_status"] == 200 and evidence["oge34_alias"]["http_status"] == 200:
+              evidence["classification"] = "BOTH_GITHUB_BINDINGS_HEALTHY"
+          elif evidence["canonical"]["http_status"] == 200:
+              evidence["classification"] = "CANONICAL_GITHUB_TOKEN_HEALTHY"
+          else:
+              evidence["classification"] = "NO_HEALTHY_GITHUB_BINDING_PROVEN"
+
+          out = Path("docs/evidence/oge-40-github-token-isolation-latest.json")
+          out.parent.mkdir(parents=True, exist_ok=True)
+          out.write_text(json.dumps(evidence, indent=2) + "\n")
+          print(json.dumps(evidence, indent=2))
+          PY
+
+      - name: Commit sanitized token isolation evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ogenic-runtime-proof"
+          git config user.email "runtime-proof@users.noreply.github.com"
+          git add docs/evidence/oge-40-github-token-isolation-latest.json
+          git diff --cached --quiet && exit 0
+          git commit -m "test(oge-40): isolate GitHub runtime binding health"
+          git fetch origin phase-vi-provider-incentive-metering
+          git rebase origin/phase-vi-provider-incentive-metering
+          git push origin HEAD:phase-vi-provider-incentive-metering
