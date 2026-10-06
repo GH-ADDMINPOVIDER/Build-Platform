@@ -1,0 +1,47 @@
+{
+  "license": "CC0-1.0",
+  "source": "repository-owned OGE-42 deterministic fixture",
+  "reproduced_failure": {
+    "id": "fixture-lockfile-drift-a",
+    "problem_signature": "dependency graph is nondeterministic when the lockfile is absent",
+    "observed": "install graph changes between clean environments",
+    "expected": "same dependency graph in clean environments"
+  },
+  "second_fixture": {
+    "id": "fixture-lockfile-drift-b",
+    "condition": "same package manifest in a second clean environment",
+    "expected_rule_effect": "generate and pin a lockfile before reproducible install"
+  },
+  "items": [
+    {
+      "kind": "code_pattern",
+      "title": "Pure verifier boundary",
+      "procedure_or_expression": "Keep verification pure and return evidence instead of mutating canonical state directly."
+    },
+    {
+      "kind": "debug_rule",
+      "title": "Missing lockfile nondeterminism",
+      "procedure_or_expression": "When clean installs diverge and no lockfile exists, generate a lockfile once before reproducible install."
+    },
+    {
+      "kind": "build_recipe",
+      "title": "Deterministic install recipe",
+      "procedure_or_expression": "npm install --package-lock-only && npm ci"
+    },
+    {
+      "kind": "creation_template",
+      "title": "Verified knowledge envelope template",
+      "procedure_or_expression": "Create candidate -> Ruby receipt -> retention decision."
+    },
+    {
+      "kind": "decision_rule",
+      "title": "Fail closed on unverified evidence",
+      "procedure_or_expression": "If Ruby PASS evidence is absent, retain only as research evidence."
+    },
+    {
+      "kind": "formula",
+      "title": "Confidence reuse heuristic",
+      "procedure_or_expression": "success: min(1,c+0.03); failure: max(0,c-0.15); invalidate below 0.60"
+    }
+  ]
+}
