@@ -92,6 +92,10 @@ for (const id of EXPECTED) {
 }
 
 if (rows.length !== 10) errors.push(`EXPECTED_10_RESULTS:FOUND_${rows.length}`);
+const taskFingerprints = new Set(rows.map((row) => row.task_fingerprint));
+if (taskFingerprints.size !== 1) errors.push(`TASK_FINGERPRINT_MISMATCH:FOUND_${taskFingerprints.size}`);
+const evidenceDigests = rows.map((row) => row.evidence_digest);
+if (new Set(evidenceDigests).size !== evidenceDigests.length) errors.push("EVIDENCE_DIGEST_NOT_UNIQUE");
 
 const allPass = errors.length === 0 && audit.length === 10 && audit.every((row) => row.audit === "PASS");
 const final = {
