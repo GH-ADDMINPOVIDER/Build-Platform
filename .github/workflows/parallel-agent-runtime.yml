@@ -1,0 +1,155 @@
+name: OGE-47/48 Parallel Runtime One-Pass Refinery
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/parallel-agent-runtime.yml"
+      - "scripts/parallel-agent-runtime.mjs"
+      - "scripts/reduce-parallel-agent-results.mjs"
+      - "scripts/one-pass-runtime-refinery.mjs"
+      - "tests/oge-48-one-pass-runtime-refinery.test.mjs"
+      - "infra/knowledge-sandbox/**"
+      - "worker/knowledge-refinery.ts"
+      - "worker/provider-readiness.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  OGENIC_AGENT_TASK: "OGE-48 one-pass runtime/refinery coordination proof"
+  OGENIC_RESEARCH_PROVIDER: "perplexity"
+  OGENIC_READINESS_PERPLEXITY_STATE: ${{ vars.OGENIC_READINESS_PERPLEXITY_STATE }}
+
+jobs:
+  runtime-clones:
+    name: Runtime clone / ${{ matrix.worker }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        worker: [linearcodex, codex, claude]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Prepare isolated runtime exactly once
+        env:
+          AI_WORKER_NAME: ${{ matrix.worker }}
+          OGENIC_PARALLEL_EXECUTE: "false"
+        run: |
+          set -euo pipefail
+          node scripts/parallel-agent-runtime.mjs prepare --worker="${AI_WORKER_NAME}" --output=".ogenic-agent/${AI_WORKER_NAME}/result.json"
+          node scripts/one-pass-runtime-refinery.mjs             --worker="${AI_WORKER_NAME}"             --task-id="oge-48-${AI_WORKER_NAME}"             --research="perplexity"             --readiness="${OGENIC_READINESS_PERPLEXITY_STATE:-NOT_MEASURED}"             --output=".ogenic-agent/${AI_WORKER_NAME}/refinery-plan.json"
+
+      - name: Assert no-loop worker policy
+        env:
+          AI_WORKER_NAME: ${{ matrix.worker }}
+        run: |
+          set -euo pipefail
+          jq -e '
+            .policy.think_budget == 1 and
+            .policy.attempt_budget == 1 and
+            .policy.verify_budget == 1 and
+            .policy.auto_retry == false and
+            .policy.self_repair == false and
+            .policy.auto_strategy_switch == false and
+            .policy.provider_fallback == "DENIED_WITHIN_ATTEMPT" and
+            .policy.canonical_write == "SERIAL_REDUCER_YELLOW_ONLY"
+          ' ".ogenic-agent/${AI_WORKER_NAME}/refinery-plan.json" >/dev/null
+
+      - name: Publish isolated artifact only
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge-48-runtime-${{ matrix.worker }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .ogenic-agent/${{ matrix.worker }}/
+          retention-days: 7
+          if-no-files-found: error
+
+  serial-reducer:
+    name: Serial reducer / Ruby pre-gate
+    needs: runtime-clones
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download all isolated runtime artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: oge-48-runtime-*
+          path: parallel-agent-results
+
+      - name: Verify all three runtime results serially
+        run: |
+          set -euo pipefail
+          node scripts/reduce-parallel-agent-results.mjs             --input=parallel-agent-results             --mode=dry-run             --output=docs/evidence/oge-47-parallel-agent-runtime-latest.json
+          node --test tests/oge-48-one-pass-runtime-refinery.test.mjs
+
+      - name: Publish sanitized reducer evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge-47-48-serial-reducer-${{ github.run_id }}-${{ github.run_attempt }}
+          path: docs/evidence/oge-47-parallel-agent-runtime-latest.json
+          retention-days: 14
+          if-no-files-found: error
+
+  docker-refinery-substrate:
+    name: Docker refinery substrate / no paid research call
+    needs: serial-reducer
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build one-pass Perplexity → Docker gate
+        run: |
+          set -euo pipefail
+          node scripts/one-pass-runtime-refinery.mjs             --worker="coordinator"             --task-id="oge-48-research-docker-gate"             --research="perplexity"             --readiness="${OGENIC_READINESS_PERPLEXITY_STATE:-NOT_MEASURED}"             --output="oge-48-research-docker-plan.json"
+          jq -e '
+            .policy.attempt_budget == 1 and
+            .policy.auto_retry == false and
+            .policy.auto_strategy_switch == false and
+            (.state == "DEFERRED" or .state == "READY_FOR_RESEARCH_RUN_ONCE" or .state == "READY_FOR_DOCKER_RUN_ONCE")
+          ' oge-48-research-docker-plan.json >/dev/null
+
+      - name: Prove Docker sandbox substrate remains isolated
+        run: |
+          set -euo pipefail
+          docker build -f infra/knowledge-sandbox/Dockerfile -t wave-knowledge-sandbox:${GITHUB_SHA} .
+          docker run --rm             --network=none             --read-only             --cap-drop=ALL             --security-opt=no-new-privileges             wave-knowledge-sandbox:${GITHUB_SHA} > oge-48-docker-substrate-proof.json
+          jq -e '
+            .ok == true and
+            .runtime == "DOCKER_WORKER" and
+            .agent == false and
+            .network_policy == "DISABLED_AT_RUNTIME" and
+            .filesystem_policy == "READ_ONLY_AT_RUNTIME"
+          ' oge-48-docker-substrate-proof.json >/dev/null
+
+      - name: Publish one-pass and Docker proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge-48-one-pass-refinery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            oge-48-research-docker-plan.json
+            oge-48-docker-substrate-proof.json
+          retention-days: 14
+          if-no-files-found: error
