@@ -19,7 +19,8 @@
     "d1:migrate:remote": "wrangler d1 migrations apply ogenic-phase-vi-staging --remote",
     "cf:deploy:staging": "wrangler deploy --keep-vars --var OGENIC_GIT_SHA:${WORKERS_CI_COMMIT_SHA:-unknown} --var OGENIC_GITHUB_BRANCH:${WORKERS_CI_BRANCH:-phase-vi-provider-incentive-metering} --var OGENIC_BUILD_UUID:${WORKERS_CI_BUILD_UUID:-unknown}",
     "cf:migrate:staging": "wrangler d1 migrations apply ogenic-phase-vi-staging --remote",
-    "perplexity:smoke": "node scripts/perplexity-agent-smoke.mjs"
+    "perplexity:smoke": "node scripts/perplexity-agent-smoke.mjs",
+    "deepseek:smoke": "node scripts/deepseek-smoke.mjs"
   },
   "dependencies": {
     "@capacitor/core": "^7.4.0",

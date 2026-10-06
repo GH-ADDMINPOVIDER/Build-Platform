@@ -1,0 +1,45 @@
+name: OGE-59 DeepSeek Bridge Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "worker/deepseek-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "scripts/deepseek-smoke.mjs"
+      - "config/staging-runtime-bindings.json"
+      - "package.json"
+      - "tests/oge-59-deepseek-bridge.test.mjs"
+      - ".github/workflows/provider-incentive-staging-deploy.yml"
+      - ".github/workflows/oge-59-deepseek-bridge-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install project dependencies
+        run: npm install --no-audit --no-fund
+      - name: OGE-59 deterministic contract
+        run: node --test tests/oge-59-deepseek-bridge.test.mjs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: DeepSeek smoke safety gate without secret
+        run: |
+          set -euo pipefail
+          set +e
+          output="$(env -u DEEPSEEK_API_KEY npm run --silent deepseek:smoke 2>/dev/null)"
+          status=$?
+          set -e
+          test "$status" -eq 2
+          printf '%s\n' "$output" | jq -e '.code == "CONFIGURATION_REQUIRED" and .missing == "DEEPSEEK_API_KEY"' >/dev/null

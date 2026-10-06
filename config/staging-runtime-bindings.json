@@ -42,15 +42,36 @@
     "OGENIC_GENERIC_HOOK_SECRET"
   ],
   "aliases": {
-    "GITHUB_TOKEN": ["GITHUB_TOKEN_OGE34"],
-    "LINE_SECRET_CHANNEL": ["LINE_CHANNEL_SECRET"],
-    "META_PAGE_ACCESS_TOKEN": ["META_ACCESS_TOKEN"],
-    "N8N_API_KEY": ["N8N_REGISTRY_API_KEY", "N8N_CORE_API_KEY"],
-    "ANTHROPIC_API_KEY": ["CLAUDE_API_KEY"],
-    "GEMINI_API_KEY": ["GOOGLE_API_KEY"],
-    "XAI_API_KEY": ["GROK_API_KEY"],
-    "PERPLEXITY_API_KEY": ["PPLX_API_KEY"],
-    "DEEPSEEK_API_KEY": ["DEEPSEEK_KEY"]
+    "GITHUB_TOKEN": [
+      "GITHUB_TOKEN_OGE34"
+    ],
+    "LINE_SECRET_CHANNEL": [
+      "LINE_CHANNEL_SECRET"
+    ],
+    "META_PAGE_ACCESS_TOKEN": [
+      "META_ACCESS_TOKEN"
+    ],
+    "N8N_API_KEY": [
+      "N8N_REGISTRY_API_KEY",
+      "N8N_CORE_API_KEY"
+    ],
+    "ANTHROPIC_API_KEY": [
+      "CLAUDE_API_KEY"
+    ],
+    "GEMINI_API_KEY": [
+      "GOOGLE_API_KEY"
+    ],
+    "XAI_API_KEY": [
+      "GROK_API_KEY"
+    ],
+    "PERPLEXITY_API_KEY": [
+      "PPLX_API_KEY",
+      "API_PERLEXITY"
+    ],
+    "DEEPSEEK_API_KEY": [
+      "DEEPSEEK_KEY",
+      "Api_deepseek_key_operate_1"
+    ]
   },
   "actor_map": {
     "OPENAI_API_KEY": "athena-command",
