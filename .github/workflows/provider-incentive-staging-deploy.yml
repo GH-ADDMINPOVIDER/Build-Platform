@@ -320,18 +320,43 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for route in / /chat /overview; do
+          for route in / /chat /overview /maop; do
             BODY_FILE="$(mktemp)"
             CODE="$(curl --silent --show-error --output "$BODY_FILE" --write-out '%{http_code}' "${STAGING_URL}${route}")"
             test "$CODE" = "200" || { echo "::error::WAVE surface ${route} returned HTTP ${CODE}"; cat "$BODY_FILE"; rm -f "$BODY_FILE"; exit 1; }
             grep -q 'id="root"' "$BODY_FILE" || { echo "::error::WAVE surface ${route} missing app root"; rm -f "$BODY_FILE"; exit 1; }
             rm -f "$BODY_FILE"
           done
-          echo "WAVE Web / Chat / Operate staging routes verified after shared-theme build."
+          echo "WAVE Web / Chat / Operate / MA-OP staging routes verified after shared-theme build."
           {
             echo "### OGE-65 shared-theme staging routes"
             echo ""
-            echo "PASS — /, /chat, and /overview returned the canonical WAVE app root."
+            echo "PASS — /, /chat, /overview, and /maop returned the canonical WAVE app root."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: OGE-67 live MA-OP Web Lab proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUTH_HEADER="x-ogenic-ops-key: ${OGENIC_OPS_KEY}"
+
+          STATUS="$(curl --fail --silent --show-error -H "$AUTH_HEADER" "${STAGING_URL}/api/maop/lab/status")"
+          printf '%s' "$STATUS" | jq -e '.ok == true and .protocol_version == "0.1.0" and .live_bridges.github_file_read == true and .live_bridges.writes == false' >/dev/null
+
+          CORE="$(curl --fail --silent --show-error -X POST -H "$AUTH_HEADER" -H 'content-type: application/json' --data '{"scenario":"happy_path"}' "${STAGING_URL}/api/maop/lab/core")"
+          printf '%s' "$CORE" | jq -e '.ok == true and .result.ok == true and .result.ruby_verified == true and .result.retention_eligible == true and (.result.lifecycle | index("RETAIN")) != null' >/dev/null
+
+          GITHUB_READ="$(curl --fail --silent --show-error -X POST -H "$AUTH_HEADER" -H 'content-type: application/json' --data '{"path":"package.json"}' "${STAGING_URL}/api/maop/lab/github")"
+          printf '%s' "$GITHUB_READ" | jq -e '.ok == true and .result.ok == true and .result.verification_state == "verified" and .result.ruby_verified == false and .result.retention_eligible == false' >/dev/null
+
+          RUBY="$(curl --fail --silent --show-error -H "$AUTH_HEADER" "${STAGING_URL}/api/ruby/scorecard")"
+          printf '%s' "$RUBY" | jq -e '.runtime == "RUBY_STONE_TEST_LAYER_V1" and (.tests | type == "array")' >/dev/null
+
+          echo "MA-OP Web Lab live proof PASS: core + Yellow GitHub READ + Ruby scorecard."
+          {
+            echo "### OGE-67 MA-OP Web Lab"
+            echo ""
+            echo "PASS — /maop is live; Core lifecycle passed; GitHub READ traversed MA-OP → Yellow; Ruby scorecard responded."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: OGE-57 live staging task inbox roundtrip
