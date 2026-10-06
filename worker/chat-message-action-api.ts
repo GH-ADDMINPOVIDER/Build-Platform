@@ -3,6 +3,7 @@ import { hasOwnerSession, type AuthBindings } from "./app-auth";
 
 type D1Prepared = {
   bind: (...values: unknown[]) => D1Prepared;
+  first: <T = Record<string, unknown>>() => Promise<T | null>;
   run: () => Promise<unknown>;
 };
 type D1Like = { prepare: (query: string) => D1Prepared };
@@ -91,13 +92,35 @@ export function createChatMessageActionApi() {
       value: value || null,
     });
 
+    const eventType = `CHAT_MESSAGE_${action}`;
+    const existing = await c.env.DB.prepare(
+      `SELECT event_type, external_ref
+       FROM agent_events
+       WHERE id = ?
+       LIMIT 1`,
+    ).bind(eventId).first<{ event_type: string; external_ref: string | null }>();
+
+    if (existing) {
+      if (existing.event_type !== eventType || existing.external_ref !== reference) {
+        return c.json({ ok: false, code: "IDEMPOTENCY_CONFLICT", event_id: eventId }, 409);
+      }
+      return c.json({
+        ok: true,
+        event_id: eventId,
+        action,
+        idempotent_replay: true,
+        persisted: "agent_events_reference_only",
+        raw_message_stored: false,
+      }, 200, { "Cache-Control": "no-store" });
+    }
+
     await c.env.DB.prepare(
-      `INSERT OR IGNORE INTO agent_events(
+      `INSERT INTO agent_events(
          id, task_id, event_type, actor, correlation_id, external_ref, created_at
        ) VALUES (?, NULL, ?, 'owner', ?, ?, CURRENT_TIMESTAMP)`,
     ).bind(
       eventId,
-      `CHAT_MESSAGE_${action}`,
+      eventType,
       correlationId,
       reference,
     ).run();
@@ -105,6 +128,7 @@ export function createChatMessageActionApi() {
     return c.json({
       ok: true,
       event_id: eventId,
+      idempotent_replay: false,
       action,
       message_ref: {
         id: messageId || null,
