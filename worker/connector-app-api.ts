@@ -509,6 +509,7 @@ export function createConnectorAppApi() {
   api.post("/api/chat/agent", async (c) => {
     const apiKey = clean(c.env.OPENAI_API_KEY, 4000);
     if (!apiKey) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OPENAI_API_KEY" }, 503);
+    if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
 
     const body: {
       prompt?: unknown;
@@ -516,16 +517,23 @@ export function createConnectorAppApi() {
       reasoning_effort?: unknown;
       allow_paid_fallback?: unknown;
       source_surface?: unknown;
+      new_session?: unknown;
     } = await c.req.json<{
       prompt?: unknown;
       model?: unknown;
       reasoning_effort?: unknown;
       allow_paid_fallback?: unknown;
       source_surface?: unknown;
+      new_session?: unknown;
     }>().catch(() => ({}));
 
     const prompt = clean(body.prompt, 7000);
     if (!prompt) return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt is required" }, 400);
+
+    const requestKey = clean(c.req.header("idempotency-key"), 256);
+    if (!requestKey) {
+      return c.json({ ok: false, code: "IDEMPOTENCY_KEY_REQUIRED", message: "Agent messages require one stable submission key." }, 400);
+    }
 
     const requestedModel = clean(body.model, 80);
     const supportedModels = new Set(["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-6-astra"]);
@@ -534,6 +542,7 @@ export function createConnectorAppApi() {
     const effort = ["low", "medium", "high", "xhigh", "max"].includes(requestedEffort) ? requestedEffort : "medium";
     const allowPaidFallback = body.allow_paid_fallback === true;
     const sourceSurface = clean(body.source_surface, 60) || "ogenic-ui";
+    const newSessionRequested = body.new_session === true;
 
     const incentive = await readIncentiveSnapshot(c.env.DB);
     const poolId = "standard";
@@ -550,73 +559,121 @@ export function createConnectorAppApi() {
       }, 429);
     }
 
-    const d1Context = await readCanonicalD1Context(c.env.DB, {
-      git_sha: c.env.OGENIC_GIT_SHA,
-      git_branch: c.env.OGENIC_GITHUB_BRANCH,
-      build_uuid: c.env.OGENIC_BUILD_UUID,
-      runtime: c.env.OGENIC_RUNTIME,
-      phase: c.env.OGENIC_PHASE,
-      version: c.env.CF_VERSION_METADATA ?? null,
-    });
+    const storedSession = await latestStoredAgentSession(c.env);
+    let agent: Awaited<ReturnType<typeof readAgentSessionStream>>;
+    let sessionContinuation = false;
+    let d1CanonicalState: string = "SESSION_CONTINUATION";
 
-    const agentResponse = await fetch("https://api.openai.com/v1/agents/sessions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "OpenAI-Beta": "agents=v1",
-        "Content-Type": "application/json",
-        "Idempotency-Key": c.req.header("idempotency-key") ?? `agent_${crypto.randomUUID()}`,
-      },
-      body: JSON.stringify({
-        agent: {
-          model,
-          instructions:
-            "You are OGENIC Agent AI on staging. Preserve SAME MIND continuity using the supplied canonical D1 context. " +
-            "Never claim an external side effect occurred unless verified. Production-affecting, destructive, credential, billing, " +
-            "or permission changes require separate owner approval. Reply in the user's language.\n\n" +
-            "CANONICAL D1 + LIVE RUNTIME EVIDENCE:\n" + d1Context.text,
-          reasoning: { effort, summary: "concise" },
-          multi_agent: { enabled: false },
-          service_tier: "auto",
-        },
-        environment: { type: "none" },
-        input: prompt,
-        metadata: {
-          project: "ogenic-phase-vi",
-          environment: "staging",
-          branch: c.env.OGENIC_GITHUB_BRANCH || "phase-vi-provider-incentive-metering",
-          conversation: "owner-main",
-          session_line: "1LSS_OWNER_MAIN",
-          source_surface: sourceSurface,
-        },
-        stream: true,
-      }),
-    });
+    if (storedSession?.session_ref && !newSessionRequested) {
+      const continued = await continueAgentSession({
+        apiKey,
+        sessionId: storedSession.session_ref,
+        prompt,
+        idempotencyKey: requestKey,
+        model,
+        effort,
+      });
+      if (!continued.ok) {
+        const resetRequired = continued.code.includes("RESET_REQUIRED") || continued.code.includes("SETTINGS_CHANGE");
+        return c.json({
+          ok: false,
+          code: continued.code,
+          message: continued.message,
+          agent_session_id: storedSession.session_ref,
+          retry_policy: "NO_AUTO_RETRY",
+          new_session_required: resetRequired,
+        }, resetRequired ? 409 : 502);
+      }
+      agent = continued.agent;
+      sessionContinuation = true;
+      await touchAgentSession(c.env, storedSession.session_ref, requestedAgentSessionLabel(model, effort));
+    } else {
+      const d1Context = await readCanonicalD1Context(c.env.DB, {
+        git_sha: c.env.OGENIC_GIT_SHA,
+        git_branch: c.env.OGENIC_GITHUB_BRANCH,
+        build_uuid: c.env.OGENIC_BUILD_UUID,
+        runtime: c.env.OGENIC_RUNTIME,
+        phase: c.env.OGENIC_PHASE,
+        version: c.env.CF_VERSION_METADATA ?? null,
+      });
+      d1CanonicalState = d1Context.state;
 
-    if (!agentResponse.ok) {
-      const raw = await agentResponse.text().catch(() => "");
-      return c.json({
-        ok: false,
-        code: `OPENAI_AGENT_HTTP_${agentResponse.status}`,
-        message: clean(raw || "OpenAI Agent Session request failed", 300),
-      }, 502);
+      const agentResponse = await fetch(`${OPENAI_API_BASE}/agents/sessions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "OpenAI-Beta": "agents=v1",
+          "Content-Type": "application/json",
+          "Idempotency-Key": requestKey,
+        },
+        body: JSON.stringify({
+          agent: {
+            model,
+            instructions:
+              "You are OGENIC Agent AI on staging. Preserve SAME MIND continuity using the supplied canonical D1 context. " +
+              "The provider session is continuation state only; Green/1LSS remains canonical truth. " +
+              "Never claim an external side effect occurred unless verified. Production-affecting, destructive, credential, billing, " +
+              "or permission changes require separate owner approval. Reply in the user's language.\n\n" +
+              "CANONICAL D1 + LIVE RUNTIME EVIDENCE:\n" + d1Context.text,
+            reasoning: { effort, summary: "concise" },
+            multi_agent: { enabled: false },
+            service_tier: "auto",
+          },
+          environment: { type: "none" },
+          input: prompt,
+          metadata: {
+            project: "ogenic-phase-vi",
+            environment: "staging",
+            branch: c.env.OGENIC_GITHUB_BRANCH || "phase-vi-provider-incentive-metering",
+            conversation: "owner-main",
+            session_line: "1LSS_OWNER_MAIN",
+            source_surface: sourceSurface,
+          },
+          stream: true,
+        }),
+      });
+
+      if (!agentResponse.ok) {
+        const raw = await agentResponse.text().catch(() => "");
+        return c.json({
+          ok: false,
+          code: `OPENAI_AGENT_HTTP_${agentResponse.status}`,
+          message: clean(raw || "OpenAI Agent Session request failed", 300),
+        }, 502);
+      }
+      agent = await readAgentSessionStream(agentResponse);
     }
 
-    const agent = await readAgentSessionStream(agentResponse);
     if (agent.terminal !== "completed") {
       return c.json({
         ok: false,
         code: `AGENT_${agent.terminal.toUpperCase()}`,
         message: agent.error || "Agent session did not complete",
-        agent_session_id: agent.sessionId || null,
+        agent_session_id: agent.sessionId || storedSession?.session_ref || null,
+        retry_policy: "NO_AUTO_RETRY",
       }, 502);
     }
     if (!agent.text) {
       return c.json({
         ok: false,
         code: "AGENT_EMPTY_OUTPUT",
-        agent_session_id: agent.sessionId || null,
+        agent_session_id: agent.sessionId || storedSession?.session_ref || null,
+        retry_policy: "NO_AUTO_RETRY",
       }, 502);
+    }
+
+    const sessionId = clean(agent.sessionId || storedSession?.session_ref, 220);
+    if (!sessionId) {
+      return c.json({
+        ok: false,
+        code: "AGENT_SESSION_ID_MISSING",
+        message: "Agent completed but no durable provider session id was returned.",
+        retry_policy: "NO_AUTO_RETRY",
+      }, 502);
+    }
+
+    if (!sessionContinuation) {
+      await rememberAgentSession(c.env, sessionId, requestedAgentSessionLabel(model, effort));
     }
 
     await recordChatUsage(c.env.DB, {
@@ -625,24 +682,30 @@ export function createConnectorAppApi() {
       model,
       poolId,
       usageTokens: agent.usageTokens,
-      route: allowPaidFallback && guarded ? "paid_fallback" : "agent_session",
+      route: allowPaidFallback && guarded
+        ? "paid_fallback"
+        : sessionContinuation ? "agent_session_continuation" : "agent_session_new",
     });
 
     return c.json({
       ok: true,
       text: agent.text,
       model,
-      agent_session_id: agent.sessionId || null,
+      agent_session_id: sessionId,
       agent_terminal: agent.terminal,
-      memory: "D1_CANONICAL",
+      memory: "D1_CANONICAL+PROVIDER_SESSION",
       conversation_id: "owner-main",
       session_line: "1LSS_OWNER_MAIN",
-      d1_canonical: d1Context.state,
+      d1_canonical: d1CanonicalState,
+      session_continuation: sessionContinuation,
+      context_replayed: !sessionContinuation,
+      provider_session_ref: "chat_session_refs",
       incentive_pool: poolId,
       routing_mode: incentive.routing_mode,
       paid_fallback: allowPaidFallback,
       usage_tokens: agent.usageTokens,
       runtime: "OPENAI_AGENT_SESSION",
+      retry_policy: "NO_AUTO_RETRY",
       policy: "SIDE_EFFECTS_REQUIRE_SEPARATE_OWNER_APPROVAL",
     }, 200, { "Cache-Control": "no-store" });
   });
