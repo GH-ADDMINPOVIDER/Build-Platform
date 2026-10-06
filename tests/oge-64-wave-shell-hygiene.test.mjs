@@ -19,11 +19,12 @@ test("OGE-64 canonical entry lazy-loads one legacy boundary", () => {
     "ProviderConnectWizard",
     "GagVault",
     "LiveAssist",
-    "ThemeController",
   ]) {
     assert.equal(main.includes('from "./' + moduleName + '"'), false);
     assert.equal(legacy.includes('from "./' + moduleName + '"'), true);
   }
+  assert.equal(main.includes('from "./WaveThemeToggle"'), true);
+  assert.equal(legacy.includes('ThemeController'), false);
 });
 
 test("legacy styles are no longer eagerly imported by main bundle", () => {
