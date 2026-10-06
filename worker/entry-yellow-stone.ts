@@ -18,6 +18,7 @@ import { createDeepSeekApi, type DeepSeekBindings } from "./deepseek-api";
 import { createGeminiApi, type GeminiBindings } from "./gemini-api";
 import { createTaskInboxApi, type TaskInboxBindings } from "./task-inbox-api";
 import { createChatMessageActionApi, type ChatMessageActionBindings } from "./chat-message-action-api";
+import { createMaopLabApi } from "./maop-lab-api";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { planAthenaCommand } from "./athena-command-planner";
@@ -38,6 +39,7 @@ const deepSeekApi = createDeepSeekApi();
 const geminiApi = createGeminiApi();
 const taskInboxApi = createTaskInboxApi();
 const chatMessageActionApi = createChatMessageActionApi();
+const maopLabApi = createMaopLabApi();
 
 const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
@@ -242,6 +244,9 @@ export default {
     }
     if (pathname === "/api/chat/message-action") {
       return chatMessageActionApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/maop/lab")) {
+      return maopLabApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/openai/selfhost/")) {
       return selfHostApi.fetch(request, env as never, ctx as never);
