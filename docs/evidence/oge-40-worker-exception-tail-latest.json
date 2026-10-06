@@ -6,6 +6,8 @@
   },
   "exceptions": [],
   "exception_count": 0,
+  "logs": [],
+  "log_count": 0,
   "request_headers_persisted": false,
   "secret_values_included": false
 }
