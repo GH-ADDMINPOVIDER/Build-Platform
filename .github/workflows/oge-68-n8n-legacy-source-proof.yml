@@ -1,0 +1,33 @@
+name: OGE-68 n8n Legacy Source Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "worker/n8n-migration-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "src/MaopLab.tsx"
+      - "tests/oge-68-n8n-legacy-source.test.mjs"
+      - ".github/workflows/oge-68-n8n-legacy-source-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: npm install
+      - name: n8n legacy source contract
+        run: node --test tests/oge-68-n8n-legacy-source.test.mjs
+      - name: Typecheck and build
+        run: |
+          npm run typecheck
+          npm run build
