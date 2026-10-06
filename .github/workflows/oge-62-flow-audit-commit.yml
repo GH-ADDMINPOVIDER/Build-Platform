@@ -1,0 +1,182 @@
+name: OGE-62 Flow Audit Commit Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "scripts/flow-runtime-clone.mjs"
+      - "scripts/audit-flow-runtime-results.mjs"
+      - "tests/oge-62-flow-audit-commit.test.mjs"
+      - ".github/workflows/oge-62-flow-audit-commit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  OGENIC_AGENT_TASK: "OGE-62 drain-first self-verify then GitHub audit commit proof"
+
+jobs:
+  runtime-clones:
+    name: Runtime / ${{ matrix.runtime_id }} / self-verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        include:
+          - runtime_id: runtime-01
+            profile: linearcodex
+          - runtime_id: runtime-02
+            profile: codex
+          - runtime_id: runtime-03
+            profile: claude
+          - runtime_id: runtime-04
+            profile: codex
+          - runtime_id: runtime-05
+            profile: claude
+          - runtime_id: runtime-06
+            profile: linearcodex
+          - runtime_id: runtime-07
+            profile: codex
+          - runtime_id: runtime-08
+            profile: claude
+          - runtime_id: runtime-09
+            profile: codex
+          - runtime_id: runtime-10
+            profile: claude
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Work once and self-verify own result
+        env:
+          OGENIC_RUNTIME_ID: ${{ matrix.runtime_id }}
+          OGENIC_RUNTIME_PROFILE: ${{ matrix.profile }}
+        run: |
+          set -euo pipefail
+          node scripts/flow-runtime-clone.mjs             --runtime="${OGENIC_RUNTIME_ID}"             --profile="${OGENIC_RUNTIME_PROFILE}"             --revision=1             --output=".ogenic-flow/${OGENIC_RUNTIME_ID}/result.json"
+
+          jq -e '
+            .self_verify == "PASS" and
+            .state == "PROVISIONAL_DONE" and
+            .provisional_done == true and
+            .final_done == false and
+            .provider_call_attempted == false and
+            .canonical_write_attempted == false and
+            .d1_schema_write_attempted == false
+          ' ".ogenic-flow/${OGENIC_RUNTIME_ID}/result.json" >/dev/null
+
+      - name: Publish provisional evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge-62-${{ matrix.runtime_id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .ogenic-flow/${{ matrix.runtime_id }}/
+          retention-days: 7
+          if-no-files-found: error
+
+  github-audit:
+    name: GitHub audit / verify final summary
+    needs: runtime-clones
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 8
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download all provisional results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: oge-62-runtime-*
+          path: flow-runtime-results
+
+      - name: Re-check 10 summaries independently
+        run: |
+          set -euo pipefail
+          node scripts/audit-flow-runtime-results.mjs             --input=flow-runtime-results             --output=docs/evidence/oge-62-flow-audit-latest.json
+
+          jq -e '
+            .ok == true and
+            .state == "FINAL_DONE" and
+            .expected_runtime_count == 10 and
+            .provisional_done_count == 10 and
+            .final_done_count == 10 and
+            .commit_eligible == true and
+            ([.audit[].audit] | all(. == "PASS")) and
+            ([.audit[].next_state] | all(. == "FINAL_DONE"))
+          ' docs/evidence/oge-62-flow-audit-latest.json >/dev/null
+
+          node --test tests/oge-62-flow-audit-commit.test.mjs
+
+      - name: Publish audited final summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge-62-final-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: docs/evidence/oge-62-flow-audit-latest.json
+          retention-days: 14
+          if-no-files-found: error
+
+  yellow-commit-gate:
+    name: Yellow commit gate / audited summary
+    needs: github-audit
+    if: needs.github-audit.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 8
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase-vi-provider-incentive-metering
+          fetch-depth: 0
+
+      - name: Download audited summary only
+        uses: actions/download-artifact@v4
+        with:
+          name: oge-62-final-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: audited
+
+      - name: Re-confirm commit eligibility
+        run: |
+          set -euo pipefail
+          jq -e '
+            .ok == true and
+            .state == "FINAL_DONE" and
+            .commit_eligible == true and
+            .final_done_count == 10 and
+            .commit_manifest.allowed == true
+          ' audited/oge-62-flow-audit-latest.json >/dev/null
+
+      - name: Commit audited evidence to canonical branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/evidence
+          cp audited/oge-62-flow-audit-latest.json docs/evidence/oge-62-flow-audit-latest.json
+
+          git config user.name "ogenic-yellow-gate"
+          git config user.email "ogenic-yellow-gate@users.noreply.github.com"
+
+          if git diff --quiet -- docs/evidence/oge-62-flow-audit-latest.json; then
+            echo "Audited evidence unchanged; no commit required."
+            exit 0
+          fi
+
+          git add docs/evidence/oge-62-flow-audit-latest.json
+          git commit -m "chore(oge-62): retain audited 10/10 flow evidence"
+          git push origin HEAD:phase-vi-provider-incentive-metering
