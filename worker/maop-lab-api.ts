@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
-import { createCapabilityExecutionApi, type } from "./capability-execution-api";
+import { createCapabilityExecutionApi } from "./capability-execution-api";
 import {
   MAOP_PROTOCOL_VERSION,
   MaopReferenceRuntime,
