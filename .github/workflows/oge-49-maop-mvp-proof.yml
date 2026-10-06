@@ -1,0 +1,49 @@
+name: OGE-49 MA-OP MVP Slice 1 Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "packages/maop-core/**"
+      - "packages/maop-github-harness/**"
+      - "tests/oge-49-maop-core-contract.test.mjs"
+      - ".github/workflows/oge-49-maop-mvp-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Root MA-OP contract regression
+        run: node --test tests/oge-49-maop-core-contract.test.mjs
+
+      - name: MA-OP core build and conformance
+        working-directory: packages/maop-core
+        run: |
+          npm install --package-lock-only
+          npm ci
+          npm test
+
+      - name: Existing OGE-43 GitHub bridge regression
+        working-directory: packages/maop-github-harness
+        run: |
+          npm install --package-lock-only
+          npm ci
+          npm test
+
+      - name: Prove no direct paid/provider transports in MA-OP core
+        run: |
+          set -euo pipefail
+          ! grep -R -E 'api\.(openai|anthropic|perplexity)\.com|api\.github\.com|fetch[[:space:]]*\(' packages/maop-core/src
+          ! grep -R -E 'CREATE TABLE|ALTER TABLE|DROP TABLE' packages/maop-core
+          echo "OGE_49_ZERO_COST_NO_DIRECT_PROVIDER_TRANSPORT_OK"
