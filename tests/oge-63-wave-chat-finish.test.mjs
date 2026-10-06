@@ -42,7 +42,9 @@ test("retry is user-mediated and does not silently spend provider tokens", () =>
 test("reaction and feedback persist reference-only events in existing agent_events", () => {
   assert.match(api, /hasOwnerSession/);
   assert.match(api, /Idempotency-Key/);
-  assert.match(api, /INSERT OR IGNORE INTO agent_events/);
+  assert.match(api, /INSERT INTO agent_events/);
+  assert.match(api, /IDEMPOTENCY_CONFLICT/);
+  assert.match(api, /idempotent_replay: true/);
   assert.match(api, /task_id, event_type, actor, correlation_id, external_ref/);
   assert.match(api, /raw_message_stored: false/);
   assert.match(api, /SECRET_LIKE_INPUT_REJECTED/);
