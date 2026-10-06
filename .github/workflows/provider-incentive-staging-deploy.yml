@@ -275,6 +275,72 @@ jobs:
           printf '%s' "$BODY" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
           echo "Staging deploy verified: ${STAGING_URL}"
 
+      - name: OGE-57 live staging task inbox roundtrip
+        if: steps.scope.outputs.ui_only != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          LOGIN_PAYLOAD="$(jq -nc --arg key "$OGENIC_OPS_KEY" '{owner_key:$key}')"
+          SESSION_JSON="$(curl --fail --silent --show-error             -H 'content-type: application/json'             -H 'x-ogenic-client: native'             --data "$LOGIN_PAYLOAD"             "$STAGING_URL/api/session")"
+          OWNER_TOKEN="$(printf '%s' "$SESSION_JSON" | jq -r '.session_token // empty')"
+          test -n "$OWNER_TOKEN" || { echo "::error::OGE-57 staging owner session unavailable"; exit 1; }
+          echo "::add-mask::$OWNER_TOKEN"
+
+          SESSIONS_JSON="$(curl --fail --silent --show-error             -H "authorization: Bearer $OWNER_TOKEN"             "$STAGING_URL/api/1lss/sessions?limit=50")"
+
+          mapfile -t SESSION_REFS < <(
+            printf '%s' "$SESSIONS_JSON" | jq -r '
+              [.sessions[]? | select(.source_surface != "openai-agent") | .session_ref]
+              | unique
+              | .[]
+            ' | head -n 2
+          )
+
+          if test "${#SESSION_REFS[@]}" -lt 2; then
+            echo "::notice::OGE-57 live E2E DEFERRED: fewer than two non-provider 1LSS session refs are available."
+            {
+              echo "### OGE-57 staging E2E"
+              echo ""
+              echo "DEFERRED — fewer than two non-provider session refs are available in owner-main."
+              echo "Core CI remains verified; no schema change was attempted."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          ORIGIN_REF="${SESSION_REFS[0]}"
+          TARGET_REF="${SESSION_REFS[1]}"
+          IDEMPOTENCY="oge57-staging-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          ASSIGN_BODY="$(jq -nc             --arg title "OGE-57 staging cross-session roundtrip"             --arg origin "$ORIGIN_REF"             --arg target "$TARGET_REF"             '{title:$title,origin_session_ref:$origin,target_session_ref:$target,priority:60}')"
+
+          ASSIGN_JSON="$(curl --fail --silent --show-error             -H "authorization: Bearer $OWNER_TOKEN"             -H "Idempotency-Key: $IDEMPOTENCY"             -H 'content-type: application/json'             --data "$ASSIGN_BODY"             "$STAGING_URL/api/task-inbox/assign")"
+          TASK_ID="$(printf '%s' "$ASSIGN_JSON" | jq -r '.task.id // empty')"
+          test -n "$TASK_ID" || { echo "::error::OGE-57 assignment returned no task id"; exit 1; }
+
+          INBOX_JSON="$(curl --fail --silent --show-error             -H "authorization: Bearer $OWNER_TOKEN"             --get --data-urlencode "session_ref=$TARGET_REF"             "$STAGING_URL/api/task-inbox")"
+          printf '%s' "$INBOX_JSON" | jq -e --arg task "$TASK_ID" '.tasks | any(.id == $task)' >/dev/null
+
+          RESULT_BODY="$(jq -nc             --arg session "$TARGET_REF"             --arg ref "github-actions://${GITHUB_RUN_ID}/oge-57"             --arg summary "Staging target session completed the deterministic OGE-57 roundtrip."             '{session_ref:$session,status:"DONE",result_ref:$ref,summary:$summary}')"
+
+          RESULT_JSON="$(curl --fail --silent --show-error             -H "authorization: Bearer $OWNER_TOKEN"             -H 'content-type: application/json'             --data "$RESULT_BODY"             "$STAGING_URL/api/task-inbox/$TASK_ID/result")"
+          printf '%s' "$RESULT_JSON" | jq -e '.ok == true and .task.status == "DONE"' >/dev/null
+
+          TRAIL_JSON="$(curl --fail --silent --show-error             -H "authorization: Bearer $OWNER_TOKEN"             "$STAGING_URL/api/task-inbox/$TASK_ID/trail")"
+          printf '%s' "$TRAIL_JSON" | jq -e '
+            .ok == true and
+            .canonical_trail == "owner-main" and
+            ([.events[].event_type] | index("TASK_ASSIGNED") != null) and
+            ([.events[].event_type] | index("TASK_RESULT_DONE") != null)
+          ' >/dev/null
+
+          {
+            echo "### OGE-57 staging E2E"
+            echo ""
+            echo "PASS — assignment → target inbox → DONE result → owner-main event trail."
+            echo "Task id: `$TASK_ID`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Verify configured provider bindings in Blue registry
         if: steps.scope.outputs.ui_only != 'true'
         shell: bash
