@@ -146,6 +146,7 @@ export default function UnifiedChat({ surface }: Props) {
   const attachments = composerDraft.attachments;
   const setDraft = composerDraft.store.setText.bind(composerDraft.store);
   const [sending, setSending] = useState(false);
+  const [newAgentSession, setNewAgentSession] = useState(false);
   const [toolDock, setToolDock] = useState(false);
   const [capabilityQuery, setCapabilityQuery] = useState("");
   const [modelDock, setModelDock] = useState(false);
@@ -517,11 +518,15 @@ export default function UnifiedChat({ surface }: Props) {
         source_surface: surface,
         reasoning_effort: chatConfig.effort,
         allow_paid_fallback: allowPaidFallback,
+        new_session: newAgentSession,
       }),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !body?.ok) throw new Error(body?.message || body?.code || `HTTP_${response.status}`);
-    if (body.agent_session_id) setInlineNotice(`Agent Session · ${body.agent_session_id}`);
+    if (body.agent_session_id) {
+      setNewAgentSession(false);
+      setInlineNotice(`Agent Session · ${body.agent_session_id}${body.session_continuation ? " · continued" : " · new"}`);
+    }
     await loadHistory();
   }
 
@@ -591,8 +596,9 @@ export default function UnifiedChat({ surface }: Props) {
     setViewportFloor(latestSequence);
     setMessages([]);
     setToolMode("chat");
+    setNewAgentSession(true);
     setNewDock(false);
-    setInlineNotice(memory ? `New viewport · D1 ต่อจาก #${latestSequence}` : "New ephemeral chat · D1 off");
+    setInlineNotice(memory ? `New viewport · D1 ต่อจาก #${latestSequence} · next Agent turn starts a new provider session` : "New ephemeral chat · D1 off");
   }
 
   function selectExperience(next: ExperienceMode) {
