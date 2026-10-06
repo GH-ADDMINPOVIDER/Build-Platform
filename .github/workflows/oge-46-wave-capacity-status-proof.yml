@@ -1,0 +1,39 @@
+name: OGE-46 WAVE Capacity Status Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "src/WaveNext.tsx"
+      - "src/wave-next.css"
+      - "worker/violet-stone-api.ts"
+      - "worker/app-api.ts"
+      - "tests/wave-capacity-status.test.mjs"
+      - ".github/workflows/oge-46-wave-capacity-status-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Capacity and Agent status regression
+        run: node --test tests/wave-capacity-status.test.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
