@@ -15,7 +15,8 @@ test("WAVE NEXT owns operate command and agents while legacy remains rollback", 
   assert.match(main, /<WaveNext initialTab="run" surface="operate" \/>/);
   assert.match(main, /<WaveNext initialTab="run" surface="command" \/>/);
   assert.match(main, /<WaveNext initialTab="agent" surface="agents" \/>/);
-  assert.match(main, /<ControlPlaneV2 \/>/);
+  assert.match(main, /<LegacyControlSurface \/>/);
+  assert.doesNotMatch(main, /<ControlPlaneV2 \/>/);
   assert.match(ui, /href="\/overview"/);
   assert.match(ui, /href="\/command"/);
   assert.match(ui, /href="\/agents"/);
