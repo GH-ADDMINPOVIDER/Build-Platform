@@ -1,1 +1,49 @@
-import assert from "node:assert/strict";\nimport { readFileSync } from "node:fs";\nimport test from "node:test";\n\nconst toggle = readFileSync("src/WaveThemeToggle.tsx", "utf8");\nconst themeCss = readFileSync("src/wave-theme.css", "utf8");\nconst main = readFileSync("src/main.tsx", "utf8");\nconst legacy = readFileSync("src/LegacyControlSurface.tsx", "utf8");\nconst chatCss = readFileSync("src/unified-chat.css", "utf8");\nconst webCss = readFileSync("src/landing.css", "utf8");\nconst operateCss = readFileSync("src/wave-next.css", "utf8");\n\ntest("OGE-65 uses one persisted shared theme key and applies it to document root", () => {\n  assert.match(toggle, /WAVE_THEME_KEY = "ogenic\\.webdev\\.theme\\.v1"/);\n  assert.match(toggle, /localStorage\\.getItem\\(WAVE_THEME_KEY\\)/);\n  assert.match(toggle, /localStorage\\.setItem\\(WAVE_THEME_KEY, theme\\)/);\n  assert.match(toggle, /root\\.dataset\\.ogTheme = theme/);\n  assert.match(toggle, /root\\.style\\.colorScheme = theme/);\n});\n\ntest("explicit user choice wins and cross-tab storage events synchronize state", () => {\n  assert.match(toggle, /saved === "light" \\|\\| saved === "dark"/);\n  assert.match(toggle, /matchMedia/);\n  assert.match(toggle, /window\\.addEventListener\\("storage", sync\\)/);\n  assert.match(toggle, /event\\.key !== WAVE_THEME_KEY/);\n  assert.match(toggle, /setTheme\\(event\\.newValue\\)/);\n});\n\ntest("one global toggle is mounted above canonical and lazy legacy surfaces", () => {\n  assert.match(main, /import WaveThemeToggle from "\\.\\/WaveThemeToggle"/);\n  assert.equal((main.match(/<WaveThemeToggle \\/>/g) || []).length, 1);\n  assert.match(main, /const LegacyControlSurface = lazy/);\n  assert.doesNotMatch(legacy, /WaveThemeToggle|ThemeController/);\n});\n\ntest("WAVE Chat, Web and Operate expose explicit light and dark selectors", () => {\n  for (const [name, css] of [["chat", chatCss], ["web", webCss], ["operate", operateCss]]) {\n    assert.match(css, /:root\\[data-og-theme="light"\\]/, `${name} missing explicit light theme`);\n    assert.match(css, /:root\\[data-og-theme="dark"\\]/, `${name} missing explicit dark theme`);\n  }\n});\n\ntest("theme toggle is mobile safe and accessible", () => {\n  assert.match(toggle, /aria-label=/);\n  assert.match(toggle, /Switch to/);\n  assert.match(themeCss, /safe-area-inset-top/);\n  assert.match(themeCss, /@media\\(max-width:700px\\)/);\n  assert.match(themeCss, /backdrop-filter:blur\\(18px\\)/);\n});\n
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+const toggle = readFileSync("src/WaveThemeToggle.tsx", "utf8");
+const themeCss = readFileSync("src/wave-theme.css", "utf8");
+const main = readFileSync("src/main.tsx", "utf8");
+const legacy = readFileSync("src/LegacyControlSurface.tsx", "utf8");
+const chatCss = readFileSync("src/unified-chat.css", "utf8");
+const webCss = readFileSync("src/landing.css", "utf8");
+const operateCss = readFileSync("src/wave-next.css", "utf8");
+
+test("OGE-65 uses one persisted shared theme key and applies it to document root", () => {
+  assert.match(toggle, /WAVE_THEME_KEY = "ogenic\\.webdev\\.theme\\.v1"/);
+  assert.match(toggle, /localStorage\\.getItem\\(WAVE_THEME_KEY\\)/);
+  assert.match(toggle, /localStorage\\.setItem\\(WAVE_THEME_KEY, theme\\)/);
+  assert.match(toggle, /root\\.dataset\\.ogTheme = theme/);
+  assert.match(toggle, /root\\.style\\.colorScheme = theme/);
+});
+
+test("explicit user choice wins and cross-tab storage events synchronize state", () => {
+  assert.match(toggle, /saved === "light" \\|\\| saved === "dark"/);
+  assert.match(toggle, /matchMedia/);
+  assert.match(toggle, /window\\.addEventListener\\("storage", sync\\)/);
+  assert.match(toggle, /event\\.key !== WAVE_THEME_KEY/);
+  assert.match(toggle, /setTheme\\(event\\.newValue\\)/);
+});
+
+test("one global toggle is mounted above canonical and lazy legacy surfaces", () => {
+  assert.match(main, /import WaveThemeToggle from "\\.\\/WaveThemeToggle"/);
+  assert.equal((main.match(/<WaveThemeToggle \\/>/g) || []).length, 1);
+  assert.match(main, /const LegacyControlSurface = lazy/);
+  assert.doesNotMatch(legacy, /WaveThemeToggle|ThemeController/);
+});
+
+test("WAVE Chat, Web and Operate expose explicit light and dark selectors", () => {
+  for (const [name, css] of [["chat", chatCss], ["web", webCss], ["operate", operateCss]]) {
+    assert.match(css, /:root\\[data-og-theme="light"\\]/, `${name} missing explicit light theme`);
+    assert.match(css, /:root\\[data-og-theme="dark"\\]/, `${name} missing explicit dark theme`);
+  }
+});
+
+test("theme toggle is mobile safe and accessible", () => {
+  assert.match(toggle, /aria-label=/);
+  assert.match(toggle, /Switch to/);
+  assert.match(themeCss, /safe-area-inset-top/);
+  assert.match(themeCss, /@media\\(max-width:700px\\)/);
+  assert.match(themeCss, /backdrop-filter:blur\\(18px\\)/);
+});
