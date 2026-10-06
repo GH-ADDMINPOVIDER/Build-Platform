@@ -106,6 +106,8 @@ export function validateInput(capability: GithubReadCapability, value: unknown):
   const spec = CAPABILITY_SPECS[capability];
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("INVALID_INPUT_OBJECT");
   const input = value as Record<string, unknown>;
+  const normalized: Record<string, unknown> = {};
+  const properties = (spec.inputSchema.properties ?? {}) as Record<string, { maxLength?: number }>;
   for (const key of Object.keys(input)) {
     if (!spec.allowed.includes(key)) throw new Error(`UNSUPPORTED_INPUT_FIELD:${key}`);
     if (SECRET_KEY.test(key)) throw new Error(`CREDENTIAL_FIELD_REJECTED:${key}`);
@@ -119,13 +121,17 @@ export function validateInput(capability: GithubReadCapability, value: unknown):
       const trimmed = current.trim();
       if (!trimmed) throw new Error(`EMPTY_INPUT_FIELD:${key}`);
       if (SECRET_VALUE.test(trimmed)) throw new Error(`CREDENTIAL_VALUE_REJECTED:${key}`);
-      input[key] = trimmed;
+      const maxLength = properties[key]?.maxLength;
+      if (typeof maxLength === "number" && trimmed.length > maxLength) throw new Error(`INPUT_TOO_LONG:${key}`);
+      normalized[key] = trimmed;
+      continue;
     }
     if (key === "number" && (!Number.isInteger(current) || Number(current) < 1)) {
       throw new Error("INVALID_NUMBER");
     }
+    normalized[key] = current;
   }
-  return { ...input };
+  return normalized;
 }
 
 export function safeObject(value: unknown): unknown {
