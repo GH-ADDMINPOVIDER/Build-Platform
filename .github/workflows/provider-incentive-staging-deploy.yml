@@ -316,6 +316,18 @@ jobs:
           printf '%s' "$BODY" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
           echo "Staging deploy verified: ${STAGING_URL}"
 
+      - name: Verify WAVE shared-theme surface routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for route in / /chat /overview; do
+            BODY_FILE="$(mktemp)"
+            CODE="$(curl --silent --show-error --output "$BODY_FILE" --write-out '%{http_code}' "${STAGING_URL}${route}")"
+            test "$CODE" = "200" || { echo "::error::WAVE surface ${route} returned HTTP ${CODE}"; cat "$BODY_FILE"; rm -f "$BODY_FILE"; exit 1; }
+            grep -q 'id="root"' "$BODY_FILE" || { echo "::error::WAVE surface ${route} missing app root"; rm -f "$BODY_FILE"; exit 1; }
+            rm -f "$BODY_FILE"
+          done
+          echo "WAVE Web / Chat / Operate staging routes verified after shared-theme build."
       - name: OGE-57 live staging task inbox roundtrip
         if: steps.scope.outputs.ui_only != 'true'
         shell: bash
