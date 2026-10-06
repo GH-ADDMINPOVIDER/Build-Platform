@@ -359,6 +359,48 @@ jobs:
             echo "PASS — /maop is live; Core lifecycle passed; GitHub READ traversed MA-OP → Yellow; Ruby scorecard responded."
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: OGE-68 live n8n legacy source proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUTH_HEADER="x-ogenic-ops-key: ${OGENIC_OPS_KEY}"
+          STATUS="$(curl --fail --silent --show-error -H "$AUTH_HEADER" "${STAGING_URL}/api/n8n/migration/status")"
+          printf '%s' "$STATUS" | jq -e '
+            .ok == true and
+            .runtime == "N8N_LEGACY_SOURCE_BRIDGE_V1" and
+            .source.mode == "N8N_CLOUD_PUBLIC_API_READ_ONLY" and
+            .source.direct_database_access == false and
+            .source.api_key_bound == true and
+            .migration_policy.workflow_execution_allowed == false and
+            .migration_policy.workflow_mutation_allowed == false and
+            .migration_policy.credential_secret_export_allowed == false
+          ' >/dev/null
+
+          KNOWN_ID="$(printf '%s' "$STATUS" | jq -r '.inventory.known_legacy_workflow_id')"
+          test "$KNOWN_ID" = "iJVOGWcwMj8x7u9S"
+
+          if printf '%s' "$STATUS" | jq -e '.inventory.known_legacy_workflow_found == true' >/dev/null; then
+            DETAIL="$(curl --fail --silent --show-error -H "$AUTH_HEADER" "${STAGING_URL}/api/n8n/migration/workflow/${KNOWN_ID}")"
+            printf '%s' "$DETAIL" | jq -e '
+              .ok == true and
+              .read_only == true and
+              .workflow.id == "iJVOGWcwMj8x7u9S" and
+              .redaction.node_parameters_returned == false and
+              .redaction.credential_ids_returned == false and
+              .redaction.credential_names_returned == false and
+              .redaction.credential_secrets_returned == false
+            ' >/dev/null
+            echo "n8n legacy source PASS: known workflow metadata is readable without exposing credentials."
+          else
+            echo "::warning::n8n source connected, but known legacy workflow is not on the first API page."
+          fi
+
+          {
+            echo "### OGE-68 n8n legacy source"
+            echo ""
+            echo "PASS — old n8n Cloud source is reachable read-only through server-side credentials; no direct DB access or workflow mutation used."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: OGE-57 live staging task inbox roundtrip
         if: steps.scope.outputs.ui_only != 'true'
         shell: bash
