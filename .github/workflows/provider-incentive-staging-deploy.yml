@@ -397,7 +397,7 @@ jobs:
             echo "### OGE-57 staging E2E"
             echo ""
             echo "PASS — assignment → target inbox → DONE result → owner-main event trail."
-            echo "Task id: `$TASK_ID`"
+            echo "Task id: \`$TASK_ID\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify configured provider bindings in Blue registry
