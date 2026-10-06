@@ -21,3 +21,7 @@
 .wnStatusFacts span{opacity:.72}
 .wnStatusFacts strong{overflow-wrap:anywhere}
 @media (max-width:760px){.wnStatusGrid{grid-template-columns:1fr}.wnStatusCard{padding:12px}.wnStatusTitle{align-items:flex-start}}
+
+
+.wnEvidenceLink{display:inline-flex;margin-top:5px;font-size:11px;font-weight:700;text-decoration:none}
+.wnEvidenceRef{display:block;margin-top:5px;font-size:10px;opacity:.64;overflow-wrap:anywhere;max-width:100%}
