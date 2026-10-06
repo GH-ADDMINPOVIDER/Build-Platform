@@ -158,7 +158,10 @@ export default function UnifiedChat({ surface }: Props) {
   const [chatConfig, setChatConfig] = useState<ChatConfig>(() => readJson(CHAT_CONFIG_KEY, DEFAULT_CONFIG));
   const [inlineNotice, setInlineNotice] = useState("");
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus | null>(null);
+  const [activeMessageMenu, setActiveMessageMenu] = useState<string | null>(null);
+  const [speakingMessage, setSpeakingMessage] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
+  const composerInput = useRef<HTMLTextAreaElement | null>(null);
   const chatEnd = useRef<HTMLDivElement | null>(null);
   const latestSequenceRef = useRef(0);
   const eventCursorRef = useRef(0);
@@ -557,6 +560,128 @@ export default function UnifiedChat({ surface }: Props) {
     else setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "assistant", text: body.text, model: body.model, created_at: Date.now() }]);
   }
 
+  function messageActionKey(message: Message, index: number) {
+    return String(message.id || message.sequence_no || `message-${index}`);
+  }
+
+  async function copyText(value: string) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+    const node = document.createElement("textarea");
+    node.value = value;
+    node.setAttribute("readonly", "");
+    node.style.position = "fixed";
+    node.style.opacity = "0";
+    document.body.appendChild(node);
+    node.select();
+    const copied = document.execCommand("copy");
+    document.body.removeChild(node);
+    if (!copied) throw new Error("Clipboard unavailable");
+  }
+
+  async function recordMessageAction(message: Message, index: number, action: "REACTION" | "FEEDBACK" | "RETRY_REQUESTED" | "EVIDENCE_OPENED", value = "") {
+    const response = await fetch("/api/chat/message-action", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": `msg_action_${crypto.randomUUID()}`,
+      },
+      body: JSON.stringify({
+        action,
+        value,
+        message_id: message.id || messageActionKey(message, index),
+        sequence_no: message.sequence_no || undefined,
+        source_surface: message.source_surface || surface,
+      }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body?.ok) throw new Error(body?.message || body?.code || `HTTP_${response.status}`);
+  }
+
+  async function copyMessage(message: Message) {
+    const text = cleanText(message.text, 20_000);
+    if (!text) return;
+    await copyText(text);
+    setInlineNotice("Copied message");
+  }
+
+  async function shareMessage(message: Message) {
+    const text = cleanText(message.text, 20_000);
+    if (!text) return;
+    if (navigator.share) {
+      await navigator.share({ title: "WAVE", text });
+      setInlineNotice("Shared message");
+      return;
+    }
+    await copyText(text);
+    setInlineNotice("Share unavailable here · copied instead");
+  }
+
+  function readMessage(message: Message, index: number) {
+    const key = messageActionKey(message, index);
+    if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+      setInlineNotice("Read Aloud unavailable in this browser");
+      return;
+    }
+    if (speakingMessage === key) {
+      window.speechSynthesis.cancel();
+      setSpeakingMessage(null);
+      setInlineNotice("Read Aloud stopped");
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(cleanText(message.text, 20_000));
+    utterance.onend = () => setSpeakingMessage((current) => current === key ? null : current);
+    utterance.onerror = () => setSpeakingMessage((current) => current === key ? null : current);
+    setSpeakingMessage(key);
+    window.speechSynthesis.speak(utterance);
+  }
+
+  async function retryMessage(message: Message, index: number) {
+    const priorUser = [...messages.slice(0, index)].reverse().find((row) => row.role === "user" && cleanText(row.text));
+    if (!priorUser?.text) {
+      setInlineNotice("No preceding user prompt available to retry");
+      return;
+    }
+    await recordMessageAction(message, index, "RETRY_REQUESTED", "QUEUED");
+    setDraft(priorUser.text);
+    setToolMode("chat");
+    setActiveMessageMenu(null);
+    setInlineNotice("Retry queued in composer · review and Send when ready");
+    window.setTimeout(() => composerInput.current?.focus(), 0);
+  }
+
+  async function reactToMessage(message: Message, index: number, value: "👍" | "👎" | "❤️" | "🔥") {
+    await recordMessageAction(message, index, "REACTION", value);
+    setActiveMessageMenu(null);
+    setInlineNotice(`Reaction ${value} saved as reference-only evidence`);
+  }
+
+  async function feedbackMessage(message: Message, index: number, value: "HELPFUL" | "NEEDS_WORK") {
+    await recordMessageAction(message, index, "FEEDBACK", value);
+    setActiveMessageMenu(null);
+    setInlineNotice(value === "HELPFUL" ? "Feedback saved · helpful" : "Feedback saved · needs work");
+  }
+
+  async function openMessageEvidence(message: Message, index: number) {
+    await recordMessageAction(message, index, "EVIDENCE_OPENED", "OPENED");
+    const source = parseUrl(cleanText(message.text, 20_000));
+    if (source) {
+      try {
+        const url = new URL(source);
+        if (url.protocol === "https:" || url.protocol === "http:") {
+          window.open(url.toString(), "_blank", "noopener,noreferrer");
+          return;
+        }
+      } catch { /* fall through to canonical run surface */ }
+    }
+    const sequence = Number(message.sequence_no ?? 0);
+    window.location.assign(`/overview?tab=run${sequence ? `&sequence=${sequence}` : ""}`);
+  }
+
   async function send() {
     const prompt = draft.trim() || (attachments.length ? "วิเคราะห์ไฟล์ที่แนบมา" : "");
     if (!prompt || sending) return;
@@ -657,11 +782,32 @@ export default function UnifiedChat({ surface }: Props) {
     <section className="ucConversation">
       {historyHasMore && <button className="ghost" onClick={() => void loadOlder()}>↑ Load older 1LSS</button>}
       {!messages.length && <div className="ucWelcome"><div className="ucOrb"><i /></div><small>WAVE · SAME MIND</small><h1>What are we doing next?</h1><p>Powered by OGENIC HARNESS · capability · 1LSS — one canonical line.</p></div>}
-      {messages.map((message, index) => <article key={message.id || index} className={`ucMessage ${message.role || "assistant"}`}>
-        <div className="ucMessageMeta"><b>{message.role === "user" ? "YOU" : message.role === "system" ? "SYSTEM" : "WAVE"}</b><span>{message.sequence_no ? `#${message.sequence_no}` : ""}{message.source_surface ? ` · ${message.source_surface}` : ""}{message.created_at ? ` · ${timeAgo(message.created_at)}` : ""}</span></div>
-        <p>{message.text}</p>
-        {message.model && <small>{message.model}</small>}
-      </article>)}
+      {messages.map((message, index) => {
+        const actionKey = messageActionKey(message, index);
+        const assistantMessage = message.role === "assistant";
+        return <article key={message.id || index} className={`ucMessage ${message.role || "assistant"}`}>
+          <div className="ucMessageMeta"><b>{message.role === "user" ? "YOU" : message.role === "system" ? "SYSTEM" : "WAVE"}</b><span title={message.created_at ? new Date(message.created_at).toLocaleString() : undefined}>{message.sequence_no ? `#${message.sequence_no}` : ""}{message.source_surface ? ` · ${message.source_surface}` : ""}{message.created_at ? ` · ${timeAgo(message.created_at)}` : ""}</span></div>
+          <p>{message.text}</p>
+          {message.model && <small>{message.model}</small>}
+          {assistantMessage && <div className="ucMessageActions" aria-label="Message actions">
+            <button onClick={() => void copyMessage(message)}>Copy</button>
+            <button onClick={() => void shareMessage(message)}>Share</button>
+            <button onClick={() => readMessage(message, index)}>{speakingMessage === actionKey ? "Stop" : "Listen"}</button>
+            <button onClick={() => void retryMessage(message, index)}>Retry</button>
+            <button onClick={() => void openMessageEvidence(message, index)}>Evidence</button>
+            <button aria-expanded={activeMessageMenu === actionKey} onClick={() => setActiveMessageMenu((current) => current === actionKey ? null : actionKey)}>More</button>
+            {activeMessageMenu === actionKey && <div className="ucMessageMore">
+              <small>REACTION</small>
+              <div>
+                {(["👍", "👎", "❤️", "🔥"] as const).map((reaction) => <button key={reaction} aria-label={`React ${reaction}`} onClick={() => void reactToMessage(message, index, reaction)}>{reaction}</button>)}
+              </div>
+              <small>FEEDBACK</small>
+              <button onClick={() => void feedbackMessage(message, index, "HELPFUL")}>Helpful</button>
+              <button onClick={() => void feedbackMessage(message, index, "NEEDS_WORK")}>Needs work</button>
+            </div>}
+          </div>}
+        </article>;
+      })}
       {sending && <article className="ucMessage assistant"><div className="ucMessageMeta"><b>AMMONITE</b><span>working</span></div><p className="ucThinking">•••</p></article>}
       <div ref={chatEnd} />
     </section>
@@ -701,7 +847,7 @@ export default function UnifiedChat({ surface }: Props) {
         {EXPERIENCE_MODES.map((item) => <button key={item.id} className={experienceMode === item.id ? "active" : ""} aria-pressed={experienceMode === item.id} onClick={() => selectExperience(item.id)}><b>{item.label}</b><small>{item.state}</small></button>)}
       </div>
       <section className="ucComposer">
-        <textarea rows={1} disabled={!composerDraft.ready} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message WAVE…"} />
+        <textarea ref={composerInput} rows={1} disabled={!composerDraft.ready} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message WAVE…"} />
         <div className="ucComposerBar">
           <button className="ucRound" onClick={() => { setToolDock((value) => !value); setModelDock(false); }}>＋</button>
           <button className="ucModel" onClick={() => { setModelDock((value) => !value); setToolDock(false); }}><i /> <b>{selectedModel.label}</b><small>{EFFORTS.find((row) => row.id === chatConfig.effort)?.label} · ×{chatConfig.boost}</small>⌄</button>
