@@ -1,0 +1,38 @@
+name: OGE-56 AUTO Routing V1 Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "packages/auto-routing/**"
+      - ".github/workflows/oge-56-auto-routing-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build and test AUTO routing
+        working-directory: packages/auto-routing
+        run: |
+          npm install --package-lock-only
+          npm ci
+          npm test
+
+      - name: Prove selection-only boundary
+        run: |
+          set -euo pipefail
+          ! grep -R -E 'api\.(openai|anthropic|perplexity|github)\.com|fetch[[:space:]]*\(' packages/auto-routing/src
+          ! grep -R -E 'CREATE TABLE|ALTER TABLE|DROP TABLE' packages/auto-routing
+          grep -R 'YELLOW_STONE_ONLY' packages/auto-routing/src
+          grep -R 'provider_fallback: "DENIED"' packages/auto-routing/src
