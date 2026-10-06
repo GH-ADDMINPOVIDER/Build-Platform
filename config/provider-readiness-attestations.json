@@ -1,0 +1,19 @@
+{
+  "version": "PROVIDER_READINESS_ATTESTATIONS_V1",
+  "generated_from_verified_runtime_evidence_only": true,
+  "providers": {
+    "gemini": {
+      "verification_state": "VERIFIED",
+      "api": "REACHABLE",
+      "quota": "AVAILABLE",
+      "billing": "ACTIVE",
+      "model": "gemini-3.7-flash",
+      "evidence_ref": "github-actions://Ogenicchocolate21debug/Build-Platform/37455711057",
+      "http_status": 200,
+      "content_present": true,
+      "total_tokens": 93,
+      "verified_at": "2026-10-06T11:24:53Z",
+      "policy": "ONE_PASS_NO_AUTO_RETRY"
+    }
+  }
+}
