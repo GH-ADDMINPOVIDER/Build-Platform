@@ -331,3 +331,43 @@ button { color: inherit; }
   .ucMessageActions>button{flex:0 0 auto;padding:7px 8px}
   .ucMessageMore{position:fixed;left:12px;right:12px;bottom:calc(176px + env(safe-area-inset-bottom));width:auto;grid-template-columns:1fr 1fr}
 }
+
+
+/* OGE-65 · explicit shared theme state */
+:root[data-og-theme="dark"]{color-scheme:dark}
+:root[data-og-theme="light"]{
+  color-scheme:light;
+  --uc-bg:#f2f6f3;
+  --uc-panel:rgba(255,255,255,.9);
+  --uc-card:#ffffff;
+  --uc-text:#101713;
+  --uc-sub:#637168;
+  --uc-line:rgba(28,88,54,.14);
+  --uc-accent:#13784d;
+  --uc-accent-soft:rgba(32,154,96,.1);
+  --uc-green:#13784d;
+  --uc-warn:#a66a12;
+  --uc-shadow:0 18px 50px rgba(29,48,36,.13);
+}
+:root[data-og-theme="light"] .ucShell,
+:root[data-og-theme="light"] .ucSplash,
+:root[data-og-theme="light"] .ucAuth{
+  background:
+    linear-gradient(180deg,rgba(247,251,248,.9),rgba(238,245,240,.97)),
+    url("/assets/wave-bg-desktop.webp") center/cover fixed no-repeat,
+    var(--uc-bg);
+}
+:root[data-og-theme="light"] .ucMessage.user{
+  border-color:rgba(20,128,78,.24);
+  background:linear-gradient(145deg,rgba(222,247,232,.92),rgba(235,248,240,.82));
+  box-shadow:0 10px 30px rgba(34,92,61,.1),inset 0 1px 0 rgba(255,255,255,.8);
+}
+:root[data-og-theme="light"] .ucMessage.assistant{
+  border-color:rgba(86,76,190,.18);
+  background:linear-gradient(145deg,rgba(250,250,255,.94),rgba(240,242,251,.9));
+  box-shadow:0 10px 30px rgba(50,52,92,.09),inset 0 1px 0 rgba(255,255,255,.9);
+}
+:root[data-og-theme="light"] .ucMessage.user .ucMessageMeta b{color:#0d7045}
+:root[data-og-theme="light"] .ucMessage.assistant .ucMessageMeta b{color:#554aa0}
+:root[data-og-theme="light"] .ucOrb{background:linear-gradient(145deg,#f7f7ff,#6879df 58%,#a4b2ff)}
+:root[data-og-theme="light"] .ucMessageMore{background:rgba(255,255,255,.96)}
