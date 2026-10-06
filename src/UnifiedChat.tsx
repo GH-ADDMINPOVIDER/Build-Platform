@@ -841,7 +841,7 @@ export default function UnifiedChat({ surface }: Props) {
       {toolMode !== "chat" && <div className="ucActiveTool"><span>{toolMode.toUpperCase()}</span><button onClick={() => setToolMode("chat")}>×</button></div>}
       <ComposerAttachments rows={attachments} store={composerDraft.store} disabled={sending} />
       {composerDraft.persistenceError && <div className="ucNotice" role="alert">{composerDraft.persistenceError}</div>}
-      {inlineNotice && <div className="ucNotice">{inlineNotice}</div>}
+      {inlineNotice && <div className="ucNotice" role="status" aria-live="polite">{inlineNotice}</div>}
       {quotaBlocked && <div className="ucQuotaWarn"><b>Guarded quota หมด</b><span>Paid fallback ปิดอยู่ กูจะไม่ข้าม guard เอง</span><button onClick={() => setAllowPaidFallback(true)}>Allow paid fallback</button></div>}
       <div className="ucExperience" role="group" aria-label="Chat mode">
         {EXPERIENCE_MODES.map((item) => <button key={item.id} className={experienceMode === item.id ? "active" : ""} aria-pressed={experienceMode === item.id} onClick={() => selectExperience(item.id)}><b>{item.label}</b><small>{item.state}</small></button>)}
