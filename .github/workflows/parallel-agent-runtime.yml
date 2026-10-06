@@ -8,6 +8,7 @@ on:
       - "scripts/parallel-agent-runtime.mjs"
       - "scripts/reduce-parallel-agent-results.mjs"
       - "scripts/one-pass-runtime-refinery.mjs"
+      - "tests/oge-47-parallel-agent-runtime-policy.test.mjs"
       - "tests/oge-48-one-pass-runtime-refinery.test.mjs"
       - "infra/knowledge-sandbox/**"
       - "worker/knowledge-refinery.ts"
@@ -47,7 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/parallel-agent-runtime.mjs prepare --worker="${AI_WORKER_NAME}" --output=".ogenic-agent/${AI_WORKER_NAME}/result.json"
-          node scripts/one-pass-runtime-refinery.mjs             --worker="${AI_WORKER_NAME}"             --task-id="oge-48-${AI_WORKER_NAME}"             --research="perplexity"             --readiness="${OGENIC_READINESS_PERPLEXITY_STATE:-NOT_MEASURED}"             --output=".ogenic-agent/${AI_WORKER_NAME}/refinery-plan.json"
+          node scripts/one-pass-runtime-refinery.mjs --worker="${AI_WORKER_NAME}" --task-id="oge-48-${AI_WORKER_NAME}" --research="perplexity" --readiness="${OGENIC_READINESS_PERPLEXITY_STATE:-NOT_MEASURED}" --output=".ogenic-agent/${AI_WORKER_NAME}/refinery-plan.json"
 
       - name: Assert no-loop worker policy
         env:
@@ -96,7 +97,8 @@ jobs:
       - name: Verify all three runtime results serially
         run: |
           set -euo pipefail
-          node scripts/reduce-parallel-agent-results.mjs             --input=parallel-agent-results             --mode=dry-run             --output=docs/evidence/oge-47-parallel-agent-runtime-latest.json
+          node scripts/reduce-parallel-agent-results.mjs --input=parallel-agent-results --mode=dry-run --output=docs/evidence/oge-47-parallel-agent-runtime-latest.json
+          node --test tests/oge-47-parallel-agent-runtime-policy.test.mjs
           node --test tests/oge-48-one-pass-runtime-refinery.test.mjs
 
       - name: Publish sanitized reducer evidence
@@ -123,7 +125,7 @@ jobs:
       - name: Build one-pass Perplexity → Docker gate
         run: |
           set -euo pipefail
-          node scripts/one-pass-runtime-refinery.mjs             --worker="coordinator"             --task-id="oge-48-research-docker-gate"             --research="perplexity"             --readiness="${OGENIC_READINESS_PERPLEXITY_STATE:-NOT_MEASURED}"             --output="oge-48-research-docker-plan.json"
+          node scripts/one-pass-runtime-refinery.mjs --worker="coordinator" --task-id="oge-48-research-docker-gate" --research="perplexity" --readiness="${OGENIC_READINESS_PERPLEXITY_STATE:-NOT_MEASURED}" --output="oge-48-research-docker-plan.json"
           jq -e '
             .policy.attempt_budget == 1 and
             .policy.auto_retry == false and
@@ -135,7 +137,7 @@ jobs:
         run: |
           set -euo pipefail
           docker build -f infra/knowledge-sandbox/Dockerfile -t wave-knowledge-sandbox:${GITHUB_SHA} .
-          docker run --rm             --network=none             --read-only             --cap-drop=ALL             --security-opt=no-new-privileges             wave-knowledge-sandbox:${GITHUB_SHA} > oge-48-docker-substrate-proof.json
+          docker run --rm --network=none --read-only --cap-drop=ALL --security-opt=no-new-privileges wave-knowledge-sandbox:${GITHUB_SHA} > oge-48-docker-substrate-proof.json
           jq -e '
             .ok == true and
             .runtime == "DOCKER_WORKER" and
