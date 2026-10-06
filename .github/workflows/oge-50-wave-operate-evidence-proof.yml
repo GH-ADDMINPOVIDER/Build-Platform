@@ -1,0 +1,38 @@
+name: OGE-50 WAVE Operate Evidence Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "src/WaveNext.tsx"
+      - "src/wave-next.css"
+      - "worker/app-api.ts"
+      - "tests/wave-operate-evidence.test.mjs"
+      - ".github/workflows/oge-50-wave-operate-evidence-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Jobs runs and evidence regression
+        run: node --test tests/wave-operate-evidence.test.mjs
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
