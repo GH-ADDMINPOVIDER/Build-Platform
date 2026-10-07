@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { hasOwnerSession, type AuthBindings } from "./app-auth";
+import { boundedReadPrompt } from "./agent-context-policy";
 
 export type DeepSeekBindings = AuthBindings & {
   DEEPSEEK_API_KEY?: string;
@@ -63,7 +64,7 @@ export function createDeepSeekApi() {
     }
 
     const body = await c.req.json<DeepSeekBody>().catch(() => ({} as DeepSeekBody));
-    const prompt = clean(body.prompt, 12_000);
+    const prompt = boundedReadPrompt(body.prompt);
     if (!prompt) {
       return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt is required" }, 400);
     }
