@@ -1,0 +1,113 @@
+name: OGE-70 n8n Execution Fabric Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-70-n8n-execution-fabric-proof.yml"
+      - "config/n8n-oge-placement.json"
+      - "deploy/n8n-selfhost/workflows/ogenic-oge62-flow-preaudit-v1.sanitized.json"
+      - "deploy/n8n-selfhost/workflows/ogenic-evidence-normalizer-v1.sanitized.json"
+      - "deploy/n8n-selfhost/workflows/ogenic-task-router-v1.sanitized.json"
+      - "tests/oge-70-n8n-execution-fabric.test.mjs"
+      - "worker/n8n-migration-api.ts"
+      - "src/MaopLab.tsx"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  N8N_SELFHOST_BASE_URL: ${{ vars.N8N_SELFHOST_BASE_URL || 'https://n8n-staging-76b7.up.railway.app' }}
+  STAGING_URL: https://wave.ogenicchocolate.com
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: npm install --package-lock-only && npm ci
+      - name: OGE-70 contract
+        run: node --test tests/oge-70-n8n-execution-fabric.test.mjs
+      - name: Typecheck and build
+        run: npm run check
+
+  live:
+    needs: contract
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging secrets from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Normalize self-host n8n API binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${N8N_SELFHOST_API_KEY:-}" ] && [ -n "${N8N_SELFHOST_REGISTRY_API_KEY:-}" ]; then
+            echo "N8N_SELFHOST_API_KEY=${N8N_SELFHOST_REGISTRY_API_KEY}" >> "$GITHUB_ENV"
+          elif [ -z "${N8N_SELFHOST_API_KEY:-}" ] && [ -n "${N8N_API_KEY:-}" ]; then
+            echo "N8N_SELFHOST_API_KEY=${N8N_API_KEY}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Verify live n8n module inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${N8N_SELFHOST_API_KEY:-}" || { echo "::error::n8n self-host API binding missing"; exit 1; }
+
+          curl -sS --fail             -H "Accept: application/json"             -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}"             "${N8N_SELFHOST_BASE_URL}/api/v1/workflows?limit=100"             -o /tmp/n8n-workflows.json
+
+          check_workflow() {
+            name="$1"
+            nodes="$2"
+            id="$(jq -r --arg NAME "$name" '.data[]? | select(.name == $NAME) | .id' /tmp/n8n-workflows.json | head -n1)"
+            test -n "$id" || { echo "::error::missing n8n workflow: $name"; exit 1; }
+            curl -sS --fail               -H "Accept: application/json"               -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}"               "${N8N_SELFHOST_BASE_URL}/api/v1/workflows/${id}"               -o /tmp/n8n-one.json
+            jq -e --argjson N "$nodes" '(.active == false) and ((.nodes // []) | length == $N)' /tmp/n8n-one.json >/dev/null
+          }
+
+          check_workflow "OGENIC | CORE | AI Supervisor & Event Orchestrator | v2.0 SAFE CONNECTOR LAYER — MIGRATION INACTIVE" 95
+          check_workflow "OGENIC | OGE-62 | Flow Pre-Audit | v1 | INACTIVE" 5
+          check_workflow "OGENIC | Evidence Normalizer | OGE-27/28/43/57 | v1 | INACTIVE" 4
+          check_workflow "OGENIC | OGE Task Router | OGE-6/57/27/28/43/58/59/60 | v1 | INACTIVE" 4
+          echo "OGE-70 live n8n module inventory PASS."
+
+      - name: Verify WAVE exposes placement without enabling execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::OGENIC_OPS_KEY missing"; exit 1; }
+          BODY="$(curl -sS --fail -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" "${STAGING_URL}/api/n8n/migration/placement")"
+          printf '%s' "$BODY" | jq -e '
+            .ok == true and
+            .runtime == "N8N_OGE_PLACEMENT_V1" and
+            .placement.canonical.control_plane == "MAOP_YELLOW" and
+            .placement.canonical.n8n_role == "WORKFLOW_EXECUTION_FABRIC_NOT_CONTROL_PLANE" and
+            .execution_enabled_by_this_endpoint == false
+          ' >/dev/null
+          echo "OGE-70 WAVE placement proof PASS."
