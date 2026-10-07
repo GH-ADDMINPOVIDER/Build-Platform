@@ -1,0 +1,47 @@
+{
+  "schema_version": "CCS/1.0",
+  "protocol": "CAPABILITY_CARD_STONE",
+  "display_name": "Capability Card Stone",
+  "facade_for": "OGENIC_USE_CARD_V1",
+  "stone_code": "YS-01",
+  "verbs": ["INSERT", "VERIFY", "USE", "LEASE", "RETURN", "REVOKE"],
+  "states": ["ABSENT", "INSERTED", "VERIFIED", "IN_USE", "LEASED", "RETURNED", "REVOKED", "BLOCKED"],
+  "public_fields": [
+    "protocol",
+    "card_id",
+    "stone_code",
+    "holder",
+    "role",
+    "capability",
+    "scope",
+    "state",
+    "lease",
+    "evidence"
+  ],
+  "public_language": [
+    "CARD",
+    "STONE",
+    "HOLDER",
+    "ROLE",
+    "CAPABILITY",
+    "SCOPE",
+    "LEASE",
+    "RETURN",
+    "EVIDENCE"
+  ],
+  "compatibility": {
+    "use_card_v1": true,
+    "maop_wrapper": true,
+    "yellow_authority": true,
+    "ruby_verify": true,
+    "green_verified_retention": true
+  },
+  "policy": {
+    "stone_code_is_authorization": false,
+    "fail_closed": true,
+    "direct_execution_bypass": false,
+    "lease_policy_source": "OGENIC_USE_CARD_V1",
+    "backward_compatible_use_card_api": true,
+    "schema_change": false
+  }
+}
