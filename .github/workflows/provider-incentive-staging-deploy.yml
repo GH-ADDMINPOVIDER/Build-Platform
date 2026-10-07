@@ -412,6 +412,38 @@ jobs:
           ' >/dev/null
           echo "OGE-69 n8n self-host readiness + inactive 95-node inventory PASS."
 
+      - name: OGE-70 Yellow resolver admits n8n but execution remains approval-gated
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUTH_HEADER="x-ogenic-ops-key: ${OGENIC_OPS_KEY}"
+          REQUEST='{"provider":"n8n","capability":"workflow_run","environment":"staging","allowMigration":false,"allowOptional":false}'
+
+          RESOLVED="$(curl --fail --silent --show-error             -H 'content-type: application/json'             -H "$AUTH_HEADER"             --data "$REQUEST"             "${STAGING_URL}/api/capabilities/resolve")"
+          printf '%s' "$RESOLVED" | jq -e '
+            .ok == true and
+            .status == "RESOLVED" and
+            .descriptor.provider_id == "n8n" and
+            .descriptor.capability_id == "workflow_run" and
+            .descriptor.permission_class == "EXECUTE" and
+            .descriptor.environment == "staging" and
+            .descriptor.executable == true
+          ' >/dev/null
+
+          HTTP_STATUS="$(curl --silent --show-error             -o /tmp/oge70-n8n-execute.json             -w '%{http_code}'             -H 'content-type: application/json'             -H "$AUTH_HEADER"             --data "$REQUEST"             "${STAGING_URL}/api/capabilities/execute")"
+          test "$HTTP_STATUS" = "409" || { echo "::error::expected Yellow approval gate HTTP 409, got $HTTP_STATUS"; exit 1; }
+          jq -e '
+            .ok == false and
+            .code == "HUMAN_APPROVAL_REQUIRED" and
+            .approval.required == true and
+            .approval.permission_class == "EXECUTE" and
+            .approval.provider_id == "n8n" and
+            .approval.capability_id == "workflow_run" and
+            .verification.status == "blocked"
+          ' /tmp/oge70-n8n-execute.json >/dev/null
+
+          echo "OGE-70 n8n capability: RESOLVED + YELLOW APPROVAL GATE PASS."
+
       - name: OGE-57 live staging task inbox roundtrip
         if: steps.scope.outputs.ui_only != 'true'
         shell: bash
