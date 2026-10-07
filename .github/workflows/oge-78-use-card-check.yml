@@ -1,0 +1,33 @@
+name: OGE-78 USE CARD check
+
+on:
+  push:
+    branches:
+      - phase-vi-provider-incentive-metering
+    paths:
+      - "config/use-card-policy.json"
+      - "worker/use-card-policy.ts"
+      - "worker/use-card-api.ts"
+      - "worker/capability-execution-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "tests/oge-78-use-card.test.mjs"
+      - ".github/workflows/oge-78-use-card-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/oge-78-use-card.test.mjs
+      - run: npm run typecheck
+      - run: npm run build
