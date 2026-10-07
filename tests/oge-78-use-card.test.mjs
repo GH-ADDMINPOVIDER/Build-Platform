@@ -55,3 +55,5 @@ test("OGE-78 is wired into Yellow and existing capability execution emits USE CA
   assert.match(execution, /wrapCapabilityAsUseCard/);
   assert.match(execution, /use_card: useCard/);
 });
+
+// canonical proof trigger
