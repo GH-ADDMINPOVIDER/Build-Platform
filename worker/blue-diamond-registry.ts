@@ -341,5 +341,5 @@ export function buildBlueDiamondRegistry(env: BlueDiamondRegistryEnv): BlueDiamo
     },
   ];
 
-  return actors;
+  return actors.slice(0, 16);
 }
