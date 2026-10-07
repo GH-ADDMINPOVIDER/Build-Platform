@@ -123,7 +123,7 @@
     },
     {
       "id": "n8n",
-      "role": "workflow_execution_fabric_fanout_fanin_preverify",
+      "role": "workflow_execution_fabric",
       "status": "active",
       "auth": "api_key",
       "secret_ref": "/providers/n8n/prod"
