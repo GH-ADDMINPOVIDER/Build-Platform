@@ -1,0 +1,34 @@
+name: OGE-69 n8n Self-Host Migration Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "config/n8n-legacy-migration.json"
+      - "config/staging-runtime-bindings.json"
+      - "worker/n8n-migration-api.ts"
+      - "src/MaopLab.tsx"
+      - "tests/oge-69-n8n-selfhost-migration.test.mjs"
+      - ".github/workflows/oge-69-n8n-selfhost-migration-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: npm install
+      - name: OGE-69 migration contract
+        run: node --test tests/oge-69-n8n-selfhost-migration.test.mjs
+      - name: Typecheck and build
+        run: |
+          npm run typecheck
+          npm run build
