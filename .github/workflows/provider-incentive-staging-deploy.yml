@@ -390,11 +390,27 @@ jobs:
             .runtime == "N8N_SELFHOST_READINESS_V1" and
             .destination.configured == true and
             .destination.reachable == true and
+            .destination.api_key_bound == true and
             .control.execution_authority == "YELLOW_STONE_ONLY" and
             .control.workflow_import_allowed == false and
             .control.workflow_execution_allowed == false
           ' >/dev/null
-          echo "OGE-69 n8n self-host readiness PASS."
+
+          INVENTORY="$(curl --fail --silent --show-error -H "$AUTH_HEADER" "${STAGING_URL}/api/n8n/migration/selfhost/workflows")"
+          printf '%s' "$INVENTORY" | jq -e '
+            .ok == true and
+            .runtime == "N8N_SELFHOST_INVENTORY_V1" and
+            .source.api_key_bound == true and
+            .control.execution_authority == "YELLOW_STONE_ONLY" and
+            .control.workflow_mutation_allowed == false and
+            .control.workflow_execution_allowed == false and
+            any(.inventory.workflows[];
+              (.active == false) and
+              (.node_count == 95) and
+              (.name | contains("MIGRATION INACTIVE"))
+            )
+          ' >/dev/null
+          echo "OGE-69 n8n self-host readiness + inactive 95-node inventory PASS."
 
       - name: OGE-57 live staging task inbox roundtrip
         if: steps.scope.outputs.ui_only != 'true'
