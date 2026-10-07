@@ -1,0 +1,3606 @@
+{
+  "name": "OGENIC | CORE | AI Supervisor & Event Orchestrator | v2.0 SAFE CONNECTOR LAYER — MIGRATION INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "99e87cd8-92fa-4fae-8b3b-89c16dd2d1ab",
+      "name": "Manual Test Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        96,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mock test cases — FAKE DATA ONLY. Never performs real writes or sends.\nreturn [\n  { json: { _mock: { case: 'valid_dry_run' }, source_system: 'website_api', event_type: 'order.created', entity_family: 'order', entity_type: 'order', entity_id: 'ORD-TEST-100', source_event_id: 'evt_100', actor_type: 'system', actor_id: 'svc_test', display_name: 'Test System', status: 'new', payload: { total: 999, currency: 'THB' }, authenticated: true } },\n  { json: { _mock: { case: 'missing_field' }, source_system: 'website_api', event_type: 'order.created', entity_family: 'order', actor_type: 'system', actor_id: 'svc_test', authenticated: true } },\n  { json: { _mock: { case: 'duplicate', duplicate: true }, source_system: 'website_api', event_type: 'order.created', entity_family: 'order', entity_type: 'order', entity_id: 'ORD-TEST-100', source_event_id: 'evt_100', actor_type: 'system', actor_id: 'svc_test', authenticated: true } },\n  { json: { _mock: { case: 'unsupported_event' }, source_system: 'unknown_src', event_type: 'totally.unknown.event', entity_family: 'mystery', entity_type: 'mystery', entity_id: 'X-1', source_event_id: 'evt_x', actor_type: 'system', actor_id: 'svc_test', authenticated: true } },\n  { json: { _mock: { case: 'transient_error', transient_error: true }, source_system: 'website_api', event_type: 'inventory.sync', entity_family: 'inventory', entity_type: 'stock', entity_id: 'SKU-777', source_event_id: 'evt_777', actor_type: 'system', actor_id: 'svc_test', authenticated: true } },\n  { json: { _mock: { case: 'high_risk_approval', high_risk: true }, source_system: 'ops_console', event_type: 'payment.refund', entity_family: 'payment', entity_type: 'refund', entity_id: 'PAY-555', source_event_id: 'evt_555', actor_type: 'human', actor_id: 'operator_1', display_name: 'Operator One', action: 'refund', status: 'requested', payload: { amount: 500, currency: 'THB' }, authenticated: true } }\n];"
+      },
+      "id": "7bffd727-7d1b-419e-ad14-2e1a557f7b43",
+      "name": "Mock Test Cases (fake data only)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Normalize any entry (webhook / manual mock / schedule) into a safe envelope.\n// Generates missing IDs, builds idempotency_key, validates, and classifies routing.\nconst src = $json || {};\nconst raw = src.body ? src.body : src;\nconst mock = raw._mock || src._mock || {};\n\nfunction rid(p){ return p + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }\n\nconst source_system = raw.source_system || '';\nconst event_type = raw.event_type || '';\nconst entity_family = (raw.entity_family || '').toString().toLowerCase();\nconst entity_id = raw.entity_id || '';\nconst source_event_id = raw.source_event_id || '';\n\nconst KNOWN_FAMILIES = [\n  'business','product','raw_material','supplier','production','qc','inventory',\n  'sales','order','payment','finance','operations','approval','ai','knowledge',\n  'website','member','analytics','security'\n];\nconst HIGH_RISK = ['refund','payment','purchase','formula_release','inventory_adjustment','publish','permission_change','delete','disclose_sensitive'];\n\n// Channel classification\nlet channel = 'unsupported_request';\nif (event_type === 'health_check' || src.__source === 'schedule') channel = 'health_check';\nelse if (event_type === 'agent_chat') channel = 'agent_chat';\nelse if (KNOWN_FAMILIES.indexOf(entity_family) !== -1) channel = 'business_event';\nelse channel = 'unsupported_request';\n\n// Validation (reject malformed / unauthenticated / duplicate safely; unsupported handled by its own branch)\nconst warnings = [];\nconst authenticated = raw.authenticated === true || channel === 'health_check';\nconst malformed = channel !== 'health_check' && (!source_system || !event_type || !entity_id);\nconst duplicate = mock.duplicate === true;\nif (malformed) warnings.push('malformed: missing required field(s)');\nif (!authenticated) warnings.push('unauthenticated request');\nif (duplicate) warnings.push('duplicate idempotency_key');\nif (channel === 'unsupported_request') warnings.push('unsupported event_type');\n\nconst valid = !malformed && authenticated && !duplicate;\nlet reason = 'ok';\nif (malformed) reason = 'MALFORMED';\nelse if (!authenticated) reason = 'UNAUTHENTICATED';\nelse if (duplicate) reason = 'DUPLICATE';\nelse if (channel === 'unsupported_request') reason = 'UNSUPPORTED';\n\nconst requires_approval = HIGH_RISK.indexOf((raw.action||'').toString()) !== -1 || mock.high_risk === true;\n\nconst idempotency_key = [source_system, event_type, entity_id, source_event_id].join('|');\n\nconst envelope = {\n  meta: {\n    correlation_id: raw.correlation_id || rid('cor_'),\n    event_id: raw.event_id || rid('evt_'),\n    idempotency_key: idempotency_key,\n    source_system: source_system,\n    event_type: event_type,\n    schema_version: '1.0',\n    received_at: $now.toISO(),\n  },\n  actor: {\n    actor_type: raw.actor_type || 'unknown',\n    actor_id: raw.actor_id || '',\n    display_name: raw.display_name || '',\n  },\n  entity: {\n    entity_type: raw.entity_type || '',\n    entity_id: entity_id,\n    entity_family: entity_family,\n    status: raw.status || '',\n    payload: raw.payload || {},\n  },\n  control: {\n    environment: 'TEST',\n    dry_run: true,\n    priority: raw.priority || 'normal',\n    requires_approval: requires_approval,\n    retry_count: 0,\n    sim_outcome: mock.transient_error === true ? 'transient_error' : 'none',\n  },\n  channel: channel,\n  validation: { valid: valid, reason: reason, duplicate: duplicate, warnings: warnings },\n  test_case: mock.case || null,\n};\n\nreturn { json: envelope };"
+      },
+      "id": "bdde87cd-f823-4f35-866f-1e17be773344",
+      "name": "Normalize & Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ogenic-sio/events/v1",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "a7ab2817-02c0-40a2-843b-d8c4e36f4a45",
+      "name": "Events Webhook (POST v1)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        320,
+        1232
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "e0fba371-37e6-410c-8468-49cca8df4823",
+      "name": "Daily Health Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        96,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"__source\": \"schedule\", \"source_system\": \"ogenic_scheduler\", \"event_type\": \"health_check\", \"entity_family\": \"operations\", \"entity_type\": \"health\", \"entity_id\": \"healthcheck\", \"source_event_id\": $now.toMillis().toString(), \"actor_type\": \"system\", \"actor_id\": \"scheduler\", \"display_name\": \"OGENIC Scheduler\", \"status\": \"run\", \"authenticated\": true } }}",
+        "options": {}
+      },
+      "id": "87867872-1f19-471a-a898-fcb1745177d4",
+      "name": "Seed Health Check Event",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseMode": "lastNode"
+        }
+      },
+      "id": "5ce72965-d4db-4fdd-a9be-d960646897ec",
+      "name": "Operator Chat Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        96,
+        1824
+      ]
+    },
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are OGENIC SIO Supervisor. Default to Thai. Classify intent, read before writing, use minimum necessary tools, preserve correlation_id, report only verified results, never fabricate records or completed actions, ask for missing data, use DRY_RUN outside PROD, and require human approval for refunds, payments, purchases, formula release, inventory adjustments, publishing, permission changes, deletion, or sensitive-data disclosure. Return summary, status, tools_used, verified_result, warnings, required_human_action, correlation_id.\n\nSAFETY: ENVIRONMENT=TEST and DRY_RUN=true. No external write unless PROD, DRY_RUN=false, credentials exist, and approval is complete when required. High-risk tools are DISABLED until approval control is tested. Any tool that is NOT CONFIGURED must be reported as CONFIGURATION_REQUIRED — never claim an action succeeded."
+        }
+      },
+      "id": "8f5e2331-895c-49ba-b9e2-2d19ed4dcf12",
+      "name": "AI Supervisor",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1280,
+        1824
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "ca6c10d7-63a8-4104-971f-1a2530c91aa2",
+      "name": "Chat Model (placeholder)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        320,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 20
+      },
+      "id": "9b6b0161-e0dc-49a0-a926-10f7cddc7a08",
+      "name": "Simple Memory (session)",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        448,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Business domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "5267cedc-1ee0-4890-9b9b-82430678e865",
+      "name": "business",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        576,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Product & Formula domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "4aabcf13-f162-45b5-9bed-e210c83aca4f",
+      "name": "product_formula",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Raw Materials domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "43fab77c-2ed3-4824-baa0-72e9db11d458",
+      "name": "raw_materials",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        832,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Production & QC domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "bac5b996-9bd3-41e2-b36e-6ceb356e1831",
+      "name": "production_qc",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Inventory domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "7f1973bc-1a81-4776-9e26-1b9339c72e7a",
+      "name": "inventory",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1088,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Sales & Orders domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "c226a048-8324-46ec-a8da-dd8e135b76b5",
+      "name": "sales_orders",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Finance domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "e7baf3e3-28ad-4d14-9ccb-22927af5c575",
+      "name": "finance",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Operations domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "61b5d40b-fe16-48c2-94da-ac7ec1b8d2cf",
+      "name": "operations",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1472,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Knowledge / RAG domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "cfd5961b-66f8-49cb-958f-4daaa7bb454b",
+      "name": "knowledge_rag",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Website & Member domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "4a8681e1-a915-417b-b45f-9f90ec8e3393",
+      "name": "website_member",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1728,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Analytics domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "637ba058-2314-46e6-bcd3-b02265722590",
+      "name": "analytics",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1856,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Security domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "d86d7716-e883-4b2d-a71d-0af7520a03a5",
+      "name": "security",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1984,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Notification domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "de4a839c-78ed-4ac3-9cee-56559ff08450",
+      "name": "notification",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2112,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Human Approval domain. NOT CONFIGURED — WORKFLOW ID REQUIRED. Returns CONFIGURATION_REQUIRED until a workflow ID is set.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "NOT CONFIGURED — WORKFLOW ID REQUIRED"
+        }
+      },
+      "id": "41996c73-d5af-47a2-864e-4e36794976e3",
+      "name": "human_approval",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\"summary\":\"string\",\"status\":\"string\",\"tools_used\":[\"string\"],\"verified_result\":\"string\",\"warnings\":[\"string\"],\"required_human_action\":\"string\",\"correlation_id\":\"string\"}"
+      },
+      "id": "e61e85fe-e9aa-4e3c-a549-bd8840514ed6",
+      "name": "Structured Response",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2368,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Robust audit builder: preserves the normalized envelope and avoids raw-JSON expression failures.\nconst input = $json ?? {};\nconst meta = input.meta ?? {};\nconst validation = input.validation ?? {};\nconst control = input.control ?? {};\n\nreturn {\n  json: {\n    ...input,\n    audit: {\n      stage: 'received+validated',\n      correlation_id: meta.correlation_id ?? null,\n      event_id: meta.event_id ?? null,\n      idempotency_key: meta.idempotency_key ?? null,\n      source_system: meta.source_system ?? null,\n      event_type: meta.event_type ?? null,\n      channel: input.channel ?? 'unsupported_request',\n      valid: validation.valid === true,\n      reason: validation.reason ?? 'UNKNOWN',\n      requires_approval: control.requires_approval === true,\n      environment: control.environment ?? 'TEST',\n      dry_run: control.dry_run !== false,\n      logged_at: $now.toISO(),\n    },\n  },\n};"
+      },
+      "id": "703daa44-8b7f-41e0-9a47-4a66baed6141",
+      "name": "Build Audit Record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        944
+      ],
+      "notes": "SAFE REPAIR v1.1: converted from Edit Fields raw JSON to Code node; null-safe and preserves input envelope."
+    },
+    {
+      "parameters": {},
+      "id": "56b57b11-4b95-4160-8ed7-b1a070312990",
+      "name": "audit_log (Data Table placeholder)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        992,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.validation.valid }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "valid"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "rejected"
+        }
+      },
+      "id": "300b1086-bd40-4be8-939d-5b32248c9a85",
+      "name": "Validation Gate",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1216,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "agent_chat",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "agent_chat"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "business_event",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "business_event"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.channel }}",
+                    "rightValue": "health_check",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "health_check"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "unsupported_request"
+        }
+      },
+      "id": "66ec1c58-f3cc-47ea-9b83-847822634549",
+      "name": "Router: Channel",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1440,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"status\": \"REJECTED\", \"accepted\": false, \"configuration_required\": false, \"target_workflow\": \"\", \"message\": \"Rejected safely: \" + $json.validation.reason } }}",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "5d3f308d-4cce-4af1-943e-2f9e62cc1ebb",
+      "name": "Reject Safely",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3008,
+        1488
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"correlation_id\": ($json.meta ? $json.meta.correlation_id : null), \"accepted\": ($json.accepted !== undefined ? $json.accepted : ($json.validation ? $json.validation.valid : false)), \"status\": ($json.status || \"ACCEPTED\"), \"target_workflow\": ($json.target_workflow || \"\"), \"duplicate\": ($json.validation ? $json.validation.duplicate : false), \"warnings\": ($json.validation ? $json.validation.warnings : []), \"configuration_required\": ($json.configuration_required || false), \"message\": ($json.message || \"Processed in TEST/DRY_RUN mode\") } }}",
+        "options": {}
+      },
+      "id": "a2c7ec4a-b6f9-49de-9208-b3579bb29d95",
+      "name": "Build Webhook Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3232,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"status\": \"ROUTED_TO_SUPERVISOR\", \"accepted\": true, \"configuration_required\": false, \"target_workflow\": \"AI Supervisor\", \"message\": \"agent_chat event forwarded to AI Supervisor (DRY_RUN)\" } }}",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "3d4b9071-8d32-422a-a3b3-627c83f7bcee",
+      "name": "Forward to AI Supervisor (placeholder)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3008,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "business",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "business"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "product",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "product"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "raw_material",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "raw_material"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "supplier",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "supplier"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "production",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "production"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "qc",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "qc"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "inventory",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "inventory"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "sales",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sales"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "order",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "order"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "payment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "payment"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "finance",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "finance"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "operations",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "operations"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "approval",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "approval"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "ai",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ai"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "knowledge",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "knowledge"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "website",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "website"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "member",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "member"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "analytics",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "analytics"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.entity.entity_family }}",
+                    "rightValue": "security",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "security"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "unknown_family"
+        }
+      },
+      "id": "150ef0f2-817f-4558-a07c-025087742d9c",
+      "name": "Router: Business Family",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1664,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"status\": \"HEALTHY\", \"accepted\": true, \"configuration_required\": false, \"target_workflow\": \"\", \"message\": \"OGENIC SIO core health check OK (TEST/DRY_RUN)\" } }}",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "c573b61c-de79-4e07-8451-c2dbc74352d1",
+      "name": "Health Check Handler",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3008,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"status\": \"UNSUPPORTED\", \"accepted\": false, \"configuration_required\": false, \"target_workflow\": \"\", \"message\": \"Unsupported request handled safely — no action taken.\" } }}",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a27e53bd-2618-4d9b-b27d-16e7567532c6",
+      "name": "Unsupported Request Handler",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3008,
+        1296
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"configuration_required\": ($json.control.sim_outcome !== \"transient_error\"), \"status\": ($json.control.sim_outcome === \"transient_error\" ? \"TRANSIENT_ERROR\" : \"CONFIGURATION_REQUIRED\"), \"target_workflow\": \"\", \"message\": ($json.control.sim_outcome === \"transient_error\" ? \"Simulated transient failure for retry test\" : \"NOT CONFIGURED — WORKFLOW ID REQUIRED\") } }}",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "812b5a35-72aa-4ec6-b66a-8c819c9b2eeb",
+      "name": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1888,
+        560
+      ],
+      "notes": "SAFE REPAIR v1.1: transient simulation remains TRANSIENT_ERROR through max attempts so retry classifier can route to dead letter."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"status\": \"UNSUPPORTED\", \"accepted\": false, \"configuration_required\": true, \"target_workflow\": \"\", \"message\": \"Unknown business family — CONFIGURATION_REQUIRED.\" } }}",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "71fb2c07-d4e5-438f-95c0-17c1eb08a249",
+      "name": "Unknown Family Handler",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3152,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Classify outcome. Retry ONLY transient errors (429/5xx/timeout), max 3 retries.\n// Never retry authentication, invalid data, rejected approval, or missing configuration.\nconst RETRYABLE_CODES = [429, 500, 502, 503, 504];\nconst MAX_RETRIES = 3;\nconst j = $json ?? {};\nconst ctl = { ...(j.control ?? {}) };\nconst attempts = Number.isFinite(Number(ctl.retry_count)) ? Number(ctl.retry_count) : 0;\nconst isTransient =\n  ctl.sim_outcome === 'transient_error' ||\n  RETRYABLE_CODES.includes(Number(j.error_code)) ||\n  j.timeout === true ||\n  j.status === 'TRANSIENT_ERROR';\n\nlet outcome_class = 'success';\n\nif (isTransient) {\n  if (attempts < MAX_RETRIES) {\n    ctl.retry_count = attempts + 1;\n    outcome_class = 'retryable';\n  } else {\n    outcome_class = 'permanent';\n  }\n} else if (j.status === 'CONFIGURATION_REQUIRED' || j.configuration_required === true) {\n  outcome_class = 'config';\n}\n\nj.control = ctl;\nj.outcome_class = outcome_class;\nreturn { json: j };"
+      },
+      "id": "7a28f210-690e-44ac-8464-2bb7946296dc",
+      "name": "Evaluate Outcome (retry classifier)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        432
+      ],
+      "notes": "SAFE REPAIR v1.1: transient classification takes precedence; max retries now deterministically reaches dead letter."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.outcome_class }}",
+                    "rightValue": "retryable",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "retry"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.outcome_class }}",
+                    "rightValue": "permanent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "dead_letter"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "proceed"
+        }
+      },
+      "id": "72da64aa-316f-4ab7-a808-fe0baf4ce16d",
+      "name": "Retry Decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2336,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "id": "0b7576dd-3ef3-49d2-8f33-735de9809b1d",
+      "name": "Retry Backoff Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2560,
+        240
+      ],
+      "notes": "SAFE REPAIR v1.1: explicit 2-second wait for test workflow. Replace with exponential backoff before production."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"status\": \"DEAD_LETTER\", \"accepted\": false, \"configuration_required\": false, \"target_workflow\": \"\", \"message\": \"Max retries exhausted — sanitized dead-letter record created (NO SECRETS).\", \"dead_letter\": { \"correlation_id\": $json.meta.correlation_id, \"event_type\": $json.meta.event_type, \"entity_family\": $json.entity.entity_family, \"retry_count\": $json.control.retry_count, \"reason\": \"transient_failure\", \"logged_at\": $now.toISO() } } }}",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "7ce02029-768e-463c-970d-80013fd3e1e8",
+      "name": "Build Dead Letter Record (sanitized)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2560,
+        432
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ba4e434b-dc15-40da-a623-4ea4b1489f2d",
+      "name": "dead_letter_queue (Data Table placeholder)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2784,
+        432
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "0e9c7a9a-38bd-469f-aadd-1485959fe3ff",
+      "name": "OGENIC | CORE | Error Handler | v1 (placeholder)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3008,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# OGENIC | CORE | AI Supervisor & Event Orchestrator | v1\n\n**BUILD SKELETON v1 — AI-AGENT-READY — NOT PRODUCTION-ACTIVE**\n\nENVIRONMENT=TEST · DRY_RUN=true · Workflow INACTIVE.\nLeft→right: Entry Points → Security/Normalization → Router → AI Supervisor → Domain Calls → Audit/Data → Retry/Dead Letter → Responses → Operator Setup.",
+        "height": 220,
+        "width": 476,
+        "color": 4
+      },
+      "id": "91cce384-4a23-409e-8e90-c25bfddcb2f7",
+      "name": "TITLE",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        2240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## OPERATOR SETUP\nFill in before activation (all left BLANK on purpose):\n- Credentials: LLM provider, Notion, Google services, GitHub, Cloudflare, LINE, Website API, Supabase/Postgres, notifications\n- Workflow IDs for all 14 Supervisor tools & domain calls\n- Data Table IDs: integration_registry, transaction_ledger, idempotency_keys, audit_log, dead_letter_queue, approval_ledger\n- Webhook authentication + source allowlist\n- Field mappings, notification channel, approval channel + approvers\n- TEST/PROD settings (keep ENVIRONMENT=TEST, DRY_RUN=true until go-live)\n\n**Integration placeholders:** Notion · Google · GitHub · Cloudflare · LINE · Website API · Supabase/Postgres · LLM provider · Notifications.\nNever store secrets in Data Tables.",
+        "height": 460,
+        "width": 520,
+        "color": 3
+      },
+      "id": "c3b16cec-8887-449f-b8a0-0b5ff2f668d4",
+      "name": "OPERATOR SETUP",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2048,
+        2240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ACTIVATION GATE\nDo NOT activate until ALL are true:\n- [ ] Credentials connected\n- [ ] Placeholders mapped (tools, workflow IDs, Data Table IDs)\n- [ ] Dry-run passed\n- [ ] Validation / duplicate / retry / dead-letter / approval tests passed\n- [ ] Audit reviewed\n- [ ] Owner approved",
+        "height": 320,
+        "width": 420,
+        "color": 2
+      },
+      "id": "a3b4fc5a-4447-449e-ac0a-660d819c7567",
+      "name": "ACTIVATION GATE",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        2240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## ⚠ HIGH-RISK TOOLS DISABLED\nHIGH-RISK TOOLS DISABLED UNTIL APPROVAL CONTROL IS TESTED.\nRequires human approval: refunds, payments, purchases, formula release, inventory adjustments, publishing, permission changes, deletion, sensitive-data disclosure.",
+        "height": 220,
+        "width": 420
+      },
+      "id": "773edd7d-811a-4357-b07d-85438cc0db1a",
+      "name": "HIGH-RISK",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        672,
+        2240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## RETRY / DEAD LETTER\nRetry ONLY 429/500/502/503/504 + timeouts. Wait + retry_count, max 3 attempts.\nNever retry: authentication, invalid data, rejected approval, missing configuration.\nAfter max attempts → sanitized dead-letter record. Error Handler = separate workflow placeholder.",
+        "height": 200,
+        "width": 420,
+        "color": 5
+      },
+      "id": "e6897ada-e6a8-4e7b-ba69-cf6eb2e1acb6",
+      "name": "RETRY",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        2240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## DATA & AUDIT (Data Table placeholders)\nNodes below are placeholders for real Data Tables (IDs blank until setup).\nAudit stages: authentication, validation, duplicate check, routing, tool use, approval, completion, retry, failure.\nNever store secrets.",
+        "height": 260,
+        "width": 520,
+        "color": 6
+      },
+      "id": "21df73c0-177b-4cfb-9851-5fb82bc1c1bb",
+      "name": "DATA & AUDIT",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        48,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ogenic-sio/line-oa/test/v1",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "a7cd939e-89c1-4aa3-bcac-02b023e18966",
+      "name": "TRG-LINE Webhook (TEST)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        96,
+        2720
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "type": "SHA256",
+        "dataPropertyName": "line_signature_computed",
+        "encoding": "base64"
+      },
+      "id": "0a32f513-86f3-4175-bc80-751e52fc47a7",
+      "name": "VAL-LINE HMAC-SHA256",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        352,
+        2720
+      ],
+      "notesInFlow": true,
+      "notes": "Select Crypto credential OGENIC_LINE_SECRET_TEST. Store the LINE Channel Secret only inside that n8n credential."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b30337b8-0464-4ce3-93b8-eec54eaae08e",
+              "leftValue": "={{ $json.line_signature_computed }}",
+              "rightValue": "={{ $json.headers['x-line-signature'] || $json.headers['X-Line-Signature'] || '' }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "640495a4-ab70-47b7-a640-837a4683d8d5",
+      "name": "VAL-LINE Signature Match",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        2720
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"status\": \"REJECTED\", \"accepted\": false, \"reason\": \"INVALID_LINE_SIGNATURE\", \"source_system\": \"line_oa\", \"environment\": \"TEST\", \"dry_run\": true, \"logged_at\": $now.toISO() } }}",
+        "options": {}
+      },
+      "id": "6ab5004f-2d39-44e8-a27f-7fc3e2a7326b",
+      "name": "LOG-LINE Invalid Signature",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        2912
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": false, \"error\": \"invalid_signature\" } }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "db9b1de9-5b42-44a1-85f8-2e871a2e3012",
+      "name": "OUT-LINE Reject 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        2912
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "ef3f5ad8-f5b6-40c7-bd25-e0fbab7ce640",
+      "name": "OUT-LINE ACK 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        864,
+        2512
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Runs only after LINE signature verification. Never logs secrets or the signature.\nconst root = $json ?? {};\nconst body = root.body ?? {};\nconst event = Array.isArray(body.events) && body.events.length ? body.events[0] : {};\nconst source = event.source ?? {};\nconst message = event.message ?? {};\nconst fallbackId = [event.timestamp ?? Date.now(), source.userId ?? source.groupId ?? source.roomId ?? 'unknown', message.id ?? event.type ?? 'event'].join(':');\nconst sourceEventId = event.webhookEventId ?? fallbackId;\nconst entityId = source.userId ?? source.groupId ?? source.roomId ?? 'line_unknown';\nconst correlationId = 'cor_line_' + sourceEventId;\nreturn {\n  json: {\n    source_system: 'line_oa',\n    event_type: 'line.' + (event.type ?? 'unknown'),\n    entity_family: 'sales',\n    entity_type: 'lead',\n    entity_id: entityId,\n    source_event_id: sourceEventId,\n    event_id: sourceEventId,\n    correlation_id: correlationId,\n    actor_type: 'customer',\n    actor_id: entityId,\n    display_name: '',\n    status: 'received',\n    authenticated: true,\n    control: { environment: 'TEST', dry_run: true, requires_approval: false },\n    payload: {\n      line: {\n        event_type: event.type ?? 'unknown',\n        message_type: message.type ?? null,\n        message_text: typeof message.text === 'string' ? message.text : null,\n        reply_token: event.replyToken ?? null,\n        user_id: source.userId ?? null,\n        group_id: source.groupId ?? null,\n        room_id: source.roomId ?? null,\n        is_redelivery: event.deliveryContext?.isRedelivery === true,\n        reply_text: 'ได้รับข้อความแล้ว ทีมงานจะติดต่อกลับโดยเร็ว',\n      },\n    },\n  },\n};"
+      },
+      "id": "bcc126cd-f0a0-4c36-b517-41fcaf536eba",
+      "name": "IN-LINE Normalize Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        2720
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// TEST-safe duplicate protection using workflow static data. Replace with a durable Data Table/DB before production scale.\nconst item = $json ?? {};\nconst store = $getWorkflowStaticData('global');\nstore.lineSeen = store.lineSeen ?? {};\nconst now = Date.now();\nconst ttlMs = 24 * 60 * 60 * 1000;\nfor (const [key, timestamp] of Object.entries(store.lineSeen)) {\n  if (now - Number(timestamp) > ttlMs) delete store.lineSeen[key];\n}\nconst key = item.source_event_id || item.event_id || item.correlation_id;\nconst duplicate = Boolean(key && store.lineSeen[key]);\nif (key && !duplicate) store.lineSeen[key] = now;\nreturn { json: { ...item, line_duplicate: duplicate, idempotency_key: ['line_oa', item.event_type, item.entity_id, key].join('|') } };"
+      },
+      "id": "c449fea1-5d5a-46f7-962a-df00ab10ff47",
+      "name": "VAL-LINE Idempotency",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        2720
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2f4e6696-1e3f-48f9-bb35-5fdb9bf1a0f6",
+              "leftValue": "={{ $json.line_duplicate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5f2fcce0-ba35-4045-a463-1f2cf9c770a1",
+      "name": "RTE-LINE Duplicate Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1376,
+        2720
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"status\": \"DUPLICATE_SKIPPED\", \"accepted\": true, \"source_system\": \"line_oa\", \"event_id\": $json.source_event_id, \"correlation_id\": $json.correlation_id, \"environment\": \"TEST\", \"dry_run\": true, \"logged_at\": $now.toISO() } }}",
+        "options": {}
+      },
+      "id": "86e8dc36-e4c5-445d-aadc-9c623b2c7254",
+      "name": "LOG-LINE Duplicate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1632,
+        2512
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a07f3e4d-01e4-4e3a-8f2b-c4ca53683884",
+              "leftValue": "={{ $json.control.dry_run }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2f039072-e77e-4b56-a8d9-23645d3f1c12",
+      "name": "VAL-LINE DRY_RUN Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1632,
+        2816
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"status\": \"DRY_RUN_NO_SEND\", \"accepted\": true, \"source_system\": \"line_oa\", \"event_id\": $json.source_event_id, \"correlation_id\": $json.correlation_id, \"environment\": \"TEST\", \"dry_run\": true, \"reply_would_be_sent\": Boolean($json.payload.line.reply_token), \"logged_at\": $now.toISO() } }}",
+        "options": {}
+      },
+      "id": "3ed0ae18-729c-4e11-81fe-c91521088355",
+      "name": "LOG-LINE DRY_RUN — No Send",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1888,
+        2704
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"replyToken\": $json.payload.line.reply_token, \"messages\": [ { \"type\": \"text\", \"text\": $json.payload.line.reply_text } ] } }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "1e8366c2-d0a7-4d33-9dd9-cb759b7094e5",
+      "name": "NTF-LINE Reply API (DISABLED UNTIL TEST)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1888,
+        2928
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "Keep disabled in TEST. Before an approved production test, select Header Auth credential OGENIC_LINE_OA_TEST (Authorization: Bearer …) and verify the Reply API with a fresh one-time replyToken."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"status\": \"LINE_REPLY_ATTEMPTED\", \"source_system\": \"line_oa\", \"correlation_id\": $(\"IN-LINE Normalize Event\").item.json.correlation_id, \"environment\": \"TEST\", \"dry_run\": false, \"logged_at\": $now.toISO() } }}",
+        "options": {}
+      },
+      "id": "4a3fc748-f802-4ed7-a7d0-d6cfd5356c41",
+      "name": "LOG-LINE Reply Audit",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2144,
+        2928
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## LINE OA — TEST / DRY RUN\n\n1. Create/select **Crypto** credential: `OGENIC_LINE_SECRET_TEST` (HMAC Secret = LINE Channel Secret).\n2. Create/select **Header Auth** credential: `OGENIC_LINE_OA_TEST` (Name = Authorization, Value = Bearer + Channel Access Token).\n3. Keep Reply API node disabled and workflow inactive.\n4. Test invalid signature, valid webhook, duplicate webhook, and DRY_RUN evidence.\n5. Never place Token, Channel Secret, replyToken, signature, or user ID in logs.\n6. Production activation requires explicit owner approval.",
+        "height": 360,
+        "width": 760,
+        "color": 3
+      },
+      "id": "55065041-cd1c-4ca9-9f30-a17099ed8d45",
+      "name": "LINE OA SETUP",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        96,
+        3136
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "41c4ea01-b462-474f-87d4-e8aac75b5876",
+      "name": "TRG-CONNECTOR Readiness Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        96,
+        3664
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generates sanitized readiness records only. No external calls.\nconst channels = [{\"key\":\"META\",\"label\":\"Meta — Facebook, Messenger, Instagram\",\"credential\":\"OGENIC_META_TEST\"},{\"key\":\"GRABFOOD\",\"label\":\"GrabFood\",\"credential\":\"OGENIC_GRABFOOD_TEST\"},{\"key\":\"SHOPEEFOOD\",\"label\":\"ShopeeFood\",\"credential\":\"OGENIC_SHOPEEFOOD_TEST\"},{\"key\":\"TIKTOK\",\"label\":\"TikTok Shop\",\"credential\":\"OGENIC_TIKTOK_SHOP_TEST\"},{\"key\":\"GMAIL\",\"label\":\"Gmail\",\"credential\":\"OGENIC_GMAIL_TEST\"},{\"key\":\"GOOGLE\",\"label\":\"Google Services — Sheets, Drive, Calendar, Business Profile\",\"credential\":\"OGENIC_GOOGLE_SERVICES_TEST\"},{\"key\":\"NOTION\",\"label\":\"Notion\",\"credential\":\"OGENIC_NOTION_TEST\"},{\"key\":\"GITHUB\",\"label\":\"GitHub\",\"credential\":\"OGENIC_GITHUB_TEST\"},{\"key\":\"CLOUDFLARE\",\"label\":\"Cloudflare / Website API\",\"credential\":\"OGENIC_CLOUDFLARE_TEST\"},{\"key\":\"OPENAI\",\"label\":\"n8n / OpenAI\",\"credential\":\"OGENIC_OPENAI_TEST\"},{\"key\":\"YOUTUBE\",\"label\":\"YouTube\",\"credential\":\"OGENIC_YOUTUBE_TEST\"},{\"key\":\"X\",\"label\":\"X\",\"credential\":\"OGENIC_X_TEST\"},{\"key\":\"THREADS\",\"label\":\"Threads\",\"credential\":\"OGENIC_THREADS_TEST\"}];\nreturn channels.map((channel) => ({ json: { ...channel, environment: 'TEST', dry_run: true, active: false, credential_status: 'SELECT_IN_N8N', configuration_required: true, checked_at: $now.toISO() } }));"
+      },
+      "id": "6a045b04-cf09-4ec7-b3d5-5c7b3d977abc",
+      "name": "IN-CONNECTOR Test Matrix",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        3664
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "META",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "meta"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "GRABFOOD",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "grabfood"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "SHOPEEFOOD",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "shopeefood"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "TIKTOK",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "tiktok"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "GMAIL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "gmail"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "GOOGLE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "google"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "NOTION",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "notion"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "GITHUB",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "github"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "CLOUDFLARE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cloudflare"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "OPENAI",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "openai"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "YOUTUBE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "youtube"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "X",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "x"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.key }}",
+                    "rightValue": "THREADS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "threads"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "unknown_connector"
+        }
+      },
+      "id": "cc3d94bf-15cc-42f9-be41-5a9b5e4c5b2f",
+      "name": "RTE-CONNECTOR Channel",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        608,
+        3664
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Sanitized readiness result. Never include tokens, secrets, OTPs, or credential values.\nreturn { json: { channel: $json.label, credential_ref: $json.credential, status: 'CONFIGURATION_REQUIRED', environment: 'TEST', dry_run: true, active: false, external_write: false, checked_at: $now.toISO() } };"
+      },
+      "id": "78781c13-964f-4fae-99fb-2dce41177d15",
+      "name": "LOG-CONNECTOR Readiness Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        3664
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 11 CONNECTOR GROUPS + CONTENT CHANNELS\n\nCore groups: Meta · LINE · GrabFood · ShopeeFood · TikTok Shop · Gmail · Google Services · Notion · GitHub · Cloudflare/Website API · n8n/OpenAI.\nContent extensions: YouTube · X · Threads.\n\nEach ACT-* node is intentionally **disabled**, has no endpoint, and contains no secret. Open each node only after the matching n8n credential exists. Select the credential, configure the official endpoint/operation for that account, test in DRY_RUN, and keep the workflow inactive. Marketplace APIs may require partner approval; do not invent endpoints.",
+        "height": 360,
+        "width": 980,
+        "color": 4
+      },
+      "id": "84b950cc-b1c1-405f-9ae0-5791882b49af",
+      "name": "ALL CHANNELS — CREDENTIAL SETUP",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        96,
+        3984
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"Meta — Facebook, Messenger, Instagram\", \"credential_ref\": \"OGENIC_META_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "dae842c0-fad2-441d-b150-46e5f43ad122",
+      "name": "CFG-META Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        3440
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_META_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "cd974dfa-607b-47c2-982e-3c114e6f2d85",
+      "name": "ACT-META API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        3440
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for Meta — Facebook, Messenger, Instagram. Select OGENIC_META_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"GrabFood\", \"credential_ref\": \"OGENIC_GRABFOOD_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "c81209dd-2099-4483-86d2-54da9821d539",
+      "name": "CFG-GRABFOOD Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        3616
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_GRABFOOD_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "613e9b2a-ec47-413f-baed-6320de9eff73",
+      "name": "ACT-GRABFOOD API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        3616
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for GrabFood. Select OGENIC_GRABFOOD_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"ShopeeFood\", \"credential_ref\": \"OGENIC_SHOPEEFOOD_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "3209c171-286b-4b79-9957-d5fe2fc13a63",
+      "name": "CFG-SHOPEEFOOD Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        3792
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_SHOPEEFOOD_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "1a722bc6-d6f3-49ca-b731-9d8f877e6138",
+      "name": "ACT-SHOPEEFOOD API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        3792
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for ShopeeFood. Select OGENIC_SHOPEEFOOD_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"TikTok Shop\", \"credential_ref\": \"OGENIC_TIKTOK_SHOP_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "788a4433-0c48-4fa3-943d-36e8175acad1",
+      "name": "CFG-TIKTOK Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        3968
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_TIKTOK_SHOP_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "6c0be6ce-80cd-4912-9718-52b23dc9afe1",
+      "name": "ACT-TIKTOK API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        3968
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for TikTok Shop. Select OGENIC_TIKTOK_SHOP_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"Gmail\", \"credential_ref\": \"OGENIC_GMAIL_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "bdb38013-3d9b-48a1-a0a4-565df688a501",
+      "name": "CFG-GMAIL Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        4144
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_GMAIL_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "d7defb40-55ae-45d5-b6ce-96891f24f4de",
+      "name": "ACT-GMAIL API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        4144
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for Gmail. Select OGENIC_GMAIL_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"Google Services — Sheets, Drive, Calendar, Business Profile\", \"credential_ref\": \"OGENIC_GOOGLE_SERVICES_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "98ad874a-e39e-4352-bfbe-251102700e1d",
+      "name": "CFG-GOOGLE Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        4320
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_GOOGLE_SERVICES_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "2e192aac-df18-4330-9614-291f9b1c8c43",
+      "name": "ACT-GOOGLE API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        4320
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for Google Services — Sheets, Drive, Calendar, Business Profile. Select OGENIC_GOOGLE_SERVICES_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"Notion\", \"credential_ref\": \"OGENIC_NOTION_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "9d2f74f2-bd84-4de5-b48c-5916b198e6b5",
+      "name": "CFG-NOTION Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        4496
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_NOTION_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "3715b8cc-cb0b-43b2-b5c2-84b479626696",
+      "name": "ACT-NOTION API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        4496
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for Notion. Select OGENIC_NOTION_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"GitHub\", \"credential_ref\": \"OGENIC_GITHUB_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "ed406d1c-2418-4b74-b5cb-03795e6294b7",
+      "name": "CFG-GITHUB Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        4672
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_GITHUB_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "4efdceca-7f58-4f0a-a884-91a6d8b1493c",
+      "name": "ACT-GITHUB API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        4672
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for GitHub. Select OGENIC_GITHUB_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"Cloudflare / Website API\", \"credential_ref\": \"OGENIC_CLOUDFLARE_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "caef31bd-0c55-4fbd-bb2c-67c96669643e",
+      "name": "CFG-CLOUDFLARE Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        4848
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_CLOUDFLARE_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "86bf49e8-346a-4c89-8076-aee08f5efe25",
+      "name": "ACT-CLOUDFLARE API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        4848
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for Cloudflare / Website API. Select OGENIC_CLOUDFLARE_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"n8n / OpenAI\", \"credential_ref\": \"OGENIC_OPENAI_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "e3402d31-e829-4895-8372-554fe001d96f",
+      "name": "CFG-OPENAI Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        5024
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_OPENAI_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "b164d13a-6320-439f-bdd8-30ecf24748ce",
+      "name": "ACT-OPENAI API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        5024
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for n8n / OpenAI. Select OGENIC_OPENAI_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"YouTube\", \"credential_ref\": \"OGENIC_YOUTUBE_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "a5ba1cac-f586-4176-bd33-209944bb7069",
+      "name": "CFG-YOUTUBE Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        5200
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_YOUTUBE_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "0d28933d-ee5b-41d6-9632-13a89e36c24a",
+      "name": "ACT-YOUTUBE API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        5200
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for YouTube. Select OGENIC_YOUTUBE_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"X\", \"credential_ref\": \"OGENIC_X_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "08db4af2-32fe-4bc0-a14d-01067cf8f74f",
+      "name": "CFG-X Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        5376
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_X_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "50f9ece5-4457-4a2b-8815-58356a28447f",
+      "name": "ACT-X API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        5376
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for X. Select OGENIC_X_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { \"channel\": \"Threads\", \"credential_ref\": \"OGENIC_THREADS_TEST\", \"status\": \"CONFIGURATION_REQUIRED\", \"environment\": \"TEST\", \"dry_run\": true, \"active\": false, \"external_write\": false } }}",
+        "options": {}
+      },
+      "id": "e0323677-e310-47d1-9b5b-ba8f86ed8195",
+      "name": "CFG-THREADS Credential Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        5552
+      ],
+      "notesInFlow": true,
+      "notes": "Create or select n8n credential OGENIC_THREADS_TEST. Never place the credential value in this node or workflow JSON."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://example.invalid",
+        "authentication": "none",
+        "sendBody": false,
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "870bd823-2729-4d81-be88-d84aaef7b8ea",
+      "name": "ACT-THREADS API Connector (DISABLED)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        5552
+      ],
+      "disabled": true,
+      "notesInFlow": true,
+      "notes": "DISABLED TEST PLACEHOLDER for Threads. Select OGENIC_THREADS_TEST, configure only the official API endpoint and required operation, validate scopes, rate limits, idempotency and approval before enabling."
+    }
+  ],
+  "connections": {
+    "Manual Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Mock Test Cases (fake data only)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Test Cases (fake data only)": {
+      "main": [
+        [
+          {
+            "node": "Normalize & Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize & Validate": {
+      "main": [
+        [
+          {
+            "node": "Build Audit Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Events Webhook (POST v1)": {
+      "main": [
+        [
+          {
+            "node": "Normalize & Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Health Check": {
+      "main": [
+        [
+          {
+            "node": "Seed Health Check Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Seed Health Check Event": {
+      "main": [
+        [
+          {
+            "node": "Normalize & Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Operator Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Model (placeholder)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory (session)": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "business": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "product_formula": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "raw_materials": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "production_qc": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "inventory": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sales_orders": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "finance": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "operations": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "knowledge_rag": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "website_member": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analytics": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "security": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notification": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "human_approval": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Response": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Supervisor",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Audit Record": {
+      "main": [
+        [
+          {
+            "node": "audit_log (Data Table placeholder)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "audit_log (Data Table placeholder)": {
+      "main": [
+        [
+          {
+            "node": "Validation Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validation Gate": {
+      "main": [
+        [
+          {
+            "node": "Router: Channel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject Safely",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router: Channel": {
+      "main": [
+        [
+          {
+            "node": "Forward to AI Supervisor (placeholder)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Router: Business Family",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Health Check Handler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unsupported Request Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reject Safely": {
+      "main": [
+        [
+          {
+            "node": "Build Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forward to AI Supervisor (placeholder)": {
+      "main": [
+        [
+          {
+            "node": "Build Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router: Business Family": {
+      "main": [
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unknown Family Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Health Check Handler": {
+      "main": [
+        [
+          {
+            "node": "Build Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unsupported Request Handler": {
+      "main": [
+        [
+          {
+            "node": "Build Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Outcome (retry classifier)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unknown Family Handler": {
+      "main": [
+        [
+          {
+            "node": "Build Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Outcome (retry classifier)": {
+      "main": [
+        [
+          {
+            "node": "Retry Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry Decision": {
+      "main": [
+        [
+          {
+            "node": "Retry Backoff Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Dead Letter Record (sanitized)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry Backoff Wait": {
+      "main": [
+        [
+          {
+            "node": "Domain Call — NOT CONFIGURED — WORKFLOW ID REQUIRED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Dead Letter Record (sanitized)": {
+      "main": [
+        [
+          {
+            "node": "dead_letter_queue (Data Table placeholder)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "dead_letter_queue (Data Table placeholder)": {
+      "main": [
+        [
+          {
+            "node": "OGENIC | CORE | Error Handler | v1 (placeholder)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OGENIC | CORE | Error Handler | v1 (placeholder)": {
+      "main": [
+        [
+          {
+            "node": "Build Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TRG-LINE Webhook (TEST)": {
+      "main": [
+        [
+          {
+            "node": "VAL-LINE HMAC-SHA256",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VAL-LINE HMAC-SHA256": {
+      "main": [
+        [
+          {
+            "node": "VAL-LINE Signature Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VAL-LINE Signature Match": {
+      "main": [
+        [
+          {
+            "node": "OUT-LINE ACK 200",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IN-LINE Normalize Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LOG-LINE Invalid Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LOG-LINE Invalid Signature": {
+      "main": [
+        [
+          {
+            "node": "OUT-LINE Reject 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IN-LINE Normalize Event": {
+      "main": [
+        [
+          {
+            "node": "VAL-LINE Idempotency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VAL-LINE Idempotency": {
+      "main": [
+        [
+          {
+            "node": "RTE-LINE Duplicate Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RTE-LINE Duplicate Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-LINE Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalize & Validate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "VAL-LINE DRY_RUN Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VAL-LINE DRY_RUN Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-LINE DRY_RUN — No Send",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NTF-LINE Reply API (DISABLED UNTIL TEST)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NTF-LINE Reply API (DISABLED UNTIL TEST)": {
+      "main": [
+        [
+          {
+            "node": "LOG-LINE Reply Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TRG-CONNECTOR Readiness Test": {
+      "main": [
+        [
+          {
+            "node": "IN-CONNECTOR Test Matrix",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IN-CONNECTOR Test Matrix": {
+      "main": [
+        [
+          {
+            "node": "RTE-CONNECTOR Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RTE-CONNECTOR Channel": {
+      "main": [
+        [
+          {
+            "node": "CFG-META Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CFG-GRABFOOD Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CFG-SHOPEEFOOD Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CFG-TIKTOK Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CFG-GMAIL Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CFG-GOOGLE Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CFG-NOTION Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CFG-GITHUB Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CFG-CLOUDFLARE Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CFG-OPENAI Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CFG-YOUTUBE Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CFG-X Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CFG-THREADS Credential Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-META Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-GRABFOOD Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-SHOPEEFOOD Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-TIKTOK Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-GMAIL Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-GOOGLE Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-NOTION Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-GITHUB Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-CLOUDFLARE Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-OPENAI Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-YOUTUBE Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-X Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CFG-THREADS Credential Gate": {
+      "main": [
+        [
+          {
+            "node": "LOG-CONNECTOR Readiness Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "nodeGroups": []
+}
