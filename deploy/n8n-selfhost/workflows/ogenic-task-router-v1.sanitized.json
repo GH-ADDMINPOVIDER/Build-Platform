@@ -1,0 +1,94 @@
+{
+  "name": "OGENIC | OGE Task Router | OGE-6/57/27/28/43/58/59/60 | v1 | INACTIVE",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "router-input",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "router-manual",
+      "name": "Manual Test Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{oge:'OGE-57',task_id:'fixture-task',requested_permission:'READ',source:'wave-task-inbox',capability_id:'task_sync',idempotency_key:'fixture-router'}}];"
+      },
+      "id": "router-mock",
+      "name": "Build Safe Task Fixture",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const x=$input.first().json||{};\nconst oge=String(x.oge||'').toUpperCase();\nconst permission=String(x.requested_permission||'READ').toUpperCase();\nconst idempotency=String(x.idempotency_key||'').trim();\nconst invalid=!idempotency||!['READ','WRITE','EXECUTE','DANGEROUS'].includes(permission);\nlet lane='unsupported';let role='NO_ROUTE';\nif(['OGE-6','OGE-57'].includes(oge)){lane='task_event';role='NORMALIZE_AND_ROUTE_ONLY';}\nelse if(oge==='OGE-27'){lane='browser_postrun';role='EVIDENCE_ONLY';}\nelse if(oge==='OGE-28'){lane='codex_postrun';role='EVIDENCE_ONLY';}\nelse if(oge==='OGE-43'){lane='github_evidence';role='AGGREGATE_ONLY';}\nelse if(['OGE-58','OGE-59','OGE-60'].includes(oge)){lane='provider_composition';role='COMPOSE_AFTER_YELLOW_ONLY';}\nconst approvalRequired=['WRITE','EXECUTE','DANGEROUS'].includes(permission);\nreturn [{json:{schema:'OGENIC_N8N_TASK_ROUTE_V1',ok:!invalid&&lane!=='unsupported',task_id:String(x.task_id||'').slice(0,180),oge,capability_id:String(x.capability_id||'').slice(0,180),lane,n8n_role:role,requested_permission:permission,approval_required:approvalRequired,yellow_authorization_required:true,execution_allowed:false,reason:invalid?'INVALID_TASK_ENVELOPE':lane==='unsupported'?'OGE_NOT_PLACED_IN_N8N':'ROUTE_PREPARED_YELLOW_DECISION_REQUIRED',idempotency_key:idempotency.slice(0,240)}}];"
+      },
+      "id": "router-classify",
+      "name": "Classify OGE Execution Lane",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        80
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Classify OGE Execution Lane",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Safe Task Fixture",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Safe Task Fixture": {
+      "main": [
+        [
+          {
+            "node": "Classify OGE Execution Lane",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
