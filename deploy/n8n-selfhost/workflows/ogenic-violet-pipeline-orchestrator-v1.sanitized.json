@@ -1,0 +1,94 @@
+{
+  "name": "OGENIC | Violet Pipeline Orchestrator | OGE-37/39/42/47/48 | v1 | INACTIVE",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "violet-input",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "violet-manual",
+      "name": "Manual Test Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{oge:'OGE-39',pipeline_kind:'knowledge_refinery',task_id:'fixture-pipeline',idempotency_key:'fixture-violet',yellow_authorized:true,requested_permission:'EXECUTE'}}];"
+      },
+      "id": "violet-mock",
+      "name": "Build Safe Pipeline Fixture",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const x=$input.first().json||{};\nconst kind=String(x.pipeline_kind||'').trim();\nconst permission=String(x.requested_permission||'EXECUTE').toUpperCase();\nconst yellow=x.yellow_authorized===true;\nconst plans={\n  knowledge_refinery:['SOURCE','DISTILL','REPRODUCE','FIX','RUBY_VERIFY','RETAIN'],\n  knowledge_refinery_v2:['RESEARCH','UNDERSTAND','CODE','DEBUG','BUILD','CREATE','RULE','FORMULA','RUBY_VERIFY','RETAIN'],\n  parallel_agents:['PLAN','FAN_OUT','COLLECT','MERGE','RUBY_VERIFY','RETAIN'],\n  one_pass_refinery:['CLONES','RESEARCH','SANDBOX','FIX','RUBY_VERIFY','RETAIN'],\n  runtime_x10:['FAN_OUT_10','COLLECT','N8N_PREAUDIT','GITHUB_AUDIT','YELLOW_GATE','RUBY_VERIFY','RETAIN']\n};\nconst stages=plans[kind]||[];\nconst valid=Boolean(String(x.task_id||'').trim())&&Boolean(String(x.idempotency_key||'').trim())&&stages.length>0;\nconst consequential=['WRITE','EXECUTE','DANGEROUS'].includes(permission);\nconst allowed=valid && (!consequential || yellow);\nreturn [{json:{\n  schema:'OGENIC_N8N_VIOLET_PIPELINE_V1',\n  ok:allowed,\n  task_id:String(x.task_id||'').slice(0,180),\n  oge:String(x.oge||'').toUpperCase().slice(0,32),\n  pipeline_kind:kind,\n  stages,\n  current_stage:allowed?stages[0]:null,\n  execution_allowed:allowed,\n  yellow_authorized:yellow,\n  requested_permission:permission,\n  retry_policy:'NO_HIDDEN_RETRY',\n  provider_fallback:'DENIED_WITHIN_ATTEMPT',\n  ruby_verification_required:true,\n  green_retention_allowed:false,\n  reason:!valid?'INVALID_PIPELINE_ENVELOPE':(consequential&&!yellow?'YELLOW_AUTHORIZATION_REQUIRED':'PIPELINE_READY'),\n  authority:{violet:'ORCHESTRATION_SEMANTICS',n8n:'BOUNDED_WORKFLOW_GRAPH',yellow:'EXECUTION_AUTHORITY',ruby:'VERIFY',green:'RETAIN_VERIFIED_ONLY'}\n}}];"
+      },
+      "id": "violet-plan",
+      "name": "Build Bounded Pipeline Graph",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        80
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Build Bounded Pipeline Graph",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Safe Pipeline Fixture",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Safe Pipeline Fixture": {
+      "main": [
+        [
+          {
+            "node": "Build Bounded Pipeline Graph",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
