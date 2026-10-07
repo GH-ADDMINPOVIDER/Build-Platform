@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { boundedReadPrompt } from "./agent-context-policy";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import {
   normalizeResolverRequest,
@@ -115,7 +116,7 @@ async function appendCanonicalEvidence(
 async function runGeminiRead(env: ExecutionBindings, rawPrompt: unknown) {
   const apiKey = clean(env.GEMINI_API_KEY, 4000);
   if (!apiKey) return { ok: false as const, code: "CONFIGURATION_REQUIRED", missing: "GEMINI_API_KEY" };
-  const prompt = clean(rawPrompt, 12_000);
+  const prompt = boundedReadPrompt(rawPrompt);
   if (!prompt) return { ok: false as const, code: "PROMPT_REQUIRED" };
 
   const model = "gemini-3.7-flash";
