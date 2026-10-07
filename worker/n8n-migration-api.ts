@@ -69,6 +69,7 @@ function configuredSelfHost(env: N8nBindings) {
     ok: true as const,
     base: url.origin,
     host: url.hostname,
+    apiKey,
     apiKeyBound: Boolean(apiKey),
   };
 }
@@ -98,6 +99,29 @@ async function selfHostHealth(env: N8nBindings) {
       apiKeyBound: cfg.apiKeyBound,
     };
   }
+}
+
+async function n8nSelfHostGet(env: N8nBindings, path: string) {
+  const cfg = configuredSelfHost(env);
+  if (!cfg.ok) return { ok: false as const, status: 503, code: cfg.code };
+  if (!cfg.apiKey) return { ok: false as const, status: 503, code: "N8N_SELFHOST_API_KEY_REQUIRED" };
+  const response = await fetch(`${cfg.base}${path}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      "X-N8N-API-KEY": cfg.apiKey,
+      "User-Agent": "ogenic-maop-n8n-selfhost-readonly",
+    },
+  });
+  const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+  if (!response.ok) {
+    return {
+      ok: false as const,
+      status: response.status === 401 || response.status === 403 ? 401 : 502,
+      code: response.status === 401 || response.status === 403 ? "N8N_SELFHOST_REAUTH_REQUIRED" : `N8N_SELFHOST_HTTP_${response.status}`,
+    };
+  }
+  return { ok: true as const, status: 200, body, host: cfg.host };
 }
 
 async function n8nGet(env: N8nBindings, path: string) {
@@ -183,6 +207,38 @@ export function createN8nMigrationApi() {
         reason: health.ok ? "SELFHOST_READY_FOR_ADMISSION_NOT_EXECUTION" : health.code,
       },
     }, health.ok ? 200 : 503, noStore);
+  });
+
+  api.get("/api/n8n/migration/selfhost/workflows", async (c) => {
+    const result = await n8nSelfHostGet(c.env, "/api/v1/workflows?limit=100");
+    if (!result.ok) return c.json({ ok: false, code: result.code }, result.status as 401 | 502 | 503, noStore);
+    const list = result.body as N8nListResponse;
+    const workflows = Array.isArray(list.data) ? list.data : [];
+    return c.json({
+      ok: true,
+      runtime: "N8N_SELFHOST_INVENTORY_V1",
+      source: {
+        host: result.host,
+        api_key_bound: true,
+        direct_database_access: false,
+      },
+      inventory: {
+        workflow_count_first_page: workflows.length,
+        next_cursor_present: Boolean(list.nextCursor),
+        workflows: workflows.map(summarizeWorkflow),
+      },
+      control: {
+        execution_authority: "YELLOW_STONE_ONLY",
+        workflow_mutation_allowed: false,
+        workflow_execution_allowed: false,
+      },
+      redaction: {
+        node_parameters_returned: false,
+        credential_ids_returned: false,
+        credential_names_returned: false,
+        credential_secrets_returned: false,
+      },
+    }, 200, noStore);
   });
 
   api.get("/api/n8n/migration/status", async (c) => {
