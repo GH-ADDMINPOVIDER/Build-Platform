@@ -8,7 +8,7 @@ export type AthenaCommandPlan = {
   capability?: string;
   provider?: string;
   environment: "staging";
-  input?: { path?: string };
+  input?: { path?: string; prompt?: string };
   reason?: string;
   requires_yellow_stone: true;
   approval_authority: "YELLOW_STONE";
@@ -26,7 +26,7 @@ const RUNTIME_WORD = /(?:\bruntime\b|\bhealth\b|\bstatus\b|สถานะ|ร�
 const VERIFY_WORD = /(?:\bverify\b|\bcheck\b|\binspect\b|ตรวจ|เช็ก|เช็ค)/i;
 const WORKFLOW_WORD = /(?:\bworkflow\b|\brun\b|เวิร์กโฟลว์|รัน)/i;
 const DRIVE_SCAN_WORD = /(?:\bdrive\b|google\s+drive|ไดรฟ์)/i;
-const SCAN_WORD = /(?:\bscan\b|\blist\b|\bfind\b|สแกน|ค้น|หา)/i;
+const SCAN_WORD = /(?:\bscan\b|\blist\b|\bfind\b|สแกน|ค้น|หา)/i;\nconst GEMINI_READ_WORD = /(?:\\banaly[sz]e\\b|\\breview\\b|\\bsummar(?:ize|ise)\\b|\\bexplain\\b|\\breason\\b|\\bcompare\\b|วิเคราะห์|สรุป|อธิบาย|เปรียบเทียบ|รีวิว)/i;
 
 const compact = (value: unknown, max: number) => String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
 
@@ -143,6 +143,16 @@ export function planAthenaCommand(rawIntent: unknown): AthenaCommandPlan {
       status: "READY",
       capability: "drive_scan",
       provider: "google_drive",
+    };
+  }
+
+  if (GEMINI_READ_WORD.test(intent) && paths.length === 0) {
+    return {
+      ...base,
+      status: "READY",
+      capability: "context_load",
+      provider: "gemini",
+      input: { prompt: intent },
     };
   }
 
