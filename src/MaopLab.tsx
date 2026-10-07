@@ -13,7 +13,7 @@ const scenarios = [
 
 function ResultCard({ title, value }: { title: string; value: Json | null }) {
   const lifecycle = useMemo(() => {
-    const candidate = value?.result?.lifecycle ?? value?.first?.lifecycle ?? value?.tests?.map?.((row: Json) => row.test_id);
+    const candidate = value?.journey?.map?.((row: Json) => row?.action?.verb ?? row?.code) ?? value?.result?.lifecycle ?? value?.first?.lifecycle ?? value?.tests?.map?.((row: Json) => row.test_id);
     return Array.isArray(candidate) ? candidate : [];
   }, [value]);
 
@@ -145,6 +145,93 @@ export default function MaopLab() {
     }
   }
 
+
+  async function ccsEnvelope(state: string, verb: string) {
+    const response = await fetch("/api/ccs/envelope", {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        card_id: "card.lab.github.read",
+        holder: "lab-agent-01",
+        role: "sandbox_reader",
+        capability: "read_file",
+        scope: { environment: "staging", permission: "READ" },
+        state,
+        verb,
+      }),
+    });
+    if (response.status === 401) setAuthRequired(true);
+    return await response.json();
+  }
+
+  async function runCcsCardDemo() {
+    setBusy("ccs-demo");
+    setTitle("CCS · Insert → Verify → Use → Return");
+    try {
+      const journey = [];
+      journey.push(await ccsEnvelope("ABSENT", "INSERT"));
+      journey.push(await ccsEnvelope("INSERTED", "VERIFY"));
+      journey.push(await ccsEnvelope("VERIFIED", "USE"));
+      journey.push(await ccsEnvelope("IN_USE", "RETURN"));
+      setResult({
+        ok: journey.every((step: Json) => step?.ok === true),
+        protocol: "CCS/1.0",
+        item: "LAB CARD",
+        journey,
+      });
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function runCcsLeaseDemo() {
+    setBusy("ccs-lease");
+    setTitle("CCS · Card Lease simulation");
+    try {
+      const response = await fetch("/api/ccs/lease", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          borrower: {
+            card_id: "card.lab.github.read.a",
+            slot_id: "slot.github.a",
+            holder: "lab-agent-01",
+            tier: "WHITE",
+            state: "READY",
+            provider_id: "github",
+            capability_id: "read_file",
+            permission_class: "READ",
+            environment: "staging",
+            lease_eligible: true,
+          },
+          source: {
+            card_id: "card.lab.github.read.b",
+            slot_id: "slot.github.b",
+            holder: "lab-pool-01",
+            tier: "WHITE",
+            state: "READY",
+            provider_id: "github",
+            capability_id: "read_file",
+            permission_class: "READ",
+            environment: "staging",
+            lease_eligible: true,
+          },
+          reason: "RATE_LIMIT",
+          requested_permission: "READ",
+          requested_ttl_minutes: 5,
+          requested_max_calls: 5,
+          operation: "staging read",
+        }),
+      });
+      if (response.status === 401) setAuthRequired(true);
+      setResult(await response.json());
+    } finally {
+      setBusy("");
+    }
+  }
+
   return <main className="mlRoot">
     <div className="mlFrame">
       <header className="mlHeader">
@@ -243,6 +330,29 @@ export default function MaopLab() {
           <button disabled={Boolean(busy)} onClick={() => void inspectN8nCatalog()}>{busy === "n8n-catalog" ? "READING…" : "Open category map"}</button>
           <button disabled={Boolean(busy)} onClick={() => void inspectN8nPlacement()}>{busy === "n8n-placement" ? "READING…" : "OGE placement"}</button>
           <button disabled={Boolean(busy)} onClick={() => void inspectN8nSelfHost()}>{busy === "n8n-selfhost" ? "CHECKING…" : "Check self-host"}</button>
+        </div>
+      </section>
+
+
+      <section className="mlCard">
+        <div className="mlCardHead">
+          <div>
+            <span>ITEM TEST FIELD</span>
+            <h2>Capability Card Stone</h2>
+          </div>
+          <b>CCS/1.0</b>
+        </div>
+        <p className="mlBody">สนามเสียบการ์ดจำลอง: Card → Stone → Yellow policy → Ruby evidence โดยไม่เปิดของหลังการ์ดให้หน้าเว็บเห็น</p>
+        <div className="mlButtons">
+          <button disabled={Boolean(busy)} onClick={() => void runCcsCardDemo()}>
+            {busy === "ccs-demo" ? "INSERTING…" : "Insert test card"}
+          </button>
+          <button disabled={Boolean(busy)} onClick={() => void runCcsLeaseDemo()}>
+            {busy === "ccs-lease" ? "LEASING…" : "Simulate lease"}
+          </button>
+          <button disabled={Boolean(busy)} onClick={() => void ccsEnvelope("VERIFIED", "REVOKE").then(setResult)}>
+            Revoke card
+          </button>
         </div>
       </section>
 
