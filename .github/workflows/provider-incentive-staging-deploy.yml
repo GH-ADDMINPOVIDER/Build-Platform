@@ -241,6 +241,12 @@ jobs:
               'OGENIC_READINESS_GEMINI_API',
               'OGENIC_READINESS_GEMINI_QUOTA',
               'OGENIC_READINESS_GEMINI_BILLING',
+              'OGENIC_READINESS_XAI_API',
+              'OGENIC_READINESS_XAI_QUOTA',
+              'OGENIC_READINESS_XAI_BILLING',
+              'OGENIC_READINESS_META_MODEL_API',
+              'OGENIC_READINESS_META_MODEL_QUOTA',
+              'OGENIC_READINESS_META_MODEL_BILLING',
           ]:
               if os.environ.get(key):
                   vars[key] = os.environ[key]
@@ -529,7 +535,7 @@ jobs:
               '.actors[] | select(.actor_id == $actor) | (.state != "CONFIGURATION_REQUIRED" and .state != "OFFLINE" and .auth_ref == "SERVER_SIDE_REFERENCE_PRESENT")' >/dev/null \
               || { echo "::error::runtime binding verification failed for ${actor}"; exit 1; }
           done
-          printf '%s' "$REGISTRY" | jq -r '.actors[] | select(.actor_id | test("^(athena-command|codex-execution-agent|manus-candidate|perplexity-candidate|deepseek-candidate|claude-candidate|gemini-candidate|grok-candidate)$")) | "\(.actor_id)=\(.state)"' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s' "$REGISTRY" | jq -r '.actors[] | select(.actor_id | test("^(athena-command|codex-execution-agent|manus-candidate|perplexity-candidate|deepseek-candidate|claude-candidate|gemini-candidate|grok-candidate|meta-model-candidate)$")) | "\(.actor_id)=\(.state)"' >> "$GITHUB_STEP_SUMMARY"
           echo "STAGING_PROVIDER_BINDINGS_VERIFIED"
 
       - name: Verify owner auth, dashboard, connector hub, and Browser Run bridge
@@ -603,7 +609,7 @@ jobs:
             (.state == "BOUND" or .state == "CONFIGURATION_REQUIRED")
           ' >/dev/null
 
-          if printf '%s\n%s\n%s\n%s' "$DASHBOARD" "$CONNECTORS" "$BROWSER_BRIDGE" "$MANUS_BRIDGE" | grep -Eq 'OPENAI_API_KEY|OPENAI_EXECUTOR_API_KEY|OGENIC_OPS_KEY|LINE_CHANNEL_ACCESS_TOKEN|LINE_SECRET_CHANNEL|META_APP_SECRET|META_PAGE_ACCESS_TOKEN|N8N_API_KEY|GITHUB_TOKEN|LINEAR_API_KEY|MANUS_API_KEY|PERPLEXITY_API_KEY|DEEPSEEK_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|XAI_API_KEY'; then
+          if printf '%s\n%s\n%s\n%s' "$DASHBOARD" "$CONNECTORS" "$BROWSER_BRIDGE" "$MANUS_BRIDGE" | grep -Eq 'OPENAI_API_KEY|OPENAI_EXECUTOR_API_KEY|OGENIC_OPS_KEY|LINE_CHANNEL_ACCESS_TOKEN|LINE_SECRET_CHANNEL|META_APP_SECRET|META_PAGE_ACCESS_TOKEN|N8N_API_KEY|GITHUB_TOKEN|LINEAR_API_KEY|MANUS_API_KEY|PERPLEXITY_API_KEY|DEEPSEEK_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|XAI_API_KEY|META_MODEL_API_KEY'; then
             echo "::error::control plane response leaked a protected binding name"
             exit 1
           fi
