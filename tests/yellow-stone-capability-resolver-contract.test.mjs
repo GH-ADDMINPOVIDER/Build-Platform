@@ -39,13 +39,14 @@ test("resolver preserves canonical Phase VI permission classes", () => {
   }
 });
 
-test("provider catalog keeps migration/planned providers distinguishable", () => {
+test("provider catalog keeps legacy migration sources distinct from verified active execution providers", () => {
   const providers = JSON.parse(read("config/providers.json")).providers;
-  const statuses = Object.fromEntries(providers.map((provider) => [provider.id, provider.status]));
-  assert.equal(statuses.notion, "migration");
-  assert.equal(statuses.n8n, "migration");
-  assert.equal(statuses.deepseek, "planned");
-  assert.equal(statuses.github, "active");
-  assert.equal(statuses.linear, "active");
-  assert.equal(statuses.cloudflare, "active");
+  const byId = Object.fromEntries(providers.map((provider) => [provider.id, provider]));
+  assert.equal(byId.notion.status, "migration");
+  assert.equal(byId.n8n.status, "active");
+  assert.equal(byId.n8n.role, "workflow_execution_fabric");
+  assert.equal(byId.deepseek.status, "planned");
+  assert.equal(byId.github.status, "active");
+  assert.equal(byId.linear.status, "active");
+  assert.equal(byId.cloudflare.status, "active");
 });
