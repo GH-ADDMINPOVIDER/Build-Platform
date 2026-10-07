@@ -20,14 +20,26 @@
       "kind": "human",
       "role": "intent_final_approval_priority",
       "critical_path": "approval_only",
-      "capabilities": ["goal", "priority", "risk_approval", "product_judgment"]
+      "capabilities": [
+        "goal",
+        "priority",
+        "risk_approval",
+        "product_judgment"
+      ]
     },
     {
       "id": "chatgpt-main",
       "kind": "controller",
       "role": "system_supervisor_architect_coordinator",
       "status": "available_in_chat",
-      "capabilities": ["decompose", "route", "reconcile", "architecture", "cross_tool_coordination", "evidence_synthesis"],
+      "capabilities": [
+        "decompose",
+        "route",
+        "reconcile",
+        "architecture",
+        "cross_tool_coordination",
+        "evidence_synthesis"
+      ],
       "execution_authority": "NO_DIRECT_BYPASS_OF_YELLOW"
     },
     {
@@ -35,15 +47,32 @@
       "kind": "command_agent",
       "role": "admission_planning_agent_selection",
       "status": "active",
-      "capabilities": ["risk_classify", "plan", "select_agent", "handoff", "escalate"]
+      "capabilities": [
+        "risk_classify",
+        "plan",
+        "select_agent",
+        "handoff",
+        "escalate"
+      ]
     },
     {
       "id": "codex",
       "kind": "execution_agent",
       "role": "canonical_repo_code_test_build_fix",
       "status": "proven",
-      "capabilities": ["repo_inspect", "code", "patch", "test", "build", "runtime_verify"],
-      "preferred_for": ["source_mutation", "repo_tasks", "implementation"]
+      "capabilities": [
+        "repo_inspect",
+        "code",
+        "patch",
+        "test",
+        "build",
+        "runtime_verify"
+      ],
+      "preferred_for": [
+        "source_mutation",
+        "repo_tasks",
+        "implementation"
+      ]
     },
     {
       "id": "linear",
@@ -51,7 +80,12 @@
       "role": "task_delegation_status_evidence_ledger",
       "status": "connected",
       "critical_path": false,
-      "capabilities": ["delegate", "issue_state", "comments", "evidence_index"],
+      "capabilities": [
+        "delegate",
+        "issue_state",
+        "comments",
+        "evidence_index"
+      ],
       "rule": "Do not use as high-frequency execution queue."
     },
     {
@@ -59,7 +93,15 @@
       "kind": "source_audit_tool",
       "role": "canonical_source_ci_deterministic_verifier_final_commit_evidence",
       "status": "verified_ready",
-      "capabilities": ["source", "branch", "commit", "ci", "diff", "artifact", "audit"]
+      "capabilities": [
+        "source",
+        "branch",
+        "commit",
+        "ci",
+        "diff",
+        "artifact",
+        "audit"
+      ]
     }
   ],
   "specialists": [
@@ -68,15 +110,28 @@
       "role": "read_reasoning_multimodal_long_context_secondary_review",
       "status": "verified_for_staging_read",
       "auto_route": true,
-      "constraints": ["READ_first", "no_repo_mutation", "no_hidden_retry"]
+      "constraints": [
+        "READ_first",
+        "no_repo_mutation",
+        "no_hidden_retry"
+      ]
     },
     {
       "id": "manus",
       "role": "long_horizon_builder_research_producer",
       "status": "external_bridge_available_native_wave_not_yet_proven",
       "auto_route": false,
-      "capabilities": ["website", "mobile_app", "slides", "video", "deep_research"],
-      "constraints": ["Yellow_handoff", "result_must_be_verified_before_retention"]
+      "capabilities": [
+        "website",
+        "mobile_app",
+        "slides",
+        "video",
+        "deep_research"
+      ],
+      "constraints": [
+        "Yellow_handoff",
+        "result_must_be_verified_before_retention"
+      ]
     },
     {
       "id": "anthropic-claude",
@@ -99,17 +154,25 @@
     {
       "id": "xai",
       "role": "realtime_web_reasoning_code",
-      "status": "candidate_not_live_proven",
+      "status": "configured_live_proof_pending",
       "auto_route": false,
       "canonical_secret": "XAI_API_KEY",
-      "secret_aliases": ["GROK_API_KEY"]
+      "secret_aliases": [
+        "GROK_API_KEY"
+      ]
     },
     {
       "id": "meta-model",
       "role": "agentic_code_multimodal_candidate",
-      "status": "candidate_not_live_proven",
+      "status": "billing_blocked_payment_method_required",
       "auto_route": false,
-      "canonical_secret": "META_MODEL_API_KEY"
+      "canonical_secret": "META_MODEL_API_KEY",
+      "constraints": [
+        "configured_secret_only",
+        "payment_required_before_inference",
+        "no_auto_route",
+        "global_context_policy"
+      ]
     }
   ],
   "execution_fabric": [
