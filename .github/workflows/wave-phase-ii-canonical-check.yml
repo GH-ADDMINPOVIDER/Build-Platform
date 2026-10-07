@@ -1,0 +1,70 @@
+name: WAVE Phase II Canonical Check
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "worker/**"
+      - "config/**"
+      - "tests/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/wave-phase-ii-canonical-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wave-phase-ii-canonical-check
+  cancel-in-progress: true
+
+jobs:
+  canonical-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Canonical test typecheck build
+        run: npm run check
+
+      - name: Persist secret-free Phase II proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ogenic/proofs
+          cat > .ogenic/proofs/wave-phase-ii-canonical-check.json <<JSON
+          {
+            "schema_version": "WAVE_PHASE_II_CANONICAL_CHECK_V1",
+            "repository": "${GITHUB_REPOSITORY}",
+            "branch": "${GITHUB_REF_NAME}",
+            "source_commit": "${GITHUB_SHA}",
+            "run_id": "${GITHUB_RUN_ID}",
+            "run_attempt": "${GITHUB_RUN_ATTEMPT}",
+            "npm_run_check": "PASS",
+            "tests": "PASS",
+            "typecheck": "PASS",
+            "build": "PASS",
+            "secrets_included": false
+          }
+          JSON
+          git config user.name "ogenic-wave-proof"
+          git config user.email "ogenic-wave-proof@users.noreply.github.com"
+          git add .ogenic/proofs/wave-phase-ii-canonical-check.json
+          if git diff --cached --quiet; then
+            echo "Proof unchanged."
+          else
+            git commit -m "proof: persist WAVE Phase II canonical check"
+            git push origin "HEAD:phase-vi-provider-incentive-metering"
+          fi
