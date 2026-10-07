@@ -1,5 +1,5 @@
 {
-  "schema_version": "6.1",
+  "schema_version": "6.2",
   "runtime": "cloudflare",
   "providers": [
     {
@@ -102,10 +102,17 @@
     },
     {
       "id": "xai",
-      "role": "realtime_reasoning_code_candidate",
+      "role": "realtime_web_reasoning_code_candidate",
       "status": "optional",
       "auth": "api_key",
       "secret_ref": "/providers/xai/staging"
+    },
+    {
+      "id": "meta_model",
+      "role": "agentic_code_multimodal_candidate",
+      "status": "optional",
+      "auth": "api_key",
+      "secret_ref": "/providers/meta-model/staging"
     },
     {
       "id": "notion",
