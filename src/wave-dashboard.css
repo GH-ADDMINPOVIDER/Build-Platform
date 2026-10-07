@@ -1,0 +1,71 @@
+:root {
+  --wd-bg:#fafafa;
+  --wd-panel:#ffffff;
+  --wd-soft:#f6f6f6;
+  --wd-text:#0a0a0a;
+  --wd-sub:#6b6b6b;
+  --wd-line:#eaeaea;
+  --wd-line-strong:#d9d9d9;
+  --wd-black:#000;
+  --wd-green:#0b8f55;
+  --wd-amber:#a46700;
+  --wd-red:#c5293b;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--wd-bg);color:var(--wd-text)}
+button,input{font:inherit}
+.wdRoot{min-height:100dvh;background:var(--wd-bg);color:var(--wd-text)}
+.wdLoading{min-height:100dvh;display:grid;place-items:center;color:var(--wd-sub);font-size:13px}
+.wdAuthRoot{display:grid;place-items:center;padding:24px}
+.wdAuth{width:min(540px,100%);border:1px solid var(--wd-line);border-radius:18px;background:var(--wd-panel);padding:30px;box-shadow:0 24px 80px rgba(0,0,0,.07)}
+.wdLogo,.wdBrand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+.wdLogo img,.wdBrand img{width:30px;height:30px;border-radius:8px;object-fit:cover}
+.wdLogo span,.wdBrand span{display:grid;gap:1px}.wdLogo b,.wdBrand b{font-size:13px;letter-spacing:.08em}.wdLogo small,.wdBrand small{font-size:8px;color:var(--wd-sub);letter-spacing:.1em}
+.wdAuthCopy{margin:54px 0 24px}.wdAuthCopy>span,.wdSectionHead span,.wdPanelHead span,.wdHero>div>span{font-size:10px;font-weight:750;letter-spacing:.12em;color:var(--wd-sub)}
+.wdAuthCopy h1{margin:10px 0 12px;font-size:clamp(38px,8vw,62px);line-height:.98;letter-spacing:-.055em}.wdAuthCopy p{color:var(--wd-sub);line-height:1.6;font-size:14px}
+.wdAuthForm{display:grid;grid-template-columns:1fr auto;gap:8px}.wdAuthForm input{height:44px;border:1px solid var(--wd-line-strong);border-radius:10px;background:#fff;padding:0 12px;outline:none}.wdAuthForm input:focus{border-color:#111;box-shadow:0 0 0 3px rgba(0,0,0,.06)}
+.wdAuthForm button,.wdTopActions button{border:0;border-radius:9px;background:#000;color:#fff;padding:0 15px;font-weight:700;cursor:pointer}.wdError{margin-top:10px;color:var(--wd-red);font-size:12px}.wdInlineError{padding:10px 12px;border:1px solid #f2c9ce;border-radius:10px;background:#fff5f6}
+
+.wdSidebar{position:fixed;left:0;top:0;bottom:0;width:232px;border-right:1px solid var(--wd-line);background:rgba(255,255,255,.9);backdrop-filter:blur(16px);padding:18px 12px;display:flex;flex-direction:column;z-index:20}
+.wdBrand{padding:4px 8px 22px}.wdSidebar nav{display:grid;gap:2px}.wdSidebar nav a{height:38px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:8px;text-decoration:none;color:#4a4a4a;font-size:12px;font-weight:600}.wdSidebar nav a span{width:18px;color:#777}.wdSidebar nav a:hover{background:#f4f4f4;color:#000}.wdSidebar nav a.active{background:#f1f1f1;color:#000}
+.wdNavLabel{padding:16px 10px 7px;color:#999;font-size:8px;font-weight:800;letter-spacing:.13em}
+.wdSidebarFoot{margin-top:auto;border-top:1px solid var(--wd-line);padding:14px 8px 0;display:flex;align-items:center;justify-content:space-between;gap:8px}.wdSidebarFoot button{border:0;background:transparent;color:var(--wd-sub);font-size:10px;cursor:pointer}
+
+.wdWorkspace{margin-left:232px;min-height:100dvh;padding:0 30px 32px}
+.wdTopbar{height:86px;display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid var(--wd-line);position:sticky;top:0;background:rgba(250,250,250,.88);backdrop-filter:blur(16px);z-index:10}
+.wdBreadcrumb{font-size:10px;color:var(--wd-sub)}.wdTopbar h1{margin:4px 0 0;font-size:20px;letter-spacing:-.03em}.wdTopActions{display:flex;align-items:center;gap:8px}.wdBranch{max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--wd-line);background:#fff;border-radius:8px;padding:8px 10px;font-size:9px;color:var(--wd-sub)}.wdTopActions button{height:34px}
+
+.wdHero{min-height:250px;display:flex;align-items:flex-end;justify-content:space-between;gap:30px;padding:40px 0 28px;border-bottom:1px solid var(--wd-line)}.wdHero h2{margin:8px 0 12px;max-width:800px;font-size:clamp(36px,5vw,66px);line-height:.98;letter-spacing:-.06em}.wdHero p{max-width:680px;margin:0;color:var(--wd-sub);font-size:13px;line-height:1.6}.wdHeroState{min-width:170px;text-align:right;display:grid;justify-items:end;gap:6px}.wdHeroState small{font-size:8px;color:var(--wd-sub);letter-spacing:.12em}.wdHeroState strong{font-size:34px;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+
+.wdStatus{display:inline-flex;align-items:center;gap:6px;width:max-content;border:1px solid var(--wd-line);border-radius:999px;padding:5px 7px;background:#fff;font-size:8px;font-weight:800;letter-spacing:.05em;color:#777;white-space:nowrap}.wdStatus i{width:6px;height:6px;border-radius:50%;background:#aaa}.wdStatus.isLive{color:var(--wd-green);border-color:#cce8da;background:#f5fff9}.wdStatus.isLive i{background:#17a865}.wdStatus.isWarn{color:var(--wd-amber);border-color:#ead9b9;background:#fffaf1}.wdStatus.isWarn i{background:#c58a22}.wdStatus.isBad{color:var(--wd-red);border-color:#efcbd0;background:#fff7f8}.wdStatus.isBad i{background:#d53c4d}
+
+.wdMetricGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid var(--wd-line)}
+.wdMetricGrid article{min-height:132px;padding:24px 20px;border-right:1px solid var(--wd-line);display:flex;flex-direction:column;justify-content:flex-end}.wdMetricGrid article:last-child{border-right:0}.wdMetricGrid span{font-size:10px;color:var(--wd-sub)}.wdMetricGrid strong{margin:8px 0 4px;font-size:28px;letter-spacing:-.045em}.wdMetricGrid strong em{font-size:14px;color:#aaa;font-style:normal;font-weight:500}.wdMetricGrid small{font-size:9px;color:#999}
+
+.wdSection{padding:30px 0;border-bottom:1px solid var(--wd-line)}.wdSectionHead,.wdPanelHead{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:15px}.wdSectionHead h3,.wdPanelHead h3{margin:4px 0 0;font-size:17px;letter-spacing:-.025em}.wdSectionHead>small{font-size:10px;color:var(--wd-sub)}
+.wdChannelGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--wd-line-strong);border-radius:14px;overflow:hidden;background:#fff}.wdChannel{min-height:260px;padding:20px;display:flex;flex-direction:column;text-decoration:none;color:inherit;border-right:1px solid var(--wd-line);transition:.18s ease}.wdChannel:last-child{border-right:0}.wdChannel:hover{background:#fafafa}.wdChannelTop{display:flex;align-items:center;justify-content:space-between}.wdIndex{font-size:10px;color:#aaa}.wdChannel>small{margin-top:40px;color:var(--wd-sub);font-size:9px;font-weight:750;letter-spacing:.1em}.wdChannel h4{margin:8px 0 8px;font-size:25px;letter-spacing:-.04em}.wdChannel p{margin:0;color:var(--wd-sub);font-size:12px;line-height:1.55}.wdChannelFoot{margin-top:auto;padding-top:24px;display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:700}.wdChannelFoot b{font-size:16px}
+
+.wdTwoCol{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--wd-line)}.wdPanel{min-width:0;padding:28px 22px}.wdPanel:first-child{border-right:1px solid var(--wd-line)}.wdPanelHead a{font-size:10px;color:var(--wd-text);text-decoration:none}.wdStack,.wdAgentList,.wdTable{display:grid}.wdStackRow,.wdAgentRow,.wdTableRow{min-height:55px;display:flex;align-items:center;gap:10px;border-top:1px solid var(--wd-line)}.wdStackRow:first-child,.wdAgentRow:first-child,.wdTableRow:first-child{border-top:0}.wdStackRow>div,.wdAgentRow>div:nth-child(2),.wdTableRow>div{min-width:0;display:grid;gap:3px;flex:1}.wdStackRow b,.wdAgentRow b,.wdTableRow b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wdStackRow small,.wdAgentRow small,.wdTableRow small{color:var(--wd-sub);font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wdAgentIcon{width:28px;height:28px;border:1px solid var(--wd-line);border-radius:8px;background:#f5f5f5;display:grid;place-items:center;font-size:9px;font-weight:800}.wdTableRow>span{color:#999;font-size:8px;white-space:nowrap}.wdEmpty{padding:24px 0;color:var(--wd-sub);font-size:10px}
+.wdFooter{display:flex;justify-content:space-between;gap:15px;padding:18px 2px 0;color:#aaa;font-size:8px}
+
+@media(max-width:1000px){
+  .wdMetricGrid{grid-template-columns:repeat(2,1fr)}.wdMetricGrid article:nth-child(2){border-right:0}.wdMetricGrid article:nth-child(-n+2){border-bottom:1px solid var(--wd-line)}
+  .wdTwoCol{grid-template-columns:1fr}.wdPanel:first-child{border-right:0;border-bottom:1px solid var(--wd-line)}
+}
+@media(max-width:760px){
+  .wdSidebar{position:sticky;top:0;width:auto;height:auto;bottom:auto;padding:8px 10px;display:block;border-right:0;border-bottom:1px solid var(--wd-line)}.wdBrand{padding:2px 4px 8px}.wdSidebar nav{display:flex;gap:4px;overflow-x:auto}.wdSidebar nav a{flex:0 0 auto;height:34px;padding:0 10px}.wdSidebar nav a span,.wdNavLabel,.wdSidebarFoot{display:none}
+  .wdWorkspace{margin-left:0;padding:0 14px 24px}.wdTopbar{height:68px}.wdTopbar h1{font-size:18px}.wdBranch{display:none}.wdHero{align-items:flex-start;min-height:0;padding:30px 0 24px;flex-direction:column}.wdHero h2{font-size:42px}.wdHeroState{min-width:0;text-align:left;justify-items:start}.wdHeroState strong{font-size:28px}
+  .wdChannelGrid{grid-template-columns:1fr}.wdChannel{min-height:190px;border-right:0;border-bottom:1px solid var(--wd-line)}.wdChannel:last-child{border-bottom:0}.wdChannel>small{margin-top:24px}
+}
+@media(max-width:520px){
+  .wdMetricGrid{grid-template-columns:1fr}.wdMetricGrid article{border-right:0;border-bottom:1px solid var(--wd-line)!important}.wdMetricGrid article:last-child{border-bottom:0!important}.wdAuth{padding:22px}.wdAuthForm{grid-template-columns:1fr}.wdAuthForm button{height:44px}.wdSectionHead>small{display:none}.wdPanel{padding-left:4px;padding-right:4px}.wdTableRow>span{display:none}.wdFooter{flex-direction:column}
+}
+:root[data-og-theme="dark"]{
+  --wd-bg:#0b0b0b;--wd-panel:#111;--wd-soft:#151515;--wd-text:#f5f5f5;--wd-sub:#909090;--wd-line:#252525;--wd-line-strong:#323232;
+}
+:root[data-og-theme="dark"] .wdSidebar,:root[data-og-theme="dark"] .wdTopbar{background:rgba(11,11,11,.9)}
+:root[data-og-theme="dark"] .wdAuth,:root[data-og-theme="dark"] .wdChannelGrid,:root[data-og-theme="dark"] .wdStatus,:root[data-og-theme="dark"] .wdBranch{background:#111}
+:root[data-og-theme="dark"] .wdSidebar nav a:hover,:root[data-og-theme="dark"] .wdSidebar nav a.active,:root[data-og-theme="dark"] .wdAgentIcon{background:#181818}
+:root[data-og-theme="dark"] .wdAuthForm input{background:#111;color:#fff;border-color:#333}
+:root[data-og-theme="dark"] .wdChannel:hover{background:#151515}
