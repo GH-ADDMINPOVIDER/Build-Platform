@@ -122,6 +122,49 @@ jobs:
           ' /tmp/n8n-workflow.json >/dev/null
           echo "n8n recovered orchestrator proof: INACTIVE + 95 NODES"
 
+      - name: Sync OGE-70 inactive execution-fabric modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODULES=(
+            "deploy/n8n-selfhost/workflows/ogenic-oge62-flow-preaudit-v1.sanitized.json|5"
+            "deploy/n8n-selfhost/workflows/ogenic-evidence-normalizer-v1.sanitized.json|4"
+            "deploy/n8n-selfhost/workflows/ogenic-task-router-v1.sanitized.json|4"
+          )
+
+          curl -sS --fail             -H "Accept: application/json"             -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}"             "${N8N_SELFHOST_BASE_URL}/api/v1/workflows?limit=100"             -o /tmp/n8n-modules-before.json
+
+          for spec in "${MODULES[@]}"; do
+            file="${spec%%|*}"
+            expected_nodes="${spec##*|}"
+            name="$(jq -r '.name' "$file")"
+            existing_id="$(jq -r --arg NAME "$name" '.data[]? | select(.name == $NAME) | .id' /tmp/n8n-modules-before.json | head -n1)"
+
+            if [ -z "$existing_id" ]; then
+              jq '{name,nodes,connections,settings:(.settings // {})}' "$file" > /tmp/n8n-module-import.json
+              status="$(curl -sS -o /tmp/n8n-module-created.json -w '%{http_code}'                 -X POST                 -H "Content-Type: application/json"                 -H "Accept: application/json"                 -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}"                 --data-binary @/tmp/n8n-module-import.json                 "${N8N_SELFHOST_BASE_URL}/api/v1/workflows")"
+              if [ "$status" != "200" ] && [ "$status" != "201" ]; then
+                echo "::error::failed to import $name (HTTP $status)"
+                exit 1
+              fi
+              existing_id="$(jq -r '.id // empty' /tmp/n8n-module-created.json)"
+              test -n "$existing_id" || { echo "::error::$name returned no workflow id"; exit 1; }
+              echo "Imported OGE-70 module: $name"
+            else
+              echo "OGE-70 module already present: $name"
+            fi
+
+            curl -sS --fail               -H "Accept: application/json"               -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}"               "${N8N_SELFHOST_BASE_URL}/api/v1/workflows/${existing_id}"               -o /tmp/n8n-module-verify.json
+
+            jq -e --argjson N "$expected_nodes" '
+              (.active == false) and
+              ((.nodes // []) | length == $N) and
+              ([.nodes[]? | has("credentials")] | all(. == false))
+            ' /tmp/n8n-module-verify.json >/dev/null
+          done
+
+          echo "OGE-70 n8n execution-fabric modules: IMPORTED/VERIFIED INACTIVE."
+
       - name: Write safe summary
         shell: bash
         env:
