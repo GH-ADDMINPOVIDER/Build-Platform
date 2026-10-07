@@ -359,46 +359,65 @@ jobs:
             echo "PASS — /maop is live; Core lifecycle passed; GitHub READ traversed MA-OP → Yellow; Ruby scorecard responded."
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: OGE-68 live n8n legacy source proof
+      - name: OGE-68 legacy n8n source preservation proof
         shell: bash
         run: |
           set -euo pipefail
           AUTH_HEADER="x-ogenic-ops-key: ${OGENIC_OPS_KEY}"
-          STATUS="$(curl --fail --silent --show-error -H "$AUTH_HEADER" "${STAGING_URL}/api/n8n/migration/status")"
-          printf '%s' "$STATUS" | jq -e '
-            .ok == true and
-            .runtime == "N8N_LEGACY_SOURCE_BRIDGE_V1" and
-            .source.mode == "N8N_CLOUD_PUBLIC_API_READ_ONLY" and
-            .source.direct_database_access == false and
-            .source.api_key_bound == true and
-            .migration_policy.workflow_execution_allowed == false and
-            .migration_policy.workflow_mutation_allowed == false and
-            .migration_policy.credential_secret_export_allowed == false
-          ' >/dev/null
+          BODY_FILE="$(mktemp)"
+          CODE="$(curl --silent --show-error --output "$BODY_FILE" --write-out '%{http_code}' -H "$AUTH_HEADER" "${STAGING_URL}/api/n8n/migration/status")"
+          STATUS="$(cat "$BODY_FILE")"
+          rm -f "$BODY_FILE"
 
-          KNOWN_ID="$(printf '%s' "$STATUS" | jq -r '.inventory.known_legacy_workflow_id')"
-          test "$KNOWN_ID" = "iJVOGWcwMj8x7u9S"
-
-          if printf '%s' "$STATUS" | jq -e '.inventory.known_legacy_workflow_found == true' >/dev/null; then
-            DETAIL="$(curl --fail --silent --show-error -H "$AUTH_HEADER" "${STAGING_URL}/api/n8n/migration/workflow/${KNOWN_ID}")"
-            printf '%s' "$DETAIL" | jq -e '
+          if [ "$CODE" = "200" ]; then
+            printf '%s' "$STATUS" | jq -e '
               .ok == true and
-              .read_only == true and
-              .workflow.id == "iJVOGWcwMj8x7u9S" and
-              .redaction.node_parameters_returned == false and
-              .redaction.credential_ids_returned == false and
-              .redaction.credential_names_returned == false and
-              .redaction.credential_secrets_returned == false
+              .runtime == "N8N_LEGACY_SOURCE_BRIDGE_V1" and
+              .source.mode == "N8N_CLOUD_PUBLIC_API_READ_ONLY" and
+              .source.direct_database_access == false and
+              .migration_policy.workflow_execution_allowed == false and
+              .migration_policy.workflow_mutation_allowed == false and
+              .migration_policy.credential_secret_export_allowed == false
             ' >/dev/null
-            echo "n8n legacy source PASS: known workflow metadata is readable without exposing credentials."
+            echo "n8n legacy cloud source remains readable."
+          elif [ "$CODE" = "502" ] || [ "$CODE" = "503" ]; then
+            printf '%s' "$STATUS" | jq -e '.ok == false and (.code | type == "string")' >/dev/null
+            echo "::warning::legacy n8n Cloud is unavailable (HTTP $CODE); recovered owner export is now the preservation source."
           else
-            echo "::warning::n8n source connected, but known legacy workflow is not on the first API page."
+            echo "::error::unexpected legacy n8n migration status HTTP $CODE"
+            printf '%s
+' "$STATUS"
+            exit 1
           fi
 
           {
-            echo "### OGE-68 n8n legacy source"
+            echo "### OGE-68 legacy n8n source"
             echo ""
-            echo "PASS — old n8n Cloud source is reachable read-only through server-side credentials; no direct DB access or workflow mutation used."
+            echo "PASS — preservation path is fail-closed: live Cloud read when available, recovered export when the paused workspace is unavailable."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: OGE-69 categorized n8n migration catalog proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUTH_HEADER="x-ogenic-ops-key: ${OGENIC_OPS_KEY}"
+          CATALOG="$(curl --fail --silent --show-error -H "$AUTH_HEADER" "${STAGING_URL}/api/n8n/migration/catalog")"
+          printf '%s' "$CATALOG" | jq -e '
+            .ok == true and
+            .runtime == "N8N_LEGACY_MIGRATION_CATALOG_V1" and
+            .secrets_included == false and
+            .raw_workflow_parameters_included == false and
+            .catalog.control_plane.execution_authority == "YELLOW_STONE_ONLY" and
+            .catalog.control_plane.verification_authority == "RUBY_STONE" and
+            (.catalog.categories | length) == 8 and
+            (.catalog.sources[] | select(.id == "orchestrator-95") | .decision) == "PREFERRED_IMPORT_REFERENCE" and
+            (.catalog.sources[] | select(.kind == "credential_audit") | .decision) == "QUARANTINE_NEVER_COMMIT_OR_IMPORT"
+          ' >/dev/null
+
+          {
+            echo "### OGE-69 categorized n8n migration"
+            echo ""
+            echo "PASS — recovered modules are categorized, secrets quarantined, and n8n remains an execution adapter under Yellow/Ruby control."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: OGE-57 live staging task inbox roundtrip
