@@ -130,6 +130,7 @@ jobs:
             "deploy/n8n-selfhost/workflows/ogenic-oge62-flow-preaudit-v1.sanitized.json|5"
             "deploy/n8n-selfhost/workflows/ogenic-evidence-normalizer-v1.sanitized.json|4"
             "deploy/n8n-selfhost/workflows/ogenic-task-router-v1.sanitized.json|4"
+            "deploy/n8n-selfhost/workflows/ogenic-violet-pipeline-orchestrator-v1.sanitized.json|4"
           )
 
           curl -sS --fail             -H "Accept: application/json"             -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}"             "${N8N_SELFHOST_BASE_URL}/api/v1/workflows?limit=100"             -o /tmp/n8n-modules-before.json
