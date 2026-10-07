@@ -60,9 +60,9 @@
     },
     {
       "id": "n8n",
-      "role": "legacy_workflow_migration",
-      "status": "migration",
-      "auth": "api_or_webhook",
+      "role": "workflow_execution_fabric",
+      "status": "active",
+      "auth": "api_key",
       "secret_ref": "/providers/n8n/prod"
     },
     {
