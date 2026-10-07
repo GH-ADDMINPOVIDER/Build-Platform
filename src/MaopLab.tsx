@@ -133,6 +133,18 @@ export default function MaopLab() {
     }
   }
 
+  async function inspectN8nPlacement() {
+    setBusy("n8n-placement");
+    setTitle("OGE → n8n execution-fabric placement");
+    try {
+      const response = await fetch("/api/n8n/migration/placement", { credentials: "include", cache: "no-store" });
+      if (response.status === 401) setAuthRequired(true);
+      setResult(await response.json());
+    } finally {
+      setBusy("");
+    }
+  }
+
   return <main className="mlRoot">
     <div className="mlFrame">
       <header className="mlHeader">
@@ -229,6 +241,7 @@ export default function MaopLab() {
         <p className="mlBody">ดูการแยก CORE · AI · DOMAIN · CONNECTORS · GOVERNANCE · SECRETS · DELIVERY · DEMO ก่อน import เข้า self-host</p>
         <div className="mlButtons">
           <button disabled={Boolean(busy)} onClick={() => void inspectN8nCatalog()}>{busy === "n8n-catalog" ? "READING…" : "Open category map"}</button>
+          <button disabled={Boolean(busy)} onClick={() => void inspectN8nPlacement()}>{busy === "n8n-placement" ? "READING…" : "OGE placement"}</button>
           <button disabled={Boolean(busy)} onClick={() => void inspectN8nSelfHost()}>{busy === "n8n-selfhost" ? "CHECKING…" : "Check self-host"}</button>
         </div>
       </section>
