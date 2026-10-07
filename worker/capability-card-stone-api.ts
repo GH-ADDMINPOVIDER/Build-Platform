@@ -106,6 +106,57 @@ api.post("/api/ccs/envelope", async (c) => {
   }, transition.ok ? 200 : 409, noStore);
 });
 
+api.post("/api/ccs/lease", async (c) => {
+  const body = await c.req.json<Record<string, unknown>>().catch(() => ({}));
+  const borrower = useCard(body.borrower);
+  const source = useCard(body.source);
+  const requestedPermission = clean(body.requested_permission, 20).toUpperCase();
+
+  if (!borrower || !source || !permissions.has(requestedPermission)) {
+    return c.json({ ok: false, code: "CCS_LEASE_REQUIRED_FIELDS" }, 400, noStore);
+  }
+
+  const decision = evaluateUseCardLease({
+    borrower,
+    source,
+    reason: clean(body.reason, 40),
+    requested_permission: requestedPermission as UseCardLeaseRequest["requested_permission"],
+    requested_ttl_minutes: Number(body.requested_ttl_minutes) || undefined,
+    requested_max_calls: Number(body.requested_max_calls) || undefined,
+    operation: clean(body.operation, 200),
+  });
+
+  const now = Date.now();
+  return c.json({
+    ok: decision.allowed,
+    code: decision.code,
+    protocol: "CCS/1.0",
+    stone_code: "YS-01",
+    card: {
+      holder: borrower.holder,
+      source_card_id: source.card_id,
+      capability: source.capability_id,
+      scope: {
+        permission: decision.permission_class,
+        environment: source.environment,
+      },
+    },
+    lease: decision.allowed ? {
+      lease_id: `ccs_lease_${crypto.randomUUID()}`,
+      reason: clean(body.reason, 40).toUpperCase(),
+      issued_at: new Date(now).toISOString(),
+      expires_at: new Date(now + decision.ttl_minutes * 60_000).toISOString(),
+      max_calls: decision.max_calls,
+      return_state: "RETURN_REQUIRED",
+    } : null,
+    evidence: {
+      state: decision.allowed ? "RUBY_PENDING" : "BLOCKED",
+      verifier: "RUBY",
+    },
+    direct_execution_bypass: false,
+  }, decision.allowed ? 200 : 409, noStore);
+});
+
 export function createCapabilityCardStoneApi() {
   return api;
 }
