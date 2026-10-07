@@ -230,5 +230,14 @@
     "MAOP_YELLOW_ADMISSION_AND_APPROVAL",
     "RUBY_VERIFY",
     "GREEN_1LSS_RETENTION"
-  ]
+  ],
+  "selfhost_destination": {
+    "base_url": "https://n8n-staging-76b7.up.railway.app",
+    "secret_binding": "N8N_SELFHOST_API_KEY",
+    "secret_source": "INFISICAL_STAGING",
+    "github_sync_workflow": ".github/workflows/oge-69-n8n-live-connect.yml",
+    "workflow_source": "deploy/n8n-selfhost/workflows/ogenic-core-safe-connector-test-ready.sanitized.json",
+    "import_policy": "CREATE_IF_ABSENT_INACTIVE",
+    "execution_authority": "YELLOW_STONE_ONLY"
+  }
 }
