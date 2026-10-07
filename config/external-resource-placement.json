@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Place non-core external resources in OGENIC/WAVE without making them critical-path dependencies.",
+  "principles": [
+    "Cloudflare remains the primary runtime.",
+    "D1/1LSS remain canonical operational state.",
+    "GitHub remains canonical source/CI evidence.",
+    "External SaaS resources are optional execution or collaboration surfaces unless separately verified.",
+    "No raw secrets are stored here."
+  ],
+  "resources": [
+    {
+      "id": "notion",
+      "placement": "legacy_knowledge_source",
+      "routing_mode": "migration_or_explicit_read",
+      "critical_path": false,
+      "current_evidence": "Connector currently returns workspace pages; account billing/subscription state is not inferred.",
+      "use_for": [
+        "legacy knowledge lookup",
+        "migration source",
+        "human-readable archive"
+      ],
+      "do_not_use_for": [
+        "canonical memory",
+        "runtime state",
+        "execution authority"
+      ]
+    },
+    {
+      "id": "vercel",
+      "placement": "secondary_preview_deploy_observability",
+      "routing_mode": "explicit_optional",
+      "critical_path": false,
+      "current_evidence": "Connected Vercel team/projects are visible through the existing connector.",
+      "use_for": [
+        "frontend preview deployments",
+        "deployment comparison",
+        "preview CI/CD",
+        "frontend/runtime observability",
+        "temporary sandbox surfaces"
+      ],
+      "do_not_use_for": [
+        "replace Cloudflare primary runtime",
+        "canonical operational state",
+        "production promotion without approval"
+      ]
+    },
+    {
+      "id": "clickup",
+      "placement": "external_collaboration_tasks_docs",
+      "routing_mode": "explicit_optional",
+      "critical_path": false,
+      "current_evidence": "ClickUp ChatGPT plugin is installed; a direct ClickUp action surface is not exposed in the current execution harness.",
+      "use_for": [
+        "human-facing task/project collaboration",
+        "docs and pages",
+        "comments and threaded discussion",
+        "client/team-facing work tracking",
+        "low-frequency project mirror"
+      ],
+      "do_not_use_for": [
+        "replace Linear as current OGENIC task/evidence ledger until cutover is proven",
+        "high-frequency runtime queue",
+        "canonical execution state"
+      ]
+    }
+  ]
+}
