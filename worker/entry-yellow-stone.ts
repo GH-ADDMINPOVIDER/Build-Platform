@@ -16,6 +16,8 @@ import { createProviderReadinessApi } from "./provider-readiness-api";
 import { createPerplexityAgentApi, type PerplexityAgentBindings } from "./perplexity-agent-api";
 import { createDeepSeekApi, type DeepSeekBindings } from "./deepseek-api";
 import { createGeminiApi, type GeminiBindings } from "./gemini-api";
+import { createXaiApi, type XaiBindings } from "./xai-api";
+import { createMetaModelApi, type MetaModelBindings } from "./meta-model-api";
 import { createTaskInboxApi, type TaskInboxBindings } from "./task-inbox-api";
 import { createChatMessageActionApi, type ChatMessageActionBindings } from "./chat-message-action-api";
 import { createMaopLabApi } from "./maop-lab-api";
@@ -38,6 +40,8 @@ const providerReadinessApi = createProviderReadinessApi();
 const perplexityAgentApi = createPerplexityAgentApi();
 const deepSeekApi = createDeepSeekApi();
 const geminiApi = createGeminiApi();
+const xaiApi = createXaiApi();
+const metaModelApi = createMetaModelApi();
 const taskInboxApi = createTaskInboxApi();
 const chatMessageActionApi = createChatMessageActionApi();
 const maopLabApi = createMaopLabApi();
@@ -46,7 +50,7 @@ const n8nMigrationApi = createN8nMigrationApi();
 const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
 
-type Bindings = CapabilityResolverBindings & BlueDiamondRegistryEnv & PerplexityAgentBindings & DeepSeekBindings & GeminiBindings & TaskInboxBindings & ChatMessageActionBindings & Record<string, unknown>;
+type Bindings = CapabilityResolverBindings & BlueDiamondRegistryEnv & PerplexityAgentBindings & DeepSeekBindings & GeminiBindings & XaiBindings & MetaModelBindings & TaskInboxBindings & ChatMessageActionBindings & Record<string, unknown>;
 type WaveCommandBody = {
   intent?: unknown;
   capability?: unknown;
@@ -240,6 +244,12 @@ export default {
     }
     if (pathname.startsWith("/api/gemini/")) {
       return geminiApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/xai/")) {
+      return xaiApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/meta-model/")) {
+      return metaModelApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/task-inbox")) {
       return taskInboxApi.fetch(request, env as never, ctx as never);
