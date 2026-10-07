@@ -1,0 +1,94 @@
+{
+  "name": "OGENIC | Evidence Normalizer | OGE-27/28/43/57 | v1 | INACTIVE",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "evidence-input",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "evidence-manual",
+      "name": "Manual Test Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{\n  oge:'OGE-27',\n  source:'browser-run',\n  run_ref:'fixture-run',\n  evidence_refs:['browser-run:recording:fixture'],\n  output:{status:'completed', note:'fixture only'},\n  verification_state:'unverified'\n}}];"
+      },
+      "id": "evidence-mock",
+      "name": "Build Safe Evidence Fixture",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const SECRET_KEY=/(token|secret|password|passwd|api[_-]?key|authorization|cookie|private[_-]?key)/i;\nconst SECRET_VALUE=/(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_-]{12,}|bearer\\s+[A-Za-z0-9._~+/=-]{12,})/i;\nfunction safe(v){\n  if(Array.isArray(v)) return v.map(safe);\n  if(v && typeof v==='object'){\n    const out={};\n    for(const [k,val] of Object.entries(v)) out[k]=SECRET_KEY.test(k)?'[REDACTED]':safe(val);\n    return out;\n  }\n  if(typeof v==='string' && SECRET_VALUE.test(v)) return '[REDACTED_SECRET_LIKE]';\n  return v;\n}\nconst raw=$input.first().json || {};\nconst clean=safe(raw);\nconst refs=Array.isArray(clean.evidence_refs)?clean.evidence_refs.map(String).slice(0,50):[];\nreturn [{json:{\n  schema:'OGENIC_N8N_EVIDENCE_ENVELOPE_V1',\n  oge:String(clean.oge||'').slice(0,32),\n  source:String(clean.source||'unknown').slice(0,80),\n  run_ref:String(clean.run_ref||'').slice(0,240),\n  evidence_refs:refs,\n  output:clean.output ?? null,\n  verification_state:'unverified',\n  ruby_verification_required:true,\n  green_retention_allowed:false,\n  secret_values_included:false,\n  control:{execution_authority:'YELLOW_STONE_ONLY',n8n_role:'POSTRUN_NORMALIZER'}\n}}];"
+      },
+      "id": "evidence-normalize",
+      "name": "Normalize + Redact Evidence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        80
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Normalize + Redact Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Test Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Safe Evidence Fixture",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Safe Evidence Fixture": {
+      "main": [
+        [
+          {
+            "node": "Normalize + Redact Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
