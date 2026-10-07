@@ -1,0 +1,234 @@
+{
+  "schema_version": "N8N_LEGACY_MIGRATION_V1",
+  "generated_from_recovered_owner_exports": true,
+  "control_plane": {
+    "execution_authority": "YELLOW_STONE_ONLY",
+    "verification_authority": "RUBY_STONE",
+    "retention": "GREEN_1LSS_AFTER_VERIFICATION",
+    "n8n_role": "EXECUTION_ADAPTER_NOT_CONTROL_PLANE",
+    "writes_default": "DISABLED",
+    "dry_run_default": true
+  },
+  "sources": [
+    {
+      "id": "aggregate-119",
+      "name": "MASTER ASSISTANT SECRET GATEWAY",
+      "kind": "n8n_workflow_export",
+      "node_count": 119,
+      "sha256_prefix": "de7bede034414cd1",
+      "decision": "REFERENCE_AND_SALVAGE",
+      "notes": "Aggregate legacy workflow. Contains core, connector, gateway and isolated news-demo sections."
+    },
+    {
+      "id": "orchestrator-95",
+      "name": "AI Supervisor & Event Orchestrator v2.0 SAFE CONNECTOR LAYER — TEST READY",
+      "kind": "n8n_workflow_export",
+      "node_count": 95,
+      "sha256_prefix": "ec9a955cb6f76959",
+      "decision": "PREFERRED_IMPORT_REFERENCE",
+      "notes": "Preferred legacy orchestrator reference for self-host staging. Keep inactive until MA-OP/Yellow admission."
+    },
+    {
+      "id": "orchestrator-65",
+      "name": "AI Supervisor v2.0 SAFE CONNECTOR LAYER",
+      "kind": "n8n_workflow_export",
+      "node_count": 65,
+      "sha256_prefix": "eb5a01a7565a3477",
+      "decision": "ARCHIVE_INTERMEDIATE"
+    },
+    {
+      "id": "orchestrator-51",
+      "name": "AI Supervisor & Event Orchestrator v1.1 SAFE REPAIR",
+      "kind": "n8n_workflow_export",
+      "node_count": 51,
+      "sha256_prefix": "0df7a8a6c22fa162",
+      "decision": "ARCHIVE_BASELINE"
+    },
+    {
+      "id": "gateway-17",
+      "name": "master-secret-gateway",
+      "kind": "n8n_workflow_export",
+      "node_count": 17,
+      "sha256_prefix": "027b868218e356c4",
+      "decision": "SALVAGE_ROUTING_ONLY",
+      "notes": "Reuse intent/routing ideas; do not reintroduce secret values into item JSON."
+    },
+    {
+      "id": "connector-master",
+      "name": "OGENIC CONNECTOR MASTER",
+      "kind": "registry",
+      "sha256_prefix": "ff11ecb865a7e15e",
+      "decision": "SALVAGE_PROVIDER_AND_SECRET_REFS"
+    },
+    {
+      "id": "secret-audit-doc",
+      "name": "OGENIC_CONNECTOR_CREDENTIAL_AUDIT_2026-08-23",
+      "kind": "credential_audit",
+      "decision": "QUARANTINE_NEVER_COMMIT_OR_IMPORT",
+      "notes": "Source contains credential material. Rotate/revoke separately if still valid; use Infisical/server-side bindings as canonical secrets."
+    }
+  ],
+  "categories": [
+    {
+      "id": "core",
+      "label": "CORE / INGRESS / NORMALIZE / VALIDATE / ROUTE",
+      "permission": "READ_OR_INTERNAL_EXECUTE",
+      "nodes": [
+        "Manual Test Trigger",
+        "Events Webhook (POST v1)",
+        "Daily Health Check",
+        "Seed Health Check Event",
+        "Normalize & Validate",
+        "Validation Gate",
+        "Router: Channel",
+        "Router: Business Family",
+        "Build Webhook Response",
+        "Health Check Handler",
+        "Unsupported Request Handler",
+        "Unknown Family Handler"
+      ]
+    },
+    {
+      "id": "ai",
+      "label": "AI / AGENT / MODEL / RESPONSE",
+      "permission": "EXECUTE",
+      "nodes": [
+        "Operator Chat Trigger",
+        "AI Supervisor",
+        "Chat Model (placeholder)",
+        "Simple Memory (session)",
+        "Structured Response",
+        "Forward to AI Supervisor (placeholder)"
+      ]
+    },
+    {
+      "id": "business_domains",
+      "label": "BUSINESS DOMAIN CAPABILITIES",
+      "permission": "ROUTE_ONLY_UNTIL_BOUND",
+      "capabilities": [
+        "business",
+        "product_formula",
+        "raw_materials",
+        "production_qc",
+        "inventory",
+        "sales_orders",
+        "finance",
+        "operations",
+        "knowledge_rag",
+        "website_member",
+        "analytics",
+        "security",
+        "notification",
+        "human_approval"
+      ]
+    },
+    {
+      "id": "connectors",
+      "label": "CONNECTORS / CHANNEL ADAPTERS",
+      "permission": "READ_BY_DEFAULT_WRITE_REQUIRES_YELLOW_APPROVAL",
+      "providers": [
+        "line",
+        "meta",
+        "grabfood",
+        "shopeefood",
+        "tiktok_shop",
+        "gmail",
+        "google_services",
+        "notion",
+        "github",
+        "cloudflare",
+        "openai",
+        "youtube",
+        "x",
+        "threads",
+        "shopify"
+      ],
+      "notes": "Legacy connector nodes were intentionally disabled/test-ready. Re-admit individually through MA-OP capability contracts."
+    },
+    {
+      "id": "governance",
+      "label": "APPROVAL / AUDIT / RETRY / DEAD LETTER",
+      "permission": "CONTROL",
+      "nodes": [
+        "Build Audit Record",
+        "audit_log (Data Table placeholder)",
+        "Reject Safely",
+        "Evaluate Outcome (retry classifier)",
+        "Retry Decision",
+        "Retry Backoff Wait",
+        "Build Dead Letter Record (sanitized)",
+        "dead_letter_queue (Data Table placeholder)",
+        "OGENIC | CORE | Error Handler | v1 (placeholder)",
+        "human_approval"
+      ],
+      "replacement_rule": "Yellow policy and Ruby verification remain authoritative; n8n governance nodes are local adapter safeguards."
+    },
+    {
+      "id": "secrets",
+      "label": "SECRET / CREDENTIAL REFERENCES",
+      "permission": "SERVER_SIDE_ONLY",
+      "providers": [
+        "infisical",
+        "n8n",
+        "anthropic",
+        "openai",
+        "line",
+        "meta",
+        "google_services",
+        "gmail",
+        "github",
+        "cloudflare",
+        "shopify",
+        "tiktok_shop",
+        "grabfood",
+        "shopeefood",
+        "notion",
+        "vercel",
+        "clickup"
+      ],
+      "rules": [
+        "NO_RAW_SECRET_IN_GIT",
+        "NO_RAW_SECRET_IN_D1",
+        "NO_RAW_SECRET_IN_1LSS",
+        "NO_SECRET_VALUE_IN_N8N_ITEM_JSON",
+        "USE_INFISICAL_OR_RUNTIME_CREDENTIAL_BINDING"
+      ]
+    },
+    {
+      "id": "delivery",
+      "label": "DELIVERY / TASK / DEPLOY ADAPTERS",
+      "permission": "WRITE_OR_EXECUTE_REQUIRES_APPROVAL",
+      "legacy_nodes": [
+        "ClickUp — Create Task",
+        "Vercel — Get Deploy Status",
+        "ClickUp — Pipeline Task",
+        "Vercel — Pipeline Deploy Check"
+      ],
+      "notes": "Keep as historical adapter logic. Current WAVE/MA-OP provider registry decides whether GitHub, Cloudflare, Linear, Vercel or another delivery capability is eligible."
+    },
+    {
+      "id": "demo_archive",
+      "label": "DEMO / ARCHIVE / NON-CANONICAL",
+      "permission": "DISABLED",
+      "legacy_nodes": [
+        "AI Summary Agent",
+        "OpenAI Model",
+        "Get Tech News",
+        "Get World News",
+        "Output (News summary)",
+        "Send summary with Gmail",
+        "When fetching a dataset row"
+      ],
+      "notes": "Isolated news/evaluation demo from aggregate workflow; do not import into the canonical self-host control path."
+    }
+  ],
+  "migration_phases": [
+    "CATALOG_AND_QUARANTINE",
+    "SELFHOST_STAGING",
+    "IMPORT_PREFERRED_ORCHESTRATOR_INACTIVE",
+    "BIND_CREDENTIAL_REFS_SERVER_SIDE",
+    "MAOP_YELLOW_ADMISSION_AND_APPROVAL",
+    "RUBY_VERIFY",
+    "GREEN_1LSS_RETENTION"
+  ]
+}
