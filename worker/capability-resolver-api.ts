@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import providerConfig from "../config/providers.json";
+import readinessAttestations from "../config/provider-readiness-attestations.json";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import {
   resolveCapability,
@@ -18,6 +19,7 @@ export type CapabilityResolverD1 = { prepare: (query: string) => CapabilityResol
 
 export type CapabilityResolverBindings = AuthBindings & {
   DB?: CapabilityResolverD1;
+  GEMINI_API_KEY?: string;
 };
 
 type ResolverEnv = { Bindings: CapabilityResolverBindings };
@@ -73,7 +75,37 @@ export function normalizeResolverRequest(body: ResolverRequest): ResolverRequest
   };
 }
 
-export async function readResolverCandidates(db: CapabilityResolverD1) {
+function supplementalConfigCandidates(env: CapabilityResolverBindings): ResolverCandidate[] {
+  const gemini = providerConfig.providers.find((provider) => provider.id === "gemini");
+  const attestation = (readinessAttestations as {
+    providers?: Record<string, { verification_state?: string; api?: string; quota?: string; billing?: string }>;
+  }).providers?.gemini;
+  const keyPresent = typeof env.GEMINI_API_KEY === "string" && env.GEMINI_API_KEY.trim().length > 0;
+  const verified =
+    attestation?.verification_state === "VERIFIED" &&
+    attestation.api === "REACHABLE" &&
+    attestation.quota === "AVAILABLE" &&
+    attestation.billing === "ACTIVE";
+
+  if (!gemini || gemini.status !== "active" || !keyPresent || !verified) return [];
+  return [{
+    capability_id: "context_load",
+    capability_description: "Load bounded context through verified Gemini READ reasoning.",
+    permission_class: "READ",
+    capability_enabled: true,
+    provider_id: "gemini",
+    provider_status: "active",
+    provider_capability_enabled: true,
+    priority: 5,
+    binding_id: "runtime:gemini",
+    binding_type: "server_secret",
+    binding_status: "verified",
+    binding_environment: "staging",
+    runtime_capability: false,
+  }];
+}
+
+export async function readResolverCandidates(db: CapabilityResolverD1, env: CapabilityResolverBindings = {}) {
   const rows = await db.prepare(
     `WITH compatibility_map(provider_id, capability_id, priority) AS (
        VALUES
@@ -118,7 +150,17 @@ export async function readResolverCandidates(db: CapabilityResolverD1) {
      LEFT JOIN provider_bindings b ON b.provider_id = p.id
      ORDER BY pc.priority ASC, c.id ASC, p.id ASC, b.environment ASC, b.id ASC`,
   ).all<CandidateRow>();
-  return (rows.results ?? []).map(candidateFromRow);
+  const databaseCandidates = (rows.results ?? []).map(candidateFromRow);
+  const supplemental = supplementalConfigCandidates(env);
+  const seen = new Set(databaseCandidates.map((candidate) =>
+    `${candidate.provider_id}:${candidate.capability_id}:${candidate.binding_environment ?? ""}`
+  ));
+  return [
+    ...databaseCandidates,
+    ...supplemental.filter((candidate) =>
+      !seen.has(`${candidate.provider_id}:${candidate.capability_id}:${candidate.binding_environment ?? ""}`)
+    ),
+  ];
 }
 
 export function createCapabilityResolverApi() {
@@ -139,7 +181,7 @@ export function createCapabilityResolverApi() {
       return c.json({ ok: false, code: "INVALID_REQUEST", message: "intent, capability or provider is required" }, 400);
     }
 
-    const candidates = await readResolverCandidates(c.env.DB);
+    const candidates = await readResolverCandidates(c.env.DB, c.env);
     const result = resolveCapability(request, candidates);
     const status: 200 | 404 | 409 | 503 = result.ok
       ? 200
