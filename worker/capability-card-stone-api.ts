@@ -14,6 +14,8 @@ const api = new Hono<Env>();
 const noStore = { "Cache-Control": "no-store" };
 const states = new Set(["ABSENT", "INSERTED", "VERIFIED", "IN_USE", "LEASED", "RETURNED", "REVOKED", "BLOCKED"]);
 const verbs = new Set(["INSERT", "VERIFY", "USE", "LEASE", "RETURN", "REVOKE"]);
+const cardStates = new Set(["READY", "BORROWED", "LENT", "EXPIRING", "RETURNED", "BLOCKED"]);
+const permissions = new Set(["READ", "WRITE", "EXECUTE", "DANGEROUS"]);
 
 function clean(value: unknown, max = 160) {
   return String(value ?? "").trim().slice(0, max);
@@ -27,6 +29,32 @@ function state(value: unknown): CcsState {
 function verb(value: unknown): CcsVerb | null {
   const next = clean(value, 20).toUpperCase();
   return verbs.has(next) ? next as CcsVerb : null;
+}
+
+function useCard(value: unknown): UseCardDescriptor | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Partial<UseCardDescriptor>;
+  const permission = clean(item.permission_class, 20).toUpperCase();
+  const currentState = clean(item.state, 20).toUpperCase();
+  const cardId = clean(item.card_id, 260);
+  const providerId = clean(item.provider_id, 120);
+  const capabilityId = clean(item.capability_id, 160);
+  if (!permissions.has(permission) || !cardStates.has(currentState)) return null;
+  if (!cardId || !providerId || !capabilityId) return null;
+  return {
+    card_id: cardId,
+    slot_id: clean(item.slot_id, 160) || `slot.${providerId}`,
+    holder: clean(item.holder, 120) || "unassigned",
+    tier: (clean(item.tier, 30).toUpperCase() || "WHITE") as UseCardDescriptor["tier"],
+    state: currentState as UseCardDescriptor["state"],
+    provider_id: providerId,
+    capability_id: capabilityId,
+    permission_class: permission as UseCardDescriptor["permission_class"],
+    environment: clean(item.environment, 40) || null,
+    source_surface: "SERVER_SIDE_BROKER",
+    direct_source_value_exposed: false,
+    lease_eligible: item.lease_eligible === true,
+  };
 }
 
 api.use("/api/ccs/*", async (c, next) => {
