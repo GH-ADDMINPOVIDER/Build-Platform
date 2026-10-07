@@ -6,6 +6,8 @@ const read = (path) => fs.readFileSync(new URL("../" + path, import.meta.url), "
 const placement = JSON.parse(read("config/n8n-oge-placement.json"));
 const api = read("worker/n8n-migration-api.ts");
 const lab = read("src/MaopLab.tsx");
+const providers = JSON.parse(read("config/providers.json"));
+const reconcile = read("database/migrations/0015_n8n_execution_fabric_reconcile.sql");
 
 const workflowFiles = [
   ["deploy/n8n-selfhost/workflows/ogenic-oge62-flow-preaudit-v1.sanitized.json", 5],
@@ -72,6 +74,26 @@ test("Violet n8n module prepares bounded pipelines but cannot bypass Yellow or R
   assert.match(code, /ruby_verification_required:true/);
   assert.match(code, /green_retention_allowed:false/);
   assert.match(code, /yellow:'EXECUTION_AUTHORITY'/);
+});
+
+test("verified self-host n8n is active in provider metadata without schema changes", () => {
+  const n8n = providers.providers.find((row) => row.id === "n8n");
+  assert.equal(n8n?.role, "workflow_execution_fabric");
+  assert.equal(n8n?.status, "active");
+  assert.equal(n8n?.auth, "api_key");
+  assert.match(reconcile, /'n8n-staging'/);
+  assert.match(reconcile, /'workflow_run'/);
+  assert.match(reconcile, /'verified'/);
+  assert.match(reconcile, /workflow_execution_auto_allowed/);
+  assert.doesNotMatch(reconcile, /\b(?:CREATE|ALTER|DROP)\s+(?:TABLE|INDEX|TRIGGER|VIEW)\b/i);
+});
+
+test("Yellow keeps n8n workflow_run approval-gated as EXECUTE", () => {
+  const execution = read("worker/capability-execution-api.ts");
+  const migration = read("database/migrations/0002_canonical_operating_state.sql");
+  assert.match(migration, /\('workflow_run','execution','EXECUTE'/);
+  assert.match(execution, /descriptor\.permission_class !== "READ"/);
+  assert.match(execution, /HUMAN_APPROVAL_REQUIRED/);
 });
 
 test("MA-OP Web Lab exposes placement and self-host inventory without enabling execution", () => {
