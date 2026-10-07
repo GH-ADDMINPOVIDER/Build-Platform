@@ -1,0 +1,71 @@
+{
+  "schema_version": "WAVE_EXTERNAL_RESOURCE_CAPABILITIES_V1",
+  "authority_invariants": {
+    "primary_runtime": "cloudflare",
+    "canonical_operational_state": "d1_1lss",
+    "canonical_source_ci": "github",
+    "execution_authority": "yellow_maop"
+  },
+  "resources": {
+    "vercel": {
+      "role": "secondary_preview_deploy_observability",
+      "provider_status": "optional",
+      "routing_mode": "explicit_optional",
+      "capabilities": [
+        {
+          "id": "deploy_preview",
+          "permission_class": "EXECUTE",
+          "adapter_state": "external_connector_only",
+          "auto_route": false,
+          "production_promotion": false
+        },
+        {
+          "id": "runtime_verify",
+          "permission_class": "READ",
+          "adapter_state": "external_connector_only",
+          "auto_route": false
+        }
+      ]
+    },
+    "clickup": {
+      "role": "external_collaboration_docs_tasks",
+      "provider_status": "optional",
+      "routing_mode": "explicit_optional",
+      "capabilities": [
+        {
+          "id": "collaboration_task",
+          "permission_class": "WRITE",
+          "adapter_state": "not_exposed_in_current_harness",
+          "auto_route": false
+        },
+        {
+          "id": "collaboration_docs",
+          "permission_class": "WRITE",
+          "adapter_state": "not_exposed_in_current_harness",
+          "auto_route": false
+        }
+      ],
+      "fail_closed": true
+    },
+    "notion": {
+      "role": "legacy_knowledge_archive_migration",
+      "provider_status": "migration",
+      "routing_mode": "migration_or_explicit_read",
+      "capabilities": [
+        {
+          "id": "knowledge_search",
+          "permission_class": "READ",
+          "adapter_state": "connector_read_only",
+          "auto_route": false
+        },
+        {
+          "id": "migration_import",
+          "permission_class": "WRITE",
+          "adapter_state": "approval_required",
+          "auto_route": false
+        }
+      ],
+      "canonical": false
+    }
+  }
+}
