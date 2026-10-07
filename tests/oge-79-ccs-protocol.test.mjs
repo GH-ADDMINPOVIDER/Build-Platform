@@ -6,7 +6,6 @@ const config = JSON.parse(readFileSync("config/capability-card-stone.json", "utf
 const core = readFileSync("worker/capability-card-stone.ts", "utf8");
 const api = readFileSync("worker/capability-card-stone-api.ts", "utf8");
 const entry = readFileSync("worker/entry-yellow-stone.ts", "utf8");
-const execution = readFileSync("worker/capability-execution-api.ts", "utf8");
 
 test("OGE-79 defines CCS as the facade over existing USE CARD / MA-OP", () => {
   assert.equal(config.protocol, "CAPABILITY_CARD_STONE");
@@ -32,17 +31,19 @@ test("OGE-79 public CCS API uses only Card Stone orchestration language", () => 
   assert.doesNotMatch(api, /\btoken\b/i);
   assert.doesNotMatch(api, /\bcredential\b/i);
   assert.doesNotMatch(api, /\bvault\b/i);
+  assert.doesNotMatch(api, /\bsecret\b/i);
 });
 
 test("OGE-79 delegates lease authority to the completed USE CARD policy", () => {
-  assert.match(api, /createUseCardApi/);
-  assert.match(api, /\/api\/use-card\/lease\/evaluate/);
+  assert.match(api, /evaluateUseCardLease/);
+  assert.match(api, /UseCardLeaseRequest/);
   assert.match(api, /direct_execution_bypass: false/);
 });
 
-test("OGE-79 is routed by Yellow and capability execution emits CCS metadata", () => {
+test("OGE-79 routes CCS through Yellow while preserving USE CARD compatibility", () => {
   assert.match(entry, /createCapabilityCardStoneApi/);
   assert.match(entry, /pathname\.startsWith\("\/api\/ccs\/"\)/);
-  assert.match(execution, /toCcsCardView/);
-  assert.match(execution, /ccs_card: ccsCard/);
+  assert.match(entry, /pathname\.startsWith\("\/api\/use-card\/"\)/);
+  assert.equal(config.policy.stone_code_is_authorization, false);
+  assert.equal(config.policy.backward_compatible_use_card_api, true);
 });
