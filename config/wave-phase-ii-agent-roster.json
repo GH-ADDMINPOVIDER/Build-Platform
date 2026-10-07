@@ -1,0 +1,155 @@
+{
+  "schema_version": "WAVE_PHASE_II_AGENT_ROSTER_V1",
+  "phase": "WAVE_PHASE_II",
+  "canonical_branch": "phase-vi-provider-incentive-metering",
+  "goal": "Use the full verified multi-agent/resource pool without creating a single-agent bottleneck.",
+  "authority_chain": [
+    "OWNER_INTENT_APPROVAL",
+    "CHATGPT_ATHENA_COORDINATION",
+    "YELLOW_MAOP_EXECUTION_AUTHORITY",
+    "SPECIALIST_EXECUTION",
+    "N8N_MECHANICAL_FANIN_PREVERIFY",
+    "GITHUB_DETERMINISTIC_AUDIT",
+    "RUBY_SEMANTIC_VERIFY",
+    "GREEN_1LSS_RETENTION"
+  ],
+  "core_team": [
+    {
+      "id": "owner",
+      "kind": "human",
+      "role": "intent_final_approval_priority",
+      "critical_path": "approval_only",
+      "capabilities": ["goal", "priority", "risk_approval", "product_judgment"]
+    },
+    {
+      "id": "chatgpt-main",
+      "kind": "controller",
+      "role": "system_supervisor_architect_coordinator",
+      "status": "available_in_chat",
+      "capabilities": ["decompose", "route", "reconcile", "architecture", "cross_tool_coordination", "evidence_synthesis"],
+      "execution_authority": "NO_DIRECT_BYPASS_OF_YELLOW"
+    },
+    {
+      "id": "athena-openai",
+      "kind": "command_agent",
+      "role": "admission_planning_agent_selection",
+      "status": "active",
+      "capabilities": ["risk_classify", "plan", "select_agent", "handoff", "escalate"]
+    },
+    {
+      "id": "codex",
+      "kind": "execution_agent",
+      "role": "canonical_repo_code_test_build_fix",
+      "status": "proven",
+      "capabilities": ["repo_inspect", "code", "patch", "test", "build", "runtime_verify"],
+      "preferred_for": ["source_mutation", "repo_tasks", "implementation"]
+    },
+    {
+      "id": "linear",
+      "kind": "coordination_tool",
+      "role": "task_delegation_status_evidence_ledger",
+      "status": "connected",
+      "critical_path": false,
+      "capabilities": ["delegate", "issue_state", "comments", "evidence_index"],
+      "rule": "Do not use as high-frequency execution queue."
+    },
+    {
+      "id": "github",
+      "kind": "source_audit_tool",
+      "role": "canonical_source_ci_deterministic_verifier_final_commit_evidence",
+      "status": "verified_ready",
+      "capabilities": ["source", "branch", "commit", "ci", "diff", "artifact", "audit"]
+    }
+  ],
+  "specialists": [
+    {
+      "id": "gemini",
+      "role": "read_reasoning_multimodal_long_context_secondary_review",
+      "status": "verified_for_staging_read",
+      "auto_route": true,
+      "constraints": ["READ_first", "no_repo_mutation", "no_hidden_retry"]
+    },
+    {
+      "id": "manus",
+      "role": "long_horizon_builder_research_producer",
+      "status": "external_bridge_available_native_wave_not_yet_proven",
+      "auto_route": false,
+      "capabilities": ["website", "mobile_app", "slides", "video", "deep_research"],
+      "constraints": ["Yellow_handoff", "result_must_be_verified_before_retention"]
+    },
+    {
+      "id": "anthropic-claude",
+      "role": "architecture_long_context_independent_review",
+      "status": "candidate_not_live_proven",
+      "auto_route": false
+    },
+    {
+      "id": "deepseek",
+      "role": "reasoning_code_alternative",
+      "status": "billing_blocked",
+      "auto_route": false
+    },
+    {
+      "id": "perplexity",
+      "role": "web_research_source_synthesis",
+      "status": "paid_smoke_deferred",
+      "auto_route": false
+    },
+    {
+      "id": "xai",
+      "role": "realtime_web_reasoning_code",
+      "status": "candidate_not_live_proven",
+      "auto_route": false
+    }
+  ],
+  "execution_fabric": [
+    {
+      "id": "n8n",
+      "role": "fanout_fanin_mechanical_preverify",
+      "status": "selfhost_ready",
+      "authority": "NOT_CONTROL_PLANE"
+    },
+    {
+      "id": "github-actions",
+      "role": "deterministic_test_build_source_audit",
+      "status": "active"
+    },
+    {
+      "id": "ruby",
+      "role": "semantic_system_capability_verify",
+      "status": "active"
+    },
+    {
+      "id": "green-1lss",
+      "role": "verified_retention_canonical_session",
+      "status": "active"
+    }
+  ],
+  "resource_arms": [
+    {
+      "id": "vercel",
+      "role": "secondary_preview_deploy_observability",
+      "status": "connected_optional"
+    },
+    {
+      "id": "clickup",
+      "role": "external_collaboration_docs_tasks",
+      "status": "installed_optional"
+    },
+    {
+      "id": "notion",
+      "role": "legacy_knowledge_archive_migration",
+      "status": "connector_readable_noncanonical"
+    }
+  ],
+  "routing_rules": [
+    "Use the smallest capable verified specialist.",
+    "Do not route to candidates or billing-blocked providers automatically.",
+    "Codex owns canonical repo mutation unless explicitly overridden by a verified adapter.",
+    "GitHub owns deterministic source and CI audit.",
+    "Linear is a ledger/delegation surface, not the execution bottleneck.",
+    "Manus owns long-horizon artifact production when its bridge is selected.",
+    "Gemini may take verified READ workloads when capability/readiness/cost rank wins.",
+    "Only verified outcomes enter Green/1LSS."
+  ]
+}
