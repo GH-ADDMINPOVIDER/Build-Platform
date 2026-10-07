@@ -1,4 +1,4 @@
-export type ProviderId = "openai" | "codex" | "anthropic" | "manus" | "perplexity" | "deepseek" | "gemini" | "xai";
+export type ProviderId = "openai" | "codex" | "anthropic" | "manus" | "perplexity" | "deepseek" | "gemini" | "xai" | "meta_model";
 export type ReadinessState = "VERIFIED" | "NOT_MEASURED" | "DEGRADED" | "CONFIGURATION_REQUIRED";
 export type ApiReachability = "REACHABLE" | "UNREACHABLE" | "NOT_MEASURED";
 export type QuotaState = "AVAILABLE" | "EXHAUSTED" | "RATE_LIMITED" | "NOT_MEASURED";
@@ -120,12 +120,20 @@ export const PROVIDERS: ProviderDefinition[] = [
     label: "Grok / xAI",
     keyEnv: "XAI_API_KEY",
     attestationPrefix: "XAI",
-    capabilities: ["reasoning", "code", "tool_calling", "web_realtime"],
+    capabilities: ["reasoning", "code", "tool_calling", "web_realtime", "x_realtime"],
     cost_mode: "PROVIDER_ACCOUNT",
     metadata: {
       url: "https://api.x.ai/v1/models",
       headers: (key) => ({ Authorization: `Bearer ${key}` }),
     },
+  },
+  {
+    id: "meta_model",
+    label: "Meta Model API",
+    keyEnv: "META_MODEL_API_KEY",
+    attestationPrefix: "META_MODEL",
+    capabilities: ["reasoning", "code", "tool_calling", "multimodal", "long_context", "agentic_coding"],
+    cost_mode: "PROVIDER_ACCOUNT",
   },
 ];
 
