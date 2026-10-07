@@ -76,7 +76,8 @@
       "Api_deepseek_key_operate_1"
     ],
     "N8N_SELFHOST_API_KEY": [
-      "N8N_SELFHOST_REGISTRY_API_KEY"
+      "N8N_SELFHOST_REGISTRY_API_KEY",
+      "N8N_API_KEY"
     ]
   },
   "actor_map": {
