@@ -1,4 +1,4 @@
-name: OGE-69 n8n Live Connect
+name: OGE-69/70 n8n Live Connect + Execution Fabric Proof
 
 on:
   push:
@@ -7,6 +7,12 @@ on:
       - ".github/workflows/oge-69-n8n-live-connect.yml"
       - "deploy/n8n-selfhost/workflows/**"
       - "config/n8n-legacy-migration.json"
+      - "config/n8n-oge-placement.json"
+      - "config/providers.json"
+      - "database/migrations/0015_n8n_execution_fabric_reconcile.sql"
+      - "tests/oge-70-n8n-execution-fabric.test.mjs"
+      - "worker/n8n-migration-api.ts"
+      - "src/MaopLab.tsx"
       - "config/staging-runtime-bindings.json"
   workflow_dispatch:
 
@@ -25,9 +31,25 @@ env:
 jobs:
   connect:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: OGE-70 execution-fabric contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/oge-70-n8n-execution-fabric.test.mjs
+          npm run typecheck
+          npm run build
 
       - name: Discover Infisical project
         id: infisical_project
@@ -133,7 +155,11 @@ jobs:
             "deploy/n8n-selfhost/workflows/ogenic-violet-pipeline-orchestrator-v1.sanitized.json|4"
           )
 
-          curl -sS --fail             -H "Accept: application/json"             -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}"             "${N8N_SELFHOST_BASE_URL}/api/v1/workflows?limit=100"             -o /tmp/n8n-modules-before.json
+          curl -sS --fail \
+            -H "Accept: application/json" \
+            -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}" \
+            "${N8N_SELFHOST_BASE_URL}/api/v1/workflows?limit=100" \
+            -o /tmp/n8n-modules-before.json
 
           for spec in "${MODULES[@]}"; do
             file="${spec%%|*}"
@@ -143,7 +169,13 @@ jobs:
 
             if [ -z "$existing_id" ]; then
               jq '{name,nodes,connections,settings:(.settings // {})}' "$file" > /tmp/n8n-module-import.json
-              status="$(curl -sS -o /tmp/n8n-module-created.json -w '%{http_code}'                 -X POST                 -H "Content-Type: application/json"                 -H "Accept: application/json"                 -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}"                 --data-binary @/tmp/n8n-module-import.json                 "${N8N_SELFHOST_BASE_URL}/api/v1/workflows")"
+              status="$(curl -sS -o /tmp/n8n-module-created.json -w '%{http_code}' \
+                -X POST \
+                -H "Content-Type: application/json" \
+                -H "Accept: application/json" \
+                -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}" \
+                --data-binary @/tmp/n8n-module-import.json \
+                "${N8N_SELFHOST_BASE_URL}/api/v1/workflows")"
               if [ "$status" != "200" ] && [ "$status" != "201" ]; then
                 echo "::error::failed to import $name (HTTP $status)"
                 exit 1
@@ -155,7 +187,11 @@ jobs:
               echo "OGE-70 module already present: $name"
             fi
 
-            curl -sS --fail               -H "Accept: application/json"               -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}"               "${N8N_SELFHOST_BASE_URL}/api/v1/workflows/${existing_id}"               -o /tmp/n8n-module-verify.json
+            curl -sS --fail \
+              -H "Accept: application/json" \
+              -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}" \
+              "${N8N_SELFHOST_BASE_URL}/api/v1/workflows/${existing_id}" \
+              -o /tmp/n8n-module-verify.json
 
             jq -e --argjson N "$expected_nodes" '
               (.active == false) and
@@ -166,6 +202,27 @@ jobs:
 
           echo "OGE-70 n8n execution-fabric modules: IMPORTED/VERIFIED INACTIVE."
 
+      - name: Verify final n8n execution-fabric inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS --fail \
+            -H "Accept: application/json" \
+            -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}" \
+            "${N8N_SELFHOST_BASE_URL}/api/v1/workflows?limit=100" \
+            -o /tmp/n8n-final.json
+
+          EXPECTED_NAMES=(
+            "OGENIC | OGE-62 | Flow Pre-Audit | v1 | INACTIVE"
+            "OGENIC | Evidence Normalizer | OGE-27/28/43/57 | v1 | INACTIVE"
+            "OGENIC | OGE Task Router | OGE-6/57/27/28/43/58/59/60 | v1 | INACTIVE"
+            "OGENIC | Violet Pipeline Orchestrator | OGE-37/39/42/47/48/61 | v1 | INACTIVE"
+          )
+          for name in "${EXPECTED_NAMES[@]}"; do
+            jq -e --arg NAME "$name" '.data[]? | select(.name == $NAME and .active == false)' /tmp/n8n-final.json >/dev/null
+          done
+          echo "Final n8n inventory contains all OGE-70 modules and all are inactive."
+
       - name: Write safe summary
         shell: bash
         env:
@@ -173,12 +230,18 @@ jobs:
           CREATED: ${{ steps.import.outputs.created }}
         run: |
           {
-            echo "### OGE-69 n8n Live Connect"
+            echo "### OGE-69/70 n8n Closeout Proof"
             echo ""
             echo "- API auth: READY"
-            echo "- Workflow ID: `$WORKFLOW_ID`"
-            echo "- Created this run: `$CREATED`"
-            echo "- Node count: `95`"
-            echo "- Active: `false`"
+            echo "- Recovered orchestrator workflow ID: `$WORKFLOW_ID`"
+            echo "- Recovered orchestrator created this run: `$CREATED`"
+            echo "- Recovered orchestrator: `95 nodes / active=false`"
+            echo "- OGE-70 execution-fabric modules: `4/4 present`"
+            echo "- OGE-70 execution-fabric modules active: `false`"
+            echo "- Contract test: `PASS`"
+            echo "- Typecheck/build: `PASS`"
+            echo "- Control authority: `MA-OP / Yellow`"
+            echo "- Verification authority: `Ruby`"
+            echo "- Retention: `Green / 1LSS after verification`"
             echo "- Secret values: not printed"
           } >> "$GITHUB_STEP_SUMMARY"
