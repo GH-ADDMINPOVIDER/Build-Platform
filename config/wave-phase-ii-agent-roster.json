@@ -1,7 +1,8 @@
 {
-  "schema_version": "WAVE_PHASE_II_AGENT_ROSTER_V1",
+  "schema_version": "WAVE_PHASE_II_AGENT_ROSTER_V2",
   "phase": "WAVE_PHASE_II",
   "canonical_branch": "phase-vi-provider-incentive-metering",
+  "context_policy": "config/agent-context-policy.json",
   "goal": "Use the full verified multi-agent/resource pool without creating a single-agent bottleneck.",
   "authority_chain": [
     "OWNER_INTENT_APPROVAL",
@@ -99,7 +100,16 @@
       "id": "xai",
       "role": "realtime_web_reasoning_code",
       "status": "candidate_not_live_proven",
-      "auto_route": false
+      "auto_route": false,
+      "canonical_secret": "XAI_API_KEY",
+      "secret_aliases": ["GROK_API_KEY"]
+    },
+    {
+      "id": "meta-model",
+      "role": "agentic_code_multimodal_candidate",
+      "status": "candidate_not_live_proven",
+      "auto_route": false,
+      "canonical_secret": "META_MODEL_API_KEY"
     }
   ],
   "execution_fabric": [
@@ -143,6 +153,7 @@
     }
   ],
   "routing_rules": [
+    "Every agent obeys config/agent-context-policy.json.",
     "Use the smallest capable verified specialist.",
     "Do not route to candidates or billing-blocked providers automatically.",
     "Codex owns canonical repo mutation unless explicitly overridden by a verified adapter.",
@@ -150,6 +161,7 @@
     "Linear is a ledger/delegation surface, not the execution bottleneck.",
     "Manus owns long-horizon artifact production when its bridge is selected.",
     "Gemini may take verified READ workloads when capability/readiness/cost rank wins.",
+    "xAI/Grok is one provider identity, not two independent agents.",
     "Only verified outcomes enter Green/1LSS."
   ]
 }
