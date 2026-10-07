@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import migrationCatalog from "../config/n8n-legacy-migration.json";
+import ogePlacement from "../config/n8n-oge-placement.json";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 
 type N8nBindings = AuthBindings & {
@@ -186,6 +187,16 @@ export function createN8nMigrationApi() {
       catalog: migrationCatalog,
       secrets_included: false,
       raw_workflow_parameters_included: false,
+    }, 200, noStore);
+  });
+
+  api.get("/api/n8n/migration/placement", (c) => {
+    return c.json({
+      ok: true,
+      runtime: "N8N_OGE_PLACEMENT_V1",
+      placement: ogePlacement,
+      secrets_included: false,
+      execution_enabled_by_this_endpoint: false,
     }, 200, noStore);
   });
 
