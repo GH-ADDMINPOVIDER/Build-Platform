@@ -108,6 +108,31 @@ export default function MaopLab() {
     }
   }
 
+
+  async function inspectN8nCatalog() {
+    setBusy("n8n-catalog");
+    setTitle("Recovered n8n · categorized migration catalog");
+    try {
+      const response = await fetch("/api/n8n/migration/catalog", { credentials: "include", cache: "no-store" });
+      if (response.status === 401) setAuthRequired(true);
+      setResult(await response.json());
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function inspectN8nSelfHost() {
+    setBusy("n8n-selfhost");
+    setTitle("n8n self-host · staging readiness");
+    try {
+      const response = await fetch("/api/n8n/migration/selfhost/status", { credentials: "include", cache: "no-store" });
+      if (response.status === 401) setAuthRequired(true);
+      setResult(await response.json());
+    } finally {
+      setBusy("");
+    }
+  }
+
   return <main className="mlRoot">
     <div className="mlFrame">
       <header className="mlHeader">
@@ -190,6 +215,22 @@ export default function MaopLab() {
         </div>
         <p className="mlBody">อ่าน workflow metadata จาก n8n Cloud เก่าเพื่อย้ายต่อโดยไม่สร้างใหม่จากศูนย์ และไม่ดึง credential secrets ออกมา</p>
         <button className="mlRuby" disabled={Boolean(busy)} onClick={() => void inspectLegacyN8n()}>{busy === "n8n" ? "READING…" : "Inspect old n8n"}</button>
+      </section>
+
+
+      <section className="mlCard">
+        <div className="mlCardHead">
+          <div>
+            <span>MIGRATION MAP</span>
+            <h2>Recovered modules → MA-OP categories</h2>
+          </div>
+          <b>NO SECRETS</b>
+        </div>
+        <p className="mlBody">ดูการแยก CORE · AI · DOMAIN · CONNECTORS · GOVERNANCE · SECRETS · DELIVERY · DEMO ก่อน import เข้า self-host</p>
+        <div className="mlButtons">
+          <button disabled={Boolean(busy)} onClick={() => void inspectN8nCatalog()}>{busy === "n8n-catalog" ? "READING…" : "Open category map"}</button>
+          <button disabled={Boolean(busy)} onClick={() => void inspectN8nSelfHost()}>{busy === "n8n-selfhost" ? "CHECKING…" : "Check self-host"}</button>
+        </div>
       </section>
 
       <ResultCard title={title} value={result} />
