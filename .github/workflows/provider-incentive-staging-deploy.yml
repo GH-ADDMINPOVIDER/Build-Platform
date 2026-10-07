@@ -412,6 +412,7 @@ jobs:
           ' >/dev/null
           echo "OGE-69 n8n self-host readiness + inactive 95-node inventory PASS."
 
+      # OGE-70 canonical cutover proof: n8n is eligible, but EXECUTE still fails closed without approval.
       - name: OGE-70 Yellow resolver admits n8n but execution remains approval-gated
         shell: bash
         run: |
