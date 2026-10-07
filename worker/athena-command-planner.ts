@@ -1,3 +1,4 @@
+import { boundedCommand } from "./agent-context-policy";
 export type AthenaCommandPlanStatus = "READY" | "AMBIGUOUS" | "UNSUPPORTED" | "BLOCKED";
 
 export type AthenaCommandPlan = {
@@ -73,7 +74,7 @@ function candidatePaths(intent: string) {
 }
 
 export function planAthenaCommand(rawIntent: unknown): AthenaCommandPlan {
-  const intent = compact(rawIntent, 1200);
+  const intent = compact(boundedCommand(rawIntent), 1200);
   const base = basePlan(intent);
   if (!intent) {
     return { ...base, status: "UNSUPPORTED", reason: "INTENT_REQUIRED" };
