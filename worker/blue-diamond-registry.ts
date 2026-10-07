@@ -240,14 +240,32 @@ export function buildBlueDiamondRegistry(env: BlueDiamondRegistryEnv): BlueDiamo
       state: configured(env, ["XAI_API_KEY"]),
       agent_eligible: true,
       capabilities: ["reasoning", "code", "web_realtime", "x_realtime", "tool_calling"],
-      route: "provider:xai",
+      route: "/api/xai/responses",
       runtime: "EXTERNAL_MODEL_API",
       model: null,
       auth_ref: has(env, "XAI_API_KEY") ? "env:XAI_API_KEY" : null,
-      health_ref: null,
+      health_ref: "/api/xai/status",
       quota_ref: "xai-usage",
       preflight: "EVERY_RUN",
       priority: 11,
+    },
+    {
+      actor_id: "meta-model-candidate",
+      label: "Meta Model Candidate",
+      provider: "meta_model",
+      actor_class: "agent_candidate",
+      maturity: "CANDIDATE",
+      state: configured(env, ["META_MODEL_API_KEY"]),
+      agent_eligible: true,
+      capabilities: ["reasoning", "code", "multimodal", "long_context", "agentic_coding"],
+      route: "/api/meta-model/responses",
+      runtime: "EXTERNAL_MODEL_API",
+      model: "muse-spark-1.3",
+      auth_ref: has(env, "META_MODEL_API_KEY") ? "env:META_MODEL_API_KEY" : null,
+      health_ref: "/api/meta-model/status",
+      quota_ref: "meta-model-usage",
+      preflight: "EVERY_RUN",
+      priority: 12,
     },
     {
       actor_id: "copilot-candidate",
@@ -265,7 +283,7 @@ export function buildBlueDiamondRegistry(env: BlueDiamondRegistryEnv): BlueDiamo
       health_ref: null,
       quota_ref: "copilot-plan",
       preflight: "EVERY_RUN",
-      priority: 12,
+      priority: 13,
     },
     {
       actor_id: "cursor-candidate",
@@ -283,7 +301,7 @@ export function buildBlueDiamondRegistry(env: BlueDiamondRegistryEnv): BlueDiamo
       health_ref: null,
       quota_ref: "cursor-plan",
       preflight: "EVERY_RUN",
-      priority: 13,
+      priority: 14,
     },
     {
       actor_id: "notion-knowledge-arm",
@@ -301,7 +319,7 @@ export function buildBlueDiamondRegistry(env: BlueDiamondRegistryEnv): BlueDiamo
       health_ref: "connector:notion",
       quota_ref: null,
       preflight: "TOOL_POLICY_ONLY",
-      priority: 14,
+      priority: 15,
     },
     {
       actor_id: "cloudflare-runtime-arm",
@@ -319,9 +337,9 @@ export function buildBlueDiamondRegistry(env: BlueDiamondRegistryEnv): BlueDiamo
       health_ref: "/api/health",
       quota_ref: "cloudflare-plan",
       preflight: "TOOL_POLICY_ONLY",
-      priority: 15,
+      priority: 16,
     },
   ];
 
-  return actors.slice(0, 15);
+  return actors;
 }
