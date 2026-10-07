@@ -1,0 +1,148 @@
+name: OGE-75 xAI + Meta Provider Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-75-xai-meta-provider-proof.yml"
+      - "scripts/xai-meta-provider-proof.mjs"
+      - "config/staging-runtime-bindings.json"
+      - "config/providers.json"
+      - "config/wave-phase-ii-agent-roster.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  provider-proof:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging secrets from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Normalize canonical provider secret names
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          manifest = json.loads(Path('config/staging-runtime-bindings.json').read_text())
+          normalized = 0
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              for canonical, aliases in manifest.get('aliases', {}).items():
+                  if os.environ.get(canonical):
+                      continue
+                  for alias in aliases:
+                      value = os.environ.get(alias)
+                      if value:
+                          output.write(f'{canonical}={value}\n')
+                          normalized += 1
+                          break
+          print(f'Normalized {normalized} provider aliases; values not printed.')
+          PY
+
+      - name: Require owner-provided xAI and Meta bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${XAI_API_KEY:-}" || { echo "::error::XAI_API_KEY is missing after Infisical normalization"; exit 1; }
+          test -n "${META_MODEL_API_KEY:-}" || { echo "::error::META_MODEL_API_KEY is missing after Infisical normalization"; exit 1; }
+          echo "XAI_API_KEY=CONFIGURED"
+          echo "META_MODEL_API_KEY=CONFIGURED"
+
+      - name: One-pass live provider proof
+        id: proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/xai-meta-provider-proof.mjs > /tmp/oge75-proof.json
+          jq '{policy, xai, meta_model}' /tmp/oge75-proof.json
+
+      - name: Persist secret-free proof marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ogenic/proofs
+          jq \
+            --arg repo "${GITHUB_REPOSITORY}" \
+            --arg branch "${GITHUB_REF_NAME}" \
+            --arg commit "${GITHUB_SHA}" \
+            --arg run_id "${GITHUB_RUN_ID}" \
+            --arg run_attempt "${GITHUB_RUN_ATTEMPT}" \
+            '. + {
+              schema_version: "OGE_75_PROVIDER_PROOF_V1",
+              repository: $repo,
+              branch: $branch,
+              source_commit: $commit,
+              github_actions_run_id: $run_id,
+              github_actions_run_attempt: $run_attempt,
+              secrets_printed: false,
+              automatic_retry: false,
+              hidden_fallback: false
+            }' /tmp/oge75-proof.json > .ogenic/proofs/xai-meta-provider-proof.json
+
+          git config user.name "ogenic-wave-proof"
+          git config user.email "ogenic-wave-proof@users.noreply.github.com"
+          git add .ogenic/proofs/xai-meta-provider-proof.json
+          if git diff --cached --quiet; then
+            echo "Proof marker unchanged."
+          else
+            git commit -m "proof: persist OGE-75 xAI Meta provider result"
+            git push origin "HEAD:phase-vi-provider-incentive-metering"
+          fi
+
+      - name: Enforce provider promotion verdict
+        shell: bash
+        run: |
+          set -euo pipefail
+          XAI_STATE="$(jq -r '.xai.state' /tmp/oge75-proof.json)"
+          META_STATE="$(jq -r '.meta_model.state' /tmp/oge75-proof.json)"
+
+          test "$XAI_STATE" = "VERIFIED" || {
+            echo "::error::xAI/Grok is not live-proven: $XAI_STATE"
+            exit 1
+          }
+
+          case "$META_STATE" in
+            VERIFIED)
+              echo "Meta Model API live proof PASS."
+              ;;
+            BILLING_BLOCKED)
+              echo "::notice::Meta Model API key is bound but billing/payment blocks inference; provider remains non-routable."
+              ;;
+            *)
+              echo "::error::Meta Model API returned unexpected state: $META_STATE"
+              exit 1
+              ;;
+          esac
+
+          echo "xAI/Grok live proof PASS."
