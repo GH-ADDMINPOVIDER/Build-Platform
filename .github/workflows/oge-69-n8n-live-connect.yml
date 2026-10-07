@@ -50,6 +50,9 @@ jobs:
           set -euo pipefail
           if [ -z "${N8N_SELFHOST_API_KEY:-}" ] && [ -n "${N8N_SELFHOST_REGISTRY_API_KEY:-}" ]; then
             echo "N8N_SELFHOST_API_KEY=${N8N_SELFHOST_REGISTRY_API_KEY}" >> "$GITHUB_ENV"
+          elif [ -z "${N8N_SELFHOST_API_KEY:-}" ] && [ -n "${N8N_API_KEY:-}" ]; then
+            echo "N8N_SELFHOST_API_KEY=${N8N_API_KEY}" >> "$GITHUB_ENV"
+            echo "Using N8N_API_KEY as a compatibility candidate for self-host verification."
           fi
 
       - name: Verify n8n API authentication
