@@ -18,6 +18,8 @@
   "connector_optional": [
     "N8N_API_KEY",
     "N8N_BASE_URL",
+    "N8N_SELFHOST_BASE_URL",
+    "N8N_SELFHOST_API_KEY",
     "LINE_CHANNEL_ACCESS_TOKEN",
     "LINE_SECRET_CHANNEL",
     "LINE_ID_USE",
@@ -72,6 +74,9 @@
     "DEEPSEEK_API_KEY": [
       "DEEPSEEK_KEY",
       "Api_deepseek_key_operate_1"
+    ],
+    "N8N_SELFHOST_API_KEY": [
+      "N8N_SELFHOST_REGISTRY_API_KEY"
     ]
   },
   "actor_map": {
