@@ -1,0 +1,69 @@
+{
+  "schema_version": "OGENIC_USE_CARD_V1",
+  "name": "50_IN_1_FOR_1LSS",
+  "wrapper": "MA-OP",
+  "execution_authority": "YELLOW_STONE_ONLY",
+  "canonical_session": "1LSS_OWNER_MAIN",
+  "dynamic_slots": true,
+  "slot_policy": {
+    "fixed_slot_count": false,
+    "add_without_card_redesign": true,
+    "replace_or_renew_source_in_place": true,
+    "upper_layer_source_visibility": "BROKERED_REFERENCE_ONLY"
+  },
+  "states": ["READY", "BORROWED", "LENT", "EXPIRING", "RETURNED", "BLOCKED"],
+  "tiers": {
+    "WHITE": "READ",
+    "BLUE": "WRITE_OR_EXECUTE",
+    "GOLD": "CONTROL_WITH_POLICY_GATES",
+    "OWNER_BREAK_GLASS": "OWNER_ONLY_SHORT_LIVED"
+  },
+  "lease_policy": {
+    "enabled": true,
+    "owner_pre_authorized_policy": true,
+    "same_provider_only_v1": true,
+    "cross_provider_hidden_fallback": false,
+    "allowed_reasons": ["RATE_LIMIT", "QUOTA_EXHAUSTED", "SOURCE_EXPIRED", "SOURCE_DEGRADED"],
+    "default_ttl_minutes": 15,
+    "max_ttl_minutes": 30,
+    "default_max_calls": 100,
+    "max_calls": 200,
+    "permission_escalation": false,
+    "scope_escalation": false,
+    "protected_operations": [
+      "PRODUCTION",
+      "BILLING",
+      "DELETE",
+      "DESTRUCTIVE",
+      "SECRET_REVEAL",
+      "D1_SCHEMA"
+    ],
+    "protected_operations_require_owner": true,
+    "return_required": true,
+    "ruby_verification_required": true,
+    "green_retention": "VERIFIED_SUMMARY_AND_EVIDENCE_ONLY"
+  },
+  "evidence": {
+    "required_fields": [
+      "borrow_id",
+      "holder",
+      "source_card_id",
+      "reason",
+      "provider_id",
+      "capability_id",
+      "permission_class",
+      "issued_at",
+      "expires_at",
+      "max_calls",
+      "return_state"
+    ]
+  },
+  "safety": {
+    "raw_source_values_exposed_to_agents": false,
+    "raw_source_values_retained_in_1lss": false,
+    "raw_source_values_retained_in_logs": false,
+    "raw_source_values_retained_in_n8n_items": false,
+    "direct_provider_bypass": false,
+    "schema_change": false
+  }
+}
