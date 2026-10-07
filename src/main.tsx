@@ -4,6 +4,7 @@ import { Capacitor, CapacitorHttp } from "@capacitor/core";
 import UnifiedChat from "./UnifiedChat";
 import Landing from "./Landing";
 import WaveNext from "./WaveNext";
+import WaveDashboard from "./WaveDashboard";
 import WaveThemeToggle from "./WaveThemeToggle";
 import MaopLab from "./MaopLab";
 
@@ -11,6 +12,7 @@ const LegacyControlSurface = lazy(() => import("./LegacyControlSurface"));
 import "./unified-chat.css";
 import "./landing.css";
 import "./wave-next.css";
+import "./wave-dashboard.css";
 import "./wave-route-polish.css";
 import "./wave-theme.css";
 import "./maop-lab.css";
@@ -100,12 +102,12 @@ const commandRoute = !nativeApp && (pathname === "/command" || pathname.startsWi
 const agentsRoute = !nativeApp && (pathname === "/agents" || pathname.startsWith("/agents/"));
 const maopLabRoute = !nativeApp && (pathname === "/maop" || pathname.startsWith("/maop/"));
 const legacyOverviewRoute = !nativeApp && (pathname === "/overview/legacy" || pathname.startsWith("/overview/legacy/"));
+const dashboardRoute = !nativeApp && pathname === "/overview";
 const waveNextRoute = !nativeApp && !legacyOverviewRoute && (
-  pathname === "/overview" ||
   pathname === "/overview/next" ||
   pathname.startsWith("/overview/next/")
 );
-const controlRoute = commandRoute || agentsRoute || maopLabRoute || pathname === "/overview" || pathname.startsWith("/overview/");
+const controlRoute = commandRoute || agentsRoute || maopLabRoute || dashboardRoute || pathname.startsWith("/overview/");
 const shortcutApp = !webChatRoute && !controlRoute && params.get("source") === "app";
 const landingRoute = !nativeApp && pathname === "/";
 const appRoute = explicitAppRoute || (!webChatRoute && !controlRoute && (params.get("mobile") === "1" || shortcutApp));
@@ -120,6 +122,8 @@ document.title = landingRoute
       ? "WAVE — AGENTS"
       : maopLabRoute
         ? "WAVE — MA-OP LAB"
+      : dashboardRoute
+        ? "WAVE — DASHBOARD"
       : waveNextRoute
         ? "WAVE — OPERATE"
         : controlRoute
@@ -179,6 +183,8 @@ createRoot(document.getElementById("root")!).render(
     <SurfaceBridge />
     {landingRoute
       ? <Landing />
+      : dashboardRoute
+        ? <WaveDashboard />
       : commandRoute
         ? <WaveNext initialTab="run" surface="command" />
         : agentsRoute
