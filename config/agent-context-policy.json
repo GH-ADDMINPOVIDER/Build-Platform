@@ -1,0 +1,123 @@
+{
+  "schema_version": "OGENIC_AGENT_CONTEXT_POLICY_V1",
+  "scope": "ALL_AGENTS_ALL_PROVIDERS",
+  "goal": "Minimize token usage and context replay while preserving correctness, evidence, and safety.",
+  "source_patterns": [
+    "runtime bounded context",
+    "DeepSeek 12000-character prompt cap + no hidden retry",
+    "Perplexity continuation by previous_response_id + store=false + no retry",
+    "task inbox compact result summaries and evidence references"
+  ],
+  "hard_rules": {
+    "full_conversation_replay": false,
+    "duplicate_system_context": false,
+    "hidden_retry": false,
+    "hidden_provider_fallback": false,
+    "raw_log_replay": false,
+    "raw_secret_retention": false,
+    "verified_retention_only": true
+  },
+  "context_order": [
+    "task_goal",
+    "current_constraints",
+    "current_canonical_state",
+    "minimum_relevant_evidence",
+    "required_tool_contract",
+    "output_contract"
+  ],
+  "budgets": {
+    "default_prompt_chars": 12000,
+    "command_router_chars": 6000,
+    "research_read_chars": 12000,
+    "code_execution_chars": 16000,
+    "handoff_summary_chars": 2400,
+    "result_summary_chars": 1200,
+    "evidence_excerpt_chars": 4000
+  },
+  "continuation": {
+    "prefer_provider_continuation_id": true,
+    "prefer_session_or_task_reference": true,
+    "prefer_evidence_reference_over_payload": true,
+    "replay_only_when_reference_unavailable": true
+  },
+  "selection": {
+    "load_context_lazily": true,
+    "fetch_only_required_files_or_ranges": true,
+    "deduplicate_by_reference_or_hash": true,
+    "exclude_stale_state_when_fresh_state_exists": true,
+    "exclude_completed_work_unless_dependency": true
+  },
+  "handoff_contract": {
+    "required_fields": [
+      "goal",
+      "constraints",
+      "current_state",
+      "next_action",
+      "evidence_refs"
+    ],
+    "optional_fields": [
+      "blocker",
+      "approval_required"
+    ],
+    "forbid_full_transcript": true
+  },
+  "result_contract": {
+    "format": [
+      "RESULT",
+      "EVIDENCE",
+      "BLOCKED",
+      "NEXT"
+    ],
+    "retain_raw_provider_output": false,
+    "retain_verified_summary": true,
+    "retain_evidence_refs": true
+  },
+  "provider_rules": {
+    "openai_athena": {
+      "use": "decompose_route_coordinate",
+      "avoid": "doing specialist work that can be delegated"
+    },
+    "codex": {
+      "use": "repo_code_test_build",
+      "context": "target files + failing evidence + constraints; do not replay whole project history"
+    },
+    "gemini": {
+      "use": "read_reasoning_multimodal_long_context",
+      "context": "only relevant source/evidence; no repo mutation"
+    },
+    "manus": {
+      "use": "long_horizon_artifact_production",
+      "context": "project brief + acceptance + bounded assets; no full 1LSS replay"
+    },
+    "anthropic": {
+      "use": "architecture_independent_review",
+      "context": "design slice + evidence; no redundant implementation history"
+    },
+    "deepseek": {
+      "use": "reasoning_code_alternative",
+      "prompt_char_cap": 12000,
+      "automatic_retry": false
+    },
+    "perplexity": {
+      "use": "web_research_source_synthesis",
+      "prefer_previous_response_id": true,
+      "store": false,
+      "automatic_retry": false
+    },
+    "xai_grok": {
+      "use": "realtime_web_reasoning_code",
+      "canonical_secret": "XAI_API_KEY",
+      "secret_aliases": ["GROK_API_KEY"]
+    },
+    "meta_model": {
+      "use": "agentic_code_multimodal_candidate",
+      "canonical_secret": "META_MODEL_API_KEY"
+    }
+  },
+  "retention": {
+    "green_1lss": "verified summaries + evidence references only",
+    "linear": "task state + compact evidence index only",
+    "github": "source + deterministic audit artifacts",
+    "n8n": "workflow state; do not become long-term context store"
+  }
+}
