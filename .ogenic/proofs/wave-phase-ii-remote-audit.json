@@ -1,0 +1,65 @@
+{
+  "schema_version": "WAVE_PHASE_II_REMOTE_AUDIT_V1",
+  "repository": "Ogenicchocolate21debug/Build-Platform",
+  "branch": "phase-vi-provider-incentive-metering",
+  "remote_verifier": "vercel_promptly_preview",
+  "build_proof": {
+    "source_commit": "ad96a899612f67bff6ebb085888a9c3161e2bc96",
+    "deployment_id": "dpl_6Sa8yVEbozQuBYqicEW3qPz5Gmrv",
+    "state": "READY",
+    "command": "npm run build",
+    "result": "PASS"
+  },
+  "full_check_attempt": {
+    "source_commit": "ad96a899612f67bff6ebb085888a9c3161e2bc96",
+    "deployment_id": "dpl_8QELFt4HbVsodFdv8ujBK9AehH9h",
+    "command": "npm run check",
+    "tests_total": 305,
+    "tests_passed": 302,
+    "tests_failed": 3,
+    "typecheck_reached": false,
+    "build_reached": false,
+    "known_failures": [
+      {
+        "test": "registry separates real agent candidates from tools and runtimes",
+        "root_cause": "Blue Diamond roster cap still asserted 15 after adding Meta candidate",
+        "fix_commits": [
+          "eba0d4a3d564df7668974dfa25d48d4241a9962e",
+          "c3b6b8b5581c0cdc3dfca97fbcf80087129f1157",
+          "c3a317b96a1436c84a761da3370b79951fa0fbf1"
+        ],
+        "fix_state": "CANONICAL_PATCHED"
+      },
+      {
+        "test": "verified self-host n8n is active in provider metadata without schema changes",
+        "root_cause": "provider role string drifted from workflow_execution_fabric",
+        "fix_commit": "bd434541d6b53b12c1a1863e486e06f4b0c1bb8d",
+        "fix_state": "CANONICAL_PATCHED"
+      },
+      {
+        "test": "provider catalog keeps legacy migration sources distinct from verified active execution providers",
+        "root_cause": "same n8n provider role string drift",
+        "fix_commit": "bd434541d6b53b12c1a1863e486e06f4b0c1bb8d",
+        "fix_state": "CANONICAL_PATCHED"
+      }
+    ],
+    "phase_ii_targeted_tests_observed_pass": {
+      "OGE-71": 4,
+      "OGE-72": 5,
+      "OGE-74": 5,
+      "OGE-75": 5
+    }
+  },
+  "post_fix_rerun": {
+    "state": "EXTERNALLY_BLOCKED",
+    "provider": "vercel",
+    "code": "api-deployments-free-per-day",
+    "http_status": 402,
+    "message": "Daily Hobby API deployment limit exceeded; retry after 24 hours.",
+    "retry_after_seconds": 86400,
+    "automatic_retry": false
+  },
+  "temporary_verifier_project_override_restored": true,
+  "current_truth": "ALL_KNOWN_TEST_FAILURES_PATCHED_CANONICALLY; POST_FIX_FULL_CHECK_AND_TYPECHECK_NOT_YET_PROVEN",
+  "secrets_included": false
+}
