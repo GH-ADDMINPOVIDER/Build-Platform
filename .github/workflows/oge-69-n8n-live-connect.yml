@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 env:
@@ -222,6 +222,38 @@ jobs:
             jq -e --arg NAME "$name" '.data[]? | select(.name == $NAME and .active == false)' /tmp/n8n-final.json >/dev/null
           done
           echo "Final n8n inventory contains all OGE-70 modules and all are inactive."
+
+      - name: Persist OGE-70 verified proof marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ogenic/proofs
+          cat > .ogenic/proofs/oge-70-n8n-closeout.json <<EOF
+          {
+            "schema": "OGE70_N8N_CLOSEOUT_PROOF_V1",
+            "verified": true,
+            "source_commit": "$GITHUB_SHA",
+            "github_run_id": "$GITHUB_RUN_ID",
+            "branch": "$GITHUB_REF_NAME",
+            "n8n_api_auth": "READY",
+            "recovered_orchestrator": {"node_count": 95, "active": false},
+            "execution_fabric_modules": {"expected": 4, "present": 4, "active": false},
+            "contract_test": "PASS",
+            "typecheck": "PASS",
+            "build": "PASS",
+            "control_authority": "MAOP_YELLOW",
+            "verification_authority": "RUBY_STONE",
+            "retention": "GREEN_1LSS_AFTER_VERIFICATION",
+            "raw_secrets_persisted": false,
+            "main_prod_candy_touched": false,
+            "d1_schema_changed": false
+          }
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .ogenic/proofs/oge-70-n8n-closeout.json
+          git commit -m "proof: verify OGE-70 n8n execution fabric" || exit 0
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Write safe summary
         shell: bash
