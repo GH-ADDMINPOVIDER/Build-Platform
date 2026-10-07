@@ -10,6 +10,7 @@ import { resolveCapability, type ResolverRequest } from "./capability-resolver";
 
 type ExecutionBindings = CapabilityResolverBindings & {
   GITHUB_TOKEN?: string;
+  GEMINI_API_KEY?: string;
   OGENIC_GITHUB_REPO?: string;
   OGENIC_GITHUB_BRANCH?: string;
 };
@@ -18,6 +19,7 @@ type Env = { Bindings: ExecutionBindings };
 type ExecutionBody = ResolverRequest & {
   input?: {
     path?: unknown;
+    prompt?: unknown;
   };
 };
 
@@ -29,6 +31,13 @@ type GitHubContentResponse = {
   size?: number;
   path?: string;
   message?: string;
+};
+
+type GeminiGenerateResponse = {
+  candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
+  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
+  modelVersion?: string;
+  error?: { message?: string; status?: string };
 };
 
 type VerificationState = "verified" | "partially_verified" | "unverified" | "blocked" | "failed";
@@ -103,6 +112,68 @@ async function appendCanonicalEvidence(
   return { sequence, replayed: false };
 }
 
+async function runGeminiRead(env: ExecutionBindings, rawPrompt: unknown) {
+  const apiKey = clean(env.GEMINI_API_KEY, 4000);
+  if (!apiKey) return { ok: false as const, code: "CONFIGURATION_REQUIRED", missing: "GEMINI_API_KEY" };
+  const prompt = clean(rawPrompt, 12_000);
+  if (!prompt) return { ok: false as const, code: "PROMPT_REQUIRED" };
+
+  const model = "gemini-3.7-flash";
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "x-goog-api-key": apiKey,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 2048 },
+        }),
+      },
+    );
+  } catch {
+    return { ok: false as const, code: "GEMINI_UNREACHABLE", automatic_retry: false };
+  }
+
+  const body = await response.json().catch(() => ({})) as GeminiGenerateResponse;
+  if (!response.ok) {
+    return {
+      ok: false as const,
+      code: response.status === 429 ? "GEMINI_RATE_LIMITED" : `GEMINI_HTTP_${response.status}`,
+      http_status: response.status,
+      message: clean(body.error?.message || "Gemini request failed", 300),
+      automatic_retry: false,
+    };
+  }
+
+  const text = clean(
+    body.candidates?.[0]?.content?.parts?.map((part) => part.text || "").filter(Boolean).join("\n"),
+    40_000,
+  );
+  if (!text) return { ok: false as const, code: "GEMINI_EMPTY_OUTPUT", http_status: 200 };
+
+  return {
+    ok: true as const,
+    provider: "gemini",
+    capability: "context_load",
+    model: clean(body.modelVersion || model, 160),
+    finish_reason: clean(body.candidates?.[0]?.finishReason, 80) || null,
+    text,
+    usage: {
+      prompt_tokens: Number(body.usageMetadata?.promptTokenCount ?? 0),
+      completion_tokens: Number(body.usageMetadata?.candidatesTokenCount ?? 0),
+      total_tokens: Number(body.usageMetadata?.totalTokenCount ?? 0),
+    },
+    automatic_retry: false,
+    provider_fallback: "DENIED_WITHIN_ATTEMPT",
+  };
+}
+
 async function readGitHubFile(env: ExecutionBindings, path: string) {
   const token = clean(env.GITHUB_TOKEN, 4000);
   if (!token) return { ok: false as const, code: "CONFIGURATION_REQUIRED", missing: "GITHUB_TOKEN" };
@@ -171,7 +242,7 @@ export function createCapabilityExecutionApi() {
       return c.json({ ok: false, code: "INVALID_REQUEST", message: "intent, capability or provider is required" }, 400);
     }
 
-    const candidates = await readResolverCandidates(c.env.DB);
+    const candidates = await readResolverCandidates(c.env.DB, c.env);
     const resolved = resolveCapability(request, candidates);
     if (!resolved.ok || !resolved.descriptor) {
       const status = resolved.status === "AMBIGUOUS" ? 409 : resolved.status === "CONFIGURATION_REQUIRED" ? 503 : 404;
@@ -200,6 +271,38 @@ export function createCapabilityExecutionApi() {
         },
         verification: verification("blocked", { reason: "NON_READ_CAPABILITY_REQUIRES_DETERMINISTIC_APPROVAL" }),
       }, 409, { "Cache-Control": "no-store" });
+    }
+
+    if (descriptor.provider_id === "gemini" && descriptor.capability_id === "context_load") {
+      const gemini = await runGeminiRead(c.env, body.input?.prompt ?? request.intent);
+      if (!gemini.ok) {
+        return c.json({
+          ...gemini,
+          run_id: runId,
+          resolver: resolved,
+          verification: verification("failed", {
+            provider_id: "gemini",
+            capability_id: "context_load",
+          }),
+          retention_eligible: false,
+        }, gemini.code === "CONFIGURATION_REQUIRED" ? 503 : 502, { "Cache-Control": "no-store" });
+      }
+
+      const outputDigest = await sha256Hex(gemini.text);
+      return c.json({
+        ok: true,
+        run_id: runId,
+        resolver: resolved,
+        result: gemini,
+        verification: verification("partially_verified", {
+          provider_id: "gemini",
+          capability_id: "context_load",
+          output_sha256: outputDigest,
+          semantic_verification_required: "RUBY_STONE",
+        }),
+        retention_eligible: false,
+        policy: "READ_AUTO_ALLOW_RUBY_VERIFY_BEFORE_GREEN_RETENTION",
+      }, 200, { "Cache-Control": "no-store" });
     }
 
     if (descriptor.provider_id !== "github" || descriptor.capability_id !== "read_file") {
