@@ -19,25 +19,18 @@
   ],
   "placements": [
     {
-      "oge": "OGE-62",
-      "decision": "N8N_PRIMARY_ORCHESTRATION",
-      "module": "ogenic-oge62-flow-preaudit-v1",
-      "scope": "fan-in provisional results, deterministic pre-audit, handoff manifest",
-      "authority": "GitHub audit remains authoritative; Yellow final commit gate"
-    },
-    {
-      "oge": "OGE-57",
-      "decision": "N8N_SUPPORTING",
-      "module": "ogenic-task-router-v1",
-      "scope": "normalize/route task events and adapter lanes",
-      "authority": "D1 agent_tasks + WAVE Task Inbox remain canonical"
-    },
-    {
       "oge": "OGE-6",
       "decision": "N8N_SUPPORTING",
       "module": "ogenic-task-router-v1",
       "scope": "Linear/D1 task envelope normalization only",
       "authority": "Worker/D1 roundtrip remains canonical"
+    },
+    {
+      "oge": "OGE-14",
+      "decision": "CLOUDFLARE_INGRESS_KEEP",
+      "module": null,
+      "scope": "ingress/hooks/function-call control",
+      "authority": "n8n must not replace Cloudflare/Yellow control boundary"
     },
     {
       "oge": "OGE-27",
@@ -54,11 +47,81 @@
       "authority": "Yellow + GitHub Actions own guarded dispatch"
     },
     {
+      "oge": "OGE-37",
+      "decision": "N8N_ORCHESTRATION_SUPPORT",
+      "module": "ogenic-violet-pipeline-orchestrator-v1",
+      "scope": "parallel/sequential worker graph preparation and merge handoff",
+      "authority": "Violet semantics + Yellow policy remain canonical; n8n executes bounded workflow graph"
+    },
+    {
+      "oge": "OGE-39",
+      "decision": "N8N_PIPELINE_SUPPORT",
+      "module": "ogenic-violet-pipeline-orchestrator-v1",
+      "scope": "knowledge refinery stage orchestration",
+      "authority": "DeepSeek/Codex/Docker/Ruby remain registered adapters; Green retention only after verify"
+    },
+    {
+      "oge": "OGE-42",
+      "decision": "N8N_PIPELINE_SUPPORT",
+      "module": "ogenic-violet-pipeline-orchestrator-v1",
+      "scope": "rule/formula refinery stage orchestration",
+      "authority": "Ruby verification required before retention"
+    },
+    {
       "oge": "OGE-43",
       "decision": "N8N_SUPPORTING",
       "module": "ogenic-evidence-normalizer-v1",
       "scope": "CI/evidence aggregation",
       "authority": "direct MA-OP GitHub READ remains canonical capability"
+    },
+    {
+      "oge": "OGE-47",
+      "decision": "N8N_PARALLEL_SUPPORT",
+      "module": "ogenic-violet-pipeline-orchestrator-v1",
+      "scope": "parallel lane planning and fan-in handoff",
+      "authority": "runtime clones remain isolated compute; no canonical writes"
+    },
+    {
+      "oge": "OGE-48",
+      "decision": "N8N_PIPELINE_SUPPORT",
+      "module": "ogenic-violet-pipeline-orchestrator-v1",
+      "scope": "one-pass refinery sequence orchestration",
+      "authority": "no hidden retry; Ruby then Green"
+    },
+    {
+      "oge": "OGE-50",
+      "decision": "WAVE_READ_MODEL_KEEP",
+      "module": "ogenic-evidence-normalizer-v1",
+      "scope": "optional post-run evidence normalization only",
+      "authority": "jobs/run history remain protected WAVE/D1 read model"
+    },
+    {
+      "oge": "OGE-52",
+      "decision": "N8N_OPTIONAL_FANOUT",
+      "module": "ogenic-task-router-v1",
+      "scope": "optional external notification fan-out after canonical signal exists",
+      "authority": "signal truth remains WAVE runtime state; n8n cannot fabricate signals"
+    },
+    {
+      "oge": "OGE-55",
+      "decision": "MAOP_RUBY_KEEP",
+      "module": null,
+      "scope": "CapSig/CapRank deterministic evidence scoring",
+      "authority": "Ruby-derived ranking stays outside n8n"
+    },
+    {
+      "oge": "OGE-56",
+      "decision": "MAOP_YELLOW_KEEP",
+      "module": null,
+      "scope": "auto-route selection",
+      "authority": "route selection stays MA-OP/Yellow; n8n executes only selected route"
+    },
+    {
+      "oge": "OGE-57",
+      "decision": "N8N_SUPPORTING",
+      "module": "ogenic-task-router-v1",
+      "scope": "normalize/route task events and adapter lanes",
+      "authority": "D1 agent_tasks + WAVE Task Inbox remain canonical"
     },
     {
       "oge": "OGE-58",
@@ -82,11 +145,18 @@
       "authority": "Worker endpoint; no hidden retry/fallback"
     },
     {
-      "oge": "OGE-14",
-      "decision": "CLOUDFLARE_INGRESS_KEEP",
-      "module": null,
-      "scope": "ingress/hooks/function-call control",
-      "authority": "n8n must not replace Cloudflare/Yellow control boundary"
+      "oge": "OGE-61",
+      "decision": "N8N_FANIN_SUPPORT",
+      "module": "ogenic-oge62-flow-preaudit-v1",
+      "scope": "10-runtime fan-in preparation before OGE-62 audit",
+      "authority": "GitHub reducer/audit remains authoritative"
+    },
+    {
+      "oge": "OGE-62",
+      "decision": "N8N_PRIMARY_ORCHESTRATION",
+      "module": "ogenic-oge62-flow-preaudit-v1",
+      "scope": "fan-in provisional results, deterministic pre-audit, handoff manifest",
+      "authority": "GitHub audit remains authoritative; Yellow final commit gate"
     },
     {
       "oge": "OGE-68",
