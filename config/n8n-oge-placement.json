@@ -1,0 +1,106 @@
+{
+  "schema_version": "OGE_N8N_PLACEMENT_V1",
+  "generated_for": "OGE-70",
+  "canonical": {
+    "repository": "Ogenicchocolate21debug/Build-Platform",
+    "branch": "phase-vi-provider-incentive-metering",
+    "control_plane": "MAOP_YELLOW",
+    "verification": "RUBY_STONE",
+    "retention": "GREEN_1LSS",
+    "n8n_role": "WORKFLOW_EXECUTION_FABRIC_NOT_CONTROL_PLANE"
+  },
+  "rules": [
+    "NO_MAIN_PROD_CANDY",
+    "NO_D1_SCHEMA_CHANGE",
+    "NO_RAW_SECRETS",
+    "INFISICAL_OR_SERVER_SIDE_BINDINGS_ONLY",
+    "NO_HIDDEN_RETRY_OR_PROVIDER_FALLBACK",
+    "WRITE_EXECUTE_DANGEROUS_REQUIRES_YELLOW_APPROVAL"
+  ],
+  "placements": [
+    {
+      "oge": "OGE-62",
+      "decision": "N8N_PRIMARY_ORCHESTRATION",
+      "module": "ogenic-oge62-flow-preaudit-v1",
+      "scope": "fan-in provisional results, deterministic pre-audit, handoff manifest",
+      "authority": "GitHub audit remains authoritative; Yellow final commit gate"
+    },
+    {
+      "oge": "OGE-57",
+      "decision": "N8N_SUPPORTING",
+      "module": "ogenic-task-router-v1",
+      "scope": "normalize/route task events and adapter lanes",
+      "authority": "D1 agent_tasks + WAVE Task Inbox remain canonical"
+    },
+    {
+      "oge": "OGE-6",
+      "decision": "N8N_SUPPORTING",
+      "module": "ogenic-task-router-v1",
+      "scope": "Linear/D1 task envelope normalization only",
+      "authority": "Worker/D1 roundtrip remains canonical"
+    },
+    {
+      "oge": "OGE-27",
+      "decision": "N8N_POSTRUN_ONLY",
+      "module": "ogenic-evidence-normalizer-v1",
+      "scope": "browser post-run evidence normalization/fan-out",
+      "authority": "Cloudflare Browser Run owns live/HITL control"
+    },
+    {
+      "oge": "OGE-28",
+      "decision": "N8N_POSTRUN_ONLY",
+      "module": "ogenic-evidence-normalizer-v1",
+      "scope": "Codex evidence normalization and workflow handoff",
+      "authority": "Yellow + GitHub Actions own guarded dispatch"
+    },
+    {
+      "oge": "OGE-43",
+      "decision": "N8N_SUPPORTING",
+      "module": "ogenic-evidence-normalizer-v1",
+      "scope": "CI/evidence aggregation",
+      "authority": "direct MA-OP GitHub READ remains canonical capability"
+    },
+    {
+      "oge": "OGE-58",
+      "decision": "DIRECT_PROVIDER_KEEP",
+      "module": null,
+      "scope": "Perplexity reasoning endpoint",
+      "authority": "Worker endpoint; n8n may compose only after Yellow admission"
+    },
+    {
+      "oge": "OGE-59",
+      "decision": "DIRECT_PROVIDER_KEEP",
+      "module": null,
+      "scope": "DeepSeek reasoning endpoint",
+      "authority": "Worker endpoint; no hidden retry/fallback"
+    },
+    {
+      "oge": "OGE-60",
+      "decision": "DIRECT_PROVIDER_KEEP",
+      "module": null,
+      "scope": "Gemini reasoning endpoint",
+      "authority": "Worker endpoint; no hidden retry/fallback"
+    },
+    {
+      "oge": "OGE-14",
+      "decision": "CLOUDFLARE_INGRESS_KEEP",
+      "module": null,
+      "scope": "ingress/hooks/function-call control",
+      "authority": "n8n must not replace Cloudflare/Yellow control boundary"
+    },
+    {
+      "oge": "OGE-68",
+      "decision": "MIGRATION_SOURCE_ONLY",
+      "module": null,
+      "scope": "legacy source metadata preservation",
+      "authority": "read-only legacy source"
+    },
+    {
+      "oge": "OGE-69",
+      "decision": "N8N_RUNTIME_FOUNDATION",
+      "module": "ogenic-core-safe-connector-test-ready.sanitized",
+      "scope": "recovered 95-node inactive reference",
+      "authority": "inactive until MA-OP/Yellow admission"
+    }
+  ]
+}
