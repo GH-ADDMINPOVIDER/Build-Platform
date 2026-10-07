@@ -102,6 +102,36 @@ jobs:
           check_workflow "OGENIC | Violet Pipeline Orchestrator | OGE-37/39/42/47/48 | v1 | INACTIVE" 4
           echo "OGE-70 live n8n module inventory PASS."
 
+      - name: Verify Yellow resolves n8n and blocks unapproved EXECUTE
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::OGENIC_OPS_KEY missing"; exit 1; }
+          REQUEST='{"provider":"n8n","capability":"workflow_run","environment":"staging","allowMigration":false,"allowOptional":false}'
+
+          RESOLVED="$(curl -sS --fail             -H 'content-type: application/json'             -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}"             --data "$REQUEST"             "${STAGING_URL}/api/capabilities/resolve")"
+          printf '%s' "$RESOLVED" | jq -e '
+            .ok == true and
+            .status == "RESOLVED" and
+            .descriptor.provider_id == "n8n" and
+            .descriptor.capability_id == "workflow_run" and
+            .descriptor.permission_class == "EXECUTE" and
+            .descriptor.environment == "staging" and
+            .descriptor.executable == true
+          ' >/dev/null
+
+          STATUS="$(curl -sS             -o /tmp/oge70-yellow-execute.json             -w '%{http_code}'             -H 'content-type: application/json'             -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}"             --data "$REQUEST"             "${STAGING_URL}/api/capabilities/execute")"
+          test "$STATUS" = "409" || { echo "::error::expected approval gate HTTP 409, got $STATUS"; exit 1; }
+          jq -e '
+            .ok == false and
+            .code == "HUMAN_APPROVAL_REQUIRED" and
+            .approval.required == true and
+            .approval.provider_id == "n8n" and
+            .approval.capability_id == "workflow_run" and
+            .approval.permission_class == "EXECUTE"
+          ' /tmp/oge70-yellow-execute.json >/dev/null
+          echo "OGE-70 Yellow n8n resolver/approval proof PASS."
+
       - name: Verify WAVE exposes placement without enabling execution
         shell: bash
         run: |
