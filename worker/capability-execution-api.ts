@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { wrapCapabilityAsUseCard } from "./use-card-policy";
-import { toCcsCardView } from "./capability-card-stone";
 import { boundedReadPrompt } from "./agent-context-policy";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import {
@@ -259,7 +258,6 @@ export function createCapabilityExecutionApi() {
 
     const descriptor = resolved.descriptor;
     const useCard = wrapCapabilityAsUseCard(descriptor, "yellow-stone");
-    const ccsCard = toCcsCardView(useCard);
     const runId = makeId("ys_run");
     if (descriptor.permission_class !== "READ") {
       return c.json({
