@@ -35,7 +35,8 @@
     "OGENIC_PHASE": "VI",
     "OGENIC_RUNTIME": "cloudflare",
     "OGENIC_GITHUB_REPO": "Ogenicchocolate21debug/Build-Platform",
-    "OGENIC_GITHUB_BRANCH": "phase-vi-provider-incentive-metering"
+    "OGENIC_GITHUB_BRANCH": "phase-vi-provider-incentive-metering",
+    "N8N_SELFHOST_BASE_URL": "https://n8n-staging-76b7.up.railway.app"
   },
   "d1_databases": [
     {
