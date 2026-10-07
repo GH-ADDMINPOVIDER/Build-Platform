@@ -1,10 +1,10 @@
 {
-  "schema_version": "6.0",
+  "schema_version": "6.1",
   "runtime": "cloudflare",
   "providers": [
     {
       "id": "github",
-      "role": "code_ci",
+      "role": "source_ci_deterministic_audit",
       "status": "active",
       "auth": "github_app_or_token",
       "secret_ref": "/providers/github/prod"
@@ -18,7 +18,7 @@
     },
     {
       "id": "linear",
-      "role": "tasks_agents",
+      "role": "task_delegation_evidence_ledger",
       "status": "active",
       "auth": "oauth_or_api",
       "secret_ref": "/providers/linear/prod"
@@ -52,39 +52,88 @@
       "secret_ref": "/providers/cloudflare/prod"
     },
     {
+      "id": "openai",
+      "role": "athena_command_admission_coordinator",
+      "status": "active",
+      "auth": "api_key_or_agent_session",
+      "secret_ref": "/providers/openai/staging"
+    },
+    {
+      "id": "codex",
+      "role": "repo_code_test_build_executor",
+      "status": "active",
+      "auth": "openai_executor_or_connected_agent",
+      "secret_ref": "/providers/openai-executor/staging"
+    },
+    {
+      "id": "gemini",
+      "role": "verified_read_reasoning_multimodal_long_context",
+      "status": "active",
+      "auth": "api_key",
+      "secret_ref": "/providers/gemini/staging"
+    },
+    {
+      "id": "manus",
+      "role": "long_horizon_builder_research_producer_external_bridge",
+      "status": "optional",
+      "auth": "connector_or_api",
+      "secret_ref": "/providers/manus/staging"
+    },
+    {
+      "id": "anthropic",
+      "role": "long_context_architecture_review_candidate",
+      "status": "optional",
+      "auth": "api_key",
+      "secret_ref": "/providers/anthropic/staging"
+    },
+    {
+      "id": "perplexity",
+      "role": "web_research_source_synthesis_deferred",
+      "status": "optional",
+      "auth": "api_key",
+      "secret_ref": "/providers/perplexity/staging"
+    },
+    {
+      "id": "deepseek",
+      "role": "reasoning_code_billing_blocked",
+      "status": "planned",
+      "auth": "api_key",
+      "secret_ref": "/providers/deepseek/staging"
+    },
+    {
+      "id": "xai",
+      "role": "realtime_reasoning_code_candidate",
+      "status": "optional",
+      "auth": "api_key",
+      "secret_ref": "/providers/xai/staging"
+    },
+    {
       "id": "notion",
-      "role": "legacy_knowledge_migration",
+      "role": "legacy_knowledge_archive_migration",
       "status": "migration",
       "auth": "oauth",
       "secret_ref": "/providers/notion/prod"
     },
     {
       "id": "n8n",
-      "role": "workflow_execution_fabric",
+      "role": "workflow_execution_fabric_fanout_fanin_preverify",
       "status": "active",
       "auth": "api_key",
       "secret_ref": "/providers/n8n/prod"
     },
     {
       "id": "vercel",
-      "role": "optional_legacy_deploy",
+      "role": "secondary_preview_deploy_observability",
       "status": "optional",
       "auth": "oauth_or_token",
       "secret_ref": "/providers/vercel/prod"
     },
     {
       "id": "clickup",
-      "role": "optional_legacy_tasks",
+      "role": "external_collaboration_docs_tasks",
       "status": "optional",
       "auth": "oauth_or_token",
       "secret_ref": "/providers/clickup/prod"
-    },
-    {
-      "id": "deepseek",
-      "role": "planned_specialist_agent",
-      "status": "planned",
-      "auth": "api_key",
-      "secret_ref": "/providers/deepseek/staging"
     }
   ]
 }
