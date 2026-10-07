@@ -379,6 +379,23 @@ jobs:
           printf '%s' "$CATALOG" | jq -e '.ok == true and .runtime == "N8N_LEGACY_MIGRATION_CATALOG_V1" and .secrets_included == false and .raw_workflow_parameters_included == false and .catalog.control_plane.execution_authority == "YELLOW_STONE_ONLY" and .catalog.control_plane.verification_authority == "RUBY_STONE" and (.catalog.categories | length) == 8' >/dev/null
           echo "OGE-69 categorized n8n migration catalog PASS."
 
+      - name: OGE-69 live n8n self-host readiness proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUTH_HEADER="x-ogenic-ops-key: ${OGENIC_OPS_KEY}"
+          SELFHOST="$(curl --fail --silent --show-error -H "$AUTH_HEADER" "${STAGING_URL}/api/n8n/migration/selfhost/status")"
+          printf '%s' "$SELFHOST" | jq -e '
+            .ok == true and
+            .runtime == "N8N_SELFHOST_READINESS_V1" and
+            .destination.configured == true and
+            .destination.reachable == true and
+            .control.execution_authority == "YELLOW_STONE_ONLY" and
+            .control.workflow_import_allowed == false and
+            .control.workflow_execution_allowed == false
+          ' >/dev/null
+          echo "OGE-69 n8n self-host readiness PASS."
+
       - name: OGE-57 live staging task inbox roundtrip
         if: steps.scope.outputs.ui_only != 'true'
         shell: bash
