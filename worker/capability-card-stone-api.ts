@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
+import { evaluateUseCardLease, type UseCardDescriptor, type UseCardLeaseRequest } from "./use-card-policy";
 import {
   publicCcsStatus,
   transitionCcsState,
