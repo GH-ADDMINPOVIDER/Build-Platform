@@ -9,6 +9,7 @@ on:
       - "deploy/n8n-selfhost/workflows/ogenic-oge62-flow-preaudit-v1.sanitized.json"
       - "deploy/n8n-selfhost/workflows/ogenic-evidence-normalizer-v1.sanitized.json"
       - "deploy/n8n-selfhost/workflows/ogenic-task-router-v1.sanitized.json"
+      - "deploy/n8n-selfhost/workflows/ogenic-violet-pipeline-orchestrator-v1.sanitized.json"
       - "tests/oge-70-n8n-execution-fabric.test.mjs"
       - "worker/n8n-migration-api.ts"
       - "src/MaopLab.tsx"
@@ -95,6 +96,7 @@ jobs:
           check_workflow "OGENIC | OGE-62 | Flow Pre-Audit | v1 | INACTIVE" 5
           check_workflow "OGENIC | Evidence Normalizer | OGE-27/28/43/57 | v1 | INACTIVE" 4
           check_workflow "OGENIC | OGE Task Router | OGE-6/57/27/28/43/58/59/60 | v1 | INACTIVE" 4
+          check_workflow "OGENIC | Violet Pipeline Orchestrator | OGE-37/39/42/47/48 | v1 | INACTIVE" 4
           echo "OGE-70 live n8n module inventory PASS."
 
       - name: Verify WAVE exposes placement without enabling execution
