@@ -102,14 +102,14 @@
     },
     {
       "id": "xai",
-      "role": "realtime_web_reasoning_code_candidate",
+      "role": "realtime_web_reasoning_code_proof_pending",
       "status": "optional",
       "auth": "api_key",
       "secret_ref": "/providers/xai/staging"
     },
     {
       "id": "meta_model",
-      "role": "agentic_code_multimodal_candidate",
+      "role": "agentic_code_multimodal_billing_blocked",
       "status": "optional",
       "auth": "api_key",
       "secret_ref": "/providers/meta-model/staging"
