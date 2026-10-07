@@ -36,3 +36,12 @@ test("worker entry routes MA-OP lab without bypassing Yellow", () => {
   assert.match(entry, /pathname\.startsWith\("\/api\/maop\/lab"/);
   assert.match(api, /direct_provider_bypass: false/);
 });
+
+
+test("MA-OP lab exposes CCS Card Stone item test field", () => {
+  assert.match(lab, /Capability Card Stone/);
+  assert.match(lab, /\/api\/ccs\/envelope/);
+  assert.match(lab, /\/api\/ccs\/lease/);
+  assert.match(lab, /Insert test card/);
+  assert.match(lab, /Simulate lease/);
+});
