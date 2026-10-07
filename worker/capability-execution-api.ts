@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { wrapCapabilityAsUseCard } from "./use-card-policy";
 import { boundedReadPrompt } from "./agent-context-policy";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import {
@@ -256,6 +257,7 @@ export function createCapabilityExecutionApi() {
     }
 
     const descriptor = resolved.descriptor;
+    const useCard = wrapCapabilityAsUseCard(descriptor, "yellow-stone");
     const runId = makeId("ys_run");
     if (descriptor.permission_class !== "READ") {
       return c.json({
@@ -263,6 +265,7 @@ export function createCapabilityExecutionApi() {
         code: "HUMAN_APPROVAL_REQUIRED",
         run_id: runId,
         resolver: resolved,
+        use_card: useCard,
         approval: {
           required: true,
           permission_class: descriptor.permission_class,
@@ -281,6 +284,7 @@ export function createCapabilityExecutionApi() {
           ...gemini,
           run_id: runId,
           resolver: resolved,
+          use_card: useCard,
           verification: verification("failed", {
             provider_id: "gemini",
             capability_id: "context_load",
@@ -294,6 +298,7 @@ export function createCapabilityExecutionApi() {
         ok: true,
         run_id: runId,
         resolver: resolved,
+        use_card: useCard,
         result: gemini,
         verification: verification("partially_verified", {
           provider_id: "gemini",
@@ -312,6 +317,7 @@ export function createCapabilityExecutionApi() {
         code: "ADAPTER_NOT_IMPLEMENTED",
         run_id: runId,
         resolver: resolved,
+        use_card: useCard,
         verification: verification("blocked", { reason: "NO_SAFE_READ_ADAPTER_FOR_RESOLVED_CAPABILITY" }),
       }, 501, { "Cache-Control": "no-store" });
     }
