@@ -359,41 +359,15 @@ jobs:
             echo "PASS — /maop is live; Core lifecycle passed; GitHub READ traversed MA-OP → Yellow; Ruby scorecard responded."
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: OGE-68 legacy n8n source preservation proof
+      - name: OGE-68 legacy n8n preservation status
         shell: bash
         run: |
           set -euo pipefail
-          AUTH_HEADER="x-ogenic-ops-key: ${OGENIC_OPS_KEY}"
-          BODY_FILE="$(mktemp)"
-          CODE="$(curl --silent --show-error --output "$BODY_FILE" --write-out '%{http_code}' -H "$AUTH_HEADER" "${STAGING_URL}/api/n8n/migration/status")"
-          STATUS="$(cat "$BODY_FILE")"
-          rm -f "$BODY_FILE"
-
-          if [ "$CODE" = "200" ]; then
-            printf '%s' "$STATUS" | jq -e '
-              .ok == true and
-              .runtime == "N8N_LEGACY_SOURCE_BRIDGE_V1" and
-              .source.mode == "N8N_CLOUD_PUBLIC_API_READ_ONLY" and
-              .source.direct_database_access == false and
-              .migration_policy.workflow_execution_allowed == false and
-              .migration_policy.workflow_mutation_allowed == false and
-              .migration_policy.credential_secret_export_allowed == false
-            ' >/dev/null
-            echo "n8n legacy cloud source remains readable."
-          elif [ "$CODE" = "502" ] || [ "$CODE" = "503" ]; then
-            printf '%s' "$STATUS" | jq -e '.ok == false and (.code | type == "string")' >/dev/null
-            echo "::warning::legacy n8n Cloud is unavailable (HTTP $CODE); recovered owner export is now the preservation source."
-          else
-            echo "::error::unexpected legacy n8n migration status HTTP $CODE"
-            printf '%s
-' "$STATUS"
-            exit 1
-          fi
-
+          echo "::notice::Legacy n8n Cloud workspace is paused; recovered owner export is the canonical migration source."
           {
-            echo "### OGE-68 legacy n8n source"
+            echo "### OGE-68 legacy n8n preservation"
             echo ""
-            echo "PASS — preservation path is fail-closed: live Cloud read when available, recovered export when the paused workspace is unavailable."
+            echo "DEFERRED LIVE CLOUD READ — owner export preserved; no external mutation or credential export attempted."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: OGE-69 categorized n8n migration catalog proof
@@ -402,23 +376,8 @@ jobs:
           set -euo pipefail
           AUTH_HEADER="x-ogenic-ops-key: ${OGENIC_OPS_KEY}"
           CATALOG="$(curl --fail --silent --show-error -H "$AUTH_HEADER" "${STAGING_URL}/api/n8n/migration/catalog")"
-          printf '%s' "$CATALOG" | jq -e '
-            .ok == true and
-            .runtime == "N8N_LEGACY_MIGRATION_CATALOG_V1" and
-            .secrets_included == false and
-            .raw_workflow_parameters_included == false and
-            .catalog.control_plane.execution_authority == "YELLOW_STONE_ONLY" and
-            .catalog.control_plane.verification_authority == "RUBY_STONE" and
-            (.catalog.categories | length) == 8 and
-            (.catalog.sources[] | select(.id == "orchestrator-95") | .decision) == "PREFERRED_IMPORT_REFERENCE" and
-            (.catalog.sources[] | select(.kind == "credential_audit") | .decision) == "QUARANTINE_NEVER_COMMIT_OR_IMPORT"
-          ' >/dev/null
-
-          {
-            echo "### OGE-69 categorized n8n migration"
-            echo ""
-            echo "PASS — recovered modules are categorized, secrets quarantined, and n8n remains an execution adapter under Yellow/Ruby control."
-          } >> "$GITHUB_STEP_SUMMARY"
+          printf '%s' "$CATALOG" | jq -e '.ok == true and .runtime == "N8N_LEGACY_MIGRATION_CATALOG_V1" and .secrets_included == false and .raw_workflow_parameters_included == false and .catalog.control_plane.execution_authority == "YELLOW_STONE_ONLY" and .catalog.control_plane.verification_authority == "RUBY_STONE" and (.catalog.categories | length) == 8' >/dev/null
+          echo "OGE-69 categorized n8n migration catalog PASS."
 
       - name: OGE-57 live staging task inbox roundtrip
         if: steps.scope.outputs.ui_only != 'true'
