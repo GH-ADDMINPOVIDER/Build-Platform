@@ -56,7 +56,7 @@ type WaveCommandBody = {
   capability?: unknown;
   provider?: unknown;
   environment?: unknown;
-  input?: { path?: unknown };
+  input?: { path?: unknown; prompt?: unknown };
 };
 
 const compact = (value: unknown, max: number) => String(value ?? "").trim().slice(0, max);
@@ -128,6 +128,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
 
   if (explicitStructured) {
     const inputPath = compact(body.input?.path, 500);
+    const inputPrompt = compact(body.input?.prompt, 6000);
     commandPlan = {
       plan_version: "ATHENA_COMMAND_PLAN_V1",
       planner: "EXPLICIT_STRUCTURED_V1",
@@ -136,7 +137,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
       capability: explicitCapability || undefined,
       provider: explicitProvider || undefined,
       environment: "staging",
-      input: inputPath ? { path: inputPath } : undefined,
+      input: inputPath || inputPrompt ? { path: inputPath || undefined, prompt: inputPrompt || undefined } : undefined,
       requires_yellow_stone: true,
       approval_authority: "YELLOW_STONE",
       direct_execution_bypass: false,
@@ -148,7 +149,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
       environment: "staging",
       allowMigration: false,
       allowOptional: false,
-      input: inputPath ? { path: inputPath } : undefined,
+      input: inputPath || inputPrompt ? { path: inputPath || undefined, prompt: inputPrompt || undefined } : undefined,
     };
   } else {
     const planned = planAthenaCommand(intent);
