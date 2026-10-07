@@ -124,7 +124,7 @@ export function createBlueDiamondApi() {
       control_policy: CONTROL_POLICY,
       execution_authority: EXECUTION_AUTHORITY,
       read_before_run: true,
-      max_roster: 15,
+      max_roster: 16,
       actors: actors.map(safeActor),
       agent_count: actors.filter((actor) => actor.agent_eligible).length,
       tool_or_runtime_count: actors.filter((actor) => !actor.agent_eligible).length,
