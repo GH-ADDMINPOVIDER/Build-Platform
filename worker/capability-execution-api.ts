@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { wrapCapabilityAsUseCard } from "./use-card-policy";
+import { toCcsCardView } from "./capability-card-stone";
 import { boundedReadPrompt } from "./agent-context-policy";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import {
