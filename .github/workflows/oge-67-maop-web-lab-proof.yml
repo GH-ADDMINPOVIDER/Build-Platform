@@ -12,6 +12,10 @@ on:
       - "packages/maop-core/**"
       - "packages/maop-github-harness/**"
       - "tests/oge-67-maop-web-lab.test.mjs"
+      - "scripts/verify-ccs-local-web.mjs"
+      - "worker/capability-card-stone.ts"
+      - "worker/capability-card-stone-api.ts"
+      - "config/capability-card-stone.json"
       - ".github/workflows/oge-67-maop-web-lab-proof.yml"
   workflow_dispatch:
 
@@ -45,3 +49,25 @@ jobs:
         run: |
           npm run typecheck
           npm run build
+
+      - name: CCS item plug local web smoke
+        shell: bash
+        env:
+          CCS_OPS_KEY: lab-ops-key
+        run: |
+          npx wrangler dev --local --port 8787 --var OGENIC_OPS_KEY:lab-ops-key >/tmp/ccs-wrangler.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          ready=0
+          for i in 1 2 3; do
+            if curl -fsS -H "x-ogenic-ops-key: lab-ops-key" http://127.0.0.1:8787/api/ccs/status >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/ccs-wrangler.log
+            exit 1
+          fi
+          node scripts/verify-ccs-local-web.mjs
