@@ -23,7 +23,7 @@ test("registry separates real agent candidates from tools and runtimes", async (
   assert.match(registry, /agent_eligible: false/);
   assert.match(registry, /maturity: "COMMANDER_CANDIDATE"/);
   assert.match(registry, /maturity: "CANDIDATE"/);
-  assert.match(registry, /return actors\\.slice\\(0, 16\\)/);
+  assert.match(registry, /return actors\.slice\(0, 16\)/);
   assert.doesNotMatch(registry, /sk-[A-Za-z0-9_-]{8,}/);
 });
 
