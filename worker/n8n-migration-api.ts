@@ -1,9 +1,12 @@
 import { Hono } from "hono";
+import migrationCatalog from "../config/n8n-legacy-migration.json";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 
 type N8nBindings = AuthBindings & {
   N8N_API_KEY?: string;
   N8N_BASE_URL?: string;
+  N8N_SELFHOST_API_KEY?: string;
+  N8N_SELFHOST_BASE_URL?: string;
 };
 type Env = { Bindings: N8nBindings };
 
@@ -46,6 +49,55 @@ function configured(env: N8nBindings) {
     base: url.origin,
     host: url.hostname,
   };
+}
+
+
+function configuredSelfHost(env: N8nBindings) {
+  const rawBase = String(env.N8N_SELFHOST_BASE_URL ?? "").trim();
+  const apiKey = String(env.N8N_SELFHOST_API_KEY ?? "").trim();
+  if (!rawBase) return { ok: false as const, code: "SELFHOST_CONFIGURATION_REQUIRED", apiKeyBound: Boolean(apiKey) };
+  let url: URL;
+  try {
+    url = new URL(rawBase);
+  } catch {
+    return { ok: false as const, code: "INVALID_N8N_SELFHOST_BASE_URL", apiKeyBound: Boolean(apiKey) };
+  }
+  if (url.protocol !== "https:") {
+    return { ok: false as const, code: "N8N_SELFHOST_HTTPS_REQUIRED", apiKeyBound: Boolean(apiKey) };
+  }
+  return {
+    ok: true as const,
+    base: url.origin,
+    host: url.hostname,
+    apiKeyBound: Boolean(apiKey),
+  };
+}
+
+async function selfHostHealth(env: N8nBindings) {
+  const cfg = configuredSelfHost(env);
+  if (!cfg.ok) return { ...cfg, reachable: false as const };
+  try {
+    const response = await fetch(`${cfg.base}/healthz`, {
+      method: "GET",
+      headers: { Accept: "application/json", "User-Agent": "ogenic-maop-n8n-selfhost-readiness" },
+    });
+    return {
+      ok: response.ok,
+      reachable: response.ok,
+      code: response.ok ? "READY" : `N8N_SELFHOST_HTTP_${response.status}`,
+      host: cfg.host,
+      apiKeyBound: cfg.apiKeyBound,
+      http_status: response.status,
+    };
+  } catch {
+    return {
+      ok: false as const,
+      reachable: false as const,
+      code: "N8N_SELFHOST_UNREACHABLE",
+      host: cfg.host,
+      apiKeyBound: cfg.apiKeyBound,
+    };
+  }
 }
 
 async function n8nGet(env: N8nBindings, path: string) {
@@ -101,6 +153,36 @@ export function createN8nMigrationApi() {
       return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401, noStore);
     }
     await next();
+  });
+
+  api.get("/api/n8n/migration/catalog", (c) => {
+    return c.json({
+      ok: true,
+      runtime: "N8N_LEGACY_MIGRATION_CATALOG_V1",
+      catalog: migrationCatalog,
+      secrets_included: false,
+      raw_workflow_parameters_included: false,
+    }, 200, noStore);
+  });
+
+  api.get("/api/n8n/migration/selfhost/status", async (c) => {
+    const health = await selfHostHealth(c.env);
+    return c.json({
+      ok: health.ok,
+      runtime: "N8N_SELFHOST_READINESS_V1",
+      destination: {
+        configured: health.code !== "SELFHOST_CONFIGURATION_REQUIRED",
+        reachable: health.reachable,
+        host: "host" in health ? health.host : null,
+        api_key_bound: health.apiKeyBound,
+      },
+      control: {
+        execution_authority: "YELLOW_STONE_ONLY",
+        workflow_import_allowed: false,
+        workflow_execution_allowed: false,
+        reason: health.ok ? "SELFHOST_READY_FOR_ADMISSION_NOT_EXECUTION" : health.code,
+      },
+    }, health.ok ? 200 : 503, noStore);
   });
 
   api.get("/api/n8n/migration/status", async (c) => {
