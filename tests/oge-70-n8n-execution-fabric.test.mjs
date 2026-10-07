@@ -11,6 +11,7 @@ const workflowFiles = [
   ["deploy/n8n-selfhost/workflows/ogenic-oge62-flow-preaudit-v1.sanitized.json", 5],
   ["deploy/n8n-selfhost/workflows/ogenic-evidence-normalizer-v1.sanitized.json", 4],
   ["deploy/n8n-selfhost/workflows/ogenic-task-router-v1.sanitized.json", 4],
+  ["deploy/n8n-selfhost/workflows/ogenic-violet-pipeline-orchestrator-v1.sanitized.json", 4],
 ];
 
 test("OGE placement keeps MA-OP/Yellow authoritative and n8n as execution fabric", () => {
@@ -32,6 +33,13 @@ test("workflow-native OGE lanes are placed in n8n while ingress/provider authori
   assert.equal(byOge.get("OGE-58")?.decision, "DIRECT_PROVIDER_KEEP");
   assert.equal(byOge.get("OGE-59")?.decision, "DIRECT_PROVIDER_KEEP");
   assert.equal(byOge.get("OGE-60")?.decision, "DIRECT_PROVIDER_KEEP");
+  assert.equal(byOge.get("OGE-37")?.decision, "N8N_ORCHESTRATION_SUPPORT");
+  assert.equal(byOge.get("OGE-39")?.decision, "N8N_PIPELINE_SUPPORT");
+  assert.equal(byOge.get("OGE-42")?.decision, "N8N_PIPELINE_SUPPORT");
+  assert.equal(byOge.get("OGE-47")?.decision, "N8N_PARALLEL_SUPPORT");
+  assert.equal(byOge.get("OGE-48")?.decision, "N8N_PIPELINE_SUPPORT");
+  assert.equal(byOge.get("OGE-55")?.decision, "MAOP_RUBY_KEEP");
+  assert.equal(byOge.get("OGE-56")?.decision, "MAOP_YELLOW_KEEP");
 });
 
 test("OGE execution-fabric modules are sanitized and inactive by default", () => {
@@ -54,6 +62,16 @@ test("OGE-62 n8n module is pre-audit only and cannot become commit authority", (
   assert.match(code, /commit_eligible:false/);
   assert.match(code, /yellow:'FINAL_EXECUTION_AND_COMMIT_GATE'/);
   assert.match(code, /green:'FINAL_DONE_RETENTION_ONLY'/);
+});
+
+test("Violet n8n module prepares bounded pipelines but cannot bypass Yellow or Ruby", () => {
+  const workflow = JSON.parse(read("deploy/n8n-selfhost/workflows/ogenic-violet-pipeline-orchestrator-v1.sanitized.json"));
+  const code = workflow.nodes.map((node) => String(node.parameters?.jsCode ?? "")).join("\n");
+  assert.match(code, /YELLOW_AUTHORIZATION_REQUIRED/);
+  assert.match(code, /NO_HIDDEN_RETRY/);
+  assert.match(code, /ruby_verification_required:true/);
+  assert.match(code, /green_retention_allowed:false/);
+  assert.match(code, /yellow:'EXECUTION_AUTHORITY'/);
 });
 
 test("MA-OP Web Lab exposes placement and self-host inventory without enabling execution", () => {
