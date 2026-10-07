@@ -1,0 +1,33 @@
+name: OGE-77 WAVE Web V2 Check
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "src/WaveDashboard.tsx"
+      - "src/wave-dashboard.css"
+      - "src/main.tsx"
+      - "tests/wave-dashboard-contract.test.mjs"
+      - ".github/workflows/oge-77-wave-web-v2-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web-v2-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Dashboard contract
+        run: node --test tests/wave-dashboard-contract.test.mjs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
