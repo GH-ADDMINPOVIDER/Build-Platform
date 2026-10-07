@@ -135,7 +135,7 @@ function surfaceTitle(surface: "ogenic-web" | "ogenic-app") {
 }
 
 function SurfaceBridge() {
-  if (landingRoute || nativeApp || waveNextRoute || commandRoute || agentsRoute) return null;
+  if (landingRoute || nativeApp || dashboardRoute || waveNextRoute || commandRoute || agentsRoute) return null;
   const links = controlRoute
     ? [["WEB", "/"], ["CHAT", "/chat"], ["COMMAND", "/command"]]
     : [["WEB", "/"], ["COMMAND", "/command"], ["OPERATE", "/overview"]];
