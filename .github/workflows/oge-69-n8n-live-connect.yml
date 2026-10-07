@@ -1,0 +1,135 @@
+name: OGE-69 n8n Live Connect
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-69-n8n-live-connect.yml"
+      - "deploy/n8n-selfhost/workflows/**"
+      - "config/n8n-legacy-migration.json"
+      - "config/staging-runtime-bindings.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  N8N_SELFHOST_BASE_URL: ${{ vars.N8N_SELFHOST_BASE_URL || 'https://n8n-staging-76b7.up.railway.app' }}
+  WORKFLOW_FILE: deploy/n8n-selfhost/workflows/ogenic-core-safe-connector-test-ready.sanitized.json
+
+jobs:
+  connect:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging secrets from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Normalize n8n self-host API key alias
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${N8N_SELFHOST_API_KEY:-}" ] && [ -n "${N8N_SELFHOST_REGISTRY_API_KEY:-}" ]; then
+            echo "N8N_SELFHOST_API_KEY=${N8N_SELFHOST_REGISTRY_API_KEY}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Verify n8n API authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${N8N_SELFHOST_API_KEY:-}" || { echo "::error::N8N_SELFHOST_API_KEY missing in Infisical staging"; exit 1; }
+          STATUS="$(curl -sS -o /tmp/n8n-workflows.json -w '%{http_code}' \
+            -H "Accept: application/json" \
+            -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}" \
+            "${N8N_SELFHOST_BASE_URL}/api/v1/workflows?limit=100")"
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::n8n API authentication failed with HTTP $STATUS"
+            exit 1
+          fi
+          jq -e '.data | type == "array"' /tmp/n8n-workflows.json >/dev/null
+          echo "n8n API authentication: READY"
+
+      - name: Import recovered 95-node orchestrator if absent
+        id: import
+        shell: bash
+        run: |
+          set -euo pipefail
+          NAME="$(jq -r '.name' "$WORKFLOW_FILE")"
+          EXISTING_ID="$(jq -r --arg NAME "$NAME" '.data[]? | select(.name == $NAME) | .id' /tmp/n8n-workflows.json | head -n1)"
+
+          if [ -n "$EXISTING_ID" ]; then
+            echo "workflow_id=$EXISTING_ID" >> "$GITHUB_OUTPUT"
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            echo "Recovered orchestrator already exists; leaving it unchanged."
+            exit 0
+          fi
+
+          jq '{name,nodes,connections,settings:(.settings // {})}' "$WORKFLOW_FILE" > /tmp/n8n-import.json
+          STATUS="$(curl -sS -o /tmp/n8n-created.json -w '%{http_code}' \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}" \
+            --data-binary @/tmp/n8n-import.json \
+            "${N8N_SELFHOST_BASE_URL}/api/v1/workflows")"
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "201" ]; then
+            CODE="$(jq -r '.message // .error // "unknown"' /tmp/n8n-created.json 2>/dev/null || true)"
+            echo "::error::n8n workflow import failed: HTTP $STATUS, response=$CODE"
+            exit 1
+          fi
+          ID="$(jq -r '.id // empty' /tmp/n8n-created.json)"
+          test -n "$ID" || { echo "::error::n8n create workflow returned no id"; exit 1; }
+          echo "workflow_id=$ID" >> "$GITHUB_OUTPUT"
+          echo "created=true" >> "$GITHUB_OUTPUT"
+          echo "Recovered orchestrator imported as a new workflow."
+
+      - name: Verify inactive 95-node contract
+        shell: bash
+        env:
+          WORKFLOW_ID: ${{ steps.import.outputs.workflow_id }}
+        run: |
+          set -euo pipefail
+          STATUS="$(curl -sS -o /tmp/n8n-workflow.json -w '%{http_code}' \
+            -H "Accept: application/json" \
+            -H "X-N8N-API-KEY: ${N8N_SELFHOST_API_KEY}" \
+            "${N8N_SELFHOST_BASE_URL}/api/v1/workflows/${WORKFLOW_ID}")"
+          test "$STATUS" = "200" || { echo "::error::workflow verification failed HTTP $STATUS"; exit 1; }
+          jq -e '
+            (.active == false) and
+            ((.nodes // []) | length == 95)
+          ' /tmp/n8n-workflow.json >/dev/null
+          echo "n8n recovered orchestrator proof: INACTIVE + 95 NODES"
+
+      - name: Write safe summary
+        shell: bash
+        env:
+          WORKFLOW_ID: ${{ steps.import.outputs.workflow_id }}
+          CREATED: ${{ steps.import.outputs.created }}
+        run: |
+          {
+            echo "### OGE-69 n8n Live Connect"
+            echo ""
+            echo "- API auth: READY"
+            echo "- Workflow ID: `$WORKFLOW_ID`"
+            echo "- Created this run: `$CREATED`"
+            echo "- Node count: `95`"
+            echo "- Active: `false`"
+            echo "- Secret values: not printed"
+          } >> "$GITHUB_STEP_SUMMARY"
