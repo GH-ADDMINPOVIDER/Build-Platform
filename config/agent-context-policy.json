@@ -107,7 +107,9 @@
     "xai_grok": {
       "use": "realtime_web_reasoning_code",
       "canonical_secret": "XAI_API_KEY",
-      "secret_aliases": ["GROK_API_KEY"]
+      "secret_aliases": [
+        "GROK_API_KEY"
+      ]
     },
     "meta_model": {
       "use": "agentic_code_multimodal_candidate",
@@ -119,5 +121,12 @@
     "linear": "task state + compact evidence index only",
     "github": "source + deterministic audit artifacts",
     "n8n": "workflow state; do not become long-term context store"
+  },
+  "execution_control": {
+    "retry_cap_per_same_blocker": 3,
+    "retry_mode": "bounded_same_lane_only",
+    "after_retry_cap": "BLOCK_AND_REASSIGN_IDLE_AGENTS",
+    "large_token_work": "PAUSE_COMPRESS_HANDOFF",
+    "completed_lane": "REMOVE_FROM_ACTIVE_QUEUE_KEEP_EVIDENCE_ONLY"
   }
 }
