@@ -67,7 +67,8 @@ api.use("/api/ccs/*", async (c, next) => {
 api.get("/api/ccs/status", (c) => c.json(publicCcsStatus(), 200, noStore));
 
 api.post("/api/ccs/envelope", async (c) => {
-  const body = await c.req.json<Record<string, unknown>>().catch(() => ({}));
+  const body = await c.req.json<Record<string, unknown>>().catch(() => null);
+  if (!body) return c.json({ ok: false, code: "CCS_INVALID_BODY" }, 400, noStore);
   const requestedVerb = verb(body.verb);
   const cardId = clean(body.card_id, 260);
   const capability = clean(body.capability, 160);
@@ -107,7 +108,8 @@ api.post("/api/ccs/envelope", async (c) => {
 });
 
 api.post("/api/ccs/lease", async (c) => {
-  const body = await c.req.json<Record<string, unknown>>().catch(() => ({}));
+  const body = await c.req.json<Record<string, unknown>>().catch(() => null);
+  if (!body) return c.json({ ok: false, code: "CCS_INVALID_BODY" }, 400, noStore);
   const borrower = useCard(body.borrower);
   const source = useCard(body.source);
   const requestedPermission = clean(body.requested_permission, 20).toUpperCase();
