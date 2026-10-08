@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { wrapCapabilityAsUseCard } from "./use-card-policy";
-import { boundedReadPrompt, boundedResult } from "./agent-context-policy";
+import { boundedReadPrompt } from "./agent-context-policy";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import {
   normalizeResolverRequest,
@@ -183,8 +183,8 @@ type DeepSeekReadResponse = {
   usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
 };
 
-// One authorized read only. No retries, no fallback, fixed low-cost model and
-// fixed maximum output. The one-pass provider evidence is checked in separately.
+// One authorized READ only. No retries or fallback; let the provider generate
+// naturally, and report finish_reason so incomplete output is never called complete.
 async function runDeepSeekRead(env: ExecutionBindings, rawPrompt: unknown) {
   const apiKey = clean(env.DEEPSEEK_API_KEY, 4000);
   if (!apiKey) return { ok: false as const, code: "CONFIGURATION_REQUIRED", missing: "DEEPSEEK_API_KEY" };
@@ -208,7 +208,7 @@ async function runDeepSeekRead(env: ExecutionBindings, rawPrompt: unknown) {
           { role: "user", content: prompt },
         ],
         stream: false,
-        max_tokens: 256,
+        // Do NOT impose an app-side max_tokens cutoff; provider/model limits still apply.
       }),
     });
   } catch {
@@ -229,7 +229,10 @@ async function runDeepSeekRead(env: ExecutionBindings, rawPrompt: unknown) {
     };
   }
 
-  const output = boundedResult(body.choices?.[0]?.message?.content);
+  // Keep the FULL provider text. The generic 1,200-char summary budget must
+  // never clip paid research before Ruby can inspect its evidence.
+  const output = typeof body.choices?.[0]?.message?.content === "string"
+    ? body.choices[0].message.content.trim() : "";
   if (!output) return { ok: false as const, code: "DEEPSEEK_EMPTY_OUTPUT", http_status: 200 };
   return {
     ok: true as const,
@@ -237,6 +240,8 @@ async function runDeepSeekRead(env: ExecutionBindings, rawPrompt: unknown) {
     capability: "context_load",
     model: clean(body.model || "deepseek-flash", 120),
     finish_reason: clean(body.choices?.[0]?.finish_reason, 80) || null,
+    output_complete: body.choices?.[0]?.finish_reason === "stop",
+    output_truncated_by_provider: body.choices?.[0]?.finish_reason === "length",
     text: output,
     usage: {
       prompt_tokens: Number(body.usage?.prompt_tokens ?? 0),
@@ -416,8 +421,10 @@ export function createCapabilityExecutionApi() {
         resolver: resolved,
         use_card: useCard,
         result: deepseek,
-        verification: verification("partially_verified", {
+        verification: verification(deepseek.output_complete ? "partially_verified" : "unverified", {
           provider_id: "deepseek",
+          provider_output_complete: deepseek.output_complete,
+          provider_finish_reason: deepseek.finish_reason,
           capability_id: "context_load",
           output_sha256: outputDigest,
           semantic_verification_required: "RUBY_STONE",
