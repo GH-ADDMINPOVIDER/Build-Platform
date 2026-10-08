@@ -36,7 +36,7 @@ const receipt=factoryReceipt(order,result);
 writeFileSync(flags.out||"oge95-factory-receipt.json",JSON.stringify(receipt,null,2)+"\n");
 console.log(JSON.stringify({
   factory:receipt.status,operation,job_id:receipt.job_id,
-  received_verified_research:result.ok===true && operation==="deepseek_research_ingest",
+  received_unverified_research:result.ok===true && operation==="deepseek_research_ingest",
   ruby_verification:"PENDING",stage_summary:receipt.stages.map(s=>s.stage+":"+s.state),
   evidence:flags.out||"oge95-factory-receipt.json"
 }));
