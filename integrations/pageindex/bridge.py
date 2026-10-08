@@ -34,6 +34,11 @@ def sdk_version() -> str | None:
 
 def doctor() -> int:
     installed = sdk_version()
+    if installed == EXPECTED_SDK_VERSION:
+        try:
+            from pageindex import PageIndexClient  # noqa: F401  # SDK import only, no calls
+        except Exception:
+            return emit({"ok": False, "code": "PAGEINDEX_SDK_IMPORT_FAILED", "paid_api_requests": 0}, 2)
     return emit({
         "ok": installed == EXPECTED_SDK_VERSION,
         "tool": ENGINE,
