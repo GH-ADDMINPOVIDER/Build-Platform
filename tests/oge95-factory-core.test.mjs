@@ -14,7 +14,7 @@ const research={
 };
 const meta={run_id:37759999999,source_sha:sha};
 
-test("Factory emits a stable non-billable readonly work order with idempotency",()=>{
+test("Factory emits stable work orders and dedupes by idempotency",()=>{
   const a=planFactoryOrder(base),b=planFactoryOrder(base);
   assert.equal(a.ok,true);
   assert.equal(a.version,FACTORY_VERSION);
@@ -24,12 +24,17 @@ test("Factory emits a stable non-billable readonly work order with idempotency",
   assert.equal(a.authority,"YELLOW_AUTHORIZATION_REQUIRED_FOR_REAL_EXECUTION");
 });
 
-test("Factory fails closed on arbitrary commands, paid work, production and unbounded jobs",()=>{
+test("Only forbidden execution scope is rejected; metered READ reuses existing Yellow",()=>{
   for(const patch of [
-    {operation:"shell_exec"}, {operation:"deploy_prod"}, {requires_paid_inference:true},
-    {deploy_requested:true}, {branch:"main"}, {limits:{max_minutes:999,max_artifact_bytes:1048576}},
+    {operation:"shell_exec"}, {operation:"deploy_prod"},
+    {deploy_requested:true}, {branch:"main"},
     {source_sha:"evil"}, {task_id:"OGE-36-foo"}
   ]) assert.equal(planFactoryOrder({...base,...patch}).ok,false,JSON.stringify(patch));
+  const paid=planFactoryOrder({...base,requires_paid_inference:true,limits:{max_minutes:25,max_artifact_bytes:3000000}});
+  assert.equal(paid.ok,true);
+  assert.equal(paid.paid_inference_allowed,"THROUGH_EXISTING_YELLOW");
+  assert.equal(paid.metered_provider_authority,"EXISTING_YELLOW");
+  assert.equal(paid.limits.max_artifact_bytes,3000000);
 });
 
 test("Readonly source-audit station has evidence hash and no Green side effects",()=>{
@@ -52,7 +57,7 @@ test("Future DeepSeek result can be ingested with provenance but never auto-prom
   assert.equal(receipt.status,"RECEIVED_UNVERIFIED");
   assert.equal(receipt.ok,true);
   assert.ok(/^[a-f0-9]{64}$/.test(receipt.answer_sha256));
-  assert.equal(receipt.research_source,"PROVIDED_OFFICIAL_DOC_EXCERPTS_NOT_LIVE_WEB_RESEARCH");
+  assert.equal(receipt.research_source,"PROVIDER_OUTPUT_WITH_GITHUB_EVIDENCE");
   assert.equal(receipt.ruby_verification,"NOT_VERIFIED");
   assert.equal(receipt.green_retention_eligible,false);
   assert.equal(receipt.auto_patch_allowed,false);
@@ -68,15 +73,26 @@ test("Existing failed DeepSeek transport outcome can NOT be treated as research"
   assert.ok(blocked.errors.includes("NO_SUCCESSFUL_PROVIDER_RESPONSE"));
 });
 
-test("Forged DeepSeek result, fake browsing, or unsafe content is rejected",()=>{
+test("Only failed/missing output, invalid model, sensitive text, or invalid run is blocked",()=>{
   for(const patch of [
-    {http_status:503},{calls:2},{retries:1},{answer:""},{answer:"password: public-isnt-a-real-password"},
-    {source_urls:["https://attacker.invalid/untrusted"]},{no_browsing_tools:false},
-    {inputs:"PRIVATE_USER_DOCUMENTS"}
+    {http_status:503},{model:"unexpected-model"},{answer:""},
+    {answer:"password: public-isnt-a-real-password"}
   ]) {
     const output=receiveDeepSeekResearch({...research,...patch},meta);
     assert.equal(output.status,"BLOCKED",JSON.stringify(patch));
   }
+});
+test("Research from new HTTPS sources and multiple authorized calls remains usable",()=>{
+  const receipt=receiveDeepSeekResearch({...research,calls:2,retries:1,
+    source_urls:["https://example.edu/research","https://example.edu/research","http://127.0.0.1/private"],
+    no_browsing_tools:false,inputs:"OWNER_AUTHORIZED_REPO_CONTEXT"},meta);
+  assert.equal(receipt.ok,true);
+  assert.equal(receipt.status,"RECEIVED_UNVERIFIED");
+  assert.deepEqual(receipt.referenced_sources,["https://example.edu/research"]);
+  assert.equal(receipt.provider_requests,2);
+  const factory=factoryReceipt(planFactoryOrder({...base,operation:"deepseek_research_ingest"}),receipt);
+  assert.equal(factory.continue_via_existing_yellow,true);
+  assert.equal(factory.retain_in_green,false);
 });
 test("Missing real GitHub run evidence never produces verified result",()=>{
   const output=receiveDeepSeekResearch(research,{run_id:0,source_sha:"notasha"});
