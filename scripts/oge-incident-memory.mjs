@@ -16,6 +16,7 @@ const issue = String(opt.oge || opt.issue || "").trim().toUpperCase().replace(/^
 const code = String(opt.code || "").trim().toLowerCase();
 const component = String(opt.component || "").trim().toLowerCase();
 const http = opt.http && /^\d{3}$/.test(opt.http) ? Number(opt.http) : null;
+if (opt.http && (http === null || http < 100 || http > 599)) throw new Error("INVALID_HTTP_STATUS_USE_--code_FOR_APPLICATION_ERROR");
 const safeText = (v,max=160) => String(v ?? "").replace(/[\r\n]/g, " ").trim().slice(0,max);
 const hint = db.http_hints.find(x => x.http_status === http) ?? null;
 const incidents = db.incidents.filter(x =>
