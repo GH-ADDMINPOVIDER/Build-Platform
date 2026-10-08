@@ -23,6 +23,15 @@ Act as an operator, not a status reporter. Read the real state, choose the cheap
 - Linear: task state / ownership
 - Yellow Stone: capability + execution layer
 
+## Mandatory Codex checkout attestation — EVERY invocation / resumed session / before write
+The Codex sandbox checkout is NOT the GitHub connector. GitHub App permissions do not establish shell git remote access. Do not presume a checkout is valid because prior tasks succeeded.
+1. Identify the actual worktree: `pwd`, `git rev-parse --show-toplevel`, `git status --short --branch`, `git branch --show-current`, `git rev-parse HEAD`, `git remote -v`.
+2. Require the canonical repo `Ogenicchocolate21debug/Build-Platform`, expected branch `phase-vi-provider-incentive-metering`, and a verified remote (or authorized GitHub connector selecting this exact repo+branch explicitly). A sandbox branch named `work` is NOT sufficient; never write to `main` or an unrelated sandbox snapshot.
+3. Independently resolve remote staging HEAD from the connected GitHub API/connector and compare it with local HEAD before editing. Detect dirty/uncommitted work and check intended file ownership against concurrent agents. If HEAD advanced, re-read affected files and rebase/reconcile safely; no blind force push.
+4. Run a read-only auth/connectivity probe for whichever write transport is actually used. If the shell gets HTTP 403, missing `origin`, or wrong checkout, STOP shell git; use an already-authorized GitHub connector to read/write *explicit* repo+branch when available, checking blob SHA per write. Do not recreate remotes with guessed credentials, exfiltrate tokens, or repeatedly retry 403.
+5. Re-attest branch, exact upstream SHA, scope and diff immediately BEFORE each commit/push. Immediately AFTER, independently re-read committed SHA/branch and CI evidence through GitHub. Dispatch/delegation is not a successful code change. Report `BLOCKED_CHECKOUT` or `BLOCKED_AUTH` with sanitized actual evidence when either path is unavailable.
+6. Carry this preflight on every newly delegated Codex task, new shell, resumed session, and worktree change. This is an execution safety check, not a second Yellow authorization/policy engine; never silently bypass Yellow approval.
+
 ## Credit-efficient operating loop
 1. READ ONCE: reconcile branch HEAD, recent commits, latest relevant CI, active issue/task state, and current blocker.
 2. CACHE THE FACTS for the current turn. Do not repeatedly re-read the same source unless new evidence appears.
@@ -50,7 +59,7 @@ Act as an operator, not a status reporter. Read the real state, choose the cheap
 ## Provider API usage — owner cost/context directive (2026-10-08)
 - Existing authorized API tokens are usable for real specialist work through the established Yellow capability and existing provider accounts; do not force a blanket zero-API mode that stalls the factory.
 - Apply the **existing** `config/agent-context-policy.json`: task-scoped, minimal context, bounded per-call token budgets, metered usage evidence, no hidden retry/fallback, no raw credentials in logs/D1.
-- For DeepSeek, use the already deployed explicit READ route `POST /api/capabilities/execute` with `provider=deepseek` and `capability=context_load` instead of a second unmanaged API route. The current Yellow adapter caps output at 256 tokens; split tasks transparently only when needed, not into uncontrolled loops.
+- For DeepSeek, use the existing authorized READ route `POST /api/capabilities/execute` with `provider=deepseek` and `capability=context_load`; do not impose an obsolete 256-token output cap or truncate useful output. Preserve finish_reason and enforce the currently configured context/spend policy.
 - Ordinary approved READ inference need not ask for redundant approval. Approval remains required when spending beyond an authorized budget or for consequential external writes/deploys. Keep the existing Yellow/Ruby/Green execution boundaries, not a new policy gate.
 - Never call failed transport attempts a completed analysis; only accept source-backed provider output with its GitHub run reference and Ruby verification state.
 
