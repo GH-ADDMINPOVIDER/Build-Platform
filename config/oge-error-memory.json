@@ -1,0 +1,113 @@
+{
+  "schema_version": "OGE_INCIDENT_MEMORY_V1",
+  "authoritative_sources": {
+    "code": "GitHub staging branch",
+    "issue": "Existing Linear OGE issue",
+    "operational_state": "D1 owner-main/1LSS; unchanged"
+  },
+  "purpose": "Before revisiting any incident, match OGE + component + structured code + HTTP; never infer root cause from HTTP alone.",
+  "rules": {
+    "same_issue": true,
+    "no_new_d1_schema": true,
+    "owner_auth_for_runtime_lookup": true,
+    "reads_have_no_paid_calls": true,
+    "write_back": "Link verified result in the original Linear OGE and commit source evidence to this catalog. Never auto-commit from competing CI jobs.",
+    "unverified_cases_do_not_authorize_changes": true
+  },
+  "incidents": [
+    {
+      "id": "OGE-67-GITHUB-READ-409",
+      "issues": [
+        "OGE-67",
+        "OGE-92"
+      ],
+      "status": "FIX_VERIFIED",
+      "confidence": "CONFIRMED",
+      "component": "maop-github-yellow",
+      "operation": "POST /api/maop/lab/github",
+      "http_status": 409,
+      "error_code": "RESOLVER_UNAVAILABLE",
+      "symptom": "MA-OP GitHub read returned 409 because its delegated Yellow read_file capability was unresolved.",
+      "cause": "Compatibility mapping for github/read_file was suppressed whenever D1 provider_capabilities contained any other entries.",
+      "diagnostic_steps": [
+        "Read Yellow resolver response for github/read_file; do not interpret the outer MA-OP 409 alone.",
+        "Check exact D1 provider_capabilities row: enabled/disabled beats compatibility fallback.",
+        "Compare effective_map compatibility selection in worker/capability-resolver-api.ts."
+      ],
+      "remedy": "Scoped github/read_file compatibility fallback only if no explicit row exists; never revive an explicitly disabled row.",
+      "guardrail": "READ only; do not weaken approval or automatically enable unrelated routes.",
+      "evidence": [
+        "https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/37730277147",
+        "https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/37730340415"
+      ],
+      "fix_commit": "3fcf562da1943ffb3365337d925cc052ae76070a",
+      "next_action": "IF_RECURS:COMPARE_EXPLICIT_ROW_WITH_SCOPED_FALLBACK"
+    },
+    {
+      "id": "OGE-35-36-PROMOTE-404",
+      "issues": [
+        "OGE-35",
+        "OGE-36"
+      ],
+      "status": "OPEN_DIAGNOSIS",
+      "confidence": "HYPOTHESIS",
+      "component": "athena-yellow-resolver",
+      "operation": "POST /api/wave/command",
+      "http_status": 404,
+      "error_code": null,
+      "symptom": "ATHENA promotion tests expected 409 HUMAN_APPROVAL_REQUIRED but returned HTTP404 before the approval branch.",
+      "cause": "Likely no eligible cloudflare/deploy_promote candidate in real staging resolver; exact missing versus disabled D1 mapping is not yet proved.",
+      "diagnostic_steps": [
+        "Send only a read-only POST /api/capabilities/resolve for provider=cloudflare capability=deploy_promote environment=staging; capture structured status/reason.",
+        "Inspect the existing D1 provider_capabilities metadata (READ ONLY) to distinguish missing, disabled and environment/binding mismatches.",
+        "Inspect Yellow executor order: unavailable candidate => 404; resolved non-READ descriptor => 409 approval gate.",
+        "If staging intentionally disables deploy_promote, assert fail-closed 404 in staging test; don't create a fake active write mapping to satisfy old assertion."
+      ],
+      "remedy": "Pending evidence; fix the test expectation or verified intended staging mapping ONLY after metadata shows what is wrong.",
+      "guardrail": "Do not enable production deploy, write capabilities, or bypass HUMAN_APPROVAL_REQUIRED to force HTTP409.",
+      "evidence": [
+        "https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/37739405082",
+        "https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/37739405109",
+        "https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/37746342388"
+      ],
+      "fix_commit": null,
+      "next_action": "READ_ONLY_VERIFY_CLOUDFLARE_DEPLOY_PROMOTE_METADATA"
+    },
+    {
+      "id": "OGE-78-CI-LOCKFILE",
+      "issues": [
+        "OGE-78"
+      ],
+      "status": "OPEN_DIAGNOSIS",
+      "confidence": "CONFIRMED_SYMPTOM",
+      "component": "github-actions-setup-node",
+      "operation": "actions/setup-node@v4",
+      "http_status": null,
+      "error_code": "DEPENDENCY_LOCKFILE_NOT_FOUND",
+      "symptom": "OGE-78 check fails at node setup due absent npm lockfile, before the application tests.",
+      "cause": "Workflow requests dependency cache that requires a package-lock.json or equivalent, but staging source has no supported lockfile.",
+      "diagnostic_steps": [
+        "Check the failed step, not application runtime first.",
+        "Inspect actions/setup-node@v4 cache npm settings and committed lockfile existence.",
+        "Prefer disabling cache for this proof or generating a runner-local lockfile; do not introduce conflicting persistent dependency manifests just to green CI."
+      ],
+      "remedy": "Apply minimal CI-only setup correction and re-run; not yet verified.",
+      "guardrail": "Do not claim application bug from a setup failure.",
+      "evidence": [
+        "https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/37739405047"
+      ],
+      "fix_commit": null,
+      "next_action": "RECONCILE_ACTIONS_SETUP_NODE_CACHE"
+    }
+  ],
+  "http_hints": [
+    {
+      "http_status": 404,
+      "interpretation": "NO_ROUTE_OR_RESOURCE; inspect exact URL, component, resolver structured status and scope before choosing fix."
+    },
+    {
+      "http_status": 409,
+      "interpretation": "CONFLICT_OR_INTENTIONAL_GATE; inspect code and upstream/delegated response. 409 HUMAN_APPROVAL_REQUIRED is NOT a bug when expected."
+    }
+  ]
+}
