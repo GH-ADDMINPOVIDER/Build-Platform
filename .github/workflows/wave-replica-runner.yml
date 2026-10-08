@@ -46,9 +46,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx wrangler d1 migrations apply wave-replica-local \
+          printf "y\\n" | npx wrangler d1 migrations apply wave-replica-local \
             --config dist/ogenic_phase_vi_staging/replica.wrangler.json \
-            --local --persist-to "$PERSIST_DIR" --yes
+            --local --persist-to "$PERSIST_DIR"
           echo 'D1_MIGRATIONS_LOCAL_PASS'
       - name: Boot same built Worker bundle in local workerd, probe WAVE routes
         shell: bash
