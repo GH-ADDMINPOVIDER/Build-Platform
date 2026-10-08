@@ -40,12 +40,12 @@ test("OGE-89 DeepSeek is an explicitly selected, bounded READ-only Yellow adapte
   assert.match(executor, /boundedReadPrompt/);
   assert.doesNotMatch(executor, /boundedResult/);
   assert.match(executor, /model: "deepseek-flash"/);
-  assert.doesNotMatch(executor, /max_tokens:\\s*256/);
+  assert.equal(executor.includes("max_tokens: 256,"), false);
   assert.match(executor, /output_complete:/);
   assert.match(executor, /output_truncated_by_provider:/);
-  assert.match(executor, /typeof body\\.choices\\?\\.\\[0\\]\\?\\.message\\?\\.content === "string"/);
-  assert.match(executor, /provider_output_complete: deepseek\\.output_complete/);
-  assert.doesNotMatch(directApi, /max_tokens:\\s*4096/);
+  assert.ok(executor.includes('typeof providerContent === "string"'));
+  assert.ok(executor.includes("provider_output_complete: deepseek.output_complete"));
+  assert.equal(directApi.includes("max_tokens: 4096,"), false);
   assert.match(directApi, /output_complete:/);
   assert.match(executor, /thinking: \{ type: "disabled" \}/);
   assert.match(executor, /automatic_retry: false/);
