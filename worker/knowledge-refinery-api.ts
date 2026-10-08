@@ -47,7 +47,7 @@ export function createKnowledgeRefineryApi() {
   api.get("/api/knowledge-refinery/incident", (c) => {
     const issue = c.req.query("oge") || c.req.query("issue") || "";
     const httpRaw = c.req.query("http");
-    const http = httpRaw && /^\\d{3}$/.test(httpRaw) ? Number(httpRaw) : null;
+    const http = httpRaw && /^\d{3}$/.test(httpRaw) ? Number(httpRaw) : null;
     const result = lookupOgeIncident({
       issue, http,
       code: c.req.query("code") || "",
