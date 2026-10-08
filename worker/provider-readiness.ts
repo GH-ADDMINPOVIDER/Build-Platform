@@ -243,7 +243,15 @@ export function routeVerifiedProvider(task: string, reports: ProviderReadiness[]
   const normalized = clean(task, 80).toLowerCase().replace(/[\s-]+/g, "_");
   const capability = TASK_CAPABILITY[normalized] || normalized;
   if (!capability) return { ok: false as const, code: "TASK_REQUIRED", capability: "", provider: null };
-  const selected = reports.find((report) => report.readiness === "VERIFIED" && report.capabilities.includes(capability));
+  // Prefer the already-verified Gemini READ lane where it is suitable.
+  // Do not grant execution privileges or promote an unverified provider.
+  const geminiReadCapabilities = new Set(["reasoning", "multimodal"]);
+  const verifiedCandidates = reports.filter(
+    (report) => report.readiness === "VERIFIED" && report.capabilities.includes(capability),
+  );
+  const selected = geminiReadCapabilities.has(capability)
+    ? verifiedCandidates.find((report) => report.provider === "gemini") ?? verifiedCandidates[0]
+    : verifiedCandidates[0];
   if (!selected) {
     return {
       ok: false as const,
