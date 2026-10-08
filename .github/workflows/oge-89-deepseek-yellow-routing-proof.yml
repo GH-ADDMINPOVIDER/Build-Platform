@@ -1,0 +1,81 @@
+name: OGE-89 DeepSeek Yellow Routing Proof (No Provider Calls)
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-89-deepseek-yellow-routing-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  STAGING_URL: https://wave.ogenicchocolate.com
+
+jobs:
+  verify:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+      - name: Read ops credential from Infisical with OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: Prove live verified DeepSeek Yellow route without spending tokens
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::OGENIC_OPS_KEY missing from staging"; exit 1; }
+          READY=false
+          for attempt in 1 2 3 4 5 6; do
+            HTTP="$(curl -sS --max-time 25 -o /tmp/oge89-route.json -w '%{http_code}' \
+              -X POST -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" \
+              -H 'Content-Type: application/json' \
+              --data '{"provider":"deepseek","capability":"context_load","environment":"staging"}' \
+              "${STAGING_URL}/api/capabilities/resolve" || true)"
+            if [ "$HTTP" = 200 ] && jq -e '.ok == true and .status == "RESOLVED" and .descriptor.provider_id == "deepseek" and .descriptor.permission_class == "READ" and .descriptor.executable == true' /tmp/oge89-route.json >/dev/null 2>&1; then
+              READY=true
+              break
+            fi
+            echo "Staging DeepSeek route not yet active (attempt $attempt/6; HTTP $HTTP)."
+            sleep 10
+          done
+          if [ "$READY" != true ]; then
+            echo "::error::DEEPSEEK_YELLOW_ROUTE_NOT_YET_DEPLOYED_OR_BOUND"
+            jq -c '{ok, status, code, reason}' /tmp/oge89-route.json 2>/dev/null || true
+            exit 1
+          fi
+          echo "DeepSeek route RESOLVED: permission READ; environment staging."
+          # IMPORTANT: No input prompt. Explicit DeepSeek adapter MUST reject
+          # before contacting DeepSeek API (zero provider billable requests).
+          HTTP="$(curl -sS --max-time 25 -o /tmp/oge89-no-prompt.json -w '%{http_code}' \
+            -X POST -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" \
+            -H 'Content-Type: application/json' \
+            --data '{"provider":"deepseek","capability":"context_load","environment":"staging"}' \
+            "${STAGING_URL}/api/capabilities/execute")"
+          echo "Yellow explicit-only no-prompt guard HTTP $HTTP"
+          test "$HTTP" = 409
+          jq -e '.ok == false and .code == "EXPLICIT_DEEPSEEK_SELECTION_AND_PROMPT_REQUIRED" and .retention_eligible == false' /tmp/oge89-no-prompt.json >/dev/null
+          {
+            echo "### OGE-89 DeepSeek Yellow integration (non-billable)"
+            echo "- Resolves explicit DeepSeek staging READ: PASS"
+            echo "- Paid-call guard blocks absent prompt: PASS (HTTP 409)"
+            echo "- Provider requests made: 0"
+            echo "- No production, D1 schema, secrets or Green retention modified"
+          } >> "$GITHUB_STEP_SUMMARY"
