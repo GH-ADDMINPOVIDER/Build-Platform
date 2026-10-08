@@ -49,6 +49,13 @@ function configured(env: BlueDiamondRegistryEnv, keys: string[]): BlueDiamondSta
   return keys.every((key) => has(env, key)) ? "DEGRADED" : "CONFIGURATION_REQUIRED";
 }
 
+function deepseekLiveVerified(env: BlueDiamondRegistryEnv) {
+  return has(env, "DEEPSEEK_API_KEY") &&
+    env.OGENIC_READINESS_DEEPSEEK_API === "REACHABLE" &&
+    env.OGENIC_READINESS_DEEPSEEK_QUOTA === "AVAILABLE" &&
+    env.OGENIC_READINESS_DEEPSEEK_BILLING === "ACTIVE";
+}
+
 export function buildBlueDiamondRegistry(env: BlueDiamondRegistryEnv): BlueDiamondActor[] {
   const actors: BlueDiamondActor[] = [
     {
@@ -179,18 +186,18 @@ export function buildBlueDiamondRegistry(env: BlueDiamondRegistryEnv): BlueDiamo
     },
     {
       actor_id: "deepseek-candidate",
-      label: "DeepSeek Candidate",
+      label: "DeepSeek READ Specialist",
       provider: "deepseek",
-      actor_class: "agent_candidate",
-      maturity: "CANDIDATE",
-      state: configured(env, ["DEEPSEEK_API_KEY"]),
+      actor_class: "execution_agent",
+      maturity: "PROVEN",
+      state: deepseekLiveVerified(env) ? "LIVE" : configured(env, ["DEEPSEEK_API_KEY"]),
       agent_eligible: true,
-      capabilities: ["reasoning", "code", "tool_calling"],
-      route: "provider:deepseek",
+      capabilities: ["reasoning", "context_load", "code_review"],
+      route: "/api/capabilities/execute",
       runtime: "EXTERNAL_MODEL_API",
-      model: null,
+      model: "deepseek-flash",
       auth_ref: has(env, "DEEPSEEK_API_KEY") ? "env:DEEPSEEK_API_KEY" : null,
-      health_ref: null,
+      health_ref: "/api/provider-readiness",
       quota_ref: "deepseek-usage",
       preflight: "EVERY_RUN",
       priority: 8,
