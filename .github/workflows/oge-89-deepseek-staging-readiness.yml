@@ -1,0 +1,64 @@
+name: OGE-89 DeepSeek Staging Readiness (Read-Only)
+
+# Separate from live smoke: NO inference or paid API calls.
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-89-deepseek-staging-readiness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  STAGING_URL: https://wave.ogenicchocolate.com
+
+jobs:
+  readiness:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging ops authentication via Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Verify DeepSeek bound, VERIFIED and ready on live staging
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::CONFIGURATION_REQUIRED: OGENIC_OPS_KEY"; exit 1; }
+          CODE="$(curl --silent --show-error --output /tmp/oge-89-readiness.json --write-out '%{http_code}' \
+            --max-time 30 -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" \
+            -H 'Accept: application/json' \
+            "${STAGING_URL}/api/provider-readiness")"
+          echo "Read-only staging readiness endpoint HTTP ${CODE}"
+          test "$CODE" = "200" || { echo "::error::Provider readiness HTTP $CODE"; exit 1; }
+          jq -e '.ok == true and .paid_completion_calls == false and ([.providers[] | select(.provider == "deepseek" and .readiness == "VERIFIED" and .key_present == true and .api_reachable == "REACHABLE" and .quota_state == "AVAILABLE" and .billing_state == "ACTIVE")] | length) == 1' /tmp/oge-89-readiness.json >/dev/null
+          jq -c '.providers[] | select(.provider == "deepseek") | {provider, readiness, key_present, api_reachable, quota_state, billing_state, cost_mode}' /tmp/oge-89-readiness.json
+          {
+            echo "### OGE-89 Live Staging Readiness"
+            echo "- Branch: $GITHUB_REF_NAME"
+            echo "- Source: $GITHUB_SHA"
+            echo "- HTTP: $CODE"
+            echo "- DeepSeek: VERIFIED, key PRESENT, API REACHABLE, quota AVAILABLE, billing ACTIVE"
+            echo "- No model completion or other paid call was made"
+          } >> "$GITHUB_STEP_SUMMARY"
