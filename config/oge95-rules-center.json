@@ -141,7 +141,11 @@
       "edit_here_first": true,
       "changes_tested_on_staging": true,
       "do_not_open_duplicate_OGE": true,
-      "compatibility_sources_are_legacy_snapshots": true
+      "compatibility_sources_are_legacy_snapshots": true,
+      "focus_singular_issue": "OGE-95",
+      "stone_visual_contract": "docs/OGENIC_STONES_CANONICAL.md",
+      "migrated_work_register": "docs/OGE95_ONLY_ACTIVE_WORK_MIGRATION.md",
+      "no_false_done_on_issue_consolidation": true
     }
   },
   "runtime_contracts": {
@@ -579,5 +583,39 @@
     "Scope and security continue in code and provider privileges; writing a JSON policy does not itself authorize a deploy",
     "Rules Center replaces duplicated research/process gates, not runtime facts from D1 or GitHub CI evidence",
     "Legacy JSON consumers must migrate to runtime_contracts incrementally; do not falsely claim 100% wiring until CI proves consumers switched"
-  ]
+  ],
+  "operator_focus": {
+    "mode": "SOLE_ACTIVE_OGE_95_STONE_RUNNER",
+    "single_active_issue": "OGE-95",
+    "primary_product": "STONE_RUNNER_PRODUCT_2",
+    "preserve_product_1": "OGE-78_AND_OGE-79_CCS",
+    "absorbed_issue_ids": [
+      "OGE-71",
+      "OGE-73",
+      "OGE-74",
+      "OGE-77",
+      "OGE-90",
+      "OGE-93",
+      "OGE-94"
+    ],
+    "parked_issue_ids": [
+      "OGE-1",
+      "OGE-2",
+      "OGE-3",
+      "OGE-4",
+      "OGE-5",
+      "OGE-9",
+      "OGE-10",
+      "OGE-12",
+      "OGE-16"
+    ],
+    "consolidation_ledger": "docs/OGE95_ONLY_ACTIVE_WORK_MIGRATION.md",
+    "naming_catalog": "docs/OGENIC_STONES_CANONICAL.md",
+    "runtime_product_spec": "docs/OGE95_STONE_RUNNER_PRODUCT2_PARITY.md",
+    "issue_closure_semantics": "CANCELED_AS_SUPERSEDED_OR_PARKED_NOT_DONE",
+    "active_work_acceptance": "NOT_FULL_1_TO_1_CERTIFIED",
+    "required_authority": "EXISTING_YELLOW_PERMISSIONS_ONLY",
+    "rule_stone": "TAXONOMY_NOT_SECOND_GATE",
+    "canonical_state": "GREEN_1LSS_D1_NOT_RUNNER_EVIDENCE"
+  }
 }
