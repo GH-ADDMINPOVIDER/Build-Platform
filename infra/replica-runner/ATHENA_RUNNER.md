@@ -1,0 +1,45 @@
+# OGE-95 Athena Runner — GitHub/Deploy-aware future execution agent
+
+Status: **Stage A implemented as a deterministic evidence-aware Runner**, not yet an autonomous LLM/tool-calling agent.
+
+## Context memory from real evidence (not a second D1)
+
+On every `WAVE Replica Runner 0.9 - Local Parity Proof` CI run:
+
+1. Checkout the exact `phase-vi-provider-incentive-metering` SHA, with limited commit history.
+2. Fetch the latest GitHub Actions run statuses for this branch using the temporary GitHub Actions token (`actions:read` through existing workflow access).
+3. Identify current canonical CI, staging deploy source SHA, observed failures, and ephemeral Replica workerd+D1 evidence.
+4. Recover the newest `wave-athena-context-<run_id>` artifact, if available. Carry over only historical evidence receipts, **not permissions or claims about live readiness**.
+5. Deduplicate by workflow + commit SHA + conclusion, keep the exact run evidence URL; emit `athena-runner-context.json`.
+6. Publish context as a new GitHub Actions artifact for 30 days. On expiration or first execution, the cache reconstructs itself from canonical GitHub history.
+
+The `athena-runner-context.json` machine-readable receipt contains:
+- `source_sha`, `context_id`, `run_id`, `git.commits` + file fingerprints
+- `actions.latest_staging_deploy`, `actions.latest_canonical_check`, `actions.latest_failure`, `actions.recent_runs`
+- `local_runtime` current-SHA local proof + *only public/unauthenticated* parity ratio
+- `suggested_actions` with `authority` and `auto_execute:false`
+- `historical_receipts` deduped and carried forward from previous artifact
+- `canonical.state_owner = CLOUDFLARE_D1` and `canonical.executor_authority = YELLOW_STONE`
+
+No raw logs, credentials, cookies, D1 content, or new memory tables are saved. Cloudflare deploy success is inferred *only* from the matching GitHub deploy-workflow evidence, **not** as proof of real production Cloudflare state. Any runtime state must be probed separately.
+
+## How it becomes a true Athena-like agent
+
+**Now (Stage A):** deterministic "observe -> remember evidence -> suggest" works on a real independent GitHub-hosted VM. It already runs the source build, boots the same Worker through workerd, applies local D1 migrations, runs local API/Chat/UI checks and compares selected public staging routes. No AI model tokens used for context generation.
+
+**Next (Stage B, Codex core lane only):** Yellow receives `context_id` + current SHA + objective and chooses eligible provider/command. A job envelope uses stable idempotency keys and pre-authorized permissions. The ephemeral Runner executes the selected scoped operation, then emits an evidence artifact.
+
+**Later (Stage C):** Ruby checks the exact SHA/CI/runtime/evidence and the selected behavioral case. Green/1LSS stores only verified summary plus artifact reference through the existing canonical path. Real Cloudflare/n8n/third-party write/deploy requires existing Yellow permission and the protected staging workflow, not the Replica VM.
+
+## Collaboration contract: no file collisions
+
+- GitHub + ChatGPT lane: `scripts/replica-runner/athena-context.mjs`, `tests/oge95-athena-runner-context.test.mjs`, `.github/workflows/wave-replica-runner.yml` and this document.
+- Codex: application/Yellow/Ruby factory execution interfaces, `config/oge95-rules-center.json`, other tests and runtime consumers. Read current branch HEAD before writing.
+- Manus: separate architecture research only. Gemini/DeepSeek: independent READ analysis when required.
+- OGE-95 is the single parent issue. Never open duplicate issue(s) or create a second D1 state.
+
+## Proof and interpretation
+
+A green Runner job certifies that **its exact SHA** passed its local workload. Public 10/10 routing parity does not certify full 1:1 (owner-authenticated 1LSS, external API, real Cloudflare edge, mobile Safari). Future autonomy is tracked separately from evidence cache and may not be presented as already implemented.
+
+Source: `scripts/replica-runner/athena-context.mjs`, `.github/workflows/wave-replica-runner.yml`, `tests/oge95-athena-runner-context.test.mjs`.
