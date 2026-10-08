@@ -1,0 +1,583 @@
+{
+  "schema_version": "OGE95_UNIFIED_RULES_V1",
+  "canonical_issue": "OGE-95",
+  "owner_intent": "One edit point, deduplicate repeated work/data, do not over-gate useful tasks",
+  "canonical_paths": {
+    "repository": "Ogenicchocolate21debug/Build-Platform",
+    "branch": "phase-vi-provider-incentive-metering",
+    "policy_file": "config/oge95-rules-center.json",
+    "operator_guide": "docs/OGE95_RULES_CENTER.md",
+    "owner_issue": "https://linear.app/ogenic-sio/issue/OGE-95"
+  },
+  "precedence": [
+    "Owner-approved scope and active external platform permissions cannot be overridden by policy JSON",
+    "Runtime Yellow authority and credential-backed provider readiness remain enforced in existing adapters",
+    "OGE-95 governs workflow defaults, categories and nonsecurity constraints; do not add extra approval gates",
+    "Provider operational facts, provider catalog, D1 runtime data and secret values are not copied here"
+  ],
+  "categories": {
+    "01_scope_identity": {
+      "description": "Where the production line lives; one 1LSS operational state",
+      "branch": "phase-vi-provider-incentive-metering",
+      "repository": "Ogenicchocolate21debug/Build-Platform",
+      "issue": "OGE-95",
+      "canonical_conversation": "owner-main",
+      "session_line": "1LSS_OWNER_MAIN",
+      "environment": "staging",
+      "forbid_without_separate_permission": [
+        "main",
+        "production",
+        "Candy",
+        "remote D1 schema",
+        "secret disclosure",
+        "destructive external changes"
+      ],
+      "yellow_authority": "YELLOW_STONE_ONLY"
+    },
+    "02_execution_workflow": {
+      "description": "Execute useful work immediately using existing Yellow permissions; no second Factory approval",
+      "source_to_proof": [
+        "SOURCE",
+        "DISTILL",
+        "REPRODUCE",
+        "FIX",
+        "VERIFY",
+        "RETAIN"
+      ],
+      "factory_operations": [
+        "replica_source_audit",
+        "deepseek_research_ingest"
+      ],
+      "approved_read": "RUN_WITH_EXISTING_YELLOW_AUTHORITY",
+      "paid_read": "USE_EXISTING_AUTHORIZED_COST_CONTEXT_BUDGET",
+      "staging_deploy": "EXISTING_STAGING_WORKFLOW_AND_OPERATOR_APPROVAL",
+      "factory_additional_approval_gate": false,
+      "retry_policy": "RETRY_WHEN_FRESH_EVIDENCE_JUSTIFIES; avoid duplicate waste"
+    },
+    "03_deduplication": {
+      "description": "Primary user-requested gate: dedupe jobs, context, evidence and retention rather than block research",
+      "job_key_fields": [
+        "task_id",
+        "operation",
+        "source_sha",
+        "branch"
+      ],
+      "evidence_key_fields": [
+        "run_id",
+        "source_sha",
+        "content_sha256"
+      ],
+      "duplicate_job": "REUSE_EXISTING_RECEIPT_WHEN_RESULT_AND_SOURCE_MATCH",
+      "duplicate_evidence": "LINK_EXISTING_GITHUB_RUN_INSTEAD_OF_NEW_UPLOAD",
+      "duplicate_linear_issue": "UPDATE_EXISTING_OGE",
+      "duplicate_context": "FETCH_ONLY_RELEVANT_DIFF_AND_REFERENCES",
+      "session_idempotency": "USE_EXISTING_1LSS_KEY_AND_SEQUENCE",
+      "identical_result": "KEEP_ONE_CANONICAL_PROOF_AND_REFERENCES"
+    },
+    "04_cost_tokens_context": {
+      "description": "Meter usage, no small fixed output cutoff and no blanket paid inference prohibition",
+      "token_owner": "EXISTING_YELLOW_PROVIDER_POLICY",
+      "can_use_existing_api_token": true,
+      "provider_output_policy": "PRESERVE_FULL_OUTPUT_PLUS_FINISH_REASON",
+      "output_token_cap_in_factory": null,
+      "output_chars_cap_in_factory": null,
+      "dedupe_prompt_context": true,
+      "track_usage": true,
+      "unapproved_spend_requires_owner": true,
+      "fallback": "EXPLICIT_PER_EXISTING_YELLOW_POLICY"
+    },
+    "05_provider_sources": {
+      "description": "Read real source material; keep provenance and distinguish observations vs model reasoning",
+      "read_external_public_docs": true,
+      "read_authorized_repo": true,
+      "permitted_source_domains": "HTTPS_ANY; independent verification is for factual trust, not a hard gate",
+      "research_receipt": "RECEIVED_UNVERIFIED_UNTIL_RUBY",
+      "missing_browsing_tool": "NOT_A_FAILURE_IF_ORCHESTRATOR_FETCHED_SOURCES",
+      "original_repo_evidence": "GITHUB_RUN_ID_AND_SHA"
+    },
+    "06_replica_compute": {
+      "description": "Clone app behavior locally, never confuse simulated services with live deployment",
+      "host": "GITHUB_HOSTED_EPHEMERAL",
+      "runtime": "SAME_COMPILED_WORKER_IN_WORKERD",
+      "d1": "LOCAL_SYNTHETIC_ONLY",
+      "target": "1:1 measurable tested behavior; full external/edge equivalence unproved",
+      "compare": "PUBLIC_ROUTE_PARITY_AND_REPLAY_AND_APPROVAL_BEHAVIORS_SEPARATELY",
+      "deployment": "EXISTING_PROTECTED_STAGING_DEPLOY_PIPELINE",
+      "no_new_paid_infra_by_default": true
+    },
+    "07_verify_retain": {
+      "description": "Proof artifacts usable for next action; Ruby verifies before marking canonical Green facts",
+      "build_or_script_success": "EVIDENCE_READY_NOT_FULL_SYSTEM_DONE",
+      "ruby_state": "PENDING_UNTIL_INDEPENDENT_VALIDATION",
+      "green_retention": "EXISTING_VERIFIED_ONLY",
+      "allow_next_yellow_work_before_ruby_semantic_review": true,
+      "no_fake_verified_claims": true,
+      "evidence": [
+        "exact_commit",
+        "CI_run",
+        "structured_error",
+        "reproducible_result"
+      ]
+    },
+    "08_security": {
+      "description": "True safety boundaries only; avoid duplicated permissions",
+      "secrets": "INFISICAL_SERVER_SIDE_ONLY",
+      "no_raw_secret_in_d1_or_logs": true,
+      "authentication": "EXISTING_OWNER_OR_OPS",
+      "non_read": "EXISTING_YELLOW_APPROVAL_FOR_EXTERNAL_SIDE_EFFECTS",
+      "no_duplicate_gate": true
+    },
+    "09_observability_and_errors": {
+      "description": "All OGE errors are indexed rather than misdiagnosed from HTTP status",
+      "error_catalog": "config/oge-error-memory.json",
+      "differentiate_http_and_app_codes": true,
+      "require_issue_and_component_for_fingerprint": true,
+      "record_reproduction_and_fix_in_original_issue": true,
+      "status_requires_proof": true
+    },
+    "10_change_management": {
+      "description": "Owner edits one OGE95 rules file and records rule changes in original Linear issue",
+      "canonical_rules_file": "config/oge95-rules-center.json",
+      "edit_here_first": true,
+      "changes_tested_on_staging": true,
+      "do_not_open_duplicate_OGE": true,
+      "compatibility_sources_are_legacy_snapshots": true
+    }
+  },
+  "runtime_contracts": {
+    "agent_context": {
+      "schema_version": "OGENIC_AGENT_CONTEXT_POLICY_V1",
+      "scope": "ALL_AGENTS_ALL_PROVIDERS",
+      "goal": "Only dedupe context and control measurable cost, preserve complete useful outputs",
+      "source_patterns": [
+        "runtime bounded context",
+        "Task-scoped context dedupe; provider output preserved without an app-side cap",
+        "Perplexity continuation by previous_response_id + store=false + no retry",
+        "task inbox compact result summaries and evidence references"
+      ],
+      "hard_rules": {
+        "full_conversation_replay": false,
+        "duplicate_system_context": false,
+        "hidden_retry": false,
+        "hidden_provider_fallback": false,
+        "raw_log_replay": false,
+        "raw_secret_retention": false,
+        "verified_retention_only": true
+      },
+      "context_order": [
+        "task_goal",
+        "current_constraints",
+        "current_canonical_state",
+        "minimum_relevant_evidence",
+        "required_tool_contract",
+        "output_contract"
+      ],
+      "budgets": {
+        "default_prompt_chars": 12000,
+        "command_router_chars": 6000,
+        "research_read_chars": 12000,
+        "code_execution_chars": 16000,
+        "handoff_summary_chars": 2400,
+        "result_summary_chars": 1200,
+        "evidence_excerpt_chars": 4000
+      },
+      "continuation": {
+        "prefer_provider_continuation_id": true,
+        "prefer_session_or_task_reference": true,
+        "prefer_evidence_reference_over_payload": true,
+        "replay_only_when_reference_unavailable": true
+      },
+      "selection": {
+        "load_context_lazily": true,
+        "fetch_only_required_files_or_ranges": true,
+        "deduplicate_by_reference_or_hash": true,
+        "exclude_stale_state_when_fresh_state_exists": true,
+        "exclude_completed_work_unless_dependency": true
+      },
+      "handoff_contract": {
+        "required_fields": [
+          "goal",
+          "constraints",
+          "current_state",
+          "next_action",
+          "evidence_refs"
+        ],
+        "optional_fields": [
+          "blocker",
+          "approval_required"
+        ],
+        "forbid_full_transcript": true
+      },
+      "result_contract": {
+        "format": [
+          "RESULT",
+          "EVIDENCE",
+          "BLOCKED",
+          "NEXT"
+        ],
+        "retain_raw_provider_output": true,
+        "retain_verified_summary": true,
+        "retain_evidence_refs": true
+      },
+      "provider_rules": {
+        "openai_athena": {
+          "use": "decompose_route_coordinate",
+          "avoid": "doing specialist work that can be delegated"
+        },
+        "codex": {
+          "use": "repo_code_test_build",
+          "context": "target files + failing evidence + constraints; do not replay whole project history"
+        },
+        "gemini": {
+          "use": "read_reasoning_multimodal_long_context",
+          "context": "only relevant source/evidence; no repo mutation"
+        },
+        "manus": {
+          "use": "long_horizon_artifact_production",
+          "context": "project brief + acceptance + bounded assets; no full 1LSS replay"
+        },
+        "anthropic": {
+          "use": "architecture_independent_review",
+          "context": "design slice + evidence; no redundant implementation history"
+        },
+        "deepseek": {
+          "use": "reasoning_code_alternative",
+          "prompt_char_cap": 12000,
+          "automatic_retry": false
+        },
+        "perplexity": {
+          "use": "web_research_source_synthesis",
+          "prefer_previous_response_id": true,
+          "store": false,
+          "automatic_retry": false
+        },
+        "xai_grok": {
+          "use": "realtime_web_reasoning_code",
+          "canonical_secret": "XAI_API_KEY",
+          "secret_aliases": [
+            "GROK_API_KEY"
+          ]
+        },
+        "meta_model": {
+          "use": "agentic_code_multimodal_candidate",
+          "canonical_secret": "META_MODEL_API_KEY"
+        }
+      },
+      "retention": {
+        "green_1lss": "verified summaries + evidence references only",
+        "linear": "task state + compact evidence index only",
+        "github": "source + deterministic audit artifacts",
+        "n8n": "workflow state; do not become long-term context store"
+      },
+      "execution_control": {
+        "retry_cap_per_same_blocker": 3,
+        "retry_mode": "bounded_same_lane_only",
+        "after_retry_cap": "BLOCK_AND_REASSIGN_IDLE_AGENTS",
+        "large_token_work": "CONTINUE_USING_EXISTING_YELLOW_BUDGET_AND_EVIDENCE; NO_SILENT_TRUNCATION",
+        "completed_lane": "REMOVE_FROM_ACTIVE_QUEUE_KEEP_EVIDENCE_ONLY"
+      }
+    },
+    "provider_onboarding": {
+      "schema_version": "OGENIC_PROVIDER_ONBOARDING_V1",
+      "principle": "Send work directly to Yellow. Onboarding is optional, nonbillable diagnostics and must not add an execution gate.",
+      "stages": [
+        "REGISTERED",
+        "KEY_BOUND",
+        "RUNTIME_VERIFIED",
+        "ROUTE_ELIGIBLE"
+      ],
+      "runtime_preflight": {
+        "owner_or_ops_auth": true,
+        "local_attestation_only": true,
+        "paid_provider_calls": 0,
+        "d1_writes": 0,
+        "full_context_replay": false,
+        "advisory_only": true
+      },
+      "live_proof": {
+        "only_once_per_changed_credential_or_readiness": true,
+        "requires_owner_authorization_for_paid_smoke": true,
+        "retry_on_payment_or_auth_failure": false
+      },
+      "verified_read_routes": {
+        "gemini": {
+          "capability_id": "context_load",
+          "selection": "AUTO_READ_EXISTING",
+          "permission_class": "READ"
+        },
+        "deepseek": {
+          "capability_id": "context_load",
+          "selection": "EXPLICIT_ONLY",
+          "permission_class": "READ"
+        }
+      },
+      "hard_gates": {
+        "forbid_auto_promote_on_key_only": true,
+        "require_canonical_active_provider": true,
+        "require_runtime_readiness_verified": true,
+        "require_evidence_sha_http_200": true,
+        "require_implemented_adapter": true,
+        "no_unapproved_metered_auto_route": true,
+        "non_read_requires_explicit_approval": true,
+        "retention_requires_ruby_verification": true,
+        "secrets_in_infisical_only": true,
+        "no_second_1lss_memory": true
+      },
+      "context_policy": "config/agent-context-policy.json",
+      "next_action_codes": [
+        "SET_UP_SECRET",
+        "VERIFY_RUNTIME_ONCE",
+        "RECONCILE_CATALOG",
+        "IMPLEMENT_ADAPTER",
+        "READY_EXPLICIT_ONLY",
+        "READY_AUTO_READ"
+      ],
+      "future_agent_rule": "Register the provider and implement one Yellow adapter, reuse existing credentials and a single approved proof when needed. Send work directly to Yellow; never require a second onboarding approval.",
+      "execution_flow": {
+        "mode": "DIRECT_TO_YELLOW",
+        "preflight_required": false,
+        "canonical_authority": "/api/capabilities/execute",
+        "route_check": "AT_EXECUTION_ONLY"
+      }
+    },
+    "use_card": {
+      "schema_version": "OGENIC_USE_CARD_V1",
+      "name": "50_IN_1_FOR_1LSS",
+      "wrapper": "MA-OP",
+      "execution_authority": "YELLOW_STONE_ONLY",
+      "canonical_session": "1LSS_OWNER_MAIN",
+      "dynamic_slots": true,
+      "slot_policy": {
+        "fixed_slot_count": false,
+        "add_without_card_redesign": true,
+        "replace_or_renew_source_in_place": true,
+        "upper_layer_source_visibility": "BROKERED_REFERENCE_ONLY"
+      },
+      "states": [
+        "READY",
+        "BORROWED",
+        "LENT",
+        "EXPIRING",
+        "RETURNED",
+        "BLOCKED"
+      ],
+      "tiers": {
+        "WHITE": "READ",
+        "BLUE": "WRITE_OR_EXECUTE",
+        "GOLD": "CONTROL_WITH_POLICY_GATES",
+        "OWNER_BREAK_GLASS": "OWNER_ONLY_SHORT_LIVED"
+      },
+      "lease_policy": {
+        "enabled": true,
+        "owner_pre_authorized_policy": true,
+        "same_provider_only_v1": true,
+        "cross_provider_hidden_fallback": false,
+        "allowed_reasons": [
+          "RATE_LIMIT",
+          "QUOTA_EXHAUSTED",
+          "SOURCE_EXPIRED",
+          "SOURCE_DEGRADED"
+        ],
+        "default_ttl_minutes": 15,
+        "max_ttl_minutes": 30,
+        "default_max_calls": 100,
+        "max_calls": 200,
+        "permission_escalation": false,
+        "scope_escalation": false,
+        "protected_operations": [
+          "PRODUCTION",
+          "BILLING",
+          "DELETE",
+          "DESTRUCTIVE",
+          "SECRET_REVEAL",
+          "D1_SCHEMA"
+        ],
+        "protected_operations_require_owner": true,
+        "return_required": true,
+        "ruby_verification_required": true,
+        "green_retention": "VERIFIED_SUMMARY_AND_EVIDENCE_ONLY"
+      },
+      "evidence": {
+        "required_fields": [
+          "borrow_id",
+          "holder",
+          "source_card_id",
+          "reason",
+          "provider_id",
+          "capability_id",
+          "permission_class",
+          "issued_at",
+          "expires_at",
+          "max_calls",
+          "return_state"
+        ]
+      },
+      "safety": {
+        "raw_source_values_exposed_to_agents": false,
+        "raw_source_values_retained_in_1lss": false,
+        "raw_source_values_retained_in_logs": false,
+        "raw_source_values_retained_in_n8n_items": false,
+        "direct_provider_bypass": false,
+        "schema_change": false
+      }
+    },
+    "ruby": {
+      "stone": "RUBY_STONE",
+      "runtime": "RUBY_STONE_TEST_LAYER_V1",
+      "canonical_conversation": "owner-main",
+      "canonical_session": "1LSS_OWNER_MAIN",
+      "blue_admission_required": true,
+      "yellow_execution_authority": "YELLOW_STONE_ONLY",
+      "accuracy_evidence_events": [
+        "RUBY_EVAL_PASS",
+        "RUBY_EVAL_FAIL"
+      ],
+      "validation_contract": "npm run check",
+      "direct_execution_bypass": false,
+      "schema_change": false
+    },
+    "workflow": {
+      "environment": "staging",
+      "max_inline_bytes": 32768,
+      "lease_seconds": 30,
+      "tick_limit": 4,
+      "server_budgets": {
+        "max_nodes": 16,
+        "max_agent_calls": 2,
+        "max_input_tokens": 12000,
+        "max_output_tokens": 4000,
+        "max_elapsed_seconds": 600
+      },
+      "allowed_operations": [
+        "test.echo@1",
+        "gate.equals@1",
+        "gate.exists@1",
+        "linear.repo_context@1",
+        "openai.generate@1",
+        "codex.patch@1",
+        "claude.analyze@1",
+        "github.publish_draft_pr@1",
+        "linear.attach_pr@1"
+      ],
+      "allowed_repositories": [
+        "Ogenicchocolate21debug/Build-Platform"
+      ],
+      "allowed_linear_projects": []
+    },
+    "replica": {
+      "schema_version": "OGENIC_REPLICA_RUNNER_V1",
+      "name": "WAVE Replica Runner",
+      "target": "0.9:1 local-to-staging operational parity (a goal, not a certified metric)",
+      "job_host": "github-hosted/ubuntu-latest",
+      "local_runtime": "Cloudflare workerd through Wrangler dev --local",
+      "source": {
+        "repository": "Ogenicchocolate21debug/Build-Platform",
+        "branch": "phase-vi-provider-incentive-metering"
+      },
+      "toolchain": {
+        "node": "22",
+        "wrangler": "package.json devDependency ^4",
+        "python": "optional, not part of core proof"
+      },
+      "cloudflare": {
+        "worker_entry": "worker/entry-yellow-stone.ts",
+        "d1_binding": "DB",
+        "database": "local-isolated-copy",
+        "browser_binding": "local-simulated"
+      },
+      "cost_policy": {
+        "uses_existing_github_hosted_allowance": true,
+        "billable_provider_calls": "THROUGH_EXISTING_YELLOW_IF_AUTHORIZED",
+        "cloudflare_deploy": false,
+        "railway_deploy": false,
+        "do_droplet_create": false
+      },
+      "expected_fidelity_limits": [
+        "Remote D1 content, latency, replication, and migrations not sourced from real production",
+        "Infisical OIDC, live third-party models and rate limits not reproduced without explicit separate validation",
+        "Browser binding and Cloudflare edge/network behavior may not match every case",
+        "Staging deploy runs exclusively in existing protected self-hosted workflow; never inside this replica proof"
+      ],
+      "deployment_handoff": {
+        "workflow": ".github/workflows/provider-incentive-staging-deploy.yml",
+        "ref": "phase-vi-provider-incentive-metering",
+        "mode": "OPERATOR_EXPLICIT_DISPATCH_AFTER_PARITY_PROOF",
+        "replica_may_dispatch": false
+      },
+      "hard_scope": {
+        "main": false,
+        "production": false,
+        "Candy": false,
+        "remote_d1": false,
+        "secrets": false,
+        "billed_llm": "EXISTING_AUTHORIZED_YELLOW_ONLY"
+      },
+      "checks": [
+        "source_config",
+        "node22",
+        "worker_bundle",
+        "local_d1_migrations",
+        "workerd_health",
+        "local_public_routes",
+        "owner_auth_fail_closed",
+        "deployment_handoff_identified"
+      ],
+      "evidence": "replica-evidence.json"
+    },
+    "one_line_session": {
+      "version": 1,
+      "owner_line": "owner-main",
+      "enabled": true,
+      "history_paging": true,
+      "session_reference_registry": true,
+      "safe_url_policy": "origin+pathname only",
+      "surfaces": [
+        "ogenic-web",
+        "ogenic-app",
+        "chatgpt-dev",
+        "chatgpt-app",
+        "external-harness"
+      ],
+      "policy": {
+        "no_parallel_canonical_history": true,
+        "no_raw_secrets": true,
+        "session_reference_only_when_supplied": true
+      }
+    }
+  },
+  "legacy_sources": {
+    "agent_context": {
+      "path": "config/agent-context-policy.json",
+      "role": "COMPATIBILITY_REFERENCE_NOT_CANONICAL_EDIT_SURFACE"
+    },
+    "onboarding": {
+      "path": "config/provider-onboarding-policy.json",
+      "role": "COMPATIBILITY_REFERENCE_NOT_CANONICAL_EDIT_SURFACE"
+    },
+    "use_card": {
+      "path": "config/use-card-policy.json",
+      "role": "COMPATIBILITY_REFERENCE_NOT_CANONICAL_EDIT_SURFACE"
+    },
+    "ruby": {
+      "path": "config/ruby-stone-v1.json",
+      "role": "COMPATIBILITY_REFERENCE_NOT_CANONICAL_EDIT_SURFACE"
+    },
+    "workflow": {
+      "path": "config/workflow-engine.staging.json",
+      "role": "COMPATIBILITY_REFERENCE_NOT_CANONICAL_EDIT_SURFACE"
+    },
+    "replica": {
+      "path": "infra/replica-runner/replica-manifest.json",
+      "role": "COMPATIBILITY_REFERENCE_NOT_CANONICAL_EDIT_SURFACE"
+    },
+    "one_line_session": {
+      "path": "config/1lss-session-recovery.staging.json",
+      "role": "COMPATIBILITY_REFERENCE_NOT_CANONICAL_EDIT_SURFACE"
+    }
+  },
+  "notes": [
+    "Scope and security continue in code and provider privileges; writing a JSON policy does not itself authorize a deploy",
+    "Rules Center replaces duplicated research/process gates, not runtime facts from D1 or GitHub CI evidence",
+    "Legacy JSON consumers must migrate to runtime_contracts incrementally; do not falsely claim 100% wiring until CI proves consumers switched"
+  ]
+}
