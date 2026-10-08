@@ -1,6 +1,6 @@
 # OGENIC Product #2 — STONE RUNNER
 
-**Product status:** FUTURE BUILD / PRODUCT BACKLOG — prototype and historical proofs preserved, **NOT** shipped, NOT certified runtime 1:1.  
+**Product status:** ACTIVE EVIDENCE-LEARNING POSITION + FUTURE BUILD / EVOLUTION BACKLOG — keep Stone Runner in the existing final-audit line now, while advanced autonomous product capabilities remain **NOT** shipped and runtime 1:1 is NOT certified.  
 **Snapshot date:** 2026-10-08  
 **Current umbrella issue:** [OGE-95](https://linear.app/ogenic-sio/issue/OGE-95/stone-runner-product-2-ephemeral-compute-factory-runtime-parity-11) (still **In Progress** until independently verified; never label Done based only on this snapshot).  
 **Repo/branch:** `Ogenicchocolate21debug/Build-Platform` / `phase-vi-provider-incentive-metering`.
@@ -19,6 +19,14 @@
 4. **Stage A Stone Runner**: [implementation and limits](../../infra/replica-runner/STONE_RUNNER.md) and [parity matrix](../OGE95_STONE_RUNNER_PRODUCT2_PARITY.md). Local workerd/D1/1LSS evidence is real, but full 1:1 behavioral parity is **not** certified.
 5. **New optional final-review intake (code staged, runtime still unverified):** [normalizer](../../scripts/oge95-final-review-intake.mjs), [Manus/OpenAI no-task readiness probes](../../scripts/oge95-provider-readiness.mjs), and [GitHub Actions verification workflow](../../.github/workflows/oge-95-final-review-intake.yml). No independent Manus/OpenAI reviewer PASS receipts or confirmed successful latest CI run at snapshot.
 
+## Keep Stone Runner in its original operating position — OWNER LOCK (2026-10-08)
+- **DO NOT** park, bypass, or remove Stone Runner from the operational architecture simply because Product #2 is planned for future evolution.
+- Keep the existing `Runtime ×10 -> GitHub deterministic audit + optional Manus / OpenAI independent reviewer evidence -> STONE RUNNER learning cache -> Ruby semantic proof -> Yellow final authority -> Green/1LSS verified canonical result` line.
+- Run Stone Runner in **passive observation mode** today: use `scripts/oge95-stone-runner-learning.mjs` to process bounded outputs from `oge95-final-review-intake.json`; recover the last learning cache from GitHub Actions artifacts when available. One snapshot = one current-SHA observation + at most 40 validated historical observations. Deduplicate by evidence fingerprint. 30-day artifacts are **rebuildable caches**, not permanent application memory; versioned GitHub documents preserve the product blueprint and known evidence.
+- Learning candidates are `UNVERIFIED_CANDIDATE` signals such as SHA mismatch, missing provider review, verification conflict and follow-up requirements. No new calls to Manus/OpenAI are made by the learning cache. If those reviewers have no genuine proof receipt, record `NOT_CONNECTED`; never pretend a review occurred.
+- Only Ruby-confirmed, Yellow-authorized *verified summaries* may enter canonical Green/1LSS through its existing API. No new D1 table, autonomous rules update, recursive verifier, model fine-tuning, secret retention, developer-approved deploy, or hidden paid calls.
+- This preserves the exact position and every useful lesson **without pretending that Stage B/C autonomous evolution is complete**.
+
 ## Target product after future authorization
 - `ATHENA/VIOLET -> Runtime ×10 -> self-verified provisional results -> GitHub audit -> optional independent Manus reviewer and/or OpenAI/Codex reviewer -> Ruby evidence adjudication -> Yellow authorized commit/deploy -> Green 1LSS verified summary`.
 - **Three runner roles are choices, not three automatically online machines:** (1) GitHub audit REQUIRED and proven historically, (2) Manus FIRST CHOICE but reviewer task and free credit readiness NOT proven, (3) OpenAI/Codex optionally on existing self-host, with a historical shell-session proof only. DeepSeek is currently a reasoning/research/reviewer model in existing adapters, not a standalone shell execution host.
@@ -34,4 +42,4 @@
 4. Run real bounded independent review, verify receipt, compare to GitHub deterministic audit; authorize only permitted staging-side effects.
 5. Keep `main`, production, Candy, remote D1 schema, credentials and paid provisioning untouched until separately approved.
 
-**Product archive is not OGE-95 acceptance completion.** Do not flip OGE-95 to Done unless acceptance tests and run evidence satisfy the stated criteria. If development is deferred, close administratively as Canceled/Deferred with explicit notice, not Done.
+**Product blueprint and operational learning position are not OGE-95 acceptance completion.** Do not flip OGE-95 to Done unless acceptance tests and run evidence satisfy the stated criteria. If development is deferred, close administratively as Canceled/Deferred with explicit notice, not Done.
