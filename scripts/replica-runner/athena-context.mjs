@@ -81,7 +81,7 @@ export function deriveAthenaContext(input) {
     git:{commits:(input.commits||[]).slice(0,12).map(x=>({sha:s(x.sha,40),subject:s(x.subject,150)})).filter(x=>hash40(x.sha)),files:(input.files||[]).slice(0,12)},
     actions:{latest_canonical_check:latestCi,latest_staging_deploy:latestDeploy,latest_failure:recentFailure,recent_runs:history},
     local_runtime:{
-      status:localOk?"LOCAL_PROOF_PASS":local?.status||"NOT_MEASURED_CURRENT_SHA",
+      status:localOk?"LOCAL_PROOF_PASS":local?.status==="LOCAL_PROOF_PASS"?"STALE_SHA_LOCAL_PROOF":local?.status||"NOT_MEASURED_CURRENT_SHA",
       previous_same_sha_proof:!!priorMatch,
       checks_passed:Number(local?.local_checks_passed||0),
       checks_total:Number(local?.local_checks_total||0),
