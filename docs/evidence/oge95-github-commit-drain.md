@@ -6,7 +6,7 @@
 
 `GitHub push (staging) -> GitHub Commit Drain -> recover previous SHA receipt -> git first-parent backlog -> each SHA npm ci + npm run check -> preserve PASS/FAIL/BLOCKED per SHA -> keep draining until event HEAD -> publish artifact + job summary -> idle until next push`
 
-The `on.push.branches` trigger on `.github/workflows/oge95-commit-drain.yml` has **no paths filter**. It catches every ordinary push to staging, not just workflow changes. `concurrency.cancel-in-progress:false` avoids interrupting a running batch; although GitHub only keeps one pending event in a concurrency group, the next run reconstructs every missing first-parent commit since the previous receipt. There is **no separate controller service, Control Tower, runner clone, D1 schema, production deploy or new API key**.
+The **already verified** `.github/workflows/oge-95-final-review-intake.yml` is the staging push entrypoint and now has **no paths filter**. Its `commit-drain` reusable job calls `.github/workflows/oge95-commit-drain.yml` (`workflow_call` only). It catches every ordinary push to staging, not just workflow changes. `concurrency.cancel-in-progress:false` avoids interrupting a running batch; although GitHub only keeps one pending event in a concurrency group, the next run reconstructs every missing first-parent commit since the previous receipt. There is **no separate controller service, Control Tower, runner clone, D1 schema, production deploy or new API key**.
 
 ## Durable, bounded automation
 
@@ -22,8 +22,8 @@ The `on.push.branches` trigger on `.github/workflows/oge95-commit-drain.yml` has
 
 - It does **not** autonomously generate code, decide how to fix every failure, call Manus Plugin from GitHub CI, open paid OpenAI Agent sessions or commit a failed rewrite. That requires a separate, verified Agent dispatch/approval boundary in the existing architecture.
 - GitHub Actions results appear in GitHub notifications/UI. **A result appearing in GitHub does not itself cause this ChatGPT conversation to receive a new message.** A supported event delivery integration is needed for proactive chat notifications.
-- GitHub workflows added only on the staging branch are intentionally not self-dispatched with `workflow_dispatch` because that trigger has default-branch requirements. Instead each push starts one continuous backlog drain; newer pushes trigger later runs.
+- The staging-only reusable `workflow_call` job is invoked by the existing staging push workflow, rather than attempting a `workflow_dispatch` action that might require a default-branch workflow. Each incoming push begins the existing parent workflow, then one continuous backlog drain; newer pushes are reconciled on following runs.
 
 ## Acceptance evidence
 
-Code: `scripts/oge95-commit-drain.mjs`, `tests/oge95-commit-drain.test.mjs`, `.github/workflows/oge95-commit-drain.yml`. **PASS requires a real Actions run** with a `OGE95_DRAIN_ALL_KNOWN_COMMITS_AUDITED` log, per-SHA artifact and a future push that resumes from the checkpoint. Code committed by itself does **not** prove runtime activation. Continue to mark OGE-95 In Progress until a complete end-to-end proof is available.
+Code: `scripts/oge95-commit-drain.mjs`, `tests/oge95-commit-drain.test.mjs`, `.github/workflows/oge95-commit-drain.yml` and existing `.github/workflows/oge-95-final-review-intake.yml` as push entrypoint. **PASS requires a real Actions run** with a `OGE95_DRAIN_ALL_KNOWN_COMMITS_AUDITED` log, per-SHA artifact and a future push that resumes from the checkpoint. Code committed by itself does **not** prove runtime activation. Continue to mark OGE-95 In Progress until a complete end-to-end proof is available.
