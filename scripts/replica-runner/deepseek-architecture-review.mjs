@@ -81,8 +81,11 @@ try {
     console.log(sanitized);
     console.log("OGE95_DEEPSEEK_REVIEW_END");
   } else process.exitCode=1;
-} catch {
-  stamp({ok:false,code:"DEEPSEEK_REVIEW_REQUEST_FAILED",requests:once?1:0,retries:0});
+} catch (error) {
+  const cause = error instanceof Error ? error : null;
+  const safeType = cause?.name === "TimeoutError" || cause?.name === "AbortError" ? "REQUEST_TIMEOUT" : "TRANSPORT_EXCEPTION";
+  stamp({ok:false,code:"DEEPSEEK_REVIEW_REQUEST_FAILED",reason:safeType,requests:once?1:0,retries:0});
+  console.log(JSON.stringify({request_status:"FAILED",cause:safeType}));
   console.log("OGE95_DEEPSEEK_REVIEW_BLOCKED");
   process.exitCode=1;
 }
