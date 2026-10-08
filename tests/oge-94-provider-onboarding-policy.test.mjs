@@ -13,6 +13,10 @@ const context = JSON.parse(source("config/agent-context-policy.json"));
 test("OGE-94 one 4-stage admission policy applies to future providers and never auto-promotes based on key", () => {
   assert.deepEqual(onboarding.stages, ["REGISTERED", "KEY_BOUND", "RUNTIME_VERIFIED", "ROUTE_ELIGIBLE"]);
   assert.equal(onboarding.runtime_preflight.paid_provider_calls, 0);
+  assert.equal(onboarding.execution_flow.mode, "DIRECT_TO_YELLOW");
+  assert.equal(onboarding.execution_flow.preflight_required, false);
+  assert.equal(onboarding.execution_flow.route_check, "AT_EXECUTION_ONLY");
+  assert.equal(onboarding.runtime_preflight.advisory_only, true);
   assert.equal(onboarding.runtime_preflight.local_attestation_only, true);
   assert.equal(onboarding.runtime_preflight.owner_or_ops_auth, true);
   assert.equal(onboarding.live_proof.requires_owner_authorization_for_paid_smoke, true);
@@ -44,6 +48,11 @@ test("OGE-94 returns actionable no-cost admission diagnostics without new routes
   assert.match(api, /api\.get\("\/api\/provider-readiness\/onboarding"/);
   assert.match(api, /readProviderReadiness\(c\.env, \{ probe: false \}\)/);
   assert.match(api, /buildProviderOnboardingPreflight/);
+  assert.match(api, /diagnostic_only: true/);
+  assert.match(api, /requires_preflight_before_execution: false/);
+  assert.match(api, /execution_authority: "\/api\/capabilities\/execute"/);
+  assert.match(helper, /route_status: "NOT_CHECKED_YELLOW"/);
+  assert.doesNotMatch(entry, /buildProviderOnboardingPreflight/);
   assert.match(api, /paid_completion_calls: false/);
   assert.match(entry, /pathname\.startsWith\("\/api\/provider-readiness"\)/);
   for (const action of onboarding.next_action_codes) assert.ok(helper.includes(action));
