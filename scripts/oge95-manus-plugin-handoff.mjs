@@ -40,7 +40,7 @@ export function normalizeManusPluginTask({ task, sourceSha, auditSha256, writerA
     result: "INCONCLUSIVE",
     side_effects: false,
     review_evidence_status: "PLUGIN_TASK_REFERENCE_ONLY_NOT_COMPLETED_OR_AUDITED",
-    manuscript_api_key_required: false,
+    manus_api_key_required: false,
     model_task_invoked_by_this_script: false,
     github_commit_permitted: false,
     yellow_authorization: "NOT_GRANTED",
