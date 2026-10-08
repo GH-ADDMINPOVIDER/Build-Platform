@@ -1,0 +1,65 @@
+name: OGE-92 MA-OP 409 Diagnostic (No Paid Providers)
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: [".github/workflows/oge-92-maop-409-diagnostic.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://wave.ogenicchocolate.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  diagnostic:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Discover staging project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+      - name: Load staging-only ops key through OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: Classify OGE-67 HTTP 409 without leaking details
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::CONFIGURATION_REQUIRED_OPS_KEY"; exit 1; }
+          auth=(-H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}")
+          capture() {
+            label="$1"; method="$2"; path="$3"; body="$4"
+            out="/tmp/oge92-${label}.json"
+            args=(-sS -o "$out" -w '%{http_code}' --max-time 25 "${auth[@]}" -H 'content-type: application/json')
+            if [ "$method" = POST ]; then args+=(-X POST --data "$body"); fi
+            code="$(curl "${args[@]}" "${STAGING_URL}${path}" || true)"
+            printf '%s: HTTP %s | ' "$label" "$code"
+            # Only error/verification identifiers; no content, URLs or credentials.
+            jq -c '{ok, code, status, reason, scenario, resolver_status:(.resolver.status // null), resolver_reason:(.resolver.reason // null), verification_status:(.verification.status // .result.verification_state // null), safe_error:(.result.safe_error.code // null), response_ok:(.result.ok // null), ruby_verified:(.result.ruby_verified // null)}' "$out" 2>/dev/null || echo "NON_JSON_RESPONSE"
+            printf '%s' "$code" > "/tmp/oge92-${label}.http"
+          }
+          capture status GET /api/maop/lab/status ''
+          capture core POST /api/maop/lab/core '{"scenario":"happy_path"}'
+          capture yellow-resolve POST /api/capabilities/resolve '{"provider":"github","capability":"read_file","environment":"staging"}'
+          capture github-read POST /api/maop/lab/github '{"path":"package.json"}'
+          {
+            echo "### OGE-92 MA-OP 409 diagnosis"
+            for name in status core yellow-resolve github-read; do
+              echo "- $name: HTTP $(cat /tmp/oge92-${name}.http)"
+            done
+            echo "- No paid model calls. No D1 schema change."
+          } >> "$GITHUB_STEP_SUMMARY"
