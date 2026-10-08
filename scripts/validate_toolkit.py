@@ -82,8 +82,11 @@ def is_non_secret_token_metric(key: str) -> bool:
 def looks_like_plaintext_secret(value: str) -> bool:
     cleaned = value.strip().rstrip(",").strip().strip('"').strip("'").strip()
     lowered = cleaned.lower()
+    shell_var_ref = re.search(r"\$(?:\{?[A-Za-z_][A-Za-z0-9_]*\}?)", cleaned)
 
     if lowered in SECRET_PLACEHOLDERS:
+        return False
+    if shell_var_ref:
         return False
     if any(marker in lowered for marker in DYNAMIC_SECRET_MARKERS):
         return False
