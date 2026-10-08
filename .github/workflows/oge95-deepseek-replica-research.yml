@@ -59,6 +59,23 @@ jobs:
               f.write("DEEPSEEK_API_KEY="+key+"\n")
           print("Key present [REDACTED]")
           PY
+      - name: Read current repo source and retrieve official external documentation
+        shell: bash
+        run: node scripts/replica-runner/research-sources.mjs
+      - name: Validate evidence packet budget before calling any provider
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync } from "node:fs";
+          import assert from "node:assert/strict";
+          const data=JSON.parse(readFileSync("oge95-research-packet.json","utf8"));
+          assert.equal(data.schema_version,"OGE95_DUAL_SOURCE_RESEARCH_V1");
+          assert.ok(data.prompt.length<=8500);
+          assert.ok(data.repo_files_read>=4);
+          assert.ok(data.external.length>=3);
+          assert.equal(data.source_sha,process.env.GITHUB_SHA);
+          console.log(JSON.stringify({repo_files:data.repo_files_read,external_live_fetches:data.external_fetch_count,external_references:data.external.length,context_chars:data.prompt.length}));
+          JS
       - name: One DeepSeek architecture research call via existing Yellow READ
         shell: bash
         run: node scripts/replica-runner/deepseek-via-yellow.mjs
@@ -85,6 +102,7 @@ jobs:
           path: |
             /tmp/oge95-deepseek-architecture-review.json
             oge95-factory-receipt.json
+            oge95-research-packet.json
           retention-days: 14
           if-no-files-found: warn
       - name: Record one-pass proof
