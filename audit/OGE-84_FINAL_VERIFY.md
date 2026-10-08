@@ -1,6 +1,6 @@
 # OGE-84 Final Verification — Canonical Recovery Gate
 
-Status: **PENDING_CI**
+Status: **PASS**
 
 Scope: canonical branch hardening recovery for OGE-81, OGE-82 and OGE-83.
 
@@ -41,12 +41,15 @@ ATHENA planning/reasoning remains unrestricted by these modules. Enforcement app
 - Provider-session state is not canonical 1LSS authority.
 - Current live provider execution remains read-oriented; future consequential adapters must call the canonical guards before dispatch.
 
-## Required final evidence
+## Final evidence
 
-This document becomes PASS only after the GitHub pull-request workflow executes:
-- hardening behavioral tests
-- root TypeScript typecheck
-- root build
-- existing MA-OP / CCS proof steps
+GitHub pull-request verification passed on head `b018fbc86af8dfd0fd0c0d2f1df52288a14f0b20`:
+
+- Validate and Bundle OGENIC Phase VI — run `37714520915` — SUCCESS.
+- OGE-67 MA-OP Web Lab Proof — run `37714518856` — SUCCESS.
+- Astra hardening contracts — SUCCESS.
+- Root TypeScript typecheck and build — SUCCESS.
+- MA-OP core and GitHub bridge — SUCCESS.
+- CCS local-web smoke — SUCCESS.
 
 No production, main, Candy or D1 schema changes are part of this verification.
