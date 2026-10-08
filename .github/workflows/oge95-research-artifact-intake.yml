@@ -1,0 +1,77 @@
+name: OGE-95 Import DeepSeek Dual-Source Research Evidence (No API Call)
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: [".github/workflows/oge95-research-artifact-intake.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  evidence-intake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Download verified original dual-source research artifact without a new model call
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download 37753896768 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name oge95-one-shot-deepseek-research-37753896768 \
+            --dir "$RUNNER_TEMP/oge95-original"
+          INPUT="$(find "$RUNNER_TEMP/oge95-original" -name oge95-deepseek-architecture-review.json -type f -print -quit)"
+          test -n "$INPUT"
+          cp "$INPUT" oge95-prior-proof.json
+          node --input-type=module <<'JS'
+          import {readFileSync} from "node:fs";
+          import assert from "node:assert/strict";
+          const proof=JSON.parse(readFileSync("oge95-prior-proof.json","utf8"));
+          assert.equal(proof.ok,true);
+          assert.equal(proof.http_status,200);
+          assert.equal(proof.model,"deepseek-flash");
+          assert.equal(proof.calls,1);
+          assert.equal(proof.github_repo_files,7);
+          assert.equal(proof.live_external_fetches,5);
+          assert.equal(proof.source_sha,"3f236c6b159642ba0cb03efce391aa547131ead6");
+          console.log(JSON.stringify({research_run:37753896768,source_sha:proof.source_sha.slice(0,12),model:proof.model,original_paid_calls:proof.calls,NEW_paid_calls:0,external_sources:proof.live_external_fetches,repo_files:proof.github_repo_files}));
+          JS
+      - name: Ingest original source-backed result into same factory, do NOT retain until Ruby
+        run: |
+          node --test tests/oge95-factory-core.test.mjs
+          node scripts/replica-runner/factory-run.mjs \
+            --operation deepseek_research_ingest \
+            --task OGE-95-original-research-recheck \
+            --input oge95-prior-proof.json \
+            --source-run-id 37753896768 \
+            --source-sha 3f236c6b159642ba0cb03efce391aa547131ead6 \
+            --out oge95-dual-source-intake-receipt.json
+          node --input-type=module <<'JS'
+          import assert from "node:assert/strict";
+          import {readFileSync} from "node:fs";
+          const result=JSON.parse(readFileSync("oge95-dual-source-intake-receipt.json","utf8"));
+          assert.equal(result.status,"EVIDENCE_READY");
+          assert.equal(result.source.status,"RECEIVED_UNVERIFIED");
+          assert.equal(result.source.evidence_ref,"github-actions-run:37753896768");
+          assert.equal(result.stages.find(s=>s.stage==="VERIFY").state,"PENDING_RUBY");
+          assert.equal(result.retain_in_green,false);
+          assert.equal(result.auto_deploy,false);
+          console.log("OGE95 ORIGINAL DEEPSEEK EVIDENCE INGESTED; Ruby remains independent pending check");
+          JS
+      - name: Publish non-secret research receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge95-dual-source-intake-${{ github.run_id }}
+          path: oge95-dual-source-intake-receipt.json
+          retention-days: 14
