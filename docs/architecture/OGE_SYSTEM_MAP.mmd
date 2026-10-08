@@ -1,0 +1,44 @@
+flowchart LR
+  classDef core fill:#fff,stroke:#111,color:#111,stroke-width:2px;
+  classDef support fill:#f5f5f5,stroke:#666,color:#111,stroke-width:1px;
+  classDef provider fill:#fff,stroke:#999,color:#111,stroke-dasharray: 4 3;
+
+  WAVE["WAVE<br/>Human Surface"]:::core
+  ATHENA["ATHENA + BLUE<br/>Admission · Identity · Planning"]:::core
+  YELLOW["YELLOW / MA-OP<br/>Execution Authority"]:::core
+  CCS["CCS / Use Card<br/>Capability · Scope · Lease"]:::core
+  VIOLET["VIOLET<br/>Multi-Agent · Workflow"]:::core
+  RUBY["RUBY<br/>Verify · Evidence · Recovery Gate"]:::core
+  GREEN["GREEN / 1LSS<br/>owner-main · Canonical Retention"]:::core
+
+  WAVE --> ATHENA --> YELLOW --> CCS --> VIOLET --> RUBY --> GREEN
+  GREEN -. compact canonical context .-> ATHENA
+
+  subgraph Providers["Agents / Providers"]
+    CODEX["Codex"]:::provider
+    GEMINI["Gemini"]:::provider
+    MANUS["Manus bridge"]:::provider
+    N8N["n8n<br/>Execution Fabric"]:::provider
+  end
+
+  VIOLET --> CODEX
+  VIOLET --> GEMINI
+  VIOLET --> MANUS
+  VIOLET --> N8N
+  CODEX --> RUBY
+  GEMINI --> RUBY
+  MANUS --> RUBY
+  N8N --> RUBY
+
+  subgraph Evidence["Canonical Source / Runtime / Evidence"]
+    GH["GitHub<br/>Code · Branch · CI"]:::support
+    LIN["Linear<br/>Tasks · Delegation · Result Trail"]:::support
+    CF["Cloudflare<br/>Runtime · Router"]:::support
+    D1["D1<br/>Canonical Operational State"]:::support
+  end
+
+  YELLOW --> CF
+  GH --> RUBY
+  LIN --> RUBY
+  CF --> RUBY
+  D1 --> GREEN
