@@ -4,6 +4,8 @@ on:
   push:
     branches: [phase-vi-provider-incentive-metering]
     paths:
+      - "scripts/oge95-same-sha-audit.mjs"
+      - "tests/oge95-same-sha-audit.test.mjs"
       - "scripts/oge95-final-review-intake.mjs"
       - "tests/oge95-final-review-intake.test.mjs"
       - "scripts/oge95-manus-plugin-handoff.mjs"
@@ -43,6 +45,20 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           echo "REVIEWER_INTAKE_GITHUB_SHA_OK"
 
+      - name: Recreate deterministic ten-clone evidence for this exact source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/oge95-same-sha-audit.test.mjs
+          node scripts/oge95-same-sha-audit.mjs --output=oge95-same-sha-audit.json
+          node -e '
+            const a=require("./oge95-same-sha-audit.json");
+            if(a.source_sha!==process.env.GITHUB_SHA || a.audit.length!==10 ||
+               a.source_sha_attestation.exact_checkout_match!==true ||
+               a.source_sha_attestation.genuinely_parallel_runtime_jobs!==false ||
+               a.commit_manifest.execution_approved!==false) throw Error("SAME_SHA_EVIDENCE_INVALID");
+            console.log("OGE95_CURRENT_SHA_DETERMINISTIC_REPLAY_PASS");
+          '
       - name: Test normalizer and emit honest connection-state artifact
         shell: bash
         run: |
@@ -50,21 +66,21 @@ jobs:
           node --test tests/oge95-final-review-intake.test.mjs
           node --test tests/oge95-manus-plugin-handoff.test.mjs
           node scripts/oge95-final-review-intake.mjs \
-            --audit=docs/evidence/oge-62-flow-audit-latest.json \
+            --audit=oge95-same-sha-audit.json \
             --sha="$GITHUB_SHA" \
             --output=oge95-final-review-intake.json
           node -e '
             const fs=require("node:fs");
             const result=JSON.parse(fs.readFileSync("oge95-final-review-intake.json"));
-            if(result.github_audit!=="HISTORICAL_UNBOUND" ||
-               result.final_intake_state!=="GITHUB_AUDIT_SHA_NOT_ATTESTED" ||
+            if(result.github_audit!=="PASS" ||
+               result.final_intake_state!=="GITHUB_ONLY_NO_AGENT_REVIEW" ||
                result.reviewers.manus.state!=="NOT_CONNECTED" ||
                result.reviewers.openai.state!=="NOT_CONNECTED" ||
                result.green_verified_promotion!==false ||
                result.yellow_commit_or_deploy_authority!=="NOT_GRANTED") {
               throw Error("REVIEW_INTAKE_FALSE_PROMOTION");
             }
-            console.log("OGE95_INTAKE_HISTORICAL_AUDIT_SHA_UNBOUND_NO_PROVIDER_CALL");
+            console.log("OGE95_SAME_SHA_AUDIT_PASS_AGENT_REVIEW_NOT_CONNECTED");
           '
 
       - name: Restore prior Stone Runner learning snapshot (best-effort, read-only)
@@ -150,6 +166,7 @@ jobs:
           name: oge95-review-intake-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             oge95-final-review-intake.json
+            oge95-same-sha-audit.json
             oge95-provider-readiness.json
             oge95-stone-runner-learning.json
           retention-days: 30
