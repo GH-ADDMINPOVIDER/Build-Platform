@@ -60,7 +60,18 @@ jobs:
               --output "$RUNNER_TEMP/oge95-prior.zip"
             unzip -p "$RUNNER_TEMP/oge95-prior.zip" oge95-commit-drain-receipt.json > oge95-prior-drain-receipt.json
             test -s oge95-prior-drain-receipt.json
-            echo "OGE95_DRAIN_RESUMING_FROM_LAST_ARTIFACT"
+            PRIOR_SCHEMA="$(jq -r '.schema' oge95-prior-drain-receipt.json)"
+            if test "$PRIOR_SCHEMA" = "OGE95_GITHUB_COMMIT_DRAIN_V1"; then
+              # V1 used bare npm ci; those FAIL receipts are not a fair
+              # source-code check. Keep history artifact, re-audit from bootstrap.
+              mv oge95-prior-drain-receipt.json "$RUNNER_TEMP/oge95-prior-v1-superseded.json"
+              echo "OGE95_DRAIN_V2_REAUDIT_ALL_PREVIOUS_NPM_LOCK_FAILURES"
+            elif test "$PRIOR_SCHEMA" = "OGE95_GITHUB_COMMIT_DRAIN_V2"; then
+              echo "OGE95_DRAIN_RESUMING_FROM_LAST_ARTIFACT"
+            else
+              echo "OGE95_DRAIN_UNKNOWN_CHECKPOINT_SCHEMA"
+              exit 2
+            fi
           else
             echo "OGE95_DRAIN_BOOTSTRAP_FROM_KNOWN_GOOD_CI_SHA"
           fi
