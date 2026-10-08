@@ -1,9 +1,14 @@
 name: OGE-95 DeepSeek Replica Architecture Research (One-Shot)
+# One authorized bounded research job triggered by this workflow source change.
+# Other project commits will NOT trigger another paid call.
 on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: [".github/workflows/oge95-deepseek-replica-research.yml"]
   workflow_dispatch:
     inputs:
       confirm_single_paid_call:
-        description: "This makes ONE metered DeepSeek API request. Approve explicitly."
+        description: "One metered DeepSeek request, with existing cost/context budget"
         type: boolean
         required: true
         default: false
@@ -17,7 +22,7 @@ env:
   INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
 jobs:
   one-shot:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm_single_paid_call == true }}
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.confirm_single_paid_call == true) }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -57,14 +62,31 @@ jobs:
       - name: One DeepSeek architecture research call on official docs
         shell: bash
         run: node scripts/replica-runner/deepseek-architecture-review.mjs
-      - name: Upload analysis for independent audit
+      - name: Ingest real research only when model returned source-backed content
+        if: always()
+        shell: bash
+        run: |
+          if test -f /tmp/oge95-deepseek-architecture-review.json; then
+            node scripts/replica-runner/factory-run.mjs \
+              --operation deepseek_research_ingest \
+              --task OGE-95-deepseek-research \
+              --input /tmp/oge95-deepseek-architecture-review.json \
+              --source-run-id "$GITHUB_RUN_ID" \
+              --source-sha "$GITHUB_SHA" || true
+            if test -f oge95-factory-receipt.json; then
+              jq '{status,job_id,stages,auto_deploy,retain_in_green}' oge95-factory-receipt.json
+            fi
+          fi
+      - name: Upload model evidence and factory receipt (zero secrets)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: oge95-one-shot-deepseek-research-${{ github.run_id }}
-          path: /tmp/oge95-deepseek-architecture-review.json
-          retention-days: 7
-          if-no-files-found: ignore
+          path: |
+            /tmp/oge95-deepseek-architecture-review.json
+            oge95-factory-receipt.json
+          retention-days: 14
+          if-no-files-found: warn
       - name: Record one-pass proof
         if: always()
         shell: bash
