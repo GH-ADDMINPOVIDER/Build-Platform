@@ -1,0 +1,52 @@
+{
+  "schema_version": "OGENIC_PAGEINDEX_ADAPTER_V1",
+  "name": "PageIndex",
+  "upstream_repository": "https://github.com/VectifyAI/PageIndex",
+  "upstream_license": "MIT",
+  "python_package": "pageindex",
+  "pinned_version": "0.2.10",
+  "lane": "YELLOW_DOCUMENT_READER",
+  "host": "OPTIONAL_PYTHON_RUNNER",
+  "cloudflare_worker_installs_python": false,
+  "mode": "LOCAL",
+  "registered": true,
+  "sdk_runtime_verified": false,
+  "indexing_enabled": false,
+  "llm_calls_enabled": false,
+  "cloud_api_enabled": false,
+  "paid_provider_calls_allowed": false,
+  "autoroute": false,
+  "d1_schema_changes": false,
+  "green_memory_changes": false,
+  "commands": {
+    "doctor": "python3 integrations/pageindex/bridge.py doctor",
+    "outline": "python3 integrations/pageindex/bridge.py outline --pdf PATH"
+  },
+  "capabilities": [
+    {
+      "key": "sdk_doctor",
+      "risk": "READ",
+      "requires_llm": false,
+      "available": true
+    },
+    {
+      "key": "pdf_embedded_outline",
+      "risk": "READ",
+      "requires_llm": false,
+      "available": true
+    },
+    {
+      "key": "pageindex_llm_indexing",
+      "risk": "READ",
+      "requires_llm": true,
+      "available": false
+    },
+    {
+      "key": "pageindex_reasoning_retrieval",
+      "risk": "READ",
+      "requires_llm": true,
+      "available": false
+    }
+  ],
+  "onboarding": "NO_NEW_GATE_RUN_WHEN_NEEDED"
+}
