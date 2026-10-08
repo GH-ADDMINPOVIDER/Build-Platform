@@ -62,9 +62,13 @@ jobs:
           PERSIST_DIR: ${{ runner.temp }}/wave-replica-d1
         run: |
           set -euo pipefail
+          # Disposable, synthetic local test credential; never a staging/production secret.
+          TEST_OPS_KEY="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("hex"))')"
+          export REPLICA_TEST_OPS_KEY="$TEST_OPS_KEY"
           npx wrangler dev \
             --config dist/ogenic_phase_vi_staging/replica.wrangler.json \
             --local --ip 127.0.0.1 --port 8787 \
+            --var "OGENIC_OPS_KEY:$TEST_OPS_KEY" \
             --persist-to "$PERSIST_DIR" \
             > "$RUNNER_TEMP/replica-workerd.log" 2>&1 &
           PID=$!
@@ -74,6 +78,7 @@ jobs:
             tail -n 40 "$RUNNER_TEMP/replica-workerd.log" | sed -E 's/(sk-[[:alnum:]_-]{12,}|gh[pousr]_[[:alnum:]]{12,})/[REDACTED]/g'
             exit 1
           fi
+          node scripts/replica-runner/verify-1lss.mjs
           node scripts/replica-runner/compare.mjs
       - name: Restore Stone Runner context from prior GitHub artifact
         if: always()
@@ -117,7 +122,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wave-replica-local-proof-${{ github.run_id }}
-          path: replica-evidence.json
+          path: |
+            replica-evidence.json
+            replica-1lss-evidence.json
           retention-days: 14
           if-no-files-found: warn
       - name: Publish honest parity measurement
@@ -134,6 +141,10 @@ jobs:
               echo '- BLOCKED: local proof did not produce evidence.'
             fi
             echo '- No paid inference, no remote D1 or staging mutation during Replica proof.'
+            if test -f replica-1lss-evidence.json; then
+              echo '### Local stateful 1LSS proof (synthetic data)'
+              jq '{status,checks_passed,checks_total,unique_inserted,duplicate_retry_prevented,source_surfaces,remote_d1_access}' replica-1lss-evidence.json
+            fi
             if test -f athena-runner-context.json; then
               echo '### Stone Runner (commit / CI / deploy context)'
               jq '{source_sha,context_id,github_api_state,local_runtime,suggested_actions}' athena-runner-context.json
