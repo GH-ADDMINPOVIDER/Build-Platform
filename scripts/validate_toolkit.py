@@ -58,6 +58,14 @@ SECRET_PLACEHOLDERS = {
 }
 
 
+def is_non_secret_token_metric(key: str) -> bool:
+    compact = re.sub(r"[^a-z0-9]", "", key.lower())
+    return bool(re.fullmatch(
+        r"(?:(?:usage|prompt|completion|input|output|total|max|estimated)tokens?(?:count|used|limit|budget)?|token(?:boost|count|limit|budget)|tokens(?:used|count|limit|budget))",
+        compact,
+    ))
+
+
 def looks_like_plaintext_secret(value: str) -> bool:
     cleaned = value.strip().rstrip(",").strip().strip('"').strip("'").strip()
     lowered = cleaned.lower()
@@ -140,7 +148,7 @@ def main() -> None:
             key, value = match.groups()
             normalized_key = key.lower().replace("-", "_")
             leaf_key = normalized_key.rsplit(".", 1)[-1]
-            if leaf_key in NON_SECRET_TOKEN_KEYS:
+            if leaf_key in NON_SECRET_TOKEN_KEYS or is_non_secret_token_metric(leaf_key):
                 continue
             compact_key = re.sub(r"[^a-z0-9]", "", leaf_key)
             if compact_key.endswith(NON_SECRET_STATUS_SUFFIXES):
