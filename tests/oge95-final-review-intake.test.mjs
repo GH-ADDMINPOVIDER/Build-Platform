@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { digest, evaluateFinalIntake } from "../scripts/oge95-final-review-intake.mjs";
-const audit = JSON.parse(readFileSync("docs/evidence/oge-62-flow-audit-latest.json", "utf8"));
 const sha = "a".repeat(40);
+const historicalAudit = JSON.parse(readFileSync("docs/evidence/oge-62-flow-audit-latest.json", "utf8"));
+const audit = { ...historicalAudit, source_sha: sha };
 const base = { audit, sourceSha: sha, writerActor: "codex-author" };
 const proof = (provider, changes = {}) => ({
   schema: "OGE95_AGENT_REVIEW_V1", provider, source_sha: sha,
@@ -44,4 +45,11 @@ test("Deterministic failure cannot be papered over by agent agreement", () => {
   const out = evaluateFinalIntake({ ...base, audit: { ...audit, commit_eligible: false }, receipts: { manus: proof("manus"), openai: proof("openai") } });
   assert.equal(out.github_audit, "BLOCKED");
   assert.equal(out.final_intake_state, "BLOCKED_GITHUB_AUDIT");
+});
+
+test("Historical OGE-62 audit without same-SHA attestation is not recertified for new commits", () => {
+  const out = evaluateFinalIntake({ audit: historicalAudit, sourceSha: sha });
+  assert.equal(out.github_audit, "HISTORICAL_UNBOUND");
+  assert.equal(out.final_intake_state, "GITHUB_AUDIT_SHA_NOT_ATTESTED");
+  assert.equal(out.green_verified_promotion, false);
 });
