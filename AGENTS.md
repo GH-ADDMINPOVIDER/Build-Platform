@@ -118,3 +118,12 @@ A feature is DONE only when applicable evidence exists for:
 6. forbidden scopes untouched
 7. UI control is real if UI-related
 8. state/evidence returns to owner-main / 1LSS when required
+
+## OGE closure visual requirement
+For new Codex-driven OGE closures:
+- add one truthful human-readable visual under `docs/evidence/OGE-<id>/` (or a real UI screenshot under `public/evidence/OGE-<id>/`)
+- add a closure README with RESULT / CHANGED / TESTS / EVIDENCE / RESIDUAL RISK
+- link the canonical GitHub commit/CI evidence from the Linear closure comment
+- never fabricate a screenshot or runtime state; use deterministic Mermaid/SVG when no natural screenshot exists
+- default exhibition style is black/white/grayscale
+
