@@ -1,0 +1,3 @@
+# Isolated Python runner only. Not part of Cloudflare Worker or npm deployment.
+# VectifyAI/PageIndex MIT SDK (upstream pyproject version checked 2026-10-08).
+pageindex==0.2.10
