@@ -83,3 +83,26 @@ test("Missing real GitHub run evidence never produces verified result",()=>{
   assert.equal(output.ok,false);
   assert.equal(output.evidence_ref,null);
 });
+
+test("DeepSeek complete outputs far beyond 256 tokens and 14,500 chars stay intact",()=>{
+  const full="P0 local 1LSS, P1 Yellow and Ruby. ".repeat(1600);
+  const receipt=receiveDeepSeekResearch({...research,answer:full,finish_reason:"stop",output_complete:true},meta);
+  assert.equal(receipt.ok,true);
+  assert.equal(receipt.status,"RECEIVED_UNVERIFIED");
+  assert.equal(receipt.content_complete,true);
+  assert.equal(receipt.answer.length,full.trim().length);
+  assert.equal(receipt.answer,full.trim());
+  assert.equal(receipt.answer_sha256.length,64);
+});
+
+test("DeepSeek provider length response is retained but cannot be called complete",()=>{
+  const partial="Research starts with 1LSS parity and needs continuation ".repeat(350);
+  const result=receiveDeepSeekResearch({...research,answer:partial,finish_reason:"length",output_complete:false,output_truncated_by_provider:true},meta);
+  assert.equal(result.ok,true);
+  assert.equal(result.content_complete,false);
+  assert.equal(result.status,"RECEIVED_INCOMPLETE");
+  assert.equal(result.answer,partial.trim());
+  const receipt=factoryReceipt(planFactoryOrder({...base,operation:"deepseek_research_ingest"}),result);
+  assert.equal(receipt.stages.find(x=>x.stage==="DISTILL").state,"RECEIVED_INCOMPLETE");
+  assert.equal(receipt.retain_in_green,false);
+});
