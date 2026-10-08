@@ -26,6 +26,7 @@ export function checkpoint(receipt){
  if(receipt?.schema!==SCHEMA||receipt.repository!==REPO||receipt.branch!==BRANCH||
    !SHA.test(receipt.last_processed_sha||"")||!SHA.test(receipt.head_sha||"")||
    !Array.isArray(receipt.checked)||receipt.checked.length>MAX_BATCH||
+   new Set(receipt.checked.map(x=>x.sha)).size!==receipt.checked.length||
    receipt.checked.some(x=>!SHA.test(x.sha||"")||!["PASS","FAIL","BLOCKED"].includes(x.status))||
    (receipt.checked.length&&receipt.checked.at(-1).sha!==receipt.last_processed_sha))
    throw Error("INVALID_PREVIOUS_RECEIPT");
