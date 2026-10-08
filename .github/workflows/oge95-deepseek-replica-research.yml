@@ -59,9 +59,9 @@ jobs:
               f.write("DEEPSEEK_API_KEY="+key+"\n")
           print("Key present [REDACTED]")
           PY
-      - name: One DeepSeek architecture research call on official docs
+      - name: One DeepSeek architecture research call via existing Yellow READ
         shell: bash
-        run: node scripts/replica-runner/deepseek-architecture-review.mjs
+        run: node scripts/replica-runner/deepseek-via-yellow.mjs
       - name: Ingest real research only when model returned source-backed content
         if: always()
         shell: bash
