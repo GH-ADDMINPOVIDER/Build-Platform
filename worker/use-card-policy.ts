@@ -1,4 +1,5 @@
-import cardPolicy from "../config/use-card-policy.json";
+import rulesCenter from "../config/oge95-rules-center.json";
+const cardPolicy = rulesCenter.runtime_contracts.use_card;
 import type { CapabilityDescriptor, CapabilityPermission } from "./capability-resolver";
 
 export type UseCardState = "READY" | "BORROWED" | "LENT" | "EXPIRING" | "RETURNED" | "BLOCKED";
