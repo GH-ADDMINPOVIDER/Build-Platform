@@ -47,6 +47,13 @@ Act as an operator, not a status reporter. Read the real state, choose the cheap
 - If two attempts hit the same blocker with no new evidence, STOP that path, record the blocker, choose a safe fallback, or request HITL.
 - Do not spend metered OpenAI Agent/API execution on facts that can be verified cheaply from GitHub/Linear/runtime metadata.
 
+## Provider API usage — owner cost/context directive (2026-10-08)
+- Existing authorized API tokens are usable for real specialist work through the established Yellow capability and existing provider accounts; do not force a blanket zero-API mode that stalls the factory.
+- Apply the **existing** `config/agent-context-policy.json`: task-scoped, minimal context, bounded per-call token budgets, metered usage evidence, no hidden retry/fallback, no raw credentials in logs/D1.
+- For DeepSeek, use the already deployed explicit READ route `POST /api/capabilities/execute` with `provider=deepseek` and `capability=context_load` instead of a second unmanaged API route. The current Yellow adapter caps output at 256 tokens; split tasks transparently only when needed, not into uncontrolled loops.
+- Ordinary approved READ inference need not ask for redundant approval. Approval remains required when spending beyond an authorized budget or for consequential external writes/deploys. Keep the existing Yellow/Ruby/Green execution boundaries, not a new policy gate.
+- Never call failed transport attempts a completed analysis; only accept source-backed provider output with its GitHub run reference and Ruby verification state.
+
 ## Continuation behavior
 Never stop at:
 - PASS
