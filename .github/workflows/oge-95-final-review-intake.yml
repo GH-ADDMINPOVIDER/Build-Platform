@@ -47,15 +47,15 @@ jobs:
           node -e '
             const fs=require("node:fs");
             const result=JSON.parse(fs.readFileSync("oge95-final-review-intake.json"));
-            if(result.github_audit!=="PASS" ||
-               result.final_intake_state!=="GITHUB_ONLY_NO_AGENT_REVIEW" ||
+            if(result.github_audit!=="HISTORICAL_UNBOUND" ||
+               result.final_intake_state!=="GITHUB_AUDIT_SHA_NOT_ATTESTED" ||
                result.reviewers.manus.state!=="NOT_CONNECTED" ||
                result.reviewers.openai.state!=="NOT_CONNECTED" ||
                result.green_verified_promotion!==false ||
                result.yellow_commit_or_deploy_authority!=="NOT_GRANTED") {
               throw Error("REVIEW_INTAKE_FALSE_PROMOTION");
             }
-            console.log("OGE95_REVIEW_INTAKE_LOCAL_PASS_NO_PROVIDER_CALL");
+            console.log("OGE95_INTAKE_HISTORICAL_AUDIT_SHA_UNBOUND_NO_PROVIDER_CALL");
           '
 
       - name: Store read-only intake evidence
