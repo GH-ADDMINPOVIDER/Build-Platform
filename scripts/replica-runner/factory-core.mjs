@@ -79,7 +79,10 @@ export function receiveDeepSeekResearch(payload, meta={}) {
   if(typeof payload?.model!=="string"||!payload.model.startsWith("deepseek-"))errors.push("PROVIDER_MODEL_UNVERIFIED");
   if(payload?.calls!==1||payload?.retries!==0||payload?.fallbacks!==0)errors.push("UNBOUNDED_PROVIDER_USAGE");
   const answer=typeof payload?.answer==="string"?payload.answer.trim():"";
-  if(!answer||answer.length>14500)errors.push("ANSWER_MISSING_OR_UNBOUNDED");
+  // No silent content clipping. Only reject implausibly large (2 MiB) artifacts
+  // for execution safety; ordinary full model responses are retained verbatim.
+  if(!answer)errors.push("ANSWER_MISSING");
+  if(Buffer.byteLength(answer, "utf8")>2*1024*1024)errors.push("ARTIFACT_BYTES_OVER_SAFETY_LIMIT");
   if(SECRET.test(answer))errors.push("SENSITIVE_TEXT_REJECTED");
   const sources=Array.isArray(payload?.source_urls)?payload.source_urls:[];
   if(sources.length===0||sources.length>20||sources.some(s=>!/^https:\/\/(?:developers\.cloudflare\.com|docs\.github\.com|github\.com|api-docs\.deepseek\.com|playwright\.dev)\//.test(String(s))))
@@ -88,9 +91,12 @@ export function receiveDeepSeekResearch(payload, meta={}) {
     errors.push("SOURCE_SCOPE_UNVERIFIED");
   if(payload?.no_browsing_tools!==true)errors.push("BROWSING_ATTESTATION_MISSING");
   const valid=errors.length===0;
+  const incomplete=payload?.finish_reason==="length" || payload?.output_truncated_by_provider===true || (payload?.output_complete===false && Boolean(payload?.finish_reason));
   return {
     schema_version:"OGE95_DEEPSEEK_RECEIPT_V1",
-    ok:valid,status:valid?"RECEIVED_UNVERIFIED":"BLOCKED",
+    ok:valid,status:valid?(incomplete?"RECEIVED_INCOMPLETE":"RECEIVED_UNVERIFIED"):"BLOCKED",
+    provider_finish_reason:typeof payload?.finish_reason==="string"?payload.finish_reason:null,
+    content_complete:valid && !incomplete,
     source_provider:"deepseek", source_run_id,source_sha,
     research_source:"PROVIDED_OFFICIAL_DOC_EXCERPTS_NOT_LIVE_WEB_RESEARCH",
     answer_sha256:valid?sha256(answer):null,
@@ -117,7 +123,7 @@ export function factoryReceipt(order,output) {
     idempotency_key:order?.idempotency_key||null,
     stages:[
       {stage:"SOURCE",state:order?.ok?"PASS":"BLOCKED"},
-      {stage:"DISTILL",state:order?.operation==="deepseek_research_ingest"?(output?.ok?"RECEIVED_UNVERIFIED":"BLOCKED"):"NOT_APPLICABLE"},
+      {stage:"DISTILL",state:order?.operation==="deepseek_research_ingest"?(output?.ok?output.status:"BLOCKED"):"NOT_APPLICABLE"},
       {stage:"REPRODUCE",state:order?.operation==="replica_source_audit"?(output?.ok?"PASS":"FAIL"):"NOT_APPLICABLE"},
       {stage:"VERIFY",state:"PENDING_RUBY"},
       {stage:"RETAIN",state:"BLOCKED_UNTIL_RUBY"},
