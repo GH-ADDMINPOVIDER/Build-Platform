@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {SCHEMA,REPO,BRANCH,BOOTSTRAP,MAX_BATCH,plan,receipt,checkpoint} from "../scripts/oge95-commit-drain.mjs";
 const sha=n=>n.toString(16).padStart(40,"0");
 test("staging only, no other repo/branch or code promotion",()=>{
@@ -54,4 +55,17 @@ test("reject malformed checkpoints and altered receipts",()=>{
  assert.throws(()=>plan({base:sha(1),head:sha(3),commits:[sha(2)]}));
  assert.throws(()=>plan({base:sha(1),head:sha(2),commits:[sha(2),sha(2)]}));
  assert.throws(()=>plan({base:sha(1),head:sha(2),commits:[sha(2)],limit:100}));
+});
+
+test("existing OGE-95 entrypoint watches EVERY staging push, then invokes only the local reusable drain",()=>{
+ const fs=(p)=>readFileSync(p,"utf8");
+ const parent=fs(".github/workflows/oge-95-final-review-intake.yml");
+ const child=fs(".github/workflows/oge95-commit-drain.yml");
+ assert.match(parent,/push:\s*\n\s*branches: \[phase-vi-provider-incentive-metering\]/);
+ assert.doesNotMatch(parent,/push:\s*[\s\S]*?paths:\s*/);
+ assert.match(parent,/commit-drain:\s*[\s\S]*?uses: \.\/\.github\/workflows\/oge95-commit-drain\.yml/);
+ assert.match(child,/workflow_call:/);
+ assert.doesNotMatch(child,/^\s*workflow_dispatch:/m);
+ assert.match(child,/cancel-in-progress: false/);
+ assert.match(child,/OGE95_DRAIN_ALL_KNOWN_COMMITS_AUDITED/);
 });
