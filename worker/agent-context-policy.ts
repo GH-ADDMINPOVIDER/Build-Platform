@@ -1,4 +1,6 @@
-import contextPolicy from "../config/agent-context-policy.json";
+import rulesCenter from "../config/oge95-rules-center.json";
+// Canonical OGE-95 rule edit point; original JSON retained as a compatibility snapshot.
+const contextPolicy = rulesCenter.runtime_contracts.agent_context;
 
 type BudgetKey = keyof typeof contextPolicy.budgets;
 
