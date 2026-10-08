@@ -1,0 +1,109 @@
+name: WAVE Replica Runner 0.9 - Local Parity Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/wave-replica-runner.yml"
+  workflow_dispatch:
+    inputs:
+      deploy_staging:
+        description: "After Replica local proof passes, explicitly dispatch EXISTING staging deploy?"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: wave-replica-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  ephemeral-replica:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact staging SHA
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Match production build Node major
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install exact dependencies with disposable lock
+        run: npm install --package-lock-only --ignore-scripts && npm ci
+      - name: Run canonical test, typecheck and build
+        run: npm run check
+      - name: Sanitize build into isolated Replica
+        run: node scripts/replica-runner/prepare.mjs
+      - name: Create local D1 only; apply SAME source migrations
+        env:
+          PERSIST_DIR: ${{ runner.temp }}/wave-replica-d1
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 migrations apply wave-replica-local \
+            --config dist/ogenic_phase_vi_staging/replica.wrangler.json \
+            --local --persist-to "$PERSIST_DIR" --yes
+          echo 'D1_MIGRATIONS_LOCAL_PASS'
+      - name: Boot same built Worker bundle in local workerd, probe WAVE routes
+        shell: bash
+        env:
+          REPLICA_DB_MIGRATED: "true"
+          PERSIST_DIR: ${{ runner.temp }}/wave-replica-d1
+        run: |
+          set -euo pipefail
+          npx wrangler dev \
+            --config dist/ogenic_phase_vi_staging/replica.wrangler.json \
+            --local --ip 127.0.0.1 --port 8787 \
+            --persist-to "$PERSIST_DIR" \
+            > "$RUNNER_TEMP/replica-workerd.log" 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+          if ! node scripts/replica-runner/verify.mjs; then
+            echo '::error::Local Replica parity proof failed; sanitized tail follows'
+            tail -n 40 "$RUNNER_TEMP/replica-workerd.log" | sed -E 's/(sk-[[:alnum:]_-]{12,}|gh[pousr]_[[:alnum:]]{12,})/[REDACTED]/g'
+            exit 1
+          fi
+      - name: Upload parity evidence (no secrets, no D1 content)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wave-replica-local-proof-${{ github.run_id }}
+          path: replica-evidence.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Publish honest parity measurement
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '### WAVE Replica Runner'
+            if test -f replica-evidence.json; then
+              jq '{status,local_checks_passed,local_checks_total,target_parity,certified_parity_ratio,real_cloudflare_deploy,provider_inference_calls,source_sha}' replica-evidence.json
+              echo '- This validates local surfaces, NOT yet a 90% measured staging equivalence.'
+            else
+              echo '- BLOCKED: local proof did not produce evidence.'
+            fi
+            echo '- No paid inference, no remote D1 or staging mutation during Replica proof.'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Explicit staging deployment handoff only on manual approval
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.deploy_staging == true }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(jq -r '.status' replica-evidence.json)" = LOCAL_PROOF_PASS
+          CURRENT="$(gh api 'repos/${{ github.repository }}/git/ref/heads/phase-vi-provider-incentive-metering' --jq '.object.sha')"
+          test "$CURRENT" = "$GITHUB_SHA" || {
+            echo '::error::staging HEAD moved since Replica proof; refuse to deploy untested head'
+            exit 1
+          }
+          gh workflow run provider-incentive-staging-deploy.yml \
+            --repo "$GITHUB_REPOSITORY" --ref phase-vi-provider-incentive-metering
+          echo 'Existing protected staging deploy workflow dispatched after explicit manual selection.'
