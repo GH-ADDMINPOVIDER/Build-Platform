@@ -1,41 +1,45 @@
 name: OGE-95 Commit Drain - Continuous Staging Catchup
+
+# Every push starts an audit. Intermediate pending events can be coalesced by
+# GitHub concurrency, so always replay every untested first-parent commit.
+# No workflow_dispatch is required (staging-only; main remains untouched).
 on:
   push:
     branches: [phase-vi-provider-incentive-metering]
-  workflow_dispatch:
 
 permissions:
   contents: read
   actions: read
 
-# GitHub only retains 1 running + 1 pending for a concurrency group.
-# Recover missed intermediate push events from Git first-parent history.
 concurrency:
   group: oge95-staging-commit-drain
   cancel-in-progress: false
 
 jobs:
-  audit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 44
+  drain:
+    name: Audit staging commits until the triggered HEAD is fully caught up
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 300
     permissions:
       contents: read
       actions: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Full history, pinned exact event SHA, ephemeral checkout credentials
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Verify staging and fetch remote HEAD
+      - name: Validate branch identity and bind head to the event SHA
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = "Ogenicchocolate21debug/Build-Platform"
           test "$GITHUB_REF_NAME" = "phase-vi-provider-incentive-metering"
-          git fetch --prune origin refs/heads/phase-vi-provider-incentive-metering:refs/remotes/origin/phase-vi-provider-incentive-metering
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git cat-file -e '9be0a339016ebf23a3a5f4108aaab56af19bd93a^{commit}'
-      - name: Restore last checkpoint from GitHub artifact
+          git update-ref refs/remotes/origin/phase-vi-provider-incentive-metering "$GITHUB_SHA"
+      - name: Recover last audited checkpoint (fail closed if artifact retrieval fails)
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -57,88 +61,69 @@ jobs:
               --output "$RUNNER_TEMP/oge95-prior.zip"
             unzip -p "$RUNNER_TEMP/oge95-prior.zip" oge95-commit-drain-receipt.json > oge95-prior-drain-receipt.json
             test -s oge95-prior-drain-receipt.json
-            echo "OGE95_DRAIN_CHECKPOINT_RESTORED"
+            echo "OGE95_DRAIN_RESUMING_FROM_LAST_ARTIFACT"
           else
-            echo "OGE95_DRAIN_BOOTSTRAP_FROM_PREVIOUS_GOOD_SHA"
+            echo "OGE95_DRAIN_BOOTSTRAP_FROM_KNOWN_GOOD_CI_SHA"
           fi
-      - name: Generate complete first-parent backlog and validate contract
+      - name: Unit-test backlog ordering, failed receipts and safety locks
+        run: node --test tests/oge95-commit-drain.test.mjs
+      - name: Process EVERY unseen source commit without manual re-trigger
         shell: bash
         run: |
           set -euo pipefail
-          if test -s oge95-prior-drain-receipt.json; then
-            node scripts/oge95-commit-drain.mjs plan --previous=oge95-prior-drain-receipt.json
-          else
-            node scripts/oge95-commit-drain.mjs plan
-          fi
-          node --test tests/oge95-commit-drain.test.mjs
-      - name: Test six source commits per batch in isolated worktrees
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/oge95-commit-drain.mjs execute
-      - name: Publish durable per-SHA receipt before next run
+          mkdir -p oge95-commit-drain-batches
+          N=0
+          FAILED=0
+          while true; do
+            if test -s oge95-prior-drain-receipt.json; then
+              node scripts/oge95-commit-drain.mjs plan --previous=oge95-prior-drain-receipt.json
+            else
+              node scripts/oge95-commit-drain.mjs plan
+            fi
+            node scripts/oge95-commit-drain.mjs execute
+            N=$((N+1))
+            cp oge95-commit-drain-receipt.json "oge95-commit-drain-batches/batch-$N.json"
+            cp oge95-commit-drain-receipt.json oge95-prior-drain-receipt.json
+            MISSING="$(jq -r '.remaining_at_plan' oge95-commit-drain-receipt.json)"
+            LAST="$(jq -r '.last_processed_sha' oge95-commit-drain-receipt.json)"
+            HEAD="$(jq -r '.head_sha' oge95-commit-drain-receipt.json)"
+            BAD="$(jq -r '.failed_shas | length' oge95-commit-drain-receipt.json)"
+            FAILED=$((FAILED+BAD))
+            echo "OGE95_DRAIN_PROGRESS batch=$N remaining=$MISSING failed_to_date=$FAILED"
+            if test "$MISSING" -eq 0 && test "$LAST" = "$HEAD"; then
+              echo "OGE95_DRAIN_ALL_KNOWN_COMMITS_AUDITED"
+              break
+            fi
+            if test "$MISSING" -eq 0; then
+              echo "OGE95_DRAIN_STALLED_NO_PROGRESS"
+              exit 2
+            fi
+          done
+          echo "$FAILED" > oge95-commit-drain-failed-count.txt
+      - name: Upload all batch receipts with resume checkpoint
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: oge95-commit-drain-ledger-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             oge95-commit-drain-plan.json
             oge95-commit-drain-receipt.json
-          retention-days: 90
-          if-no-files-found: error
-      - name: Show failed SHAs as red CI while continuing next batch
-        shell: bash
-        run: |
-          node --input-type=module <<'NODE'
-          import {readFileSync} from "node:fs";
-          const r=JSON.parse(readFileSync("oge95-commit-drain-receipt.json","utf8"));
-          if(r.failed_shas.length){
-            console.error("OGE95_AUDITED_BUT_FAILED_SHAS "+r.failed_shas.join(","));
-            process.exitCode=1;
-          }else console.log("OGE95_THIS_BATCH_PASS");
-          NODE
-
-  continue:
-    needs: audit
-    if: ${{ always() }} && needs.audit.result != 'cancelled'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      actions: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: oge95-commit-drain-ledger-${{ github.run_id }}-${{ github.run_attempt }}
-      - name: Re-read HEAD and automatically dispatch next batch if needed
-        env:
-          GH_TOKEN: ${{ github.token }}
+            oge95-commit-drain-batches/
+            oge95-commit-drain-failed-count.txt
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Surface source test failures without pretending they were repaired
+        if: ${{ always() }}
         shell: bash
         run: |
           set -euo pipefail
-          node --input-type=module <<'NODE'
-          import {readFileSync} from "node:fs";
-          const r=JSON.parse(readFileSync("oge95-commit-drain-receipt.json","utf8"));
-          const repo="Ogenicchocolate21debug/Build-Platform";
-          const branch="phase-vi-provider-incentive-metering";
-          if(process.env.GITHUB_REPOSITORY!==repo || process.env.GITHUB_REF_NAME!==branch ||
-             r.schema!=="OGE95_GITHUB_COMMIT_DRAIN_V1" || r.repository!==repo ||
-             r.branch!==branch || !/^[a-f0-9]{40}$/i.test(r.last_processed_sha) ||
-             !Array.isArray(r.checked) || r.checked.length>6)
-            throw Error("BAD_COMMIT_RECEIPT_STOP_WITHOUT_DISPATCH");
-          const headers={Authorization:"Bearer "+process.env.GH_TOKEN,
-            Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"};
-          const head=await fetch("https://api.github.com/repos/"+repo+"/branches/"+branch,{headers});
-          if(!head.ok) throw Error("GITHUB_BRANCH_READ_HTTP_"+head.status);
-          const latest=(await head.json()).commit?.sha;
-          if(!/^[a-f0-9]{40}$/i.test(latest||"")) throw Error("BAD_BRANCH_HEAD");
-          if(latest===r.last_processed_sha && r.remaining_at_plan===0){
-            console.log("OGE95_DRAIN_CAUGHT_UP_NO_IDLE_LOOP");
-            process.exit(0);
-          }
-          const next=await fetch("https://api.github.com/repos/"+repo+
-              "/actions/workflows/oge95-commit-drain.yml/dispatches",{
-            method:"POST",headers:{...headers,"Content-Type":"application/json"},
-            body:JSON.stringify({ref:branch})});
-          if(next.status!==204) throw Error("GITHUB_CONTINUATION_DISPATCH_HTTP_"+next.status);
-          console.log("OGE95_AUTOMATIC_NEXT_BATCH_DISPATCHED");
-          NODE
+          if ! test -s oge95-commit-drain-failed-count.txt; then
+            echo "OGE95_DRAIN_NO_FINAL_RECEIPT"
+            exit 1
+          fi
+          FAILED="$(cat oge95-commit-drain-failed-count.txt)"
+          if test "$FAILED" -gt 0; then
+            echo "OGE95_DRAIN_ALL_COMMITS_PROCESSED_BUT_$FAILED_FAILED_CHECKS"
+            exit 1
+          fi
+          echo "OGE95_DRAIN_ALL_AUDITED_COMMITS_PASS"
