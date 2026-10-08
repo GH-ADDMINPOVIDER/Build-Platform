@@ -49,6 +49,13 @@ function configured(env: BlueDiamondRegistryEnv, keys: string[]): BlueDiamondSta
   return keys.every((key) => has(env, key)) ? "DEGRADED" : "CONFIGURATION_REQUIRED";
 }
 
+function geminiReadVerified(env: BlueDiamondRegistryEnv) {
+  return has(env, "GEMINI_API_KEY") &&
+    env.OGENIC_READINESS_GEMINI_API === "REACHABLE" &&
+    env.OGENIC_READINESS_GEMINI_QUOTA === "AVAILABLE" &&
+    env.OGENIC_READINESS_GEMINI_BILLING === "ACTIVE";
+}
+
 function deepseekLiveVerified(env: BlueDiamondRegistryEnv) {
   return has(env, "DEEPSEEK_API_KEY") &&
     env.OGENIC_READINESS_DEEPSEEK_API === "REACHABLE" &&
@@ -222,18 +229,18 @@ export function buildBlueDiamondRegistry(env: BlueDiamondRegistryEnv): BlueDiamo
     },
     {
       actor_id: "gemini-candidate",
-      label: "Gemini Candidate",
+      label: "Gemini READ Specialist",
       provider: "google",
-      actor_class: "agent_candidate",
-      maturity: "CANDIDATE",
-      state: configured(env, ["GEMINI_API_KEY"]),
+      actor_class: "execution_agent",
+      maturity: "PROVEN",
+      state: geminiReadVerified(env) ? "LIVE" : configured(env, ["GEMINI_API_KEY"]),
       agent_eligible: true,
-      capabilities: ["multimodal", "long_context", "reasoning", "tool_calling"],
-      route: "provider:gemini",
+      capabilities: ["reasoning", "context_load"],
+      route: "/api/capabilities/execute",
       runtime: "EXTERNAL_MODEL_API",
-      model: null,
+      model: "gemini-3.7-flash",
       auth_ref: has(env, "GEMINI_API_KEY") ? "env:GEMINI_API_KEY" : null,
-      health_ref: null,
+      health_ref: "/api/provider-readiness",
       quota_ref: "gemini-usage",
       preflight: "EVERY_RUN",
       priority: 10,
