@@ -4,6 +4,9 @@ import { boundedReadPrompt } from "./agent-context-policy";
 
 export type DeepSeekBindings = AuthBindings & {
   DEEPSEEK_API_KEY?: string;
+  OGENIC_READINESS_DEEPSEEK_API?: string;
+  OGENIC_READINESS_DEEPSEEK_QUOTA?: string;
+  OGENIC_READINESS_DEEPSEEK_BILLING?: string;
 };
 
 type Env = { Bindings: DeepSeekBindings };
@@ -38,11 +41,15 @@ export function createDeepSeekApi() {
       return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);
     }
     const keyPresent = Boolean(clean(c.env.DEEPSEEK_API_KEY, 4000));
+    const verified = keyPresent &&
+      c.env.OGENIC_READINESS_DEEPSEEK_API === "REACHABLE" &&
+      c.env.OGENIC_READINESS_DEEPSEEK_QUOTA === "AVAILABLE" &&
+      c.env.OGENIC_READINESS_DEEPSEEK_BILLING === "ACTIVE";
     return c.json({
       ok: true,
       provider: "deepseek",
       api: "CHAT_COMPLETIONS",
-      state: keyPresent ? "BOUND_NOT_SMOKE_VERIFIED" : "CONFIGURATION_REQUIRED",
+      state: verified ? "VERIFIED" : keyPresent ? "BOUND_NOT_SMOKE_VERIFIED" : "CONFIGURATION_REQUIRED",
       key_present: keyPresent,
       key_value: keyPresent ? "REDACTED" : null,
       endpoint: "/chat/completions",
