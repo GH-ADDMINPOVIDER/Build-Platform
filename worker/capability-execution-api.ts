@@ -231,8 +231,8 @@ async function runDeepSeekRead(env: ExecutionBindings, rawPrompt: unknown) {
 
   // Keep the FULL provider text. The generic 1,200-char summary budget must
   // never clip paid research before Ruby can inspect its evidence.
-  const output = typeof body.choices?.[0]?.message?.content === "string"
-    ? body.choices[0].message.content.trim() : "";
+  const providerContent = body.choices?.[0]?.message?.content;
+  const output = typeof providerContent === "string" ? providerContent.trim() : "";
   if (!output) return { ok: false as const, code: "DEEPSEEK_EMPTY_OUTPUT", http_status: 200 };
   return {
     ok: true as const,
