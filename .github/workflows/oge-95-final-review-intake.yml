@@ -6,6 +6,8 @@ on:
     paths:
       - "scripts/oge95-final-review-intake.mjs"
       - "tests/oge95-final-review-intake.test.mjs"
+      - "scripts/oge95-manus-plugin-handoff.mjs"
+      - "tests/oge95-manus-plugin-handoff.test.mjs"
       - "scripts/oge95-provider-readiness.mjs"
       - "tests/oge95-provider-readiness.test.mjs"
       - "scripts/oge95-stone-runner-learning.mjs"
@@ -46,6 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           node --test tests/oge95-final-review-intake.test.mjs
+          node --test tests/oge95-manus-plugin-handoff.test.mjs
           node scripts/oge95-final-review-intake.mjs \
             --audit=docs/evidence/oge-62-flow-audit-latest.json \
             --sha="$GITHUB_SHA" \
