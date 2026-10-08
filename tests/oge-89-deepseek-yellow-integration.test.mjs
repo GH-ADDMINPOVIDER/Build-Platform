@@ -26,7 +26,8 @@ test("OGE-89 uses the existing Infisical key; active only with verified live evi
   assert.match(resolver, /DEEPSEEK_API_KEY/);
   assert.match(resolver, /attestation\.verification_state === "VERIFIED"/);
   assert.match(resolver, /attestation\.billing === "ACTIVE"/);
-  assert.match(resolver, /!keyPresent \\|\\| !verified/);
+  assert.match(resolver, /!keyPresent/);
+  assert.match(resolver, /!verified/);
   assert.match(resolver, /binding_environment: "staging"/);
 });
 
