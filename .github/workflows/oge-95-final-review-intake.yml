@@ -6,11 +6,14 @@ on:
     paths:
       - "scripts/oge95-final-review-intake.mjs"
       - "tests/oge95-final-review-intake.test.mjs"
+      - "scripts/oge95-provider-readiness.mjs"
+      - "tests/oge95-provider-readiness.test.mjs"
       - ".github/workflows/oge-95-final-review-intake.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: oge95-review-intake-${{ github.ref }}
@@ -58,10 +61,37 @@ jobs:
             console.log("OGE95_INTAKE_HISTORICAL_AUDIT_SHA_UNBOUND_NO_PROVIDER_CALL");
           '
 
+      - name: Load existing staging provider bindings through OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Probe Manus and OpenAI read-only access without consuming model tokens
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/oge95-provider-readiness.test.mjs
+          node scripts/oge95-provider-readiness.mjs --output=oge95-provider-readiness.json
+          node -e '
+            const fs = require("node:fs");
+            const report = JSON.parse(fs.readFileSync("oge95-provider-readiness.json"));
+            if(report.model_inference_calls !== 0 || report.paid_agent_tasks_created !== false) {
+              throw Error("READINESS_PROBE_PAID_ACTION_FORBIDDEN");
+            }
+            console.log("OGE95_PROVIDER_READ_ONLY_PROBE_COMPLETED");
+          '
+
       - name: Store read-only intake evidence
         uses: actions/upload-artifact@v4
         with:
           name: oge95-review-intake-${{ github.run_id }}-${{ github.run_attempt }}
-          path: oge95-final-review-intake.json
+          path: |
+            oge95-final-review-intake.json
+            oge95-provider-readiness.json
           retention-days: 14
           if-no-files-found: error
