@@ -1,0 +1,107 @@
+name: OGE-95 Moli Browser Optional Smoke (Local Free Binary)
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "config/moli-browser-adapter.json"
+      - "worker/moli-browser-api.ts"
+      - "integrations/moli/**"
+      - "tests/oge95-moli-browser-tool.test.mjs"
+      - ".github/workflows/oge95-moli-browser-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oge95-moli-smoke
+  cancel-in-progress: false
+
+jobs:
+  moli-public-smoke:
+    name: Existing self-hosted wave-runner-01 / Moli read-only browser proof
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Verify branch and canonical exact SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/phase-vi-provider-incentive-metering"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REPOSITORY" = "Ogenicchocolate21debug/Build-Platform"
+
+      - name: Test Yellow registration and browser task input guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/oge95-moli-browser-tool.test.mjs
+
+      - name: Fetch pinned Moli binary and verify official release SHA-256
+        id: install
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$(mktemp -d "$RUNNER_TEMP/ogenic-moli-XXXXXX")"
+          echo "work=$WORK" >> "$GITHUB_OUTPUT"
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          import { appendFileSync } from "node:fs";
+          const cfg = JSON.parse(readFileSync("config/moli-browser-adapter.json", "utf8"));
+          if (cfg.pinned_version !== "v1.1.12" ||
+              cfg.release_sha256 !== "c003600e22a450914ff804cd980eeac6d37495c9e88f8786bf75d00d010171d0" ||
+              cfg.release_url !== "https://github.com/lexmount/moli/releases/download/v1.1.12/moli-x86_64-unknown-linux-gnu.tar.gz")
+            throw Error("MOLI_PIN_OR_SOURCE_UNEXPECTED");
+          appendFileSync(process.env.GITHUB_ENV, "MOLI_RELEASE_URL=" + cfg.release_url + "\n");
+          appendFileSync(process.env.GITHUB_ENV, "MOLI_RELEASE_SHA256=" + cfg.release_sha256 + "\n");
+          NODE
+          curl --fail --silent --show-error --location             --max-time 160 --retry 0             "$MOLI_RELEASE_URL" --output "$WORK/moli.tar.gz"
+          echo "$MOLI_RELEASE_SHA256  $WORK/moli.tar.gz" | sha256sum --check --status
+          mkdir -p "$WORK/unpacked"
+          tar -xzf "$WORK/moli.tar.gz" -C "$WORK/unpacked"
+          MOLI_BIN="$(find "$WORK/unpacked" -type f -name moli -print -quit)"
+          test -n "$MOLI_BIN" && test -x "$MOLI_BIN" || { echo "MOLI_BINARY_MISSING"; exit 1; }
+          echo "bin=$MOLI_BIN" >> "$GITHUB_OUTPUT"
+          "$MOLI_BIN" --version
+
+      - name: Read only public example.com page and produce sanitized evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node integrations/moli/read-only-smoke.mjs             --url=https://example.com/             --binary="${{ steps.install.outputs.bin }}"             --sha="$GITHUB_SHA"             --output=oge95-moli-browser-smoke.json
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          import assert from "node:assert/strict";
+          const x = JSON.parse(readFileSync("oge95-moli-browser-smoke.json", "utf8"));
+          assert.equal(x.ok, true);
+          assert.equal(x.source_sha, process.env.GITHUB_SHA);
+          assert.equal(x.visible_expected_text, true);
+          assert.equal(x.paid_cloud_sessions, 0);
+          assert.equal(x.llm_calls, 0);
+          assert.equal(x.production_browser_replaced, false);
+          assert.equal(x.ruby_verification, "PENDING");
+          console.log("MOLI_BROWSER_OPTIONAL_LIVE_SMOKE_PASS");
+          NODE
+
+      - name: Publish read-only browser evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge95-moli-browser-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: oge95-moli-browser-smoke.json
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Clean temporary browser binary
+        if: always()
+        shell: bash
+        run: |
+          WORK="${{ steps.install.outputs.work }}"
+          if test -n "$WORK" && [[ "$WORK" == "$RUNNER_TEMP"/ogenic-moli-* ]]; then
+            rm -rf -- "$WORK"
+          fi
