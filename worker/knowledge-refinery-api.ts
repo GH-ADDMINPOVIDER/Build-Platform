@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
+import { lookupOgeIncident, OGE_ERROR_MEMORY_VERSION } from "./oge-error-memory";
 import {
   KNOWLEDGE_REFINERY_VERSION,
   CANONICAL_CONVERSATION,
@@ -41,6 +42,25 @@ export function createKnowledgeRefineryApi() {
     new_d1_schema: false,
     secrets_exposed: false,
   }, 200, { "Cache-Control": "no-store" }));
+
+  // Reuses the existing Knowledge Refinery authority: no new gate or D1 table.
+  api.get("/api/knowledge-refinery/incident", (c) => {
+    const issue = c.req.query("oge") || c.req.query("issue") || "";
+    const httpRaw = c.req.query("http");
+    const http = httpRaw && /^\\d{3}$/.test(httpRaw) ? Number(httpRaw) : null;
+    const result = lookupOgeIncident({
+      issue, http,
+      code: c.req.query("code") || "",
+      component: c.req.query("component") || "",
+    });
+    return c.json({
+      ok: true,
+      runtime: OGE_ERROR_MEMORY_VERSION,
+      source: "GITHUB_VERSIONED_INCIDENT_MEMORY",
+      read_only: true,
+      ...result,
+    }, 200, { "Cache-Control": "no-store" });
+  });
 
   api.get("/api/knowledge-refinery/actors", (c) => c.json({
     ok: true,
