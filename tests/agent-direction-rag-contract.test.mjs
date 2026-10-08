@@ -21,8 +21,10 @@ test("delegated agent surfaces receive canonical D1 context", () => {
   assert.match(app, /readCanonicalD1Context/);
 });
 
-test("DeepSeek is registered as planned, not live", () => {
-  const providers = read("config/providers.json");
-  assert.match(providers, /"id": "deepseek"/);
-  assert.match(providers, /"status": "planned"/);
+test("DeepSeek is active only after verified staging proof", () => {
+  const providers = JSON.parse(read("config/providers.json")).providers;
+  const verified = JSON.parse(read("config/provider-readiness-attestations.json")).providers.deepseek;
+  assert.equal(providers.find((p) => p.id === "deepseek")?.status, "active");
+  assert.equal(verified?.verification_state, "VERIFIED");
+  assert.equal(verified?.http_status, 200);
 });
