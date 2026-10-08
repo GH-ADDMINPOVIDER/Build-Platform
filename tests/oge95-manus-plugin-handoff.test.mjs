@@ -7,7 +7,10 @@ import { readFileSync } from "node:fs";
 
 const sha="a".repeat(40);
 const auditSource = JSON.parse(readFileSync("docs/evidence/oge-62-flow-audit-latest.json", "utf8"));
-const audit = { ...auditSource, source_sha: sha };
+const audit = { ...auditSource, source_sha: sha, source_sha_attestation: { method: "CHECKED_OUT_GIT_HEAD_AND_GITHUB_SHA", exact_checkout_match: true,
+  execution_mode: "SEQUENTIAL_TEN_PROCESS_REPLAY_ON_ONE_HOST", genuinely_parallel_runtime_jobs: false,
+  independent_ai_provider_runs: false, authorization_to_commit_or_deploy: false },
+  commit_manifest: { allowed: true, execution_approved: false } };
 const hash=digest(audit);
 const task = { tool: "initiate_research", task_id:"example_task_1", task_url:"https://manus.im/app/example-task-1" };
 
