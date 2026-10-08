@@ -1,0 +1,52 @@
+{
+  "schema_version": "OGENIC_MOLI_BROWSER_ADAPTER_V1",
+  "name": "Moli",
+  "provider": "lexmount_moli_open_source",
+  "upstream_repository": "https://github.com/lexmount/moli",
+  "license": "MIT OR Apache-2.0 (respect third-party notices)",
+  "pinned_version": "v1.1.12",
+  "platform": "x86_64-unknown-linux-gnu",
+  "release_asset": "moli-x86_64-unknown-linux-gnu.tar.gz",
+  "release_url": "https://github.com/lexmount/moli/releases/download/v1.1.12/moli-x86_64-unknown-linux-gnu.tar.gz",
+  "release_sha256": "c003600e22a450914ff804cd980eeac6d37495c9e88f8786bf75d00d010171d0",
+  "lane": "YELLOW_BROWSER_TOOL",
+  "host": "EXISTING_WAVE_RUNNER_01_TEMPORARY",
+  "deployment_mode": "OPTIONAL_EPHEMERAL_CLI_SMOKE",
+  "registered": true,
+  "installed_persistently": false,
+  "workflow_verified": false,
+  "cloud_browser_runtime_unchanged": true,
+  "existing_plugin_and_mcp_routes_unchanged": true,
+  "requires_yellow_authorization_for_external_web_tasks": true,
+  "browser_automation_api_active": false,
+  "arbitrary_urls_enabled": false,
+  "allowed_smoke_origins": [
+    "https://example.com"
+  ],
+  "paid_lexmount_cloud": false,
+  "llm_calls_enabled": false,
+  "automatic_deploy": false,
+  "green_memory_changes": false,
+  "d1_schema_changes": false,
+  "capabilities": [
+    {
+      "key": "moli_public_read_smoke",
+      "risk": "READ",
+      "execution": "EXISTING_SELFHOST_WORKFLOW",
+      "available": true
+    },
+    {
+      "key": "moli_site_automation",
+      "risk": "BROWSER_ACTION",
+      "execution": "YELLOW_GATED_FUTURE",
+      "available": false
+    },
+    {
+      "key": "moli_authenticated_site_write",
+      "risk": "WRITE",
+      "execution": "REQUIRES_EXPLICIT_APPROVAL",
+      "available": false
+    }
+  ],
+  "next_action": "VERIFY_PINNED_BINARY_ON_EXISTING_RUNNER_NO_BROWSER_REPLACEMENT"
+}
