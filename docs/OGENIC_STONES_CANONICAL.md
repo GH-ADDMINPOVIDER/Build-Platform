@@ -20,6 +20,30 @@
 
 **Spellings/aliases:** Stone Runner (two words); STONE RUNNER uses OBSIDIAN (black), not Orange; RULE STONE uses gray, and owns the **RULE** function; White Diamond = ATHENA; Blue Diamond = Agent catalog; Violet Stone = multi-agent collaboration. The numbering denotes user-approved topology, not software maturity.
 
+### Locked stone species, visual identity and capability names
+
+The **display names above are immutable owner names**; the geological identity below is the visual/species specification. Physical stone *types* are visual metaphors, not claims that software is physically made from minerals. Numeric IDs are reserved as the canonical display/order IDs, not D1/schema migrations.
+
+| Identity | Canonical name | Color (hex) | Species / stone type | Canonical capability ID | Capability display name |
+|---|---|---|---|---|---|
+| COMMAND (outside 7) | **WHITE DIAMOND — ATHENA** | Colorless white `#F5F7FA` | Colorless diamond, crystalline carbon | `BRAIN_ORCHESTRATION` | Brain · Intent & Command |
+| 01 | **GREEN STONE — 1LSS** | Emerald green `#16A34A` | Emerald, beryl group | `CANONICAL_SESSION_MEMORY` | One-Line Session · D1 Continuity |
+| 02 | **YELLOW STONE — TOOLS** | Golden yellow `#EAB308` | Citrine, quartz family | `CAPABILITY_TOOLS_EXECUTION` | Tools · MA-OP / API / MCP / SDK |
+| 03 | **BLUE DIAMOND — AGENTS** | Diamond blue `#3B82F6` | Blue diamond, carbon crystal | `AGENT_IDENTITY_READINESS` | Agents · Roster & Capability Registry |
+| 04 | **VIOLET STONE — MULTI-AGENT SOLUTION** | Amethyst violet `#8B5CF6` | Amethyst, quartz family | `MULTI_AGENT_COORDINATION` | Multi-Agent Solution · Fan-Out / Fan-In |
+| 05 | **RUBY STONE — VERIFICATION** | Ruby red `#DC2626` | Ruby, corundum | `EVIDENCE_SEMANTIC_VERIFICATION` | Verification · Ruby-to-Green Proof |
+| 06 | **STONE RUNNER** | Obsidian black `#111113` | Obsidian, natural volcanic glass *(mineraloid, not a crystal/mineral)* | `EPHEMERAL_RUNTIME_EXECUTION` | Runtime · Workerd / Local D1 / Build / Test |
+| 07 | **RULE STONE** | Slate gray `#6B7280` | Gray agate, banded chalcedony | `CENTRAL_RULE_TAXONOMY` | Rule · One Source / Dedupe / Scope |
+
+The defined stone **capabilities are names** for existing architecture and future build contracts, not claims that unproven functionality works. The only authoritative rules configuration continues to be `config/oge95-rules-center.json`; Rule Stone never becomes a second approval checkpoint, and Yellow retains enforcement authority. D1/Green remains canonical memory; Stone Runner GitHub artifacts are reconstructable evidence.
+
+### Product/issue lock
+
+- **Active engineering umbrella:** [OGE-95](https://linear.app/ogenic-sio/issue/OGE-95) **Stone Runner (Product #2)** only, staging branch. The completed Card Protocol CCS (Product #1) remains preserved.
+- Closed/superseded Linear issues are historical evidence, **not proof their unimplemented acceptance criteria are done**. Missing functionality is tracked within OGE-95; parked non-Runner products are archived, not implemented during this focus.
+- Do not rename existing API identifiers or artifacts without a tested versioned compatibility migration.
+- The full single-issue backlog/evidence registry is `docs/OGE95_ONLY_ACTIVE_WORK_MIGRATION.md`.
+
 ### Operational ownership and single authority
 
 - **Thinking:** WHITE DIAMOND / ATHENA.
