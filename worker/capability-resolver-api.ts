@@ -20,6 +20,7 @@ export type CapabilityResolverD1 = { prepare: (query: string) => CapabilityResol
 export type CapabilityResolverBindings = AuthBindings & {
   DB?: CapabilityResolverD1;
   GEMINI_API_KEY?: string;
+  DEEPSEEK_API_KEY?: string;
 };
 
 type ResolverEnv = { Bindings: CapabilityResolverBindings };
@@ -76,33 +77,43 @@ export function normalizeResolverRequest(body: ResolverRequest): ResolverRequest
 }
 
 function supplementalConfigCandidates(env: CapabilityResolverBindings): ResolverCandidate[] {
-  const gemini = providerConfig.providers.find((provider) => provider.id === "gemini");
-  const attestation = (readinessAttestations as {
+  // Provider enablement requires BOTH the existing server-side key and a
+  // checked-in one-pass VERIFIED attestation. Never rely on "active" alone.
+  const attestations = (readinessAttestations as {
     providers?: Record<string, { verification_state?: string; api?: string; quota?: string; billing?: string }>;
-  }).providers?.gemini;
-  const keyPresent = typeof env.GEMINI_API_KEY === "string" && env.GEMINI_API_KEY.trim().length > 0;
-  const verified =
-    attestation?.verification_state === "VERIFIED" &&
-    attestation.api === "REACHABLE" &&
-    attestation.quota === "AVAILABLE" &&
-    attestation.billing === "ACTIVE";
+  }).providers ?? {};
 
-  if (!gemini || gemini.status !== "active" || !keyPresent || !verified) return [];
-  return [{
-    capability_id: "context_load",
-    capability_description: "Load bounded context through verified Gemini READ reasoning.",
-    permission_class: "READ",
-    capability_enabled: true,
-    provider_id: "gemini",
-    provider_status: "active",
-    provider_capability_enabled: true,
-    priority: 5,
-    binding_id: "runtime:gemini",
-    binding_type: "server_secret",
-    binding_status: "verified",
-    binding_environment: "staging",
-    runtime_capability: false,
-  }];
+  return (["gemini", "deepseek"] as const).flatMap((id): ResolverCandidate[] => {
+    const provider = providerConfig.providers.find((item) => item.id === id);
+    const key = id === "gemini" ? env.GEMINI_API_KEY : env.DEEPSEEK_API_KEY;
+    const attestation = attestations[id];
+    const keyPresent = typeof key === "string" && key.trim().length > 0;
+    const verified = attestation?.verification_state === "VERIFIED" &&
+      attestation.api === "REACHABLE" &&
+      attestation.quota === "AVAILABLE" &&
+      attestation.billing === "ACTIVE";
+
+    if (!provider || provider.status !== "active" || !keyPresent || !verified) return [];
+    return [{
+      capability_id: "context_load",
+      capability_description: id === "gemini"
+        ? "Load bounded context through verified Gemini READ reasoning."
+        : "Explicit-only bounded DeepSeek reasoning READ; metered provider.",
+      permission_class: "READ",
+      capability_enabled: true,
+      provider_id: id,
+      provider_status: "active",
+      provider_capability_enabled: true,
+      // Gemini remains default for non-explicit analysis. DeepSeek is metered
+      // and the executor also requires an explicit DeepSeek provider selection.
+      priority: id === "gemini" ? 5 : 50,
+      binding_id: `runtime:${id}`,
+      binding_type: "server_secret",
+      binding_status: "verified",
+      binding_environment: "staging",
+      runtime_capability: false,
+    }];
+  });
 }
 
 export async function readResolverCandidates(db: CapabilityResolverD1, env: CapabilityResolverBindings = {}) {
