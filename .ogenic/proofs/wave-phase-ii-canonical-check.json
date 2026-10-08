@@ -1,0 +1,13 @@
+{
+  "schema_version": "WAVE_PHASE_II_CANONICAL_CHECK_V1",
+  "repository": "Ogenicchocolate21debug/Build-Platform",
+  "branch": "phase-vi-provider-incentive-metering",
+  "source_commit": "47a9c203683d26257e25c4cc0978575e3563341e",
+  "run_id": "37727965706",
+  "run_attempt": "1",
+  "npm_run_check": "PASS",
+  "tests": "PASS",
+  "typecheck": "PASS",
+  "build": "PASS",
+  "secrets_included": false
+}
