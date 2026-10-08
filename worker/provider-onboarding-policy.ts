@@ -66,7 +66,10 @@ export function buildProviderOnboardingPreflight(reports: ProviderReadiness[]) {
       key_present: report.key_present,
       evidence_verified: evidenceVerified && runtimeVerified,
       adapter_ready: Boolean(route?.permission_class === "READ"),
+      // Advisory hint only; the actual Yellow resolver decides at execution.
       route_eligible: stage === "ROUTE_ELIGIBLE",
+      route_status: "NOT_CHECKED_YELLOW",
+      preflight_required: false,
       route_capability: stage === "ROUTE_ELIGIBLE" ? route?.capability_id : null,
       selection: stage === "ROUTE_ELIGIBLE" ? route?.selection : null,
       paid_preflight_calls: 0,
@@ -78,5 +81,6 @@ export const PROVIDER_ONBOARDING_POLICY = {
   schema_version: onboardingPolicy.schema_version,
   stages: onboardingPolicy.stages,
   runtime_preflight: onboardingPolicy.runtime_preflight,
+  execution_flow: onboardingPolicy.execution_flow,
   hard_gates: onboardingPolicy.hard_gates,
 } as const;
