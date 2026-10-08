@@ -7,6 +7,7 @@ on:
       - ".github/workflows/wave-replica-runner.yml"
       - "scripts/replica-runner/**"
       - "tests/oge95-factory-core.test.mjs"
+      - "tests/oge95-athena-runner-context.test.mjs"
       - "config/oge95-rules-center.json"
   workflow_dispatch:
     inputs:
@@ -33,6 +34,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 25
       - name: Match production build Node major
         uses: actions/setup-node@v4
         with:
@@ -73,6 +75,43 @@ jobs:
             exit 1
           fi
           node scripts/replica-runner/compare.mjs
+      - name: Recover prior Athena Runner context from GitHub artifact (best effort)
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUN_ID="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired == false) | select(.name | startswith("wave-athena-context-")) | .workflow_run.id' \
+            2>/dev/null | head -n 1 || true)"
+          if test -n "$RUN_ID" && test "$RUN_ID" != "$GITHUB_RUN_ID"; then
+            mkdir -p "$RUNNER_TEMP/athena-previous"
+            if gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" \
+              --name "wave-athena-context-$RUN_ID" --dir "$RUNNER_TEMP/athena-previous" >/dev/null 2>&1; then
+              if test -f "$RUNNER_TEMP/athena-previous/athena-runner-context.json"; then
+                cp "$RUNNER_TEMP/athena-previous/athena-runner-context.json" athena-previous-context.json
+                echo "ATHENA_PREVIOUS_CONTEXT_LOADED from run $RUN_ID"
+              fi
+            fi
+          fi
+      - name: Build Athena commit-deploy memory and identify next safe work
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node --test tests/oge95-athena-runner-context.test.mjs
+          node scripts/replica-runner/athena-context.mjs
+      - name: Publish Athena context for future Agent Runner resumes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wave-athena-context-${{ github.run_id }}
+          path: athena-runner-context.json
+          retention-days: 30
+          if-no-files-found: warn
       - name: Upload parity evidence (no secrets, no D1 content)
         if: always()
         uses: actions/upload-artifact@v4
@@ -95,6 +134,10 @@ jobs:
               echo '- BLOCKED: local proof did not produce evidence.'
             fi
             echo '- No paid inference, no remote D1 or staging mutation during Replica proof.'
+            if test -f athena-runner-context.json; then
+              echo '### Athena Runner (commit / CI / deploy memory)'
+              jq '{source_sha,context_id,github_api_state,local_runtime,suggested_actions}' athena-runner-context.json
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Explicit staging deployment handoff only on manual approval
         if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.deploy_staging == true }}
