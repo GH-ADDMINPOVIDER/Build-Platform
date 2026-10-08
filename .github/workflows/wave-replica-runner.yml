@@ -69,6 +69,7 @@ jobs:
             tail -n 40 "$RUNNER_TEMP/replica-workerd.log" | sed -E 's/(sk-[[:alnum:]_-]{12,}|gh[pousr]_[[:alnum:]]{12,})/[REDACTED]/g'
             exit 1
           fi
+          node scripts/replica-runner/compare.mjs
       - name: Upload parity evidence (no secrets, no D1 content)
         if: always()
         uses: actions/upload-artifact@v4
@@ -86,6 +87,7 @@ jobs:
             if test -f replica-evidence.json; then
               jq '{status,local_checks_passed,local_checks_total,target_parity,certified_parity_ratio,real_cloudflare_deploy,provider_inference_calls,source_sha}' replica-evidence.json
               echo '- This validates local surfaces, NOT yet a 90% measured staging equivalence.'
+              jq '.staging_comparison | {status,tests_matched,tests_total,surface_match_ratio,certified_full_runtime_parity}' replica-evidence.json
             else
               echo '- BLOCKED: local proof did not produce evidence.'
             fi
