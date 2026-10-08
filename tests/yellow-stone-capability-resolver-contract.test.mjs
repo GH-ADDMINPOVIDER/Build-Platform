@@ -45,7 +45,9 @@ test("provider catalog keeps legacy migration sources distinct from verified act
   assert.equal(byId.notion.status, "migration");
   assert.equal(byId.n8n.status, "active");
   assert.equal(byId.n8n.role, "workflow_execution_fabric");
-  assert.equal(byId.deepseek.status, "planned");
+  assert.equal(byId.deepseek.status, "active");
+  const proof = JSON.parse(read("config/provider-readiness-attestations.json")).providers.deepseek;
+  assert.equal(proof?.verification_state, "VERIFIED");
   assert.equal(byId.github.status, "active");
   assert.equal(byId.linear.status, "active");
   assert.equal(byId.cloudflare.status, "active");
