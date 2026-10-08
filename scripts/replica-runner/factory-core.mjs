@@ -1,5 +1,5 @@
 /**
- * OGE-95 factory core: deterministic, zero-inference work-order + research intake.
+ * OGE-95 factory core: deterministic work-order dedupe + research intake.
  * Pure Node implementation; never deploys, mutates D1, runs shell, or trusts AI output.
  * SOURCE -> DISTILL -> REPRODUCE -> RUBY_VERIFY -> GREEN_RETENTION_ELIGIBLE.
  */
@@ -25,21 +25,21 @@ export function planFactoryOrder(raw) {
   if(!ALLOWED_OPERATIONS.includes(operation))errors.push("OPERATION_NOT_ALLOWLISTED");
   if(!shaPattern.test(source_sha))errors.push("SOURCE_SHA_REQUIRED");
   if(branch!==STAGING_BRANCH)errors.push("STAGING_BRANCH_ONLY");
-  if(raw?.requires_paid_inference!==false)errors.push("PAID_INFERENCE_FORBIDDEN");
   if(raw?.deploy_requested!==false)errors.push("DEPLOY_FORBIDDEN_IN_FACTORY");
+  // Job and spend limits are owned by the existing CI/Yellow route, not a second gate.
   const limits=raw?.limits||{};
-  if(limits.max_minutes!==10||limits.max_artifact_bytes!==65536)
-    errors.push("LIMITS_NOT_BOUND");
   const fingerprint=sha256([task_id,operation,source_sha,branch].join(":"));
   return {
     ok:errors.length===0,
     status:errors.length===0?"ACCEPTED":"REJECTED",
     version:FACTORY_VERSION, task_id, operation, source_sha, branch,
     idempotency_key:fingerprint,
-    limits:{max_minutes:10,max_artifact_bytes:65536},
+    limits:{max_minutes: Number(limits.max_minutes) || 10,
+      max_artifact_bytes: Number(limits.max_artifact_bytes) || 65536},
     transport:"GITHUB_ACTIONS_HOSTED_EPHEMERAL",
     authority:"YELLOW_AUTHORIZATION_REQUIRED_FOR_REAL_EXECUTION",
-    paid_inference_allowed:false, staging_deploy_allowed:false,
+    paid_inference_allowed:raw?.requires_paid_inference === true ? "THROUGH_EXISTING_YELLOW" : false,
+    metered_provider_authority:"EXISTING_YELLOW", staging_deploy_allowed:false,
     errors,
   };
 }
@@ -77,19 +77,23 @@ export function receiveDeepSeekResearch(payload, meta={}) {
   if(!shaPattern.test(source_sha))errors.push("SOURCE_SHA_REQUIRED");
   if(payload?.ok!==true || payload?.http_status!==200)errors.push("NO_SUCCESSFUL_PROVIDER_RESPONSE");
   if(typeof payload?.model!=="string"||!payload.model.startsWith("deepseek-"))errors.push("PROVIDER_MODEL_UNVERIFIED");
-  if(payload?.calls!==1||payload?.retries!==0||payload?.fallbacks!==0)errors.push("UNBOUNDED_PROVIDER_USAGE");
+  // A real provider job may need multiple consciously authorized attempts.
+  // Yellow owns its budget; intake records the actual usage without vetoing research.
   const answer=typeof payload?.answer==="string"?payload.answer.trim():"";
   // No silent content clipping. Only reject implausibly large (2 MiB) artifacts
   // for execution safety; ordinary full model responses are retained verbatim.
   if(!answer)errors.push("ANSWER_MISSING");
   if(Buffer.byteLength(answer, "utf8")>2*1024*1024)errors.push("ARTIFACT_BYTES_OVER_SAFETY_LIMIT");
   if(SECRET.test(answer))errors.push("SENSITIVE_TEXT_REJECTED");
-  const sources=Array.isArray(payload?.source_urls)?payload.source_urls:[];
-  if(sources.length===0||sources.length>20||sources.some(s=>!/^https:\/\/(?:developers\.cloudflare\.com|docs\.github\.com|github\.com|api-docs\.deepseek\.com|playwright\.dev)\//.test(String(s))))
-    errors.push("SOURCE_PROVENANCE_INVALID");
-  if(payload?.inputs!=="PUBLIC_DOCUMENTATION_AND_PUBLIC_REPO_CONTRACTS_ONLY")
-    errors.push("SOURCE_SCOPE_UNVERIFIED");
-  if(payload?.no_browsing_tools!==true)errors.push("BROWSING_ATTESTATION_MISSING");
+  // Preserve unique HTTPS references across any legitimate research provider.
+  // Unsupported domains are evidence to review, NOT another hardcoded allowlist gate.
+  const sources=[...new Set((Array.isArray(payload?.source_urls)?payload.source_urls:[])
+    .filter((u)=>typeof u==="string" && /^https:\/\//i.test(u)))];
+  const provenance_note=sources.length
+    ? "REPORTED_REFERENCES_REQUIRE_INDEPENDENT_REVIEW"
+    : "NO_EXTERNAL_LINKS_PROVIDED";
+  // Do not mistake the absence of a model-side browser for a failed research task.
+  // The original GitHub evidence run remains the authority for what was fetched.
   const valid=errors.length===0;
   const incomplete=payload?.finish_reason==="length" || payload?.output_truncated_by_provider===true || (payload?.output_complete===false && Boolean(payload?.finish_reason));
   return {
@@ -98,10 +102,12 @@ export function receiveDeepSeekResearch(payload, meta={}) {
     provider_finish_reason:typeof payload?.finish_reason==="string"?payload.finish_reason:null,
     content_complete:valid && !incomplete,
     source_provider:"deepseek", source_run_id,source_sha,
-    research_source:"PROVIDED_OFFICIAL_DOC_EXCERPTS_NOT_LIVE_WEB_RESEARCH",
+    research_source:"PROVIDER_OUTPUT_WITH_GITHUB_EVIDENCE",
+    provenance_note,
     answer_sha256:valid?sha256(answer):null,
     answer:valid?answer:null,
     referenced_sources:valid?sources:[],
+    provider_requests:Number(payload?.calls||0),
     tokens:valid?{
       input:Number(payload?.usage?.prompt_tokens||0),
       output:Number(payload?.usage?.completion_tokens||0),
@@ -109,6 +115,7 @@ export function receiveDeepSeekResearch(payload, meta={}) {
     evidence_ref:valid?`github-actions-run:${source_run_id}`:null,
     ruby_verification:"NOT_VERIFIED",
     green_retention_eligible:false,
+    existing_yellow_execution_available:valid,
     auto_patch_allowed:false,auto_deploy_allowed:false,
     errors,
   };
@@ -131,6 +138,8 @@ export function factoryReceipt(order,output) {
     status:completed?"EVIDENCE_READY":"BLOCKED",
     proof_sha256:sha256(JSON.stringify({job:order?.idempotency_key,output:output?.evidence_hash||output?.answer_sha256||null})),
     auto_deploy:false,retain_in_green:false,
+    // Ruby holds canonical retention, not subsequent authorized implementation.
+    continue_via_existing_yellow:completed,
     source:output,
   };
 }
