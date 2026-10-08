@@ -48,11 +48,11 @@ export function runMoliSmoke(plan, executor = execFileSync) {
   if (!text.includes("Example Domain") || !text.trim()) {
     // Public fixture only: a capped, filtered excerpt explains the exact failure
     // without exposing browser state, credentials or arbitrary target content.
-    const diagnostic = text.slice(0, 260).replace(/[^\\x20-\\x7e]/g, " ").trim();
+    const diagnostic = text.slice(0, 260).replace(/[^\x20-\x7e]/g, " ").trim();
     process.stderr.write("MOLI_PUBLIC_FIXTURE_DIAGNOSTIC " + JSON.stringify({
       content_bytes: Buffer.byteLength(text),
       public_fixture_excerpt: diagnostic
-    }) + "\\n");
+    }) + "\n");
     throw Error("MOLI_PUBLIC_CONTENT_MISMATCH");
   }
   return {
