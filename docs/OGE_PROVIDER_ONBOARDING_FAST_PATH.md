@@ -1,15 +1,13 @@
-# OGENIC / WAVE — Provider onboarding fast path
+# OGENIC / WAVE — Direct-to-Work Agent Policy
 
-Register → Bind existing Infisical key → Verify runtime once → Enable an implemented, approved route.
+**Default execution:** WAVE / ATHENA → Yellow `/api/capabilities/execute` → agent adapter → Ruby → Green (verified results only).
 
-Read-only owner-authenticated diagnostic: `GET /api/provider-readiness/onboarding`. It uses local staging attestations and performs zero paid model calls. Follow the returned `next_action`; never infer readiness from key presence alone.
+There is **no mandatory onboarding request before each job**. Yellow is the single authority for capability resolution, auth and permitted execution. A user can send a supported job directly to Yellow. A legitimate resolver denial remains a denial; do not turn 404/409 into hidden provider retries.
 
-- `SET_UP_SECRET`: missing credential; check existing binding/aliases, do not duplicate keys.
-- `VERIFY_RUNTIME_ONCE`: runtime/API/quota/billing evidence missing; request approval before any paid smoke, then capture canonical CI evidence.
-- `RECONCILE_CATALOG`: verified provider exists but its canonical registration isn't active.
-- `IMPLEMENT_ADAPTER`: verified provider still needs an explicit supported Yellow adapter with contract tests.
-- `READY_EXPLICIT_ONLY` / `READY_AUTO_READ`: only the current approved READ adapter is eligible; DeepSeek remains explicit/limited and Gemini retains its existing read routing.
+**Optional diagnostics:** `GET /api/provider-readiness/onboarding` (owner/ops authenticated, read-only, no paid provider requests) reports known readiness and a suggested next action. Its `route_eligible` value is a **catalog/readiness hint, not proof the live Yellow resolver will accept the route**. The actual route is decided at execution; troubleshoot with `POST /api/capabilities/resolve` only when a route fails, not on every ordinary job.
 
-These checks are shared, not rewritten for each agent. WRITE/EXECUTE/DANGEROUS still require owner approval, Ruby verifies before Green/1LSS retention, and unavailable/disabled capabilities remain blocked. No hidden retries, unapproved paid auto-routing, secrets in D1, production changes, or second memory store.
+**New provider fast path:** register provider + existing Infisical key → add one supported Yellow adapter → perform one explicitly authorized live proof when needed → start taking eligible work. Reuse shared context budget and evidence format. No new approval committee, duplicate D1 mapping, secret, memory store, CI workflow or recurring smoke test per agent.
 
-For a new specialist, extend the registry and implement/test its adapter, record a genuine one-pass proof, then confirm the non-billable readiness endpoint. Do not activate Perplexity, Claude, xAI, Meta or other candidates from key presence alone.
+**Always enforced at the action itself:** owner/ops auth; READ vs WRITE/EXECUTE/DANGEROUS permissions and required approval; bounded context; no hidden paid retry or paid auto-routing; secrets remain in Infisical; Ruby verifies before Green/1LSS retention. Current DeepSeek is explicitly selected metered READ; Gemini retains the existing READ lane. Unverified/billing-blocked candidates are not silently activated.
+
+**If blocked:** return the exact resolver/provider failure and one next action instead of looping or creating another issue for the same root cause. Use the existing OGE issue until closure.
