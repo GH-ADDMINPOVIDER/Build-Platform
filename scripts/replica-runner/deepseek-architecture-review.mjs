@@ -21,7 +21,7 @@ const research = [
   "Architecture requirements: code commit pinned, synthetic D1 only, isolated ephemeral agent tasks with fixed allowlisted operations and time limits; provable idempotency and evidence; safe staged deployment via existing human-selected workflow (never production).",
   "Official source references provided by orchestrator (no independent browsing): https://developers.cloudflare.com/workers/local-development/ ; https://developers.cloudflare.com/d1/best-practices/local-development/ ; https://developers.cloudflare.com/workers/testing/ ; https://docs.github.com/en/actions/reference/security/secure-use",
   "REQUEST: Return 1) P0 top 3 code changes and tests; 2) 1:1 parity plan with 10-20 weighted cases, critical fail-closed checks, measured coverage; 3) READ -> run -> Ruby verify -> Green criteria; 4) risks and what cannot be 1:1. Be implementation-specific, max 750 Thai words."
-].join("\\n");;
+].join("\n");
 
 let once = false;
 try {
@@ -50,7 +50,7 @@ try {
     usage:{prompt_tokens:Number(data?.usage?.prompt_tokens||0),completion_tokens:Number(data?.usage?.completion_tokens||0),total_tokens:Number(data?.usage?.total_tokens||0)},
     calls:1,retries:0,fallbacks:0,
     max_output_tokens:1100,
-    source_urls:research.filter(line=>line.startsWith("https://")).map(line=>line.split(" ")[0]),
+    source_urls:[...new Set([...research.join(" ").matchAll(/https:\/\/(?:developers\.cloudflare\.com|docs\.github\.com)\/[^\s;]+/g)].map(match=>match[0]))],
     inputs:"PUBLIC_DOCUMENTATION_AND_PUBLIC_REPO_CONTRACTS_ONLY",
     no_browsing_tools:true,
     no_code_mutation:true,
