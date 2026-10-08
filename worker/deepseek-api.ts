@@ -100,7 +100,7 @@ export function createDeepSeekApi() {
             { role: "user", content: prompt },
           ],
           stream: false,
-          max_tokens: 4096,
+          // No app-side generation cutoff. Preserve provider finish_reason for clients.
         }),
       });
     } catch {
@@ -140,7 +140,8 @@ export function createDeepSeekApi() {
     }
 
     const choice = result.choices?.[0];
-    const text = clean(choice?.message?.content, 40_000);
+    // Return full text; do not silently cut valuable paid research at 40K chars.
+    const text = typeof choice?.message?.content === "string" ? choice.message.content.trim() : "";
     if (!text) {
       return c.json({ ok: false, code: "DEEPSEEK_EMPTY_OUTPUT", http_status: 200 }, 502);
     }
@@ -152,6 +153,8 @@ export function createDeepSeekApi() {
       response_id: clean(result.id, 180) || null,
       model: clean(result.model || model, 120),
       finish_reason: clean(choice?.finish_reason, 80) || null,
+      output_complete: choice?.finish_reason === "stop",
+      output_truncated_by_provider: choice?.finish_reason === "length",
       text,
       usage: {
         prompt_tokens: Number(result.usage?.prompt_tokens ?? 0),
