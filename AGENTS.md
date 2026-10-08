@@ -92,6 +92,13 @@ Preview when relevant. Do not replace Cloudflare as canonical runtime.
 - Attachments must never silently disappear.
 - Mobile Safari/Home Screen/PWA are required verification targets for composer reliability.
 
+## OGE incident memory (reuse before debugging)
+- On a failing OGE run, FIRST search the versioned `config/oge-error-memory.json` with `node scripts/oge-incident-memory.mjs lookup --oge OGE-35 --http 404 --component athena-yellow-resolver` or owner-auth `GET /api/knowledge-refinery/incident?oge=OGE-35&http=404`.
+- **HTTP 404/409 alone is not a fingerprint.** Require the issue, failing component and structured error code when available. Return UNKNOWN rather than attach the wrong cause to an unrelated OGE.
+- For genuinely new errors, `node scripts/oge-incident-memory.mjs record --oge OGE-10 --http 404 --component component-id --evidence https://github.com/<owner>/<repo>/actions/runs/<run_id>`; only record an observed symptom, mark UNVERIFIED, commit the catalog to staging, and comment the **existing** Linear OGE (do not open a duplicate).
+- For a verified fix, update **that same** record with exact root cause, minimal recovery steps, commit and successful CI/runtime evidence. Do not promote guesses to CONFIRMED; do not weaken permission/billing guards to silence 404/409.
+- This is a read-only advisory lookup, **not another execution Policy Gate**. D1 remains canonical application state; the GitHub+Linear incident ledger is versioned evidence. Do not add a D1 table.
+
 ## Reporting
 Use compact evidence-first updates:
 
