@@ -1,0 +1,105 @@
+name: OGE-89 DeepSeek One-Pass Staging Smoke
+
+# Isolated from deploy. At most ONE minimal paid request.
+# Push triggers only when this workflow file is added or modified.
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-89-deepseek-one-pass-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Discover Infisical staging project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load staging-only Infisical bindings through GitHub OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Resolve DeepSeek alias without logging key
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          manifest = json.loads(Path("config/staging-runtime-bindings.json").read_text())
+          key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+          if not key:
+              for alias in manifest.get("aliases", {}).get("DEEPSEEK_API_KEY", []):
+                  key = os.environ.get(alias, "").strip()
+                  if key:
+                      break
+          if not key:
+              raise SystemExit("CONFIGURATION_REQUIRED: DEEPSEEK_API_KEY missing from Infisical staging")
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as out:
+              out.write("DEEPSEEK_API_KEY=" + key + "\n")
+          print("DEEPSEEK_API_KEY: PRESENT (value redacted)")
+          PY
+
+      - name: Verify existing OGE-59 contract
+        shell: bash
+        run: node --test tests/oge-59-deepseek-bridge.test.mjs
+
+      - name: One tiny DeepSeek live call, no retry or fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          node scripts/deepseek-smoke.mjs > /tmp/oge-89-deepseek-proof.json
+          EXIT_CODE=$?
+          set -e
+          jq '{ok, code, http_status, model, finish_reason, content_present, total_tokens}' /tmp/oge-89-deepseek-proof.json
+          {
+            echo "### OGE-89 DeepSeek minimal one-pass proof"
+            echo ""
+            echo "- Canonical staging commit: $GITHUB_SHA"
+            echo "- GitHub run: $GITHUB_RUN_ID"
+            echo "- Maximum provider requests: 1"
+            echo "- No prompt, response text or secret values recorded."
+            echo "~~~json"
+            jq -c '{ok, code, http_status, model, finish_reason, content_present, total_tokens}' /tmp/oge-89-deepseek-proof.json
+            echo "~~~"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "::error::DEEPSEEK_ONE_PASS_FAILED; sanitized proof above"
+            exit 1
+          fi
+          jq -e '.ok == true and .http_status == 200 and .content_present == true' /tmp/oge-89-deepseek-proof.json >/dev/null
+
+      - name: Upload secret-free provider proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge-89-deepseek-${{ github.run_id }}
+          path: /tmp/oge-89-deepseek-proof.json
+          retention-days: 7
+          if-no-files-found: ignore
