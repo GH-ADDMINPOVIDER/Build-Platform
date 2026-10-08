@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   id-token: write
 
 concurrency:
@@ -71,15 +72,20 @@ jobs:
           set -euo pipefail
           PREVIOUS="$RUNNER_TEMP/oge95-prev-learning"
           mkdir -p "$PREVIOUS"
-          if command -v gh >/dev/null 2>&1; then
-            NAME="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
-              --jq '[.artifacts[] | select(.expired == false and (.name | test("^oge95-review-intake-[0-9]+-[0-9]+$")))] | sort_by(.created_at) | last | .name // empty' 2>/dev/null || true)"
-            if test -n "$NAME"; then
-              RUN="$(printf '%s' "$NAME" | awk -F- '{print $(NF-1)}')"
-              if [[ "$RUN" =~ ^[0-9]+$ ]]; then
-                gh run download "$RUN" --repo "${GITHUB_REPOSITORY}" \
-                  --name "$NAME" --dir "$PREVIOUS" >/dev/null 2>&1 || true
-              fi
+          # No dependency on gh CLI. Read GitHub artifact bytes via ephemeral Actions token.
+          ARTIFACT_JSON="$(curl --fail --silent --show-error --max-time 15 \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" 2>/dev/null || true)"
+          ID="$(printf "%s" "$ARTIFACT_JSON" | jq -r '[.artifacts[]? | select(.expired == false and (.name | test("^oge95-review-intake-[0-9]+-[0-9]+$")))] | sort_by(.created_at) | last | .id // empty' 2>/dev/null || true)"
+          if [[ "$ID" =~ ^[0-9]+$ ]]; then
+            if curl --fail --silent --show-error --max-time 20 --location \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ID}/zip" \
+              --output "$PREVIOUS/previous.zip" >/dev/null 2>&1; then
+              unzip -p "$PREVIOUS/previous.zip" oge95-stone-runner-learning.json \
+                > "$PREVIOUS/oge95-stone-runner-learning.json" 2>/dev/null || true
             fi
           fi
           if test -s "$PREVIOUS/oge95-stone-runner-learning.json"; then
@@ -107,7 +113,7 @@ jobs:
                a.permission_to_commit_or_deploy!=="NOT_GRANTED" ||
                a.promoted_to_green_1lss!==false ||
                a.direct_provider_calls!==0) throw Error("LEARNING_MUST_BE_NON_AUTHORITATIVE");
-            console.log("OGE95_STONE_RUNNER_3_SOURCE_LEARNING_CACHE_EMITTED");
+            console.log("OGE95_STONE_RUNNER_3_SOURCE_LEARNING_CACHE_EMITTED_COUNT="+a.observation_count);
           '
 
       - name: Load existing staging provider bindings through OIDC
