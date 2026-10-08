@@ -41,6 +41,10 @@ export function createProviderReadinessApi() {
       runtime: "PROVIDER_ONBOARDING_PREFLIGHT_V1",
       read_only: true,
       paid_completion_calls: false,
+      diagnostic_only: true,
+      requires_preflight_before_execution: false,
+      execution_authority: "/api/capabilities/execute",
+      readiness_is_advisory: true,
       policy: PROVIDER_ONBOARDING_POLICY,
       providers: buildProviderOnboardingPreflight(reports),
     }, 200, { "Cache-Control": "no-store" });
