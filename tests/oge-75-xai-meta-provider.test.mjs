@@ -43,7 +43,7 @@ test("OGE-75 routes both providers through the guarded Yellow entry", () => {
 test("OGE-75 exposes both actors in Blue registry and readiness", () => {
   assert.match(registry, /actor_id: "grok-candidate"/);
   assert.match(registry, /actor_id: "meta-model-candidate"/);
-  assert.match(registry, /return actors;/);
+  assert.match(registry, /return actors\.slice\(0,\s*16\);/);
   assert.match(readiness, /"meta_model"/);
   assert.match(readiness, /META_MODEL_API_KEY/);
 });
