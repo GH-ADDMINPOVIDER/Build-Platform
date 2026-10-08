@@ -1,0 +1,74 @@
+name: ATHENA 404 Diagnosis - One DeepSeek Read
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: [".github/workflows/oge-deepseek-athena-diagnosis-one-shot.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+jobs:
+  one-shot:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Discover staging Infisical
+        id: project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+      - name: Load existing DeepSeek key through OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: Resolve Infisical DeepSeek alias without output
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, json
+          from pathlib import Path
+          meta=json.loads(Path("config/staging-runtime-bindings.json").read_text())
+          key=os.environ.get("DEEPSEEK_API_KEY","").strip()
+          for alias in meta.get("aliases",{}).get("DEEPSEEK_API_KEY",[]):
+              if not key: key=os.environ.get(alias,"").strip()
+          if not key: raise SystemExit("CONFIGURATION_REQUIRED_DEEPSEEK_KEY")
+          with open(os.environ["GITHUB_ENV"],"a",encoding="utf-8") as f:
+              f.write("DEEPSEEK_API_KEY="+key+"\n")
+          print("Key present [REDACTED]")
+          PY
+      - name: One DeepSeek analysis of ATHENA 404 versus 409
+        shell: bash
+        run: node scripts/verify-deepseek-athena-diagnosis.mjs
+      - name: Upload analysis for independent audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: athena-one-shot-deepseek-diagnosis-${{ github.run_id }}
+          path: /tmp/oge-athena-deepseek-diagnosis.json
+          retention-days: 7
+          if-no-files-found: ignore
+      - name: Record one-pass proof
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### DeepSeek ATHENA one-shot"
+            echo "- Existing Infisical key, one call max"
+            echo "- Public code/CI facts only; no user content or D1 data sent"
+            echo "- No unapproved code changes, no retries, no fallback"
+            echo "- Diagnosis in uploaded artifact. Evaluate independently before changing code"
+          } >> "$GITHUB_STEP_SUMMARY"
