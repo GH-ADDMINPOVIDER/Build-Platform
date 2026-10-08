@@ -95,8 +95,8 @@
     },
     {
       "id": "deepseek",
-      "role": "reasoning_code_billing_blocked",
-      "status": "planned",
+      "role": "verified_bounded_reasoning_read_explicit_selection_only",
+      "status": "active",
       "auth": "api_key",
       "secret_ref": "/providers/deepseek/staging"
     },
