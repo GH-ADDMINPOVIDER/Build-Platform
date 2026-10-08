@@ -1,0 +1,40 @@
+name: OGE-91 DeepSeek Priority Validation (No API Calls)
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-91-deepseek-priority-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  priority-validate:
+    # Parallel GitHub-hosted lane; does NOT wait for self-hosted staging queue.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: DeepSeek integration + historical regression contracts
+        run: |
+          node --test tests/agent-direction-rag-contract.test.mjs tests/yellow-stone-capability-resolver-contract.test.mjs tests/oge-89-deepseek-yellow-integration.test.mjs
+      - name: Prepare lockfile in runner only (no repository mutation)
+        run: npm install --package-lock-only --no-audit --no-fund && npm ci --no-audit --no-fund
+      - name: Whole-project test, typecheck and build
+        run: npm run check
+      - name: Publish proof
+        shell: bash
+        run: |
+          {
+            echo "### OGE-91 priority quality gate"
+            echo "- Branch: $GITHUB_REF_NAME"
+            echo "- SHA: $GITHUB_SHA"
+            echo "- DeepSeek paid provider calls: 0"
+            echo "- Test + typecheck + build: PASS"
+            echo "- Do not enable production or automatic paid route"
+          } >> "$GITHUB_STEP_SUMMARY"
