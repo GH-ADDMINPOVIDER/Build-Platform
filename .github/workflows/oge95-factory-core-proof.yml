@@ -1,0 +1,47 @@
+name: OGE-95 Replica Factory Core - Evidence Proof
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: [".github/workflows/oge95-factory-core-proof.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oge95-factory-proof-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  factory-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run real factory contract tests
+        run: node --test tests/oge95-factory-core.test.mjs
+      - name: Create bounded read-only production-line receipt
+        run: node scripts/replica-runner/factory-run.mjs --operation replica_source_audit --task OGE-95-factory-proof
+      - name: Assert required station and evidence
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync } from "node:fs";
+          import assert from "node:assert/strict";
+          const receipt=JSON.parse(readFileSync("oge95-factory-receipt.json","utf8"));
+          assert.equal(receipt.status,"EVIDENCE_READY");
+          assert.equal(receipt.source.ok,true);
+          assert.equal(receipt.source.provider_calls,0);
+          assert.equal(receipt.retain_in_green,false);
+          assert.equal(receipt.stages.find(s=>s.stage==="VERIFY").state,"PENDING_RUBY");
+          console.log("EVIDENCE_READY; RUBY remains pending; no paid API or deployment");
+          JS
+      - name: Publish machine-readable work receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge95-factory-proof-${{ github.run_id }}
+          path: oge95-factory-receipt.json
+          retention-days: 14
