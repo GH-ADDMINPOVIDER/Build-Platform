@@ -49,8 +49,8 @@ test("Passing local public parity never claims whole 1:1; recommends stateful re
 test("Proof on earlier HEAD is not a valid CURRENT-SHA replica proof",()=>{
   const proof={status:"LOCAL_PROOF_PASS",source_sha:older,local_checks_passed:12,local_checks_total:12};
   const c=deriveAthenaContext({...base,local_proof:proof});
-  assert.equal(c.local_runtime.status,"LOCAL_PROOF_PASS");
-  // status from stale report is visible, but the action still demands current-SHA proof
+  assert.equal(c.local_runtime.status,"STALE_SHA_LOCAL_PROOF");
+  // Stale report must not certify current-SHA proof
   assert.equal(c.suggested_actions[0].action,"INSPECT_OR_RETRY_REPLICA");
 });
 test("Previous cache is accepted only for same repo/branch, never a source of live truth",()=>{
