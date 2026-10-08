@@ -78,6 +78,12 @@ export function deriveAthenaContext(input) {
     run_id:Number(input.run_id)||null,
     context_id:sha256([EXPECTED_REPO,source_sha,input.run_id||0].join(":")),
     canonical:{conversation:"owner-main",session_line:"1LSS_OWNER_MAIN",state_owner:"CLOUDFLARE_D1",executor_authority:"YELLOW_STONE",verification:"RUBY"},
+    linked_systems:{
+      github:{state:"GITHUB_API_LIVE_OR_EXPLICIT_UNKNOWN",source:"actions.recent_runs_and_exact_commit"},
+      cloudflare_staging:{url:"https://wave.ogenicchocolate.com",proof_source:"GITHUB_DEPLOY_WORKFLOW_AND_PUBLIC_ROUTE_COMPARE",real_deploy_state:"NOT_DIRECTLY_QUERIED"},
+      linear:{issue:"OGE-95",url:"https://linear.app/ogenic-sio/issue/OGE-95/wave-replica-runner-091-ephemeral-virtual-runner-local-d1-workerd",state:"REFERENCE_ONLY_NOT_QUERIED"},
+      n8n:{state:"NOT_QUERIED_IN_REPLICA",control_authority:false}
+    },
     git:{commits:(input.commits||[]).slice(0,12).map(x=>({sha:s(x.sha,40),subject:s(x.subject,150)})).filter(x=>hash40(x.sha)),files:(input.files||[]).slice(0,12)},
     actions:{latest_canonical_check:latestCi,latest_staging_deploy:latestDeploy,latest_failure:recentFailure,recent_runs:history},
     local_runtime:{
