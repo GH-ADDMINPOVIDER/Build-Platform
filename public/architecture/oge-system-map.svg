@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="900" viewBox="0 0 1800 900" role="img" aria-labelledby="title desc">
+<title id="title">OGENIC WAVE architecture map</title>
+<desc id="desc">Black and white architecture map connecting WAVE, ATHENA and BLUE, YELLOW, CCS, VIOLET, RUBY, GREEN 1LSS and supporting systems.</desc>
+<rect width="1800" height="900" fill="#fff"/>
+<text x="80" y="82" font-family="Arial, sans-serif" font-size="48" font-weight="700" fill="#111">OGENIC / WAVE — SYSTEM ARCHITECTURE</text>
+<text x="82" y="122" font-family="Arial, sans-serif" font-size="22" fill="#555">Multi everything underneath. One verified control line on top.</text>
+<g font-family="Arial, sans-serif" fill="#111" text-anchor="middle">
+  <g stroke="#111" stroke-width="3" fill="#fff">
+    <rect x="70" y="250" width="210" height="120" rx="18"/><rect x="325" y="250" width="230" height="120" rx="18"/>
+    <rect x="600" y="250" width="230" height="120" rx="18"/><rect x="875" y="250" width="230" height="120" rx="18"/>
+    <rect x="1150" y="250" width="230" height="120" rx="18"/><rect x="1425" y="250" width="230" height="120" rx="18"/>
+    <rect x="1425" y="500" width="230" height="120" rx="18"/>
+  </g>
+  <text x="175" y="305" font-size="28" font-weight="700">WAVE</text><text x="175" y="340" font-size="18">Human Surface</text>
+  <text x="440" y="300" font-size="25" font-weight="700">ATHENA + BLUE</text><text x="440" y="337" font-size="18">Admission · Planning</text>
+  <text x="715" y="300" font-size="25" font-weight="700">YELLOW / MA-OP</text><text x="715" y="337" font-size="18">Execution Authority</text>
+  <text x="990" y="300" font-size="28" font-weight="700">CCS</text><text x="990" y="337" font-size="18">Capability · Scope · Lease</text>
+  <text x="1265" y="300" font-size="28" font-weight="700">VIOLET</text><text x="1265" y="337" font-size="18">Agents · Workflow</text>
+  <text x="1540" y="300" font-size="28" font-weight="700">RUBY</text><text x="1540" y="337" font-size="18">Verify · Evidence</text>
+  <text x="1540" y="550" font-size="28" font-weight="700">GREEN / 1LSS</text><text x="1540" y="585" font-size="18">owner-main · Canonical</text>
+</g>
+<g stroke="#111" stroke-width="4" fill="none">
+  <path d="M280 310 H325"/><path d="M555 310 H600"/><path d="M830 310 H875"/><path d="M1105 310 H1150"/><path d="M1380 310 H1425"/><path d="M1540 370 V500"/>
+</g>
+<g fill="#111">
+  <polygon points="325,310 311,302 311,318"/><polygon points="600,310 586,302 586,318"/><polygon points="875,310 861,302 861,318"/>
+  <polygon points="1150,310 1136,302 1136,318"/><polygon points="1425,310 1411,302 1411,318"/><polygon points="1540,500 1532,486 1548,486"/>
+</g>
+<g font-family="Arial, sans-serif">
+  <rect x="90" y="520" width="1120" height="250" rx="24" fill="#f7f7f7" stroke="#777" stroke-width="2"/>
+  <text x="125" y="565" font-size="24" font-weight="700" fill="#111">PARALLEL WORK + SUPPORT EVIDENCE</text>
+  <g fill="#fff" stroke="#777" stroke-width="2">
+    <rect x="125" y="610" width="150" height="82" rx="14"/><rect x="300" y="610" width="150" height="82" rx="14"/>
+    <rect x="475" y="610" width="150" height="82" rx="14"/><rect x="650" y="610" width="150" height="82" rx="14"/>
+    <rect x="825" y="610" width="150" height="82" rx="14"/><rect x="1000" y="610" width="150" height="82" rx="14"/>
+  </g>
+  <g fill="#111" font-size="20" text-anchor="middle">
+    <text x="200" y="660">Codex</text><text x="375" y="660">Gemini</text><text x="550" y="660">Manus</text>
+    <text x="725" y="660">n8n</text><text x="900" y="660">GitHub</text><text x="1075" y="660">Linear</text>
+  </g>
+  <text x="125" y="735" font-size="18" fill="#555">Cloudflare runtime · D1 canonical operational state · provider work returns through Ruby before Green promotion</text>
+</g>
+<path d="M1425 560 C1250 560 1210 445 1265 370" stroke="#777" stroke-width="2" stroke-dasharray="7 7" fill="none"/>
+<text x="1260" y="485" font-family="Arial, sans-serif" font-size="17" fill="#555">compact canonical context</text>
+</svg>
