@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: wave-phase-ii-canonical-check
@@ -58,12 +58,11 @@ jobs:
             "secrets_included": false
           }
           JSON
-          git config user.name "ogenic-wave-proof"
-          git config user.email "ogenic-wave-proof@users.noreply.github.com"
-          git add .ogenic/proofs/wave-phase-ii-canonical-check.json
-          if git diff --cached --quiet; then
-            echo "Proof unchanged."
-          else
-            git commit -m "proof: persist WAVE Phase II canonical check"
-            git push origin "HEAD:phase-vi-provider-incentive-metering"
-          fi
+          echo "Secret-free source SHA/run proof generated; preserve it as a GitHub Actions artifact."
+      - name: Upload canonical check evidence without branch writes
+        uses: actions/upload-artifact@v4
+        with:
+          name: wave-phase-ii-proof-${{ github.run_id }}
+          path: .ogenic/proofs/wave-phase-ii-canonical-check.json
+          retention-days: 30
+          if-no-files-found: error
