@@ -12,7 +12,10 @@ export async function probeProviderReadiness(env = process.env, fetcher = fetch)
     checked_at: new Date().toISOString(),
     paid_agent_tasks_created: false,
     model_inference_calls: 0,
-    manus: { state: "NOT_CONFIGURED" },
+    manus: { state: "NOT_CONFIGURED", transport: "MANUS_DIRECT_API_V2" },
+    // ChatGPT Manus plugin/MCP is a separate authenticated transport outside CI.
+    // Absence of MANUS_API_KEY only says the direct API binding is missing.
+    manus_plugin: { state: "EXTERNAL_PLUGIN_NOT_PROBED", transport: "CHATGPT_MANUS_PLUGIN_MCP" },
     openai: { state: "NOT_CONFIGURED" }
   };
   const pairs = [
@@ -31,6 +34,7 @@ export async function probeProviderReadiness(env = process.env, fetcher = fetch)
         signal: AbortSignal.timeout(10000)
       });
       output[provider] = {
+        ...(provider === "manus" ? { transport: "MANUS_DIRECT_API_V2" } : {}),
         state: res.status === 200 ? "READ_ACCESS_OK"
           : [401, 403].includes(res.status) ? "AUTH_DENIED"
           : res.status === 429 ? "RATE_LIMITED" : "READ_ERROR",
@@ -39,7 +43,7 @@ export async function probeProviderReadiness(env = process.env, fetcher = fetch)
       // Deliberately do not read provider body, list session IDs or display user data.
       await res.body?.cancel().catch(() => {});
     } catch {
-      output[provider] = { state: "NETWORK_UNAVAILABLE" };
+      output[provider] = { state: "NETWORK_UNAVAILABLE", ...(provider === "manus" ? { transport: "MANUS_DIRECT_API_V2" } : {}) };
     }
   }
   return output;
