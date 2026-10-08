@@ -52,6 +52,10 @@ jobs:
           echo "=== Live Agent Roster (redacted credentials) ==="
           jq -c '.actors[] | select(.agent_eligible == true) | {actor_id, actor_class, maturity, state, agent_eligible}' /tmp/oge93-blue-diamond-registry.json
           jq -e '.providers | any(.provider == "deepseek" and .readiness == "VERIFIED")' /tmp/oge93-provider-readiness.json >/dev/null
+          jq -e '.providers | any(.provider == "gemini" and .readiness == "VERIFIED")' /tmp/oge93-provider-readiness.json >/dev/null
+          jq -e '.actors | any(.actor_id == "deepseek-candidate" and .state == "LIVE" and .maturity == "PROVEN")' /tmp/oge93-blue-diamond-registry.json >/dev/null
+          jq -e '.actors | any(.actor_id == "gemini-candidate" and .state == "LIVE" and .maturity == "PROVEN")' /tmp/oge93-blue-diamond-registry.json >/dev/null
+          echo "DeepSeek and Gemini provider/read-only actor evidence reconcile: PASS"
           {
             echo "### OGE-93 Read-only verified readiness snapshot"
             echo "- Provider status obtained from live Worker with owner/ops auth"
