@@ -56,13 +56,17 @@ function evaluateReceipt(receipt, provider, sourceSha, auditDigest, writer) {
 }
 export function evaluateFinalIntake({ audit, sourceSha, writerActor = "unknown", receipts = {} }) {
   const validSha = typeof sourceSha === "string" && GIT_SHA.test(sourceSha);
-  const github = validGitHubAudit(audit) && validSha ? "PASS" : "BLOCKED";
+  const structurallyValid = validGitHubAudit(audit) && validSha;
+  // OGE-62 historical evidence lacks source_sha: never assign current SHA by assumption.
+  const github = !structurallyValid ? "BLOCKED"
+    : audit.source_sha === sourceSha ? "PASS" : "HISTORICAL_UNBOUND";
   const auditSha = digest(audit);
   const reviewers = Object.fromEntries(PROVIDERS.map((p) =>
     [p, evaluateReceipt(receipts[p], p, sourceSha, auditSha, writerActor)]
   ));
   const results = Object.values(reviewers).map((x) => x.state);
-  const state = github !== "PASS" ? "BLOCKED_GITHUB_AUDIT"
+  const state = github === "HISTORICAL_UNBOUND" ? "GITHUB_AUDIT_SHA_NOT_ATTESTED"
+    : github !== "PASS" ? "BLOCKED_GITHUB_AUDIT"
     : results.some((s) => s === "REJECTED_INVALID_OR_MISMATCHED" || s === "REVIEW_FAIL")
       ? "REWORK_REQUIRED"
     : results.some((s) => s === "INCONCLUSIVE") ? "REVIEW_INCONCLUSIVE"
@@ -99,5 +103,5 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   const output = arg("output");
   if (output) writeFileSync(output, json);
   process.stdout.write(json);
-  if (result.github_audit !== "PASS" || result.final_intake_state === "REWORK_REQUIRED") process.exitCode = 1;
+  if (result.github_audit === "BLOCKED" || result.final_intake_state === "REWORK_REQUIRED") process.exitCode = 1;
 }
