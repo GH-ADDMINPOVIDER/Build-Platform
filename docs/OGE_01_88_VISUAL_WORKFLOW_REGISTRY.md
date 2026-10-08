@@ -1,136 +1,263 @@
-# OGENIC / WAVE — OGE-01 to OGE-88 Visual Workflow Registry
+# OGENIC / WAVE — OGE 01–88 Live Linear-Sourced Visual Map
 
-> **Scope:** staging branch only. This file is an evidence-aware **visual index**, not an assertion that all 88 items are complete or that each bucket is an execution dependency. Never use it to approve production actions.
+> Generated from **Linear issue search** on 2026-10-08, staging documentation only. Linear status is an issue-tracker claim, NOT independent runtime proof. This is an inventory, not a generated dependency DAG.
 
-## System architecture (verified contract design, not end-to-end runtime proof)
+## Canonical execution architecture
 
 ```mermaid
 flowchart TD
-  A["ATHENA / Multi-Agent<br/>plan and delegate"] --> Y["Yellow Stone / CCS<br/>execution permissions"]
-  A --> M["MA-OP<br/>coordinate"]
-  Y --> R["Ruby<br/>verify evidence"]
-  M --> R
-  R --> G["Green Stone / 1LSS / D1<br/>canonical state"]
-  X["GitHub source + CI<br/>independent audit"] --> R
-  subgraph Roadmap["OGE roadmap registry — tracking buckets, NOT claimed dependency edges"]
-  B0["OGE-01–OGE-10<br/>individual verification pending"]
-  B1["OGE-11–OGE-20<br/>individual verification pending"]
-  B2["OGE-21–OGE-30<br/>individual verification pending"]
-  B3["OGE-31–OGE-40<br/>individual verification pending"]
-  B4["OGE-41–OGE-50<br/>individual verification pending"]
-  B5["OGE-51–OGE-60<br/>individual verification pending"]
-  B6["OGE-61–OGE-70<br/>individual verification pending"]
-  B7["OGE-71–OGE-80<br/>individual verification pending"]
-  B8["OGE-81–OGE-88<br/>81–83 contracts; 84 PR verified; 85 pending; 86–88 referenced"]
-  end
-  G -. "reconcile evidence and ownership" .-> Roadmap
+ A["ATHENA / Multi-Agent"] --> Y["Yellow / CCS Policy"]
+ A --> M["MA-OP Orchestration"]
+ Y --> R["Ruby Evidence Gate"]
+ M --> R
+ R --> G["Green / 1LSS / D1"]
+ N["n8n workflows"] --> M
+ GH["GitHub CI audit"] --> R
+ K0["UNKNOWN (13)"]
+ K1["OTHER (7)"]
+ K2["WAVE UI (11)"]
+ K3["AGENTS (21)"]
+ K4["CONTROL (17)"]
+ K5["CONNECTORS (5)"]
+ K6["FOUNDATION (5)"]
+ K7["EVIDENCE (7)"]
+ K8["OPERATIONS (1)"]
+ K9["RESEARCH (1)"]
 ```
 
-## All numbered roadmap nodes (01–88)
+## Mobile-first grouped map
 
-The numbers below are explicitly represented so no work item silently disappears. **UNVERIFIED** means we have not yet reconciled its title, authoritative ticket, code, CI and runtime evidence. It does NOT mean FAIL, blocked, or completed. OGE-85 is similarly unverified, not assumed absent.
+### UNKNOWN — 13 issues
 
-| Node | Evidence status | Known scope / action to verify | Current evidence |
-|---|---|---|---|
-| OGE-01 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-02 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-03 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-04 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-05 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-06 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-07 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-08 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-09 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-10 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-11 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-12 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-13 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-14 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-15 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-16 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-17 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-18 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-19 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-20 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-21 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-22 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-23 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-24 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-25 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-26 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-27 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-28 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-29 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-30 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-31 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-32 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-33 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-34 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-35 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-36 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-37 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-38 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-39 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-40 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-41 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-42 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-43 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-44 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-45 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-46 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-47 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-48 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-49 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-50 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-51 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-52 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-53 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-54 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-55 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-56 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-57 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-58 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-59 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-60 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-61 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-62 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-63 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-64 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-65 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-66 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-67 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-68 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-69 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-70 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-71 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-72 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-73 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-74 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-75 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-76 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-77 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-78 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-79 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-80 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-81 | VERIFIED-CONTRACT | operation identity, approval binding, bounded retry and stale-writer fencing | audit/OGE-84_FINAL_VERIFY.md |
-| OGE-82 | VERIFIED-CONTRACT | delegated authority, revocation, egress scope, invocation authorization | audit/OGE-84_FINAL_VERIFY.md |
-| OGE-83 | VERIFIED-CONTRACT | provenance, Ruby promotion gate, 1LSS conflict handling, deletion receipts | audit/OGE-84_FINAL_VERIFY.md |
-| OGE-84 | PR-MERGED+CI-PASS | canonical recovery verification (staging only) | PR #11 / workflow 37714740729 and 37714740742 |
-| OGE-85 | UNVERIFIED | Title, ownership, dependencies and current runtime evidence pending canonical reconciliation | — |
-| OGE-86 | ARCHITECTURE-REFERENCED | architecture grouping / mapping (individual closure not verified) | audit/OGE-84_FINAL_VERIFY.md |
-| OGE-87 | ARCHITECTURE-REFERENCED | architecture grouping / mapping (individual closure not verified) | audit/OGE-84_FINAL_VERIFY.md |
-| OGE-88 | ARCHITECTURE-REFERENCED | future closure visual standard | audit/OGE-84_FINAL_VERIFY.md |
+- [OGE-1](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
+- [OGE-2](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
+- [OGE-3](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
+- [OGE-4](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
+- [OGE-15](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
+- [OGE-21](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
+- [OGE-39](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
+- [OGE-59](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
+- [OGE-60](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
+- [OGE-62](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
+- [OGE-64](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
+- [OGE-65](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
+- [OGE-81](https://linear.app/ogenic-sio): **NOT FOUND** — Needs reconciliation
 
-## Closure protocol (OGE-88 visual evidence)
+### OTHER — 7 issues
 
-For each number, resolve its canonical title and owning agent/issue, predecessor/dependency links, source PR/commit and branch, CI run with conclusion, verification evidence, and runtime proof (if required). Assign `DONE` only after the required independent gate and evidence have passed; otherwise `IN_PROGRESS`, `BLOCKED`, `FAIL` or `UNVERIFIED` with reason. Attach a per-task closure image/diagram when available. A PR merge by itself is not runtime certification.
+- [OGE-5](https://linear.app/ogenic-sio/issue/OGE-5/frozen-candy-a1-a6-drivedocsrepo-canonical-sync): **Backlog** — FROZEN — CANDY A1-A6 Drive/Docs/Repo Canonical Sync
+- [OGE-6](https://linear.app/ogenic-sio/issue/OGE-6/phase-vi-api-linear-d1-task-binding): **Done** — Phase VI API — Linear ↔ D1 Task Binding
+- [OGE-12](https://linear.app/ogenic-sio/issue/OGE-12/later-openai-platform-ops-vector-store-admin-module): **Backlog** — LATER — OpenAI Platform Ops / Vector Store Admin module
+- [OGE-19](https://linear.app/ogenic-sio/issue/OGE-19/quick-win-actual-app-capability-matrix): **Done** — Quick Win — Actual App Capability Matrix · delegate Codex
+- [OGE-25](https://linear.app/ogenic-sio/issue/OGE-25/ys-v1-slice-1-deterministic-capability-resolver-read-only-facade): **Done** — YS v1 Slice 1 — deterministic capability resolver + read-only facade · delegate Codex
+- [OGE-72](https://linear.app/ogenic-sio/issue/OGE-72/resource-placement-vercel-preview-arm-clickup-collaboration-arm-notion): **Done** — RESOURCE PLACEMENT — Vercel preview arm + ClickUp collaboration arm + Notion legacy source
+- [OGE-85](https://linear.app/ogenic-sio/issue/OGE-85/architecture-exhibition-map-group-oge-1-80-and-render-one-connected): **Done** — ARCHITECTURE EXHIBITION MAP — Group OGE 1–80+ and render one connected system diagram
 
-**Source confirmed on 2026-10-08:** PR #11 merged into `phase-vi-provider-incentive-metering` with merge commit `100da69639dc5585fdb97a2073619b5b7de79236`. Head `d26d986a68713d4238863900b1e5a1a22d4fe89c` had successful workflows `37714740729` (Validate and Bundle Phase VI) and `37714740742` (MA-OP Web Lab Proof). The OGE-84 audit references OGE-81/82/83 and OGE-86/87/88. These are **not** proof that every node 01–88 is finished.
+### WAVE UI — 11 issues
 
-## Next reconciliation run
+- [OGE-7](https://linear.app/ogenic-sio/issue/OGE-7/phase-vi-tools-mobile-ops-uxui-dashboard): **Done** — Phase VI Tools — Mobile Ops UX/UI Dashboard
+- [OGE-13](https://linear.app/ogenic-sio/issue/OGE-13/superseded-legacy-compact-dashboard-gm-cashflow-app-hub-layout): **Canceled** — SUPERSEDED — legacy compact dashboard / GM / Cashflow / App Hub layout
+- [OGE-20](https://linear.app/ogenic-sio/issue/OGE-20/superseded-old-wave-mobile-ia-chat-work-live-apps-more): **Canceled** — SUPERSEDED — old WAVE Mobile IA (Chat / Work / Live / Apps / More)
+- [OGE-22](https://linear.app/ogenic-sio/issue/OGE-22/master-ogenicwave-canonical-execution-graph-dependency-order): **Done** — MASTER — OGENIC/WAVE canonical execution graph + dependency order
+- [OGE-45](https://linear.app/ogenic-sio/issue/OGE-45/roadmap-burn-down-reconcile-remaining-wave-work-into-oge-queue): **Done** — ROADMAP BURN-DOWN — Reconcile Remaining WAVE Work into OGE Queue · delegate Codex
+- [OGE-50](https://linear.app/ogenic-sio/issue/OGE-50/wave-operate-jobs-run-history-evidence-references): **Done** — WAVE OPERATE — Jobs + Run History + Evidence References
+- [OGE-51](https://linear.app/ogenic-sio/issue/OGE-51/wave-composer-attachment-reliability-core-device-proof-deferred): **Done** — WAVE COMPOSER — Attachment Reliability Core (device proof deferred)
+- [OGE-52](https://linear.app/ogenic-sio/issue/OGE-52/wave-signals-real-notifications-from-runtime-state): **Done** — WAVE SIGNALS — Real Notifications from Runtime State
+- [OGE-53](https://linear.app/ogenic-sio/issue/OGE-53/wave-composer-capability-dock-v1-search-honest-connected-states): **Done** — WAVE COMPOSER — Capability Dock V1 · Search · Honest Connected States
+- [OGE-63](https://linear.app/ogenic-sio/issue/OGE-63/wave-chat-finish-neonacrylic-messages-real-action-bar-evidence-link): **Done** — WAVE CHAT FINISH — Neon/Acrylic messages + real action bar + evidence link
+- [OGE-77](https://linear.app/ogenic-sio/issue/OGE-77/wave-web-v2-vercel-style-dashboard-3-execution-channels): **In Progress** — WAVE WEB V2 — Vercel-style dashboard + 3 execution channels
 
-1. Query authoritative issue/roadmap records by OGE ID to replace UNVERIFIED rows with real titles and status.
-2. Add dependency arrows only where repository/ticket evidence supports them.
-3. Attach GitHub PR, CI and Ruby/runtime receipts to each row.
-4. Publish grouped mobile-friendly diagrams + image receipts at closure; keep canonical 1LSS/D1 as system-of-record.
-5. Return to pending work after visualization registry reconciliation without touching main, prod, Candy, secrets or D1 schema.
+### AGENTS — 21 issues
+
+- [OGE-8](https://linear.app/ogenic-sio/issue/OGE-8/phase-vi-agents-runtime-adapters-and-heartbeats): **Canceled** — Phase VI Agents — Runtime Adapters & Heartbeats · delegate Codex
+- [OGE-30](https://linear.app/ogenic-sio/issue/OGE-30/white-diamond-openai-commander-agent-registry-no-direct-execution): **Done** — WHITE DIAMOND — OpenAI Commander + Agent Registry (no direct execution bypass) · delegate Codex
+- [OGE-31](https://linear.app/ogenic-sio/issue/OGE-31/wave-next-run-first-agent-surface-live-agent-presence): **Done** — WAVE NEXT — Run-first Agent Surface + Live Agent Presence · delegate Codex
+- [OGE-34](https://linear.app/ogenic-sio/issue/OGE-34/athena-default-wave-chat-bridge-verified-read-only-auto-tools): **Done** — ATHENA default WAVE chat bridge — verified read-only auto tools · delegate Codex
+- [OGE-37](https://linear.app/ogenic-sio/issue/OGE-37/stone-v-violet-stone-multi-agent-solution-work-operate): **Done** — STONE V — VIOLET STONE: Multi-Agent · Solution · Work · Operate
+- [OGE-41](https://linear.app/ogenic-sio/issue/OGE-41/ma-op-multi-agent-operations-protocol-architecture-draft): **Done** — MA-OP — Multi-Agent Operations Protocol Architecture Draft · delegate Codex
+- [OGE-43](https://linear.app/ogenic-sio/issue/OGE-43/github-capability-plugin-ma-op-deepseek-harness-bridge): **Done** — GITHUB CAPABILITY PLUGIN — MA-OP ↔ DeepSeek Harness Bridge · delegate Codex
+- [OGE-44](https://linear.app/ogenic-sio/issue/OGE-44/wave-surface-routing-separate-chat-command-agent-and-operate): **Done** — WAVE SURFACE ROUTING — Separate Chat, Command, Agent and Operate · delegate Codex
+- [OGE-46](https://linear.app/ogenic-sio/issue/OGE-46/wave-capacity-status-live-quota-percentages-in-agent-style-status-deck): **Done** — WAVE CAPACITY STATUS — Live Quota Percentages in Agent-style Status Deck · delegate Codex
+- [OGE-47](https://linear.app/ogenic-sio/issue/OGE-47/parallel-agent-runtime-linearcodex-codex-claude-isolated-lanes): **Done** — PARALLEL AGENT RUNTIME — Linear/Codex + Codex + Claude isolated lanes · delegate Codex
+- [OGE-49](https://linear.app/ogenic-sio/issue/OGE-49/ma-op-mvp-slice-1-core-contracts-reference-runtime-zero-cost): **Done** — MA-OP MVP SLICE 1 — Core contracts + reference runtime + zero-cost conformance
+- [OGE-58](https://linear.app/ogenic-sio/issue/OGE-58/perplexity-agent-bridge-web-grounded-research-capability-safe-one-pass): **Done** — PERPLEXITY AGENT BRIDGE — Web-grounded research capability + safe one-pass smoke
+- [OGE-66](https://linear.app/ogenic-sio/issue/OGE-66/ma-op-first-impression-protocol-negotiation-evidence-freshness-bounded): **Done** — MA-OP FIRST IMPRESSION — Protocol negotiation, evidence freshness, bounded harness inputs
+- [OGE-67](https://linear.app/ogenic-sio/issue/OGE-67/ma-op-web-lab-real-staging-surface-for-core-github-read-ruby-proof): **Done** — MA-OP WEB LAB — Real staging surface for Core + GitHub READ + Ruby proof
+- [OGE-69](https://linear.app/ogenic-sio/issue/OGE-69/n8n-self-host-migration-categorize-legacy-ogenic-modules-and-stage-ma): **Done** — N8N SELF-HOST MIGRATION — Categorize legacy OGENIC modules and stage MA-OP connector
+- [OGE-71](https://linear.app/ogenic-sio/issue/OGE-71/ai-role-placement-promote-verified-providers-into-real-multi-agent): **In Progress** — AI ROLE PLACEMENT — Promote verified providers into real multi-agent execution lanes · delegate Codex
+- [OGE-73](https://linear.app/ogenic-sio/issue/OGE-73/wave-phase-ii-finalize-core-agent-roster-canonical-routing-specialist): **In Progress** — WAVE PHASE II FINALIZE — Core agent roster → canonical routing → specialist activation · delegate Codex
+- [OGE-74](https://linear.app/ogenic-sio/issue/OGE-74/global-agent-context-budget-enforce-bounded-context-across-every): **In Progress** — GLOBAL AGENT CONTEXT BUDGET — Enforce bounded context across every provider · delegate Codex
+- [OGE-78](https://linear.app/ogenic-sio/issue/OGE-78/use-card-50-in-1-ma-op-permission-wrapper-bounded-card-lease): **Done** — USE CARD 50-IN-1 — MA-OP permission wrapper + bounded card lease · delegate Codex
+- [OGE-80](https://linear.app/ogenic-sio/issue/OGE-80/astra-minimal-hardening-v1-distill-research-into-smallest-ogenic): **Done** — ASTRA MINIMAL HARDENING V1 — Distill research into smallest OGENIC safety upgrade
+- [OGE-84](https://linear.app/ogenic-sio/issue/OGE-84/ruby-final-verify-merge-astra-hardening-evidence-run-failure-injection): **Done** — RUBY FINAL VERIFY — Merge Astra hardening evidence, run failure-injection matrix, close only on proof · delegate Codex
+
+### CONTROL — 17 issues
+
+- [OGE-9](https://linear.app/ogenic-sio/issue/OGE-9/later-public-developer-api-js-workspace-after-core-control-plane): **Backlog** — LATER — Public Developer API / JS Workspace after core control plane
+- [OGE-10](https://linear.app/ogenic-sio/issue/OGE-10/frozen-candy-codex-control-via-linear-dispatch): **Backlog** — FROZEN — Candy Codex control via Linear dispatch
+- [OGE-11](https://linear.app/ogenic-sio/issue/OGE-11/web-dev-same-mind-sync-openai-control-plane): **Done** — Web Dev — SAME MIND sync + OpenAI Control Plane · delegate Codex
+- [OGE-14](https://linear.app/ogenic-sio/issue/OGE-14/cloudflare-control-router-function-calls-hooks-n8n-adapter): **Done** — Cloudflare Control Router — Function Calls + Hooks + n8n Adapter · delegate Codex
+- [OGE-16](https://linear.app/ogenic-sio/issue/OGE-16/later-native-ios-shell-after-wave-next-webcontrol-contracts-stabilize): **Backlog** — LATER — Native iOS shell after WAVE NEXT web/control contracts stabilize
+- [OGE-23](https://linear.app/ogenic-sio/issue/OGE-23/superseded-historical-yellow-stone-repo-reuse-audit): **Canceled** — SUPERSEDED — historical Yellow Stone repo reuse audit
+- [OGE-24](https://linear.app/ogenic-sio/issue/OGE-24/superseded-historical-yellow-stone-gap-audit): **Canceled** — SUPERSEDED — historical Yellow Stone gap audit
+- [OGE-26](https://linear.app/ogenic-sio/issue/OGE-26/ys-v1-slice-2-guarded-execution-router-approvalevidence-envelope): **Done** — YS v1 Slice 2 — guarded execution router + approval/evidence envelope · delegate Codex
+- [OGE-27](https://linear.app/ogenic-sio/issue/OGE-27/wave-browser-control-cloudflare-live-view-hitl-recording-evidence): **Done** — WAVE Browser Control — Cloudflare Live View + HITL + recording evidence · delegate Codex
+- [OGE-28](https://linear.app/ogenic-sio/issue/OGE-28/codex-left-arm-cloudflareyellow-stone-self-host-ssh-wave-wave-runner): **Done** — CODEX LEFT ARM — Cloudflare/Yellow Stone → self-host SSH-WAVE / wave-runner-01 · delegate Codex
+- [OGE-33](https://linear.app/ogenic-sio/issue/OGE-33/blue-diamond-athena-admission-control-stone-iv): **Done** — Blue Diamond / ATHENA admission control — Stone IV
+- [OGE-35](https://linear.app/ogenic-sio/issue/OGE-35/athena-guarded-command-handoff-yellow-stone-executionapproval): **Done** — ATHENA guarded command handoff → Yellow Stone execution/approval · delegate Codex
+- [OGE-36](https://linear.app/ogenic-sio/issue/OGE-36/athena-natural-language-command-planner-deterministic-yellow-stone): **Done** — ATHENA natural-language command planner → deterministic Yellow Stone plan
+- [OGE-56](https://linear.app/ogenic-sio/issue/OGE-56/auto-routing-v1-caprank-readiness-cost-yellow-policy-selection): **Done** — AUTO ROUTING V1 — CapRank + readiness + cost + Yellow policy selection
+- [OGE-70](https://linear.app/ogenic-sio/issue/OGE-70/n8n-execution-fabric-place-oge-workflow-native-lanes-behind-ma): **Done** — N8N EXECUTION FABRIC — Place OGE workflow-native lanes behind MA-OP/Yellow
+- [OGE-79](https://linear.app/ogenic-sio/issue/OGE-79/ccs-protocol-capability-card-stone-agent-connection-language): **Done** — CCS PROTOCOL — Capability Card Stone agent connection language · delegate Codex
+- [OGE-82](https://linear.app/ogenic-sio/issue/OGE-82/ccs-authority-hardening-delegation-revocation-credential-custody): **Done** — CCS AUTHORITY HARDENING — Delegation, revocation, credential custody, egress enforcement · delegate Codex
+
+### CONNECTORS — 5 issues
+
+- [OGE-17](https://linear.app/ogenic-sio/issue/OGE-17/wave-mobile-unified-plugin-registry-actual-app-inventory): **Done** — WAVE Mobile — Unified Plugin Registry + Actual App Inventory · delegate Codex
+- [OGE-29](https://linear.app/ogenic-sio/issue/OGE-29/wave-mcp-config-center-on-website-real-config-tool-discovery): **Done** — WAVE — MCP Config Center on website (real config + tool discovery) · delegate Codex
+- [OGE-32](https://linear.app/ogenic-sio/issue/OGE-32/openai-platform-private-tool-bridge-function-tools-first-optional-mcp): **Done** — OpenAI Platform Private Tool Bridge — Function Tools first + optional MCP · delegate Codex
+- [OGE-68](https://linear.app/ogenic-sio/issue/OGE-68/superseded-n8n-legacy-source-bridge-recovered-exports-used-for-self): **Canceled** — SUPERSEDED — N8N LEGACY SOURCE BRIDGE (recovered exports used for self-host migration) · delegate Codex
+- [OGE-87](https://linear.app/ogenic-sio/issue/OGE-87/arch-map-step-2-render-github-wave-blackwhite-n8n-style-architecture): **Done** — ARCH MAP STEP 2 — Render GitHub + WAVE black/white n8n-style architecture diagram · delegate Codex
+
+### FOUNDATION — 5 issues
+
+- [OGE-18](https://linear.app/ogenic-sio/issue/OGE-18/ogenic-project-session-project-resolver-wave): **Canceled** — OGENIC — Project Session → Project Resolver → WAVE
+- [OGE-48](https://linear.app/ogenic-sio/issue/OGE-48/one-pass-runtime-refinery-runtime-clones-perplexity-docker-ruby-green): **Done** — ONE-PASS RUNTIME REFINERY — Runtime Clones → Perplexity → Docker → Ruby → Green
+- [OGE-54](https://linear.app/ogenic-sio/issue/OGE-54/wave-agent-continuation-durable-openai-agent-session-without-context): **Done** — WAVE AGENT CONTINUATION — Durable OpenAI Agent Session without context replay
+- [OGE-57](https://linear.app/ogenic-sio/issue/OGE-57/wave-task-inbox-core-cross-session-assignment-owner-main-result-trail): **Done** — WAVE TASK INBOX CORE — Cross-session assignment + owner-main result trail
+- [OGE-83](https://linear.app/ogenic-sio/issue/OGE-83/rubygreen-hardening-provenance-canonical-promotion-provider-session): **Done** — RUBY→GREEN HARDENING — Provenance, canonical promotion, provider-session projection, retention proof · delegate Codex
+
+### EVIDENCE — 7 issues
+
+- [OGE-38](https://linear.app/ogenic-sio/issue/OGE-38/stone-vi-ruby-stone-system-and-ai-capability-test-layer): **Done** — STONE VI — RUBY STONE: System & AI Capability Test Layer
+- [OGE-55](https://linear.app/ogenic-sio/issue/OGE-55/capsig-caprank-v1-ruby-evidence-capability-signatures-and-ranking): **Done** — CapSig / CapRank V1 — Ruby-evidence capability signatures and ranking
+- [OGE-61](https://linear.app/ogenic-sio/issue/OGE-61/runtime-10-ten-isolated-parallel-clones-serial-reducer-proof): **Done** — RUNTIME ×10 — Ten isolated parallel clones + serial reducer proof
+- [OGE-75](https://linear.app/ogenic-sio/issue/OGE-75/xai-meta-provider-proof-verify-infisical-bindings-and-promote-only): **Canceled** — XAI + META PROVIDER PROOF — Verify Infisical bindings and promote only live providers · delegate Codex
+- [OGE-76](https://linear.app/ogenic-sio/issue/OGE-76/phase-ii-canonical-audit-re-check-oge-717274-on-fresh-branch-head): **Canceled** — PHASE II CANONICAL AUDIT — Re-check OGE-71/72/74 on fresh branch head · delegate Codex
+- [OGE-86](https://linear.app/ogenic-sio/issue/OGE-86/arch-map-step-1-reconcile-oge-1-80-into-functional-groups-audited): **Done** — ARCH MAP STEP 1 — Reconcile OGE 1–80+ into functional groups + audited edges · delegate Codex
+- [OGE-88](https://linear.app/ogenic-sio/issue/OGE-88/oge-closure-visual-standard-every-closed-issue-gets-one-github-visual): **Done** — OGE CLOSURE VISUAL STANDARD — Every closed issue gets one GitHub visual proof · delegate Codex
+
+### OPERATIONS — 1 issues
+
+- [OGE-40](https://linear.app/ogenic-sio/issue/OGE-40/realtime-ops-provider-readiness-and-cost-safe-routing): **Done** — REALTIME OPS — Provider Readiness & Cost-Safe Routing · delegate Codex
+
+### RESEARCH — 1 issues
+
+- [OGE-42](https://linear.app/ogenic-sio/issue/OGE-42/knowledge-refinery-v2-code-debug-build-create-rule-formula): **Done** — KNOWLEDGE REFINERY V2 — Code / Debug / Build / Create → Rule / Formula Distillation · delegate Codex
+
+## Full numbered roster
+
+| Issue | Title | Primary group | Linear status | Existing delegate |
+|---|---|---|---|---|
+| [OGE-1](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-2](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-3](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-4](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-5](https://linear.app/ogenic-sio/issue/OGE-5/frozen-candy-a1-a6-drivedocsrepo-canonical-sync) | FROZEN — CANDY A1-A6 Drive/Docs/Repo Canonical Sync | OTHER | Backlog | — |
+| [OGE-6](https://linear.app/ogenic-sio/issue/OGE-6/phase-vi-api-linear-d1-task-binding) | Phase VI API — Linear ↔ D1 Task Binding | OTHER | Done | — |
+| [OGE-7](https://linear.app/ogenic-sio/issue/OGE-7/phase-vi-tools-mobile-ops-uxui-dashboard) | Phase VI Tools — Mobile Ops UX/UI Dashboard | WAVE UI | Done | — |
+| [OGE-8](https://linear.app/ogenic-sio/issue/OGE-8/phase-vi-agents-runtime-adapters-and-heartbeats) | Phase VI Agents — Runtime Adapters & Heartbeats | AGENTS | Canceled | Codex |
+| [OGE-9](https://linear.app/ogenic-sio/issue/OGE-9/later-public-developer-api-js-workspace-after-core-control-plane) | LATER — Public Developer API / JS Workspace after core control plane | CONTROL | Backlog | — |
+| [OGE-10](https://linear.app/ogenic-sio/issue/OGE-10/frozen-candy-codex-control-via-linear-dispatch) | FROZEN — Candy Codex control via Linear dispatch | CONTROL | Backlog | — |
+| [OGE-11](https://linear.app/ogenic-sio/issue/OGE-11/web-dev-same-mind-sync-openai-control-plane) | Web Dev — SAME MIND sync + OpenAI Control Plane | CONTROL | Done | Codex |
+| [OGE-12](https://linear.app/ogenic-sio/issue/OGE-12/later-openai-platform-ops-vector-store-admin-module) | LATER — OpenAI Platform Ops / Vector Store Admin module | OTHER | Backlog | — |
+| [OGE-13](https://linear.app/ogenic-sio/issue/OGE-13/superseded-legacy-compact-dashboard-gm-cashflow-app-hub-layout) | SUPERSEDED — legacy compact dashboard / GM / Cashflow / App Hub layout | WAVE UI | Canceled | — |
+| [OGE-14](https://linear.app/ogenic-sio/issue/OGE-14/cloudflare-control-router-function-calls-hooks-n8n-adapter) | Cloudflare Control Router — Function Calls + Hooks + n8n Adapter | CONTROL | Done | Codex |
+| [OGE-15](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-16](https://linear.app/ogenic-sio/issue/OGE-16/later-native-ios-shell-after-wave-next-webcontrol-contracts-stabilize) | LATER — Native iOS shell after WAVE NEXT web/control contracts stabilize | CONTROL | Backlog | — |
+| [OGE-17](https://linear.app/ogenic-sio/issue/OGE-17/wave-mobile-unified-plugin-registry-actual-app-inventory) | WAVE Mobile — Unified Plugin Registry + Actual App Inventory | CONNECTORS | Done | Codex |
+| [OGE-18](https://linear.app/ogenic-sio/issue/OGE-18/ogenic-project-session-project-resolver-wave) | OGENIC — Project Session → Project Resolver → WAVE | FOUNDATION | Canceled | — |
+| [OGE-19](https://linear.app/ogenic-sio/issue/OGE-19/quick-win-actual-app-capability-matrix) | Quick Win — Actual App Capability Matrix | OTHER | Done | Codex |
+| [OGE-20](https://linear.app/ogenic-sio/issue/OGE-20/superseded-old-wave-mobile-ia-chat-work-live-apps-more) | SUPERSEDED — old WAVE Mobile IA (Chat / Work / Live / Apps / More) | WAVE UI | Canceled | — |
+| [OGE-21](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-22](https://linear.app/ogenic-sio/issue/OGE-22/master-ogenicwave-canonical-execution-graph-dependency-order) | MASTER — OGENIC/WAVE canonical execution graph + dependency order | WAVE UI | Done | — |
+| [OGE-23](https://linear.app/ogenic-sio/issue/OGE-23/superseded-historical-yellow-stone-repo-reuse-audit) | SUPERSEDED — historical Yellow Stone repo reuse audit | CONTROL | Canceled | — |
+| [OGE-24](https://linear.app/ogenic-sio/issue/OGE-24/superseded-historical-yellow-stone-gap-audit) | SUPERSEDED — historical Yellow Stone gap audit | CONTROL | Canceled | — |
+| [OGE-25](https://linear.app/ogenic-sio/issue/OGE-25/ys-v1-slice-1-deterministic-capability-resolver-read-only-facade) | YS v1 Slice 1 — deterministic capability resolver + read-only facade | OTHER | Done | Codex |
+| [OGE-26](https://linear.app/ogenic-sio/issue/OGE-26/ys-v1-slice-2-guarded-execution-router-approvalevidence-envelope) | YS v1 Slice 2 — guarded execution router + approval/evidence envelope | CONTROL | Done | Codex |
+| [OGE-27](https://linear.app/ogenic-sio/issue/OGE-27/wave-browser-control-cloudflare-live-view-hitl-recording-evidence) | WAVE Browser Control — Cloudflare Live View + HITL + recording evidence | CONTROL | Done | Codex |
+| [OGE-28](https://linear.app/ogenic-sio/issue/OGE-28/codex-left-arm-cloudflareyellow-stone-self-host-ssh-wave-wave-runner) | CODEX LEFT ARM — Cloudflare/Yellow Stone → self-host SSH-WAVE / wave-runner-01 | CONTROL | Done | Codex |
+| [OGE-29](https://linear.app/ogenic-sio/issue/OGE-29/wave-mcp-config-center-on-website-real-config-tool-discovery) | WAVE — MCP Config Center on website (real config + tool discovery) | CONNECTORS | Done | Codex |
+| [OGE-30](https://linear.app/ogenic-sio/issue/OGE-30/white-diamond-openai-commander-agent-registry-no-direct-execution) | WHITE DIAMOND — OpenAI Commander + Agent Registry (no direct execution bypass) | AGENTS | Done | Codex |
+| [OGE-31](https://linear.app/ogenic-sio/issue/OGE-31/wave-next-run-first-agent-surface-live-agent-presence) | WAVE NEXT — Run-first Agent Surface + Live Agent Presence | AGENTS | Done | Codex |
+| [OGE-32](https://linear.app/ogenic-sio/issue/OGE-32/openai-platform-private-tool-bridge-function-tools-first-optional-mcp) | OpenAI Platform Private Tool Bridge — Function Tools first + optional MCP | CONNECTORS | Done | Codex |
+| [OGE-33](https://linear.app/ogenic-sio/issue/OGE-33/blue-diamond-athena-admission-control-stone-iv) | Blue Diamond / ATHENA admission control — Stone IV | CONTROL | Done | — |
+| [OGE-34](https://linear.app/ogenic-sio/issue/OGE-34/athena-default-wave-chat-bridge-verified-read-only-auto-tools) | ATHENA default WAVE chat bridge — verified read-only auto tools | AGENTS | Done | Codex |
+| [OGE-35](https://linear.app/ogenic-sio/issue/OGE-35/athena-guarded-command-handoff-yellow-stone-executionapproval) | ATHENA guarded command handoff → Yellow Stone execution/approval | CONTROL | Done | Codex |
+| [OGE-36](https://linear.app/ogenic-sio/issue/OGE-36/athena-natural-language-command-planner-deterministic-yellow-stone) | ATHENA natural-language command planner → deterministic Yellow Stone plan | CONTROL | Done | — |
+| [OGE-37](https://linear.app/ogenic-sio/issue/OGE-37/stone-v-violet-stone-multi-agent-solution-work-operate) | STONE V — VIOLET STONE: Multi-Agent · Solution · Work · Operate | AGENTS | Done | — |
+| [OGE-38](https://linear.app/ogenic-sio/issue/OGE-38/stone-vi-ruby-stone-system-and-ai-capability-test-layer) | STONE VI — RUBY STONE: System & AI Capability Test Layer | EVIDENCE | Done | — |
+| [OGE-39](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-40](https://linear.app/ogenic-sio/issue/OGE-40/realtime-ops-provider-readiness-and-cost-safe-routing) | REALTIME OPS — Provider Readiness & Cost-Safe Routing | OPERATIONS | Done | Codex |
+| [OGE-41](https://linear.app/ogenic-sio/issue/OGE-41/ma-op-multi-agent-operations-protocol-architecture-draft) | MA-OP — Multi-Agent Operations Protocol Architecture Draft | AGENTS | Done | Codex |
+| [OGE-42](https://linear.app/ogenic-sio/issue/OGE-42/knowledge-refinery-v2-code-debug-build-create-rule-formula) | KNOWLEDGE REFINERY V2 — Code / Debug / Build / Create → Rule / Formula Distillation | RESEARCH | Done | Codex |
+| [OGE-43](https://linear.app/ogenic-sio/issue/OGE-43/github-capability-plugin-ma-op-deepseek-harness-bridge) | GITHUB CAPABILITY PLUGIN — MA-OP ↔ DeepSeek Harness Bridge | AGENTS | Done | Codex |
+| [OGE-44](https://linear.app/ogenic-sio/issue/OGE-44/wave-surface-routing-separate-chat-command-agent-and-operate) | WAVE SURFACE ROUTING — Separate Chat, Command, Agent and Operate | AGENTS | Done | Codex |
+| [OGE-45](https://linear.app/ogenic-sio/issue/OGE-45/roadmap-burn-down-reconcile-remaining-wave-work-into-oge-queue) | ROADMAP BURN-DOWN — Reconcile Remaining WAVE Work into OGE Queue | WAVE UI | Done | Codex |
+| [OGE-46](https://linear.app/ogenic-sio/issue/OGE-46/wave-capacity-status-live-quota-percentages-in-agent-style-status-deck) | WAVE CAPACITY STATUS — Live Quota Percentages in Agent-style Status Deck | AGENTS | Done | Codex |
+| [OGE-47](https://linear.app/ogenic-sio/issue/OGE-47/parallel-agent-runtime-linearcodex-codex-claude-isolated-lanes) | PARALLEL AGENT RUNTIME — Linear/Codex + Codex + Claude isolated lanes | AGENTS | Done | Codex |
+| [OGE-48](https://linear.app/ogenic-sio/issue/OGE-48/one-pass-runtime-refinery-runtime-clones-perplexity-docker-ruby-green) | ONE-PASS RUNTIME REFINERY — Runtime Clones → Perplexity → Docker → Ruby → Green | FOUNDATION | Done | — |
+| [OGE-49](https://linear.app/ogenic-sio/issue/OGE-49/ma-op-mvp-slice-1-core-contracts-reference-runtime-zero-cost) | MA-OP MVP SLICE 1 — Core contracts + reference runtime + zero-cost conformance | AGENTS | Done | — |
+| [OGE-50](https://linear.app/ogenic-sio/issue/OGE-50/wave-operate-jobs-run-history-evidence-references) | WAVE OPERATE — Jobs + Run History + Evidence References | WAVE UI | Done | — |
+| [OGE-51](https://linear.app/ogenic-sio/issue/OGE-51/wave-composer-attachment-reliability-core-device-proof-deferred) | WAVE COMPOSER — Attachment Reliability Core (device proof deferred) | WAVE UI | Done | — |
+| [OGE-52](https://linear.app/ogenic-sio/issue/OGE-52/wave-signals-real-notifications-from-runtime-state) | WAVE SIGNALS — Real Notifications from Runtime State | WAVE UI | Done | — |
+| [OGE-53](https://linear.app/ogenic-sio/issue/OGE-53/wave-composer-capability-dock-v1-search-honest-connected-states) | WAVE COMPOSER — Capability Dock V1 · Search · Honest Connected States | WAVE UI | Done | — |
+| [OGE-54](https://linear.app/ogenic-sio/issue/OGE-54/wave-agent-continuation-durable-openai-agent-session-without-context) | WAVE AGENT CONTINUATION — Durable OpenAI Agent Session without context replay | FOUNDATION | Done | — |
+| [OGE-55](https://linear.app/ogenic-sio/issue/OGE-55/capsig-caprank-v1-ruby-evidence-capability-signatures-and-ranking) | CapSig / CapRank V1 — Ruby-evidence capability signatures and ranking | EVIDENCE | Done | — |
+| [OGE-56](https://linear.app/ogenic-sio/issue/OGE-56/auto-routing-v1-caprank-readiness-cost-yellow-policy-selection) | AUTO ROUTING V1 — CapRank + readiness + cost + Yellow policy selection | CONTROL | Done | — |
+| [OGE-57](https://linear.app/ogenic-sio/issue/OGE-57/wave-task-inbox-core-cross-session-assignment-owner-main-result-trail) | WAVE TASK INBOX CORE — Cross-session assignment + owner-main result trail | FOUNDATION | Done | — |
+| [OGE-58](https://linear.app/ogenic-sio/issue/OGE-58/perplexity-agent-bridge-web-grounded-research-capability-safe-one-pass) | PERPLEXITY AGENT BRIDGE — Web-grounded research capability + safe one-pass smoke | AGENTS | Done | — |
+| [OGE-59](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-60](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-61](https://linear.app/ogenic-sio/issue/OGE-61/runtime-10-ten-isolated-parallel-clones-serial-reducer-proof) | RUNTIME ×10 — Ten isolated parallel clones + serial reducer proof | EVIDENCE | Done | — |
+| [OGE-62](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-63](https://linear.app/ogenic-sio/issue/OGE-63/wave-chat-finish-neonacrylic-messages-real-action-bar-evidence-link) | WAVE CHAT FINISH — Neon/Acrylic messages + real action bar + evidence link | WAVE UI | Done | — |
+| [OGE-64](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-65](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-66](https://linear.app/ogenic-sio/issue/OGE-66/ma-op-first-impression-protocol-negotiation-evidence-freshness-bounded) | MA-OP FIRST IMPRESSION — Protocol negotiation, evidence freshness, bounded harness inputs | AGENTS | Done | — |
+| [OGE-67](https://linear.app/ogenic-sio/issue/OGE-67/ma-op-web-lab-real-staging-surface-for-core-github-read-ruby-proof) | MA-OP WEB LAB — Real staging surface for Core + GitHub READ + Ruby proof | AGENTS | Done | — |
+| [OGE-68](https://linear.app/ogenic-sio/issue/OGE-68/superseded-n8n-legacy-source-bridge-recovered-exports-used-for-self) | SUPERSEDED — N8N LEGACY SOURCE BRIDGE (recovered exports used for self-host migration) | CONNECTORS | Canceled | Codex |
+| [OGE-69](https://linear.app/ogenic-sio/issue/OGE-69/n8n-self-host-migration-categorize-legacy-ogenic-modules-and-stage-ma) | N8N SELF-HOST MIGRATION — Categorize legacy OGENIC modules and stage MA-OP connector | AGENTS | Done | — |
+| [OGE-70](https://linear.app/ogenic-sio/issue/OGE-70/n8n-execution-fabric-place-oge-workflow-native-lanes-behind-ma) | N8N EXECUTION FABRIC — Place OGE workflow-native lanes behind MA-OP/Yellow | CONTROL | Done | — |
+| [OGE-71](https://linear.app/ogenic-sio/issue/OGE-71/ai-role-placement-promote-verified-providers-into-real-multi-agent) | AI ROLE PLACEMENT — Promote verified providers into real multi-agent execution lanes | AGENTS | In Progress | Codex |
+| [OGE-72](https://linear.app/ogenic-sio/issue/OGE-72/resource-placement-vercel-preview-arm-clickup-collaboration-arm-notion) | RESOURCE PLACEMENT — Vercel preview arm + ClickUp collaboration arm + Notion legacy source | OTHER | Done | — |
+| [OGE-73](https://linear.app/ogenic-sio/issue/OGE-73/wave-phase-ii-finalize-core-agent-roster-canonical-routing-specialist) | WAVE PHASE II FINALIZE — Core agent roster → canonical routing → specialist activation | AGENTS | In Progress | Codex |
+| [OGE-74](https://linear.app/ogenic-sio/issue/OGE-74/global-agent-context-budget-enforce-bounded-context-across-every) | GLOBAL AGENT CONTEXT BUDGET — Enforce bounded context across every provider | AGENTS | In Progress | Codex |
+| [OGE-75](https://linear.app/ogenic-sio/issue/OGE-75/xai-meta-provider-proof-verify-infisical-bindings-and-promote-only) | XAI + META PROVIDER PROOF — Verify Infisical bindings and promote only live providers | EVIDENCE | Canceled | Codex |
+| [OGE-76](https://linear.app/ogenic-sio/issue/OGE-76/phase-ii-canonical-audit-re-check-oge-717274-on-fresh-branch-head) | PHASE II CANONICAL AUDIT — Re-check OGE-71/72/74 on fresh branch head | EVIDENCE | Canceled | Codex |
+| [OGE-77](https://linear.app/ogenic-sio/issue/OGE-77/wave-web-v2-vercel-style-dashboard-3-execution-channels) | WAVE WEB V2 — Vercel-style dashboard + 3 execution channels | WAVE UI | In Progress | — |
+| [OGE-78](https://linear.app/ogenic-sio/issue/OGE-78/use-card-50-in-1-ma-op-permission-wrapper-bounded-card-lease) | USE CARD 50-IN-1 — MA-OP permission wrapper + bounded card lease | AGENTS | Done | Codex |
+| [OGE-79](https://linear.app/ogenic-sio/issue/OGE-79/ccs-protocol-capability-card-stone-agent-connection-language) | CCS PROTOCOL — Capability Card Stone agent connection language | CONTROL | Done | Codex |
+| [OGE-80](https://linear.app/ogenic-sio/issue/OGE-80/astra-minimal-hardening-v1-distill-research-into-smallest-ogenic) | ASTRA MINIMAL HARDENING V1 — Distill research into smallest OGENIC safety upgrade | AGENTS | Done | — |
+| [OGE-81](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-82](https://linear.app/ogenic-sio/issue/OGE-82/ccs-authority-hardening-delegation-revocation-credential-custody) | CCS AUTHORITY HARDENING — Delegation, revocation, credential custody, egress enforcement | CONTROL | Done | Codex |
+| [OGE-83](https://linear.app/ogenic-sio/issue/OGE-83/rubygreen-hardening-provenance-canonical-promotion-provider-session) | RUBY→GREEN HARDENING — Provenance, canonical promotion, provider-session projection, retention proof | FOUNDATION | Done | Codex |
+| [OGE-84](https://linear.app/ogenic-sio/issue/OGE-84/ruby-final-verify-merge-astra-hardening-evidence-run-failure-injection) | RUBY FINAL VERIFY — Merge Astra hardening evidence, run failure-injection matrix, close only on proof | AGENTS | Done | Codex |
+| [OGE-85](https://linear.app/ogenic-sio/issue/OGE-85/architecture-exhibition-map-group-oge-1-80-and-render-one-connected) | ARCHITECTURE EXHIBITION MAP — Group OGE 1–80+ and render one connected system diagram | OTHER | Done | — |
+| [OGE-86](https://linear.app/ogenic-sio/issue/OGE-86/arch-map-step-1-reconcile-oge-1-80-into-functional-groups-audited) | ARCH MAP STEP 1 — Reconcile OGE 1–80+ into functional groups + audited edges | EVIDENCE | Done | Codex |
+| [OGE-87](https://linear.app/ogenic-sio/issue/OGE-87/arch-map-step-2-render-github-wave-blackwhite-n8n-style-architecture) | ARCH MAP STEP 2 — Render GitHub + WAVE black/white n8n-style architecture diagram | CONNECTORS | Done | Codex |
+| [OGE-88](https://linear.app/ogenic-sio/issue/OGE-88/oge-closure-visual-standard-every-closed-issue-gets-one-github-visual) | OGE CLOSURE VISUAL STANDARD — Every closed issue gets one GitHub visual proof | EVIDENCE | Done | Codex |
+
+## Agent distribution / next passes
+
+- **ATHENA (planner):** reconcile scope, identify remaining blockers and task priorities from active issues.
+- **Codex (implementation):** maintain diagram generator and staging evidence links; work only from actual Linear assignments, no claim of automated launch without an execution proof.
+- **GitHub Actions (auditor):** build/test and record receipts; a green PR check is not production runtime proof.
+- **Ruby (verifier):** independently evaluate evidence before canonical DONE promotion.
+- **Yellow / CCS:** authorize side-effects; n8n executes only allowed workflow lanes.
+- **Green / D1:** retain canonical state using existing 1LSS, not a parallel tracker.
+
+## Status tally (Linear issue state, not verified closures)
+
+- NOT FOUND: 13
+- Backlog: 5
+- Done: 57
+- Canceled: 9
+- In Progress: 4
+
+## Audit boundaries
+
+- **Missing from issue query**: never assume that number is not assigned, completed, or failed; retrieve explicitly.
+- **Status Done**: not upgraded to runtime-verified until linked PR, tests, Ruby gate and live receipt are inspected.
+- **Edges**: only canonical architecture edges shown. Per-issue dependencies must come from issue relations or explicit acceptance text.
+- **Handoff**: resume incomplete items by critical-path dependencies; avoid touching main, production, Candy, secrets, D1 schema.
