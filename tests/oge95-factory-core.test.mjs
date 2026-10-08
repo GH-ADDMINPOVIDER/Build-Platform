@@ -9,7 +9,7 @@ const research={
   ok:true,http_status:200,model:"deepseek-flash",calls:1,retries:0,fallbacks:0,
   inputs:"PUBLIC_DOCUMENTATION_AND_PUBLIC_REPO_CONTRACTS_ONLY",
   no_browsing_tools:true,answer:"Plan: use synthetic D1 local fixture, Yellow dispatch, Ruby confirm then retain in Green.",
-  source_urls:["https://developers.cloudflare.com/workers/local-development/","https://docs.github.com/en/actions/reference/runners/self-hosted-runners"],
+  source_urls:["https://developers.cloudflare.com/workers/local-development/","https://docs.github.com/en/actions/reference/runners/self-hosted-runners","https://playwright.dev/docs/browsers"],
   usage:{prompt_tokens:500,completion_tokens:150,total_tokens:650}
 };
 const meta={run_id:37759999999,source_sha:sha};
