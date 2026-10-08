@@ -141,9 +141,16 @@
     },
     {
       "id": "deepseek",
-      "role": "reasoning_code_alternative",
-      "status": "billing_blocked",
-      "auto_route": false
+      "role": "verified_read_reasoning_code_review_secondary_explicit_only",
+      "status": "verified_for_staging_read",
+      "auto_route": false,
+      "constraints": [
+        "explicit_owner_or_ops_selection_only",
+        "bounded_12k_char_prompt_256_token_output",
+        "no_repo_mutation",
+        "no_hidden_retry_or_paid_fallback",
+        "ruby_verify_before_green_retention"
+      ]
     },
     {
       "id": "perplexity",
