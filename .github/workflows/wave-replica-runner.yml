@@ -1,4 +1,4 @@
-name: WAVE Replica Runner 0.9 - Local Parity Proof
+name: Stone Runner - Runtime + GitHub Context Proof
 
 on:
   push:
@@ -75,7 +75,7 @@ jobs:
             exit 1
           fi
           node scripts/replica-runner/compare.mjs
-      - name: Recover prior Athena Runner context from GitHub artifact (best effort)
+      - name: Restore Stone Runner context from prior GitHub artifact
         if: always()
         shell: bash
         env:
@@ -95,7 +95,7 @@ jobs:
               fi
             fi
           fi
-      - name: Build Athena commit-deploy memory and identify next safe work
+      - name: Build Stone Runner commit-deploy context and next-action evidence
         if: always()
         shell: bash
         env:
@@ -104,7 +104,7 @@ jobs:
           set -euo pipefail
           node --test tests/oge95-athena-runner-context.test.mjs
           node scripts/replica-runner/athena-context.mjs
-      - name: Publish Athena context for future Agent Runner resumes
+      - name: Save Stone Runner context for future coding Agent resumes
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -125,7 +125,7 @@ jobs:
         shell: bash
         run: |
           {
-            echo '### WAVE Replica Runner'
+            echo '### Stone Runner'
             if test -f replica-evidence.json; then
               jq '{status,local_checks_passed,local_checks_total,target_parity,certified_parity_ratio,real_cloudflare_deploy,provider_inference_calls,source_sha}' replica-evidence.json
               echo '- This validates local surfaces, NOT yet a 90% measured staging equivalence.'
@@ -135,7 +135,7 @@ jobs:
             fi
             echo '- No paid inference, no remote D1 or staging mutation during Replica proof.'
             if test -f athena-runner-context.json; then
-              echo '### Athena Runner (commit / CI / deploy memory)'
+              echo '### Stone Runner (commit / CI / deploy context)'
               jq '{source_sha,context_id,github_api_state,local_runtime,suggested_actions}' athena-runner-context.json
             fi
           } >> "$GITHUB_STEP_SUMMARY"
