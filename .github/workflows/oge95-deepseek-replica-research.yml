@@ -1,8 +1,12 @@
 name: OGE-95 DeepSeek Replica Architecture Research (One-Shot)
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths: [".github/workflows/oge95-deepseek-replica-research.yml"]
+  workflow_dispatch:
+    inputs:
+      confirm_single_paid_call:
+        description: "This makes ONE metered DeepSeek API request. Approve explicitly."
+        type: boolean
+        required: true
+        default: false
 permissions:
   contents: read
   id-token: write
@@ -13,6 +17,7 @@ env:
   INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
 jobs:
   one-shot:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.confirm_single_paid_call == true }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
