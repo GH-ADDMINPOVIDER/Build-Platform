@@ -8,6 +8,8 @@ on:
       - "tests/oge95-final-review-intake.test.mjs"
       - "scripts/oge95-provider-readiness.mjs"
       - "tests/oge95-provider-readiness.test.mjs"
+      - "scripts/oge95-stone-runner-learning.mjs"
+      - "tests/oge95-stone-runner-learning.test.mjs"
       - ".github/workflows/oge-95-final-review-intake.yml"
   workflow_dispatch:
 
@@ -61,6 +63,53 @@ jobs:
             console.log("OGE95_INTAKE_HISTORICAL_AUDIT_SHA_UNBOUND_NO_PROVIDER_CALL");
           '
 
+      - name: Restore prior Stone Runner learning snapshot (best-effort, read-only)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PREVIOUS="$RUNNER_TEMP/oge95-prev-learning"
+          mkdir -p "$PREVIOUS"
+          if command -v gh >/dev/null 2>&1; then
+            NAME="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+              --jq '[.artifacts[] | select(.expired == false and (.name | test("^oge95-review-intake-[0-9]+-[0-9]+$")))] | sort_by(.created_at) | last | .name // empty' 2>/dev/null || true)"
+            if test -n "$NAME"; then
+              RUN="$(printf '%s' "$NAME" | awk -F- '{print $(NF-1)}')"
+              if [[ "$RUN" =~ ^[0-9]+$ ]]; then
+                gh run download "$RUN" --repo "${GITHUB_REPOSITORY}" \
+                  --name "$NAME" --dir "$PREVIOUS" >/dev/null 2>&1 || true
+              fi
+            fi
+          fi
+          if test -s "$PREVIOUS/oge95-stone-runner-learning.json"; then
+            cp "$PREVIOUS/oge95-stone-runner-learning.json" oge95-previous-learning.json
+            echo "OGE95_PRIOR_LEARNING_SNAPSHOT_FOUND"
+          else
+            echo "OGE95_PRIOR_LEARNING_SNAPSHOT_ABSENT_REBUILD_FROM_CURRENT_EVIDENCE"
+          fi
+
+      - name: Let Stone Runner learn from GitHub, Manus, OpenAI evidence only
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/oge95-stone-runner-learning.test.mjs
+          node scripts/oge95-stone-runner-learning.mjs \
+            --sha="$GITHUB_SHA" \
+            --intake=oge95-final-review-intake.json \
+            --previous=oge95-previous-learning.json \
+            --output=oge95-stone-runner-learning.json
+          node -e '
+            const f=require("node:fs");
+            const a=JSON.parse(f.readFileSync("oge95-stone-runner-learning.json","utf8"));
+            if(a.schema!=="OGE95_STONE_RUNNER_LEARNING_V1" ||
+               a.model_weights_updated!==false ||
+               a.permission_to_commit_or_deploy!=="NOT_GRANTED" ||
+               a.promoted_to_green_1lss!==false ||
+               a.direct_provider_calls!==0) throw Error("LEARNING_MUST_BE_NON_AUTHORITATIVE");
+            console.log("OGE95_STONE_RUNNER_3_SOURCE_LEARNING_CACHE_EMITTED");
+          '
+
       - name: Load existing staging provider bindings through OIDC
         uses: Infisical/secrets-action@v1.0.9
         with:
@@ -93,5 +142,6 @@ jobs:
           path: |
             oge95-final-review-intake.json
             oge95-provider-readiness.json
-          retention-days: 14
+            oge95-stone-runner-learning.json
+          retention-days: 30
           if-no-files-found: error
