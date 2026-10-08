@@ -5,6 +5,9 @@ on:
     branches: [phase-vi-provider-incentive-metering]
     paths:
       - ".github/workflows/wave-replica-runner.yml"
+      - "scripts/replica-runner/**"
+      - "tests/oge95-factory-core.test.mjs"
+      - "config/oge95-rules-center.json"
   workflow_dispatch:
     inputs:
       deploy_staging:
