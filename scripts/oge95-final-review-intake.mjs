@@ -2,6 +2,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
 export const REPO = "Ogenicchocolate21debug/Build-Platform";
 export const BRANCH = "phase-vi-provider-incentive-metering";
@@ -23,6 +24,7 @@ function validGitHubAudit(audit) {
     audit.canonical?.branch === BRANCH &&
     Array.isArray(audit.audit) && audit.audit.length === 10 &&
     new Set(audit.audit.map((row) => row.runtime_id)).size === 10 &&
+    Array.from({ length: 10 }, (_, i) => `runtime-${String(i + 1).padStart(2, "0")}`).every((id) => audit.audit.some((row) => row.runtime_id === id)) &&
     audit.audit.every((row) => row.audit === "PASS" && row.next_state === "FINAL_DONE") &&
     audit.commit_manifest?.allowed === true && Array.isArray(audit.errors) && audit.errors.length === 0;
 }
@@ -81,7 +83,7 @@ export function evaluateFinalIntake({ audit, sourceSha, writerActor = "unknown",
   };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === fileURLToPath(new URL("file://" + process.argv[1]))) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const arg = (name, fallback = "") => process.argv.find((s) => s.startsWith("--" + name + "="))?.slice(name.length + 3) ?? fallback;
   const audit = JSON.parse(readFileSync(arg("audit", "docs/evidence/oge-62-flow-audit-latest.json"), "utf8"));
   const receipts = {};
