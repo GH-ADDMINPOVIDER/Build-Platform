@@ -3,18 +3,6 @@ name: OGE-95 Final Review Intake - GitHub + Manus + OpenAI
 on:
   push:
     branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "scripts/oge95-same-sha-audit.mjs"
-      - "tests/oge95-same-sha-audit.test.mjs"
-      - "scripts/oge95-final-review-intake.mjs"
-      - "tests/oge95-final-review-intake.test.mjs"
-      - "scripts/oge95-manus-plugin-handoff.mjs"
-      - "tests/oge95-manus-plugin-handoff.test.mjs"
-      - "scripts/oge95-provider-readiness.mjs"
-      - "tests/oge95-provider-readiness.test.mjs"
-      - "scripts/oge95-stone-runner-learning.mjs"
-      - "tests/oge95-stone-runner-learning.test.mjs"
-      - ".github/workflows/oge-95-final-review-intake.yml"
   workflow_dispatch:
 
 permissions:
@@ -171,3 +159,10 @@ jobs:
             oge95-stone-runner-learning.json
           retention-days: 30
           if-no-files-found: error
+
+  commit-drain:
+    name: Drain EVERY pending staging commit after each push
+    uses: ./.github/workflows/oge95-commit-drain.yml
+    permissions:
+      contents: read
+      actions: read
