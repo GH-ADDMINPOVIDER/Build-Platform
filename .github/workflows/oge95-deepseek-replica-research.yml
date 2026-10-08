@@ -13,8 +13,8 @@ env:
   INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
 jobs:
   one-shot:
-    runs-on: [self-hosted, linux, x64, wave]
-    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
