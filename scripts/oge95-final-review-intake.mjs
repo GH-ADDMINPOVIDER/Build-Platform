@@ -58,8 +58,20 @@ export function evaluateFinalIntake({ audit, sourceSha, writerActor = "unknown",
   const validSha = typeof sourceSha === "string" && GIT_SHA.test(sourceSha);
   const structurallyValid = validGitHubAudit(audit) && validSha;
   // OGE-62 historical evidence lacks source_sha: never assign current SHA by assumption.
+  // A free-floating source_sha string is not proof. Only accept the bounded
+  // replay attestation generated after GitHub checks out and verifies HEAD.
+  // The artifact remains reviewer evidence; Ruby still validates provenance.
+  const attestation = audit?.source_sha_attestation;
+  const exactShaBound = audit?.source_sha === sourceSha &&
+    attestation?.method === "CHECKED_OUT_GIT_HEAD_AND_GITHUB_SHA" &&
+    attestation?.exact_checkout_match === true &&
+    attestation?.execution_mode === "SEQUENTIAL_TEN_PROCESS_REPLAY_ON_ONE_HOST" &&
+    attestation?.genuinely_parallel_runtime_jobs === false &&
+    attestation?.independent_ai_provider_runs === false &&
+    attestation?.authorization_to_commit_or_deploy === false &&
+    audit.commit_manifest?.execution_approved === false;
   const github = !structurallyValid ? "BLOCKED"
-    : audit.source_sha === sourceSha ? "PASS" : "HISTORICAL_UNBOUND";
+    : exactShaBound ? "PASS" : "HISTORICAL_UNBOUND";
   const auditSha = digest(audit);
   const reviewers = Object.fromEntries(PROVIDERS.map((p) =>
     [p, evaluateReceipt(receipts[p], p, sourceSha, auditSha, writerActor)]
