@@ -132,7 +132,8 @@ def main() -> None:
         for match in SECRET_ASSIGNMENT.finditer(text):
             key, value = match.groups()
             normalized_key = key.lower().replace("-", "_")
-            if normalized_key in NON_SECRET_TOKEN_KEYS:
+            leaf_key = normalized_key.rsplit(".", 1)[-1]
+            if leaf_key in NON_SECRET_TOKEN_KEYS:
                 continue
             if looks_like_plaintext_secret(value):
                 raise SystemExit(
