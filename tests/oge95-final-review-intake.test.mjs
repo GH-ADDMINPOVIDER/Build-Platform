@@ -56,3 +56,17 @@ test("Historical OGE-62 audit without same-SHA attestation is not recertified fo
   assert.equal(out.final_intake_state, "GITHUB_AUDIT_SHA_NOT_ATTESTED");
   assert.equal(out.green_verified_promotion, false);
 });
+
+test("A bare source_sha cannot impersonate checked-out CI evidence", () => {
+  for (const tamper of [
+    { source_sha_attestation: undefined },
+    { source_sha_attestation: { ...audit.source_sha_attestation, exact_checkout_match: false } },
+    { source_sha_attestation: { ...audit.source_sha_attestation, authorization_to_commit_or_deploy: true } },
+    { source_sha_attestation: { ...audit.source_sha_attestation, independent_ai_provider_runs: true } },
+    { commit_manifest: { ...audit.commit_manifest, execution_approved: true } }
+  ]) {
+    const out = evaluateFinalIntake({ ...base, audit: { ...audit, ...tamper } });
+    assert.equal(out.github_audit, "HISTORICAL_UNBOUND");
+    assert.equal(out.green_verified_promotion, false);
+  }
+});
