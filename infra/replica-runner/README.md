@@ -48,6 +48,10 @@ npx wrangler dev --config dist/ogenic_phase_vi_staging/replica.wrangler.json --l
 
 The GitHub workflow automatically runs probes and uploads the proof report. GitHub-hosted runner time uses existing plan minutes/quota, so this is not guaranteed free for all plans. No new DigitalOcean/Railway service is created.
 
+## Live-vs-replica measurement (nonbillable)
+
+The proof runs `scripts/replica-runner/compare.mjs` while the local Worker is alive and compares **10 fixed public/unauthenticated paths** on the local worker and `https://wave.ogenicchocolate.com`. It records expected HTTP status, API contract type and basic response shape (without saving response text), then calculates `staging_comparison.surface_match_ratio` in the evidence artifact. A 9/10 or 10/10 match reaches only **PUBLIC_SURFACE_TARGET** — it is not proof of complete 0.9 runtime parity because auth, external providers, actual D1 records and edge behavior are out of scope.
+
 ## 0.9:1 is a target — what counts?
 
 The first proof measures **local operational coverage**, not mathematical production equivalence. A true >= 0.9 parity claim requires at least 9 of 10 pre-registered *identical-input* staging-versus-replica behavioral scenarios (path + status + structured result contract + authorization decision) to match, with exact tested commit, test suite, inputs and environments recorded. Stage an authenticated comparison only with existing owner authorization and read-only endpoints. Any untested component must be listed explicitly; do not silently remove failing tests.
