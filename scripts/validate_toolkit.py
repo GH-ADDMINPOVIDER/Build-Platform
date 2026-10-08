@@ -60,10 +60,23 @@ SECRET_PLACEHOLDERS = {
 
 def is_non_secret_token_metric(key: str) -> bool:
     compact = re.sub(r"[^a-z0-9]", "", key.lower())
-    return bool(re.fullmatch(
-        r"(?:(?:usage|prompt|completion|input|output|total|max|estimated)tokens?(?:count|used|limit|budget)?|token(?:boost|count|limit|budget)|tokens(?:used|count|limit|budget))",
-        compact,
-    ))
+    safe_suffixes = (
+        "inputtokens",
+        "outputtokens",
+        "prompttokens",
+        "completiontokens",
+        "totaltokens",
+        "usagetokens",
+        "tokensused",
+        "tokencount",
+        "tokenscount",
+        "tokenlimit",
+        "tokenslimit",
+        "tokenbudget",
+        "tokensbudget",
+        "tokenboost",
+    )
+    return compact.endswith(safe_suffixes)
 
 
 def looks_like_plaintext_secret(value: str) -> bool:
