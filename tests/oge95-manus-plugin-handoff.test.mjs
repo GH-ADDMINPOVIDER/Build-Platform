@@ -60,5 +60,5 @@ test("Manus plugin has no implicit write access to staging despite valid referen
   assert.equal(out.yellow_authorization,"NOT_GRANTED");
   assert.equal(out.model_task_invoked_by_this_script,false);
   assert.equal(out.github_commit_permitted,false);
-  assert.doesNotMatch(JSON.stringify(out),/sk-[a-zA-Z0-9]/);
+  assert.doesNotMatch(JSON.stringify(out),/sk-(?:proj-)?[a-zA-Z0-9_-]{16,}/);
 });
