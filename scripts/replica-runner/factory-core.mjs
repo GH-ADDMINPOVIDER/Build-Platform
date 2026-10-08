@@ -82,7 +82,7 @@ export function receiveDeepSeekResearch(payload, meta={}) {
   if(!answer||answer.length>14500)errors.push("ANSWER_MISSING_OR_UNBOUNDED");
   if(SECRET.test(answer))errors.push("SENSITIVE_TEXT_REJECTED");
   const sources=Array.isArray(payload?.source_urls)?payload.source_urls:[];
-  if(sources.length===0||sources.length>20||sources.some(s=>!/^https:\/\/(?:developers\.cloudflare\.com|docs\.github\.com|github\.com|api-docs\.deepseek\.com)\//.test(String(s))))
+  if(sources.length===0||sources.length>20||sources.some(s=>!/^https:\/\/(?:developers\.cloudflare\.com|docs\.github\.com|github\.com|api-docs\.deepseek\.com|playwright\.dev)\//.test(String(s))))
     errors.push("SOURCE_PROVENANCE_INVALID");
   if(payload?.inputs!=="PUBLIC_DOCUMENTATION_AND_PUBLIC_REPO_CONTRACTS_ONLY")
     errors.push("SOURCE_SCOPE_UNVERIFIED");
