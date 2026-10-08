@@ -16,6 +16,26 @@ on:
       - "worker/capability-card-stone.ts"
       - "worker/capability-card-stone-api.ts"
       - "config/capability-card-stone.json"
+      - "worker/yellow-effect-guard.ts"
+      - "worker/ccs-authority.ts"
+      - "worker/canonical-state.ts"
+      - "tests/_load-ts.mjs"
+      - "tests/oge-81-yellow-hardening.test.mjs"
+      - "tests/oge-82-ccs-authority.test.mjs"
+      - "tests/oge-83-ruby-green.test.mjs"
+      - "audit/OGE-84_FINAL_VERIFY.md"
+      - ".github/workflows/oge-67-maop-web-lab-proof.yml"
+  pull_request:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "worker/yellow-effect-guard.ts"
+      - "worker/ccs-authority.ts"
+      - "worker/canonical-state.ts"
+      - "tests/_load-ts.mjs"
+      - "tests/oge-81-yellow-hardening.test.mjs"
+      - "tests/oge-82-ccs-authority.test.mjs"
+      - "tests/oge-83-ruby-green.test.mjs"
+      - "audit/OGE-84_FINAL_VERIFY.md"
       - ".github/workflows/oge-67-maop-web-lab-proof.yml"
   workflow_dispatch:
 
@@ -45,6 +65,10 @@ jobs:
         run: |
           npm install
           npm test
+      - name: Astra hardening contracts
+        run: |
+          node --test tests/oge-81-yellow-hardening.test.mjs tests/oge-82-ccs-authority.test.mjs tests/oge-83-ruby-green.test.mjs
+
       - name: Root typecheck and build
         run: |
           npm run typecheck
