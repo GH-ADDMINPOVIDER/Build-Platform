@@ -10,6 +10,7 @@ on:
       - "index.html"
       - "capacitor.config.ts"
       - "worker/**"
+      - "tests/oge-89-deepseek-yellow-integration.test.mjs"
       - "workflows/**"
       - "database/**"
       - "config/**"
