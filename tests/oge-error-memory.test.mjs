@@ -39,6 +39,8 @@ test("OGE-35 and 36 404 diagnosis remains unproven and must not auto-promote dep
 
 test("Same HTTP code for OGE-10 or without issue cannot produce wrong diagnosis", () => {
   assert.equal(check("--oge","OGE-10","--http","404").matched,false);
+  assert.equal(check("--oge","OGE-10","--code","4049").matched,false);
+  assert.throws(() => check("--oge","OGE-10","--http","4049"), /INVALID_HTTP_STATUS/);
   assert.equal(check("--http","404").matched,false);
   assert.equal(check("--oge","OGE-35","--http","409").matched,false);
   assert.equal(check("--oge","OGE-78","--code","DEPENDENCY_LOCKFILE_NOT_FOUND").matched,true);
