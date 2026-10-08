@@ -15,18 +15,18 @@
 | 03 | **BLUE DIAMOND — AGENTS** | Blue | Agent catalog, identities, capabilities, readiness, provider/quota evidence | Not ATHENA's sole brain; not team execution management |
 | 04 | **VIOLET STONE — MULTI-AGENT SOLUTION** | Violet | Team formation, parallel task routing, work isolation, fan-out/fan-in, progress aggregation | Does not own the provider registry or bypass Yellow |
 | 05 | **RUBY STONE — VERIFICATION** | Ruby red | Proof verification, evidence reconciliation, semantic validity before canonical retention | Not a second source of truth |
-| 06 | **OBSIDIAN STONE — STONE RUNNER** | Obsidian black | Ephemeral runtime, local workerd/D1, code build/test, GitHub commit/CI/deploy context pack; future scoped coding execution via Codex/other verified agents | Not a separate AI model, not a new cloud state database |
-| 07 | **GRAY STONE — RULE** | Gray | Central rules taxonomy and clarity; no duplicated per-agent gates; apply canonical rules via existing Yellow authority | Do not replace or fork `config/oge95-rules-center.json` |
+| 06 | **STONE RUNNER** | Obsidian black | Ephemeral runtime, local workerd/D1, code build/test, GitHub commit/CI/deploy context pack; future scoped coding execution via Codex/other verified agents | Not a separate AI model, not a new cloud state database |
+| 07 | **RULE STONE** | Gray | Central rules taxonomy and clarity; no duplicated per-agent gates; apply canonical rules via existing Yellow authority | Do not replace or fork `config/oge95-rules-center.json` |
 
-**Spellings/aliases:** Stone Runner (two words); OBSIDIAN not Orange; Rule Stone / Gray Stone, the **RULE** function; White Diamond = ATHENA; Blue Diamond = Agent catalog; Violet Stone = multi-agent collaboration. The numbering denotes user-approved topology, not software maturity.
+**Spellings/aliases:** Stone Runner (two words); STONE RUNNER uses OBSIDIAN (black), not Orange; RULE STONE uses gray, and owns the **RULE** function; White Diamond = ATHENA; Blue Diamond = Agent catalog; Violet Stone = multi-agent collaboration. The numbering denotes user-approved topology, not software maturity.
 
 ### Operational ownership and single authority
 
 - **Thinking:** WHITE DIAMOND / ATHENA.
 - **Find eligible agents:** BLUE DIAMOND.
 - **Arrange specialists in safe parallel lanes:** VIOLET STONE.
-- **Authorize capabilities and perform tool operations:** YELLOW STONE, using rules from GRAY / RULE.
-- **Execute/reproduce in a disposable machine:** OBSIDIAN / STONE RUNNER.
+- **Authorize capabilities and perform tool operations:** YELLOW STONE, using rules from RULE STONE (GRAY).
+- **Execute/reproduce in a disposable machine:** STONE RUNNER (OBSIDIAN).
 - **Check evidence:** RUBY STONE.
 - **Retain verified state only through the canonical path:** GREEN / 1LSS.
 
@@ -48,4 +48,4 @@
 - Rule source: `config/oge95-rules-center.json`
 - Obsidian execution host: `infra/replica-runner/STONE_RUNNER.md`, `.github/workflows/wave-replica-runner.yml`
 
-**Why Gray Rule exists separately as a named stone:** explain and centrally manage the rules; it must *not* duplicate Yellow's already-established enforcement/authorization. 
+**Why Rule Stone (gray) exists separately:** explain and centrally manage the rules; it must *not* duplicate Yellow's already-established enforcement/authorization. 
