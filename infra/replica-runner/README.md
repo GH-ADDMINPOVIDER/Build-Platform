@@ -41,8 +41,8 @@ npm install --package-lock-only --ignore-scripts
 npm ci
 npm run check
 node scripts/replica-runner/prepare.mjs
-npx wrangler d1 migrations apply wave-replica-local \
-  --config dist/ogenic_phase_vi_staging/replica.wrangler.json --local --yes
+printf "y\\n" | npx wrangler d1 migrations apply wave-replica-local \
+  --config dist/ogenic_phase_vi_staging/replica.wrangler.json --local
 npx wrangler dev --config dist/ogenic_phase_vi_staging/replica.wrangler.json --local --ip 127.0.0.1 --port 8787
 ```
 
