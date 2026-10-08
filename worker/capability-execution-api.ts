@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { wrapCapabilityAsUseCard } from "./use-card-policy";
-import { boundedReadPrompt } from "./agent-context-policy";
+import { boundedReadPrompt, boundedResult } from "./agent-context-policy";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import {
   normalizeResolverRequest,
@@ -13,6 +13,7 @@ import { resolveCapability, type ResolverRequest } from "./capability-resolver";
 type ExecutionBindings = CapabilityResolverBindings & {
   GITHUB_TOKEN?: string;
   GEMINI_API_KEY?: string;
+  DEEPSEEK_API_KEY?: string;
   OGENIC_GITHUB_REPO?: string;
   OGENIC_GITHUB_BRANCH?: string;
 };
@@ -176,6 +177,77 @@ async function runGeminiRead(env: ExecutionBindings, rawPrompt: unknown) {
   };
 }
 
+type DeepSeekReadResponse = {
+  model?: string;
+  choices?: Array<{ finish_reason?: string; message?: { content?: string | null } }>;
+  usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+};
+
+// One authorized read only. No retries, no fallback, fixed low-cost model and
+// fixed maximum output. The one-pass provider evidence is checked in separately.
+async function runDeepSeekRead(env: ExecutionBindings, rawPrompt: unknown) {
+  const apiKey = clean(env.DEEPSEEK_API_KEY, 4000);
+  if (!apiKey) return { ok: false as const, code: "CONFIGURATION_REQUIRED", missing: "DEEPSEEK_API_KEY" };
+  const prompt = boundedReadPrompt(rawPrompt);
+  if (!prompt) return { ok: false as const, code: "PROMPT_REQUIRED" };
+
+  let response: Response;
+  try {
+    response = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        model: "deepseek-flash",
+        thinking: { type: "disabled" },
+        messages: [
+          { role: "system", content: "OGENIC Yellow READ reasoning only. Provide a concise evidence-led answer. Never perform writes, retries, or expose secrets." },
+          { role: "user", content: prompt },
+        ],
+        stream: false,
+        max_tokens: 256,
+      }),
+    });
+  } catch {
+    return { ok: false as const, code: "DEEPSEEK_UNREACHABLE", automatic_retry: false };
+  }
+
+  // Do not return raw provider errors, which could contain sensitive data.
+  const body = await response.json().catch(() => ({})) as DeepSeekReadResponse;
+  if (!response.ok) {
+    return {
+      ok: false as const,
+      code: response.status === 402 ? "DEEPSEEK_CREDIT_EXHAUSTED" :
+        response.status === 429 ? "DEEPSEEK_RATE_LIMITED" :
+        response.status === 401 ? "DEEPSEEK_AUTH_FAILED" :
+        `DEEPSEEK_HTTP_${response.status}`,
+      http_status: response.status,
+      automatic_retry: false,
+    };
+  }
+
+  const output = boundedResult(body.choices?.[0]?.message?.content);
+  if (!output) return { ok: false as const, code: "DEEPSEEK_EMPTY_OUTPUT", http_status: 200 };
+  return {
+    ok: true as const,
+    provider: "deepseek",
+    capability: "context_load",
+    model: clean(body.model || "deepseek-flash", 120),
+    finish_reason: clean(body.choices?.[0]?.finish_reason, 80) || null,
+    text: output,
+    usage: {
+      prompt_tokens: Number(body.usage?.prompt_tokens ?? 0),
+      completion_tokens: Number(body.usage?.completion_tokens ?? 0),
+      total_tokens: Number(body.usage?.total_tokens ?? 0),
+    },
+    automatic_retry: false,
+    provider_fallback: "DENIED_WITHIN_ATTEMPT",
+  };
+}
+
 async function readGitHubFile(env: ExecutionBindings, path: string) {
   const token = clean(env.GITHUB_TOKEN, 4000);
   if (!token) return { ok: false as const, code: "CONFIGURATION_REQUIRED", missing: "GITHUB_TOKEN" };
@@ -308,6 +380,50 @@ export function createCapabilityExecutionApi() {
         }),
         retention_eligible: false,
         policy: "READ_AUTO_ALLOW_RUBY_VERIFY_BEFORE_GREEN_RETENTION",
+      }, 200, { "Cache-Control": "no-store" });
+    }
+
+    if (descriptor.provider_id === "deepseek" && descriptor.capability_id === "context_load") {
+      // Paid provider routing is EXPLICIT ONLY; an ordinary ATHENA/Gemini
+      // analysis prompt cannot silently incur a DeepSeek completion charge.
+      if (request.provider !== "deepseek" || !body.input?.prompt) {
+        return c.json({
+          ok: false,
+          code: "EXPLICIT_DEEPSEEK_SELECTION_AND_PROMPT_REQUIRED",
+          run_id: runId,
+          use_card: useCard,
+          retention_eligible: false,
+        }, 409, { "Cache-Control": "no-store" });
+      }
+      const deepseek = await runDeepSeekRead(c.env, body.input.prompt);
+      if (!deepseek.ok) {
+        return c.json({
+          ...deepseek,
+          run_id: runId,
+          resolver: resolved,
+          use_card: useCard,
+          verification: verification("failed", {
+            provider_id: "deepseek",
+            capability_id: "context_load",
+          }),
+          retention_eligible: false,
+        }, deepseek.code === "CONFIGURATION_REQUIRED" ? 503 : 502, { "Cache-Control": "no-store" });
+      }
+      const outputDigest = await sha256Hex(deepseek.text);
+      return c.json({
+        ok: true,
+        run_id: runId,
+        resolver: resolved,
+        use_card: useCard,
+        result: deepseek,
+        verification: verification("partially_verified", {
+          provider_id: "deepseek",
+          capability_id: "context_load",
+          output_sha256: outputDigest,
+          semantic_verification_required: "RUBY_STONE",
+        }),
+        retention_eligible: false,
+        policy: "EXPLICIT_METERED_READ_RUBY_VERIFY_BEFORE_GREEN_RETENTION",
       }, 200, { "Cache-Control": "no-store" });
     }
 
