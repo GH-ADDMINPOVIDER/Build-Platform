@@ -47,7 +47,8 @@ if(!key) {
     const body=await response.json().catch(()=>({}));
     const result=body?.result||{};
     const answer=typeof result.text==="string"?result.text.trim():"";
-    const clean=answer.replace(/(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{12,})/g,"[REDACTED]").slice(0,4500);
+    // Keep full paid output in the GitHub evidence artifact; no 4,500-char clip.
+    const clean=answer.replace(/(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{12,})/g,"[REDACTED]");
     const ok=response.status===200&&body?.ok===true&&result.provider==="deepseek"&&clean.length>0;
     const proof={
       ok,http_status:ok?200:response.status,
@@ -58,19 +59,23 @@ if(!key) {
       no_browsing_tools:true,calls:1,retries:0,fallbacks:0,
       usage:ok?result.usage:null,
       yellow_run_id:body?.run_id||null,
+      finish_reason:ok?result.finish_reason||null:null,
+      output_complete:ok?result.output_complete===true:false,
+      output_truncated_by_provider:ok?result.output_truncated_by_provider===true:false,
       yellow_verification:body?.verification?.status||"NOT_VERIFIED",
       source_sha:packet?.source_sha||null,
       source_packet_sha256:packet?.prompt_sha256||null,
       live_external_fetches:packet?.external_fetch_count??null,
       github_repo_files:packet?.repo_files_read??null,
       ruby_verified:false,
-      status:ok?"RESEARCH_RECEIVED_UNVERIFIED":"BLOCKED",
+      status:ok?(result.output_complete===true?"RESEARCH_RECEIVED_UNVERIFIED":"RESEARCH_INCOMPLETE_NEEDS_CONTINUATION"):"BLOCKED",
       error_code:ok?null:String(body?.code||result?.code||"YELLOW_RESPONSE_INVALID").slice(0,110),
       retention_eligible:false
     };
     stamp(proof);
-    console.log(JSON.stringify({ok,http_status:response.status,model:proof.model,tokens:result?.usage?.total_tokens||null,verification:proof.yellow_verification,error_code:proof.error_code,artifact:path}));
-    if(ok) {console.log("OGE95_YELLOW_DEEPSEEK_BEGIN");console.log(clean);console.log("OGE95_YELLOW_DEEPSEEK_END");}
+    console.log(JSON.stringify({ok,http_status:response.status,model:proof.model,tokens:result?.usage?.total_tokens||null,finish_reason:proof.finish_reason,output_chars:clean.length,complete:proof.output_complete,verification:proof.yellow_verification,error_code:proof.error_code,artifact:path}));
+    if(ok) {console.log("OGE95_YELLOW_DEEPSEEK_EVIDENCE_SAVED_FULL_LENGTH="+clean.length);}
+    // GitHub logs get summary only; complete text is saved without clipping to artifact.
     else process.exitCode=1;
   }catch(e){
     const kind=e?.name==="TimeoutError"||e?.name==="AbortError"?"TIMEOUT":"TRANSPORT_ERROR";
