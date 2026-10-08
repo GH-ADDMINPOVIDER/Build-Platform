@@ -1,6 +1,7 @@
 import providerCatalog from "../config/providers.json";
 import attestations from "../config/provider-readiness-attestations.json";
-import onboardingPolicy from "../config/provider-onboarding-policy.json";
+import rulesCenter from "../config/oge95-rules-center.json";
+const onboardingPolicy = rulesCenter.runtime_contracts.provider_onboarding;
 import type { ProviderReadiness } from "./provider-readiness";
 
 type OnboardingAction =
