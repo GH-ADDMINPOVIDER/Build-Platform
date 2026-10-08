@@ -20,6 +20,17 @@ DYNAMIC_SECRET_MARKERS = (
     "process.env",
     "secret_ref",
 )
+NON_SECRET_TOKEN_KEYS = {
+    "token_boost",
+    "prompt_token_count",
+    "candidates_token_count",
+    "total_token_count",
+    "prompt_tokens",
+    "completion_tokens",
+    "total_tokens",
+    "max_output_tokens",
+}
+
 SECRET_PLACEHOLDERS = {
     "",
     "null",
@@ -120,6 +131,9 @@ def main() -> None:
 
         for match in SECRET_ASSIGNMENT.finditer(text):
             key, value = match.groups()
+            normalized_key = key.lower().replace("-", "_")
+            if normalized_key in NON_SECRET_TOKEN_KEYS:
+                continue
             if looks_like_plaintext_secret(value):
                 raise SystemExit(
                     f"Possible plaintext secret assignment in {path.relative_to(ROOT)}: {key}"
