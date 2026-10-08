@@ -20,6 +20,13 @@ DYNAMIC_SECRET_MARKERS = (
     "process.env",
     "secret_ref",
 )
+NON_SECRET_STATUS_SUFFIXES = (
+    "bound",
+    "configured",
+    "present",
+    "available",
+)
+
 NON_SECRET_TOKEN_KEYS = {
     "token_boost",
     "prompt_token_count",
@@ -134,6 +141,9 @@ def main() -> None:
             normalized_key = key.lower().replace("-", "_")
             leaf_key = normalized_key.rsplit(".", 1)[-1]
             if leaf_key in NON_SECRET_TOKEN_KEYS:
+                continue
+            compact_key = re.sub(r"[^a-z0-9]", "", leaf_key)
+            if compact_key.endswith(NON_SECRET_STATUS_SUFFIXES):
                 continue
             if looks_like_plaintext_secret(value):
                 raise SystemExit(
