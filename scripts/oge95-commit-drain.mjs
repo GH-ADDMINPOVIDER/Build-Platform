@@ -5,7 +5,7 @@ import {mkdtempSync,rmSync,readFileSync,writeFileSync,appendFileSync} from "node
 import {join,resolve} from "node:path";
 import {tmpdir} from "node:os";
 import {fileURLToPath} from "node:url";
-export const SCHEMA="OGE95_GITHUB_COMMIT_DRAIN_V1";
+export const SCHEMA="OGE95_GITHUB_COMMIT_DRAIN_V2";
 export const REPO="Ogenicchocolate21debug/Build-Platform";
 export const BRANCH="phase-vi-provider-incentive-metering";
 export const BOOTSTRAP="9be0a339016ebf23a3a5f4108aaab56af19bd93a";
@@ -40,7 +40,8 @@ export function receipt(p,checked,runId="unknown"){
  return {schema:SCHEMA,repository:REPO,branch:BRANCH,run_id:String(runId),
    prior_checkpoint:p.base_sha,head_sha:p.head_sha,last_processed_sha:last,
    pending_at_start:p.pending,remaining_at_plan:p.remaining,
-   checked,failed_shas:checked.filter(x=>x.status!=="PASS").map(x=>x.sha),
+   checked,dependency_install_method:"CANONICAL_NPM_PACKAGE_LOCK_ONLY_THEN_NPM_CI",
+   failed_shas:checked.filter(x=>x.status!=="PASS").map(x=>x.sha),
    needs_continuation:last!==p.head_sha,
    no_paid_calls:true,allows_code_push:false,allows_deploy:false,
    message:"Audited, not automatically repaired. Failed SHAs need separately authorized agent review."};
@@ -81,13 +82,24 @@ function execute(){
     git(["worktree","add","--detach",dir,sha]);
     const opts={cwd:dir,env:bareEnv(),timeout:240000,encoding:"utf8",
       maxBuffer:1048576,stdio:["ignore","pipe","pipe"]};
+    // Match the EXISTING WAVE Canonical Check workflow in a disposable worktree.
+    // The package-lock normalization stays inside the temporary worktree and
+    // is never committed back to staging. The receipt records this behavior.
+    stage="npm_lock_normalization";
+    execFileSync("npm",["install","--package-lock-only","--no-audit","--no-fund"],opts);
     stage="npm_ci";
     execFileSync("npm",["ci","--no-audit","--no-fund"],opts);
     stage="npm_run_check";
     execFileSync("npm",["run","check"],opts);
    }catch(e){
-    status=e?.code==="ETIMEDOUT"?"BLOCKED":"FAIL";
+    const stderr=String(e?.stderr||"");
+    const reason=/EAI_AGAIN|ETIMEDOUT|ECONNRESET|ENOTFOUND|network/i.test(stderr)
+      ? "NETWORK_UNAVAILABLE" : /EUSAGE|package-lock|out of sync/i.test(stderr)
+      ? "LOCKFILE_MISMATCH" : /ENOMEM|heap out of memory/i.test(stderr)
+      ? "RESOURCE_EXHAUSTED" : "COMMAND_FAILED";
+    status=reason==="NETWORK_UNAVAILABLE"||reason==="RESOURCE_EXHAUSTED"?"BLOCKED":"FAIL";
     exit_code=Number.isInteger(e?.status)?e.status:1;
+    console.error("OGE95_NPM_CHECK_FAILURE "+JSON.stringify({sha,stage,reason,exit_code}));
    }finally{
     try{git(["worktree","remove","--force",dir]);}catch{}
    }
