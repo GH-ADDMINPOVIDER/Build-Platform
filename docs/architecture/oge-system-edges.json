@@ -1,0 +1,172 @@
+{
+  "schema_version": "OGE_ARCH_MAP/1.0",
+  "canonical_branch": "phase-vi-provider-incentive-metering",
+  "first_view_flow": [
+    "WAVE",
+    "ATHENA_BLUE",
+    "YELLOW_MAOP",
+    "CCS",
+    "VIOLET",
+    "RUBY",
+    "GREEN_1LSS"
+  ],
+  "nodes": [
+    {
+      "id": "WAVE",
+      "group": "G1",
+      "label": "WAVE / Human Surface"
+    },
+    {
+      "id": "ATHENA_BLUE",
+      "group": "G2",
+      "label": "ATHENA + BLUE / Admission & Planning"
+    },
+    {
+      "id": "YELLOW_MAOP",
+      "group": "G3",
+      "label": "YELLOW / MA-OP / Execution Authority"
+    },
+    {
+      "id": "CCS",
+      "group": "G4",
+      "label": "CCS / Use Card / Capability Lease"
+    },
+    {
+      "id": "VIOLET",
+      "group": "G5",
+      "label": "VIOLET / Multi-Agent & Workflow"
+    },
+    {
+      "id": "RUBY",
+      "group": "G6",
+      "label": "RUBY / Verification & Evidence"
+    },
+    {
+      "id": "GREEN_1LSS",
+      "group": "G7",
+      "label": "GREEN / owner-main / 1LSS"
+    },
+    {
+      "id": "GITHUB",
+      "group": "INFRA",
+      "label": "GitHub"
+    },
+    {
+      "id": "LINEAR",
+      "group": "INFRA",
+      "label": "Linear"
+    },
+    {
+      "id": "CLOUDFLARE",
+      "group": "INFRA",
+      "label": "Cloudflare"
+    },
+    {
+      "id": "D1",
+      "group": "INFRA",
+      "label": "D1"
+    },
+    {
+      "id": "N8N",
+      "group": "G5",
+      "label": "n8n execution fabric"
+    },
+    {
+      "id": "CODEX",
+      "group": "PROVIDER",
+      "label": "Codex"
+    },
+    {
+      "id": "GEMINI",
+      "group": "PROVIDER",
+      "label": "Gemini"
+    },
+    {
+      "id": "MANUS",
+      "group": "PROVIDER",
+      "label": "Manus bridge"
+    }
+  ],
+  "edges": [
+    [
+      "WAVE",
+      "ATHENA_BLUE",
+      "intent/admission"
+    ],
+    [
+      "ATHENA_BLUE",
+      "YELLOW_MAOP",
+      "guarded handoff"
+    ],
+    [
+      "YELLOW_MAOP",
+      "CCS",
+      "capability + scope"
+    ],
+    [
+      "CCS",
+      "VIOLET",
+      "authorized execution"
+    ],
+    [
+      "VIOLET",
+      "RUBY",
+      "result + evidence"
+    ],
+    [
+      "RUBY",
+      "GREEN_1LSS",
+      "verified promotion"
+    ],
+    [
+      "GREEN_1LSS",
+      "ATHENA_BLUE",
+      "canonical context"
+    ],
+    [
+      "YELLOW_MAOP",
+      "CLOUDFLARE",
+      "runtime route"
+    ],
+    [
+      "VIOLET",
+      "N8N",
+      "workflow fan-out/fan-in"
+    ],
+    [
+      "VIOLET",
+      "CODEX",
+      "code/build/test lane"
+    ],
+    [
+      "VIOLET",
+      "GEMINI",
+      "verified read/reasoning lane"
+    ],
+    [
+      "VIOLET",
+      "MANUS",
+      "explicit bridge handoff"
+    ],
+    [
+      "GITHUB",
+      "RUBY",
+      "commit/CI evidence"
+    ],
+    [
+      "LINEAR",
+      "RUBY",
+      "task/result evidence"
+    ],
+    [
+      "CLOUDFLARE",
+      "RUBY",
+      "runtime evidence"
+    ],
+    [
+      "D1",
+      "GREEN_1LSS",
+      "canonical operational state"
+    ]
+  ]
+}
