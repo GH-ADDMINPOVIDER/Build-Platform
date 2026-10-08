@@ -1,0 +1,61 @@
+name: OGE-93 Clean Agents Readiness (Read-Only)
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: [".github/workflows/oge-93-clean-agent-readiness.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  STAGING_URL: https://wave.ogenicchocolate.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  read-only-audit:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Locate staging secrets
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+      - name: Load existing ops key via OIDC (no secret exports)
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: Compare live providers and actors with fail-closed policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::Missing existing staging ops key"; exit 1; }
+          for endpoint in provider-readiness blue-diamond/registry; do
+            name="${endpoint//\//-}"
+            code="$(curl -sS --max-time 25 -o "/tmp/oge93-${name}.json" -w '%{http_code}' -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" "${STAGING_URL}/api/${endpoint}" || true)"
+            echo "$endpoint HTTP $code"
+            test "$code" = "200" || exit 1
+          done
+          echo "=== Live Provider Readiness (no inference requests) ==="
+          jq -c '.providers[] | {provider, readiness, key_present, api_reachable, quota_state, billing_state}' /tmp/oge93-provider-readiness.json
+          echo "=== Live Agent Roster (redacted credentials) ==="
+          jq -c '.actors[] | select(.agent_eligible == true) | {actor_id, actor_class, maturity, state, agent_eligible}' /tmp/oge93-blue-diamond-registry.json
+          jq -e '.providers | any(.provider == "deepseek" and .readiness == "VERIFIED")' /tmp/oge93-provider-readiness.json >/dev/null
+          {
+            echo "### OGE-93 Read-only verified readiness snapshot"
+            echo "- Provider status obtained from live Worker with owner/ops auth"
+            echo "- Agent roster checked (candidate/offline states remain labeled, not auto-promoted)"
+            echo "- DeepSeek VERIFIED state confirmed without a paid request"
+            echo "- No API secrets printed or retained; no paid completions, D1 schema changes or production mutation"
+          } >> "$GITHUB_STEP_SUMMARY"
