@@ -138,8 +138,20 @@ export async function readResolverCandidates(db: CapabilityResolverD1, env: Capa
        FROM provider_capabilities
        UNION ALL
        SELECT provider_id, capability_id, priority, 1
-       FROM compatibility_map
+       FROM compatibility_map AS compat
        WHERE NOT EXISTS (SELECT 1 FROM provider_capabilities)
+          OR (
+            -- Preserve the OGE-67 explicit staging GitHub READ bridge even
+            -- when D1 contains capabilities for *other* providers. Never
+            -- resurrect an explicitly disabled github/read_file entry.
+            compat.provider_id = 'github'
+            AND compat.capability_id = 'read_file'
+            AND NOT EXISTS (
+              SELECT 1 FROM provider_capabilities AS explicit
+              WHERE explicit.provider_id = compat.provider_id
+                AND explicit.capability_id = compat.capability_id
+            )
+          )
      )
      SELECT
        c.id AS capability_id,
