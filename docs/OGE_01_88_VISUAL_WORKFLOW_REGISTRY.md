@@ -149,10 +149,10 @@ flowchart TD
 
 | Issue | Title | Primary group | Linear status | Existing delegate |
 |---|---|---|---|---|
-| [OGE-1](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
-| [OGE-2](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
-| [OGE-3](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
-| [OGE-4](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-1](https://linear.app/ogenic-sio/issue/OGE-1/get-familiar-with-linear) | Get familiar with Linear | ONBOARDING | Todo | — |
+| [OGE-2](https://linear.app/ogenic-sio/issue/OGE-2/connect-your-tools) | Connect your tools | ONBOARDING | Todo | — |
+| [OGE-3](https://linear.app/ogenic-sio/issue/OGE-3/import-your-data) | Import your data | ONBOARDING | Todo | — |
+| [OGE-4](https://linear.app/ogenic-sio/issue/OGE-4/set-up-your-teams) | Set up your teams | ONBOARDING | Todo | — |
 | [OGE-5](https://linear.app/ogenic-sio/issue/OGE-5/frozen-candy-a1-a6-drivedocsrepo-canonical-sync) | FROZEN — CANDY A1-A6 Drive/Docs/Repo Canonical Sync | OTHER | Backlog | — |
 | [OGE-6](https://linear.app/ogenic-sio/issue/OGE-6/phase-vi-api-linear-d1-task-binding) | Phase VI API — Linear ↔ D1 Task Binding | OTHER | Done | — |
 | [OGE-7](https://linear.app/ogenic-sio/issue/OGE-7/phase-vi-tools-mobile-ops-uxui-dashboard) | Phase VI Tools — Mobile Ops UX/UI Dashboard | WAVE UI | Done | — |
@@ -163,7 +163,7 @@ flowchart TD
 | [OGE-12](https://linear.app/ogenic-sio/issue/OGE-12/later-openai-platform-ops-vector-store-admin-module) | LATER — OpenAI Platform Ops / Vector Store Admin module | OTHER | Backlog | — |
 | [OGE-13](https://linear.app/ogenic-sio/issue/OGE-13/superseded-legacy-compact-dashboard-gm-cashflow-app-hub-layout) | SUPERSEDED — legacy compact dashboard / GM / Cashflow / App Hub layout | WAVE UI | Canceled | — |
 | [OGE-14](https://linear.app/ogenic-sio/issue/OGE-14/cloudflare-control-router-function-calls-hooks-n8n-adapter) | Cloudflare Control Router — Function Calls + Hooks + n8n Adapter | CONTROL | Done | Codex |
-| [OGE-15](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-15](https://linear.app/ogenic-sio/issue/OGE-15/web-dev-provider-connect-wizard-oauthmcpdirect-api-no-token-hunting) | Web Dev — Provider Connect Wizard (OAuth/MCP/Direct API, no token hunting) | CONNECTORS | Canceled | Codex |
 | [OGE-16](https://linear.app/ogenic-sio/issue/OGE-16/later-native-ios-shell-after-wave-next-webcontrol-contracts-stabilize) | LATER — Native iOS shell after WAVE NEXT web/control contracts stabilize | CONTROL | Backlog | — |
 | [OGE-17](https://linear.app/ogenic-sio/issue/OGE-17/wave-mobile-unified-plugin-registry-actual-app-inventory) | WAVE Mobile — Unified Plugin Registry + Actual App Inventory | CONNECTORS | Done | Codex |
 | [OGE-18](https://linear.app/ogenic-sio/issue/OGE-18/ogenic-project-session-project-resolver-wave) | OGENIC — Project Session → Project Resolver → WAVE | FOUNDATION | Canceled | — |
@@ -187,7 +187,7 @@ flowchart TD
 | [OGE-36](https://linear.app/ogenic-sio/issue/OGE-36/athena-natural-language-command-planner-deterministic-yellow-stone) | ATHENA natural-language command planner → deterministic Yellow Stone plan | CONTROL | Done | — |
 | [OGE-37](https://linear.app/ogenic-sio/issue/OGE-37/stone-v-violet-stone-multi-agent-solution-work-operate) | STONE V — VIOLET STONE: Multi-Agent · Solution · Work · Operate | AGENTS | Done | — |
 | [OGE-38](https://linear.app/ogenic-sio/issue/OGE-38/stone-vi-ruby-stone-system-and-ai-capability-test-layer) | STONE VI — RUBY STONE: System & AI Capability Test Layer | EVIDENCE | Done | — |
-| [OGE-39](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-39](https://linear.app/ogenic-sio/issue/OGE-39/knowledge-refinery-deepseek-research-docker-sandbox-codex-fix-ruby) | KNOWLEDGE REFINERY — DeepSeek Research + Docker Sandbox + Codex Fix + Ruby Verify | RESEARCH | Done | — |
 | [OGE-40](https://linear.app/ogenic-sio/issue/OGE-40/realtime-ops-provider-readiness-and-cost-safe-routing) | REALTIME OPS — Provider Readiness & Cost-Safe Routing | OPERATIONS | Done | Codex |
 | [OGE-41](https://linear.app/ogenic-sio/issue/OGE-41/ma-op-multi-agent-operations-protocol-architecture-draft) | MA-OP — Multi-Agent Operations Protocol Architecture Draft | AGENTS | Done | Codex |
 | [OGE-42](https://linear.app/ogenic-sio/issue/OGE-42/knowledge-refinery-v2-code-debug-build-create-rule-formula) | KNOWLEDGE REFINERY V2 — Code / Debug / Build / Create → Rule / Formula Distillation | RESEARCH | Done | Codex |
@@ -207,13 +207,13 @@ flowchart TD
 | [OGE-56](https://linear.app/ogenic-sio/issue/OGE-56/auto-routing-v1-caprank-readiness-cost-yellow-policy-selection) | AUTO ROUTING V1 — CapRank + readiness + cost + Yellow policy selection | CONTROL | Done | — |
 | [OGE-57](https://linear.app/ogenic-sio/issue/OGE-57/wave-task-inbox-core-cross-session-assignment-owner-main-result-trail) | WAVE TASK INBOX CORE — Cross-session assignment + owner-main result trail | FOUNDATION | Done | — |
 | [OGE-58](https://linear.app/ogenic-sio/issue/OGE-58/perplexity-agent-bridge-web-grounded-research-capability-safe-one-pass) | PERPLEXITY AGENT BRIDGE — Web-grounded research capability + safe one-pass smoke | AGENTS | Done | — |
-| [OGE-59](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
-| [OGE-60](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-59](https://linear.app/ogenic-sio/issue/OGE-59/deepseek-bridge-v4-reasoningcode-provider-infisical-canonical-binding) | DEEPSEEK BRIDGE — V4 reasoning/code provider + Infisical canonical binding + one-pass smoke | OPERATIONS | Done | — |
+| [OGE-60](https://linear.app/ogenic-sio/issue/OGE-60/gemini-free-pilot-gemini-38-flash-infisical-binding-one-pass-live) | GEMINI FREE PILOT — Gemini 3.8 Flash + Infisical binding + one-pass live smoke | OPERATIONS | Done | — |
 | [OGE-61](https://linear.app/ogenic-sio/issue/OGE-61/runtime-10-ten-isolated-parallel-clones-serial-reducer-proof) | RUNTIME ×10 — Ten isolated parallel clones + serial reducer proof | EVIDENCE | Done | — |
-| [OGE-62](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-62](https://linear.app/ogenic-sio/issue/OGE-62/flow-audit-commit-10-self-verified-provisional-closes-github-re-check) | FLOW AUDIT COMMIT — 10 self-verified provisional closes → GitHub re-check → final commit gate | EVIDENCE | Done | — |
 | [OGE-63](https://linear.app/ogenic-sio/issue/OGE-63/wave-chat-finish-neonacrylic-messages-real-action-bar-evidence-link) | WAVE CHAT FINISH — Neon/Acrylic messages + real action bar + evidence link | WAVE UI | Done | — |
-| [OGE-64](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
-| [OGE-65](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-64](https://linear.app/ogenic-sio/issue/OGE-64/wave-shell-hygiene-lazy-legacy-boundary-cache-isolation-canonical) | WAVE SHELL HYGIENE — Lazy legacy boundary + cache isolation + canonical route guard | OPERATIONS | Done | — |
+| [OGE-65](https://linear.app/ogenic-sio/issue/OGE-65/wave-theme-state-shared-lightdark-toggle-across-web-chat-operate) | WAVE THEME STATE — Shared Light/Dark toggle across Web · Chat · Operate · legacy | OPERATIONS | Done | — |
 | [OGE-66](https://linear.app/ogenic-sio/issue/OGE-66/ma-op-first-impression-protocol-negotiation-evidence-freshness-bounded) | MA-OP FIRST IMPRESSION — Protocol negotiation, evidence freshness, bounded harness inputs | AGENTS | Done | — |
 | [OGE-67](https://linear.app/ogenic-sio/issue/OGE-67/ma-op-web-lab-real-staging-surface-for-core-github-read-ruby-proof) | MA-OP WEB LAB — Real staging surface for Core + GitHub READ + Ruby proof | AGENTS | Done | — |
 | [OGE-68](https://linear.app/ogenic-sio/issue/OGE-68/superseded-n8n-legacy-source-bridge-recovered-exports-used-for-self) | SUPERSEDED — N8N LEGACY SOURCE BRIDGE (recovered exports used for self-host migration) | CONNECTORS | Canceled | Codex |
@@ -229,7 +229,7 @@ flowchart TD
 | [OGE-78](https://linear.app/ogenic-sio/issue/OGE-78/use-card-50-in-1-ma-op-permission-wrapper-bounded-card-lease) | USE CARD 50-IN-1 — MA-OP permission wrapper + bounded card lease | AGENTS | Done | Codex |
 | [OGE-79](https://linear.app/ogenic-sio/issue/OGE-79/ccs-protocol-capability-card-stone-agent-connection-language) | CCS PROTOCOL — Capability Card Stone agent connection language | CONTROL | Done | Codex |
 | [OGE-80](https://linear.app/ogenic-sio/issue/OGE-80/astra-minimal-hardening-v1-distill-research-into-smallest-ogenic) | ASTRA MINIMAL HARDENING V1 — Distill research into smallest OGENIC safety upgrade | AGENTS | Done | — |
-| [OGE-81](https://linear.app/ogenic-sio) | Not found in returned Linear search | UNKNOWN | NOT FOUND | — |
+| [OGE-81](https://linear.app/ogenic-sio/issue/OGE-81/yellow-hardening-effects-unknown-outcomes-approval-binding-stale) | YELLOW HARDENING — Effects, unknown outcomes, approval binding, stale-writer fencing | CONTROL | Done | Codex |
 | [OGE-82](https://linear.app/ogenic-sio/issue/OGE-82/ccs-authority-hardening-delegation-revocation-credential-custody) | CCS AUTHORITY HARDENING — Delegation, revocation, credential custody, egress enforcement | CONTROL | Done | Codex |
 | [OGE-83](https://linear.app/ogenic-sio/issue/OGE-83/rubygreen-hardening-provenance-canonical-promotion-provider-session) | RUBY→GREEN HARDENING — Provenance, canonical promotion, provider-session projection, retention proof | FOUNDATION | Done | Codex |
 | [OGE-84](https://linear.app/ogenic-sio/issue/OGE-84/ruby-final-verify-merge-astra-hardening-evidence-run-failure-injection) | RUBY FINAL VERIFY — Merge Astra hardening evidence, run failure-injection matrix, close only on proof | AGENTS | Done | Codex |
@@ -261,3 +261,25 @@ flowchart TD
 - **Status Done**: not upgraded to runtime-verified until linked PR, tests, Ruby gate and live receipt are inspected.
 - **Edges**: only canonical architecture edges shown. Per-issue dependencies must come from issue relations or explicit acceptance text.
 - **Handoff**: resume incomplete items by critical-path dependencies; avoid touching main, production, Candy, secrets, D1 schema.
+
+
+## Direct Linear lookup reconciliation (2026-10-08)
+
+Recovered 12 missing search results. OGE-21 returned a not-found error. Prior tally is a search-snapshot only; use rows with direct corrections as authoritative issue statuses, not independent runtime proof.
+
+## Existing architecture visual outputs — do not duplicate
+
+- [Functional group matrix](architecture/OGE_SYSTEM_GROUPS.md)
+- [Mermaid diagram source](architecture/OGE_SYSTEM_MAP.mmd)
+- [GitHub-rendered system diagram](architecture/OGE_SYSTEM_MAP.md)
+- [Black-and-white SVG](../public/architecture/oge-system-map.svg)
+
+## Delegation / execution lanes (handoff; not evidence of agents auto-running)
+
+- **Linear / ATHENA:** reconcile OGE-21 and issue relationships, including beyond OGE-88.
+- **Codex:** keep SVG/Mermaid and WAVE exhibition aligned, validate mobile rendering, avoid duplicate diagrams.
+- **GitHub Actions:** audit diagram validity, CI receipts and PR links; fail closed.
+- **Ruby:** verify independent evidence before FINAL_DONE promotion.
+- **MA-OP / Yellow:** return to active execution queue including OGE-71 and OGE-74; authorize consequential side effects.
+
+OGE-85, 86, 87 and 88 have Linear tracker status Done. This is not proof of a full cross-device runtime pass.
