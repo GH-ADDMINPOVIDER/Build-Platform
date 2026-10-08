@@ -1,6 +1,6 @@
 {
   "schema_version": "OGENIC_PROVIDER_ONBOARDING_V1",
-  "principle": "One non-billable read-only preflight before requesting a provider live proof or adapter change.",
+  "principle": "Send work directly to Yellow. Onboarding is optional, nonbillable diagnostics and must not add an execution gate.",
   "stages": [
     "REGISTERED",
     "KEY_BOUND",
@@ -12,10 +12,11 @@
     "local_attestation_only": true,
     "paid_provider_calls": 0,
     "d1_writes": 0,
-    "full_context_replay": false
+    "full_context_replay": false,
+    "advisory_only": true
   },
   "live_proof": {
-    "only_once_per_changed_credential_or_readiness": "true",
+    "only_once_per_changed_credential_or_readiness": true,
     "requires_owner_authorization_for_paid_smoke": true,
     "retry_on_payment_or_auth_failure": false
   },
@@ -44,7 +45,6 @@
     "no_second_1lss_memory": true
   },
   "context_policy": "config/agent-context-policy.json",
-  "compatibility_rule": "Missing READ route may use explicitly allowlisted static fallback only when D1 has no explicit row for that provider/capability; a disabled row is authoritative.",
   "next_action_codes": [
     "SET_UP_SECRET",
     "VERIFY_RUNTIME_ONCE",
@@ -53,5 +53,11 @@
     "READY_EXPLICIT_ONLY",
     "READY_AUTO_READ"
   ],
-  "future_agent_rule": "Add provider registration and adapter, then one owner-authorized proof and preflight. Do not fork approvals, context budgets, memories or permanent keys."
+  "future_agent_rule": "Register the provider and implement one Yellow adapter, reuse existing credentials and a single approved proof when needed. Send work directly to Yellow; never require a second onboarding approval.",
+  "execution_flow": {
+    "mode": "DIRECT_TO_YELLOW",
+    "preflight_required": false,
+    "canonical_authority": "/api/capabilities/execute",
+    "route_check": "AT_EXECUTION_ONLY"
+  }
 }
