@@ -6,7 +6,10 @@ import { deriveStoneRunnerLearning, LEARNING_SCHEMA } from "../scripts/oge95-sto
 
 const historicalAudit = JSON.parse(readFileSync("docs/evidence/oge-62-flow-audit-latest.json", "utf8"));
 const sha = "a".repeat(40);
-const audit = { ...historicalAudit, source_sha: sha };
+const audit = { ...historicalAudit, source_sha: sha, source_sha_attestation: { method: "CHECKED_OUT_GIT_HEAD_AND_GITHUB_SHA", exact_checkout_match: true,
+  execution_mode: "SEQUENTIAL_TEN_PROCESS_REPLAY_ON_ONE_HOST", genuinely_parallel_runtime_jobs: false,
+  independent_ai_provider_runs: false, authorization_to_commit_or_deploy: false },
+  commit_manifest: { allowed: true, execution_approved: false } };
 const make = (sourceSha = sha, reviewers = {}) => ({
   schema: "OGE95_FINAL_REVIEW_INTAKE_V1",
   source_sha: sourceSha,
