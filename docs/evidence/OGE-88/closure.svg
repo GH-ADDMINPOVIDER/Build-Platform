@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+<title id="title">OGE-88 closure visual standard</title>
+<desc id="desc">Black and white evidence card showing the new OGE closure visual requirement.</desc>
+<rect width="1200" height="630" fill="#fff"/>
+<rect x="48" y="48" width="1104" height="534" rx="28" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="88" y="120" font-family="Arial, sans-serif" font-size="44" font-weight="700" fill="#111">OGE-88 · CLOSURE VISUAL STANDARD</text>
+<line x1="88" y1="150" x2="1112" y2="150" stroke="#111" stroke-width="2"/>
+<text x="88" y="215" font-family="Arial, sans-serif" font-size="28" fill="#111">DONE -> VISUAL -> COMMIT / CI -> LINEAR EVIDENCE</text>
+<rect x="88" y="260" width="240" height="90" rx="16" fill="#f5f5f5" stroke="#111"/>
+<rect x="388" y="260" width="240" height="90" rx="16" fill="#f5f5f5" stroke="#111"/>
+<rect x="688" y="260" width="240" height="90" rx="16" fill="#f5f5f5" stroke="#111"/>
+<text x="132" y="316" font-family="Arial, sans-serif" font-size="25" fill="#111">REAL RESULT</text>
+<text x="444" y="316" font-family="Arial, sans-serif" font-size="25" fill="#111">VISUAL PROOF</text>
+<text x="748" y="316" font-family="Arial, sans-serif" font-size="25" fill="#111">EVIDENCE</text>
+<line x1="328" y1="305" x2="388" y2="305" stroke="#111" stroke-width="3"/>
+<line x1="628" y1="305" x2="688" y2="305" stroke="#111" stroke-width="3"/>
+<text x="88" y="435" font-family="Arial, sans-serif" font-size="24" fill="#111">Default: black / white / grayscale</text>
+<text x="88" y="480" font-family="Arial, sans-serif" font-size="24" fill="#111">No fabricated screenshots · no secret exposure</text>
+<text x="88" y="530" font-family="Arial, sans-serif" font-size="22" fill="#555">Prospective standard for Codex-driven OGE closures</text>
+</svg>
