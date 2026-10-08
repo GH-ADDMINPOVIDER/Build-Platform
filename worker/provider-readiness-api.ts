@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { readProviderReadiness, routeVerifiedProvider, type ProviderReadinessEnv } from "./provider-readiness";
+import { buildProviderOnboardingPreflight, PROVIDER_ONBOARDING_POLICY } from "./provider-onboarding-policy";
 
 export type ProviderReadinessBindings = AuthBindings & ProviderReadinessEnv;
 type Env = { Bindings: ProviderReadinessBindings };
@@ -28,6 +29,20 @@ export function createProviderReadinessApi() {
       paid_completion_calls: false,
       routing_policy: "VERIFIED_ONLY_FAIL_CLOSED",
       providers,
+    }, 200, { "Cache-Control": "no-store" });
+  });
+
+  // Compact, secret-free admission status for all current and future agents.
+  // Probe=false: no external metadata or billable completion calls.
+  api.get("/api/provider-readiness/onboarding", async (c) => {
+    const reports = await readProviderReadiness(c.env, { probe: false });
+    return c.json({
+      ok: true,
+      runtime: "PROVIDER_ONBOARDING_PREFLIGHT_V1",
+      read_only: true,
+      paid_completion_calls: false,
+      policy: PROVIDER_ONBOARDING_POLICY,
+      providers: buildProviderOnboardingPreflight(reports),
     }, 200, { "Cache-Control": "no-store" });
   });
 
