@@ -24,7 +24,7 @@ test("No MANUS_API_KEY does not imply ChatGPT Manus plugin disconnected", async 
 test("Plugin task can enter reviewer intake without direct Manus API key", () => {
   const receipt=normalizeManusPluginTask({task, sourceSha:sha, auditSha256:hash, writerActor:"codex-code-author"});
   assert.equal(receipt.transport,"CHATGPT_MANUS_PLUGIN_MCP");
-  assert.equal(receipt.manuscript_api_key_required,false);
+  assert.equal(receipt.manus_api_key_required,false);
   assert.equal(receipt.result,"INCONCLUSIVE");
   assert.equal(receipt.github_commit_permitted,false);
   const evaluated=evaluateFinalIntake({audit,sourceSha:sha,writerActor:"codex-code-author",receipts:{manus:receipt}});
