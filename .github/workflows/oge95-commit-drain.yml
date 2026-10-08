@@ -1,11 +1,10 @@
 name: OGE-95 Commit Drain - Continuous Staging Catchup
 
-# Every push starts an audit. Intermediate pending events can be coalesced by
-# GitHub concurrency, so always replay every untested first-parent commit.
-# No workflow_dispatch is required (staging-only; main remains untouched).
+# Called by the existing, proven OGE-95 staging push Workflow.
+# Intermediate push events can be coalesced by GitHub concurrency;
+# audit first-parent backlog from verified artifact checkpoints.
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
+  workflow_call:
 
 permissions:
   contents: read
