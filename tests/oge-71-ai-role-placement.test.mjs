@@ -19,7 +19,9 @@ test("OGE-71 promotes Gemini only from verified checked-in readiness", () => {
   assert.match(resolverApi, /supplementalConfigCandidates/);
   assert.match(resolverApi, /GEMINI_API_KEY/);
   assert.match(resolverApi, /capability_id: "context_load"/);
-  assert.match(resolverApi, /provider_id: "gemini"/);
+  assert.match(resolverApi, /\["gemini", "deepseek"\]/);
+  assert.match(resolverApi, /provider_id: id/);
+  assert.match(resolverApi, /priority: id === "gemini" \? 5 : 50/);
 });
 
 test("OGE-71 executes Gemini through Yellow without hidden retry or Green bypass", () => {
