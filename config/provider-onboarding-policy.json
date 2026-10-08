@@ -1,0 +1,57 @@
+{
+  "schema_version": "OGENIC_PROVIDER_ONBOARDING_V1",
+  "principle": "One non-billable read-only preflight before requesting a provider live proof or adapter change.",
+  "stages": [
+    "REGISTERED",
+    "KEY_BOUND",
+    "RUNTIME_VERIFIED",
+    "ROUTE_ELIGIBLE"
+  ],
+  "runtime_preflight": {
+    "owner_or_ops_auth": true,
+    "local_attestation_only": true,
+    "paid_provider_calls": 0,
+    "d1_writes": 0,
+    "full_context_replay": false
+  },
+  "live_proof": {
+    "only_once_per_changed_credential_or_readiness": "true",
+    "requires_owner_authorization_for_paid_smoke": true,
+    "retry_on_payment_or_auth_failure": false
+  },
+  "verified_read_routes": {
+    "gemini": {
+      "capability_id": "context_load",
+      "selection": "AUTO_READ_EXISTING",
+      "permission_class": "READ"
+    },
+    "deepseek": {
+      "capability_id": "context_load",
+      "selection": "EXPLICIT_ONLY",
+      "permission_class": "READ"
+    }
+  },
+  "hard_gates": {
+    "forbid_auto_promote_on_key_only": true,
+    "require_canonical_active_provider": true,
+    "require_runtime_readiness_verified": true,
+    "require_evidence_sha_http_200": true,
+    "require_implemented_adapter": true,
+    "no_unapproved_metered_auto_route": true,
+    "non_read_requires_explicit_approval": true,
+    "retention_requires_ruby_verification": true,
+    "secrets_in_infisical_only": true,
+    "no_second_1lss_memory": true
+  },
+  "context_policy": "config/agent-context-policy.json",
+  "compatibility_rule": "Missing READ route may use explicitly allowlisted static fallback only when D1 has no explicit row for that provider/capability; a disabled row is authoritative.",
+  "next_action_codes": [
+    "SET_UP_SECRET",
+    "VERIFY_RUNTIME_ONCE",
+    "RECONCILE_CATALOG",
+    "IMPLEMENT_ADAPTER",
+    "READY_EXPLICIT_ONLY",
+    "READY_AUTO_READ"
+  ],
+  "future_agent_rule": "Add provider registration and adapter, then one owner-authorized proof and preflight. Do not fork approvals, context budgets, memories or permanent keys."
+}
