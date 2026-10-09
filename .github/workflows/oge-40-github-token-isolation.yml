@@ -20,7 +20,7 @@ env:
 
 jobs:
   isolate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
