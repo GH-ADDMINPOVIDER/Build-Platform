@@ -1,15 +1,6 @@
 name: OGE-46 WAVE Capacity Status Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "src/WaveNext.tsx"
-      - "src/wave-next.css"
-      - "worker/violet-stone-api.ts"
-      - "worker/app-api.ts"
-      - "tests/wave-capacity-status.test.mjs"
-      - ".github/workflows/oge-46-wave-capacity-status-proof.yml"
   workflow_dispatch:
 
 permissions:

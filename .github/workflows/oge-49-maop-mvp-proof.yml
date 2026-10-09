@@ -1,13 +1,6 @@
 name: OGE-49 MA-OP MVP Slice 1 Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "packages/maop-core/**"
-      - "packages/maop-github-harness/**"
-      - "tests/oge-49-maop-core-contract.test.mjs"
-      - ".github/workflows/oge-49-maop-mvp-proof.yml"
   workflow_dispatch:
 
 permissions:

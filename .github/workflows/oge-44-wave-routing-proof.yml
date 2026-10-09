@@ -1,17 +1,6 @@
 name: OGE-44 WAVE Surface Routing Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "worker/entry-connectors.ts"
-      - "worker/connector-app-api.ts"
-      - "worker/athena-chat-api.ts"
-      - "src/main.tsx"
-      - "src/UnifiedChat.tsx"
-      - "src/WaveNext.tsx"
-      - "tests/wave-surface-routes.test.mjs"
-      - ".github/workflows/oge-44-wave-routing-proof.yml"
   workflow_dispatch:
 
 permissions:

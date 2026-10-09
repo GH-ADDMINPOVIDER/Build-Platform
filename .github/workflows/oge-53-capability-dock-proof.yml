@@ -1,14 +1,6 @@
 name: OGE-53 Capability Dock Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "src/UnifiedChat.tsx"
-      - "src/WaveNext.tsx"
-      - "src/unified-chat.css"
-      - "tests/oge-53-capability-dock.test.mjs"
-      - ".github/workflows/oge-53-capability-dock-proof.yml"
   workflow_dispatch:
 
 permissions:

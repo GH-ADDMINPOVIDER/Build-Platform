@@ -1,14 +1,6 @@
 name: OGE-50 WAVE Operate Evidence Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "src/WaveNext.tsx"
-      - "src/wave-next.css"
-      - "worker/app-api.ts"
-      - "tests/wave-operate-evidence.test.mjs"
-      - ".github/workflows/oge-50-wave-operate-evidence-proof.yml"
   workflow_dispatch:
 
 permissions:

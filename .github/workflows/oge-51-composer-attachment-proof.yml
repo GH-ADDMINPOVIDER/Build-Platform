@@ -1,16 +1,6 @@
 name: OGE-51 Composer Attachment Reliability Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "src/composer-draft.ts"
-      - "src/ComposerAttachments.tsx"
-      - "src/UnifiedChat.tsx"
-      - "src/unified-chat.css"
-      - "tests/composer-draft.test.mjs"
-      - "tests/composer-attachment-reliability.test.mjs"
-      - ".github/workflows/oge-51-composer-attachment-proof.yml"
   workflow_dispatch:
 
 permissions:

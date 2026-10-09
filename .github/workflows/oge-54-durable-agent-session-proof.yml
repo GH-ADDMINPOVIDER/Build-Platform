@@ -1,16 +1,6 @@
 name: OGE-54 Durable Agent Session Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "worker/connector-app-api.ts"
-      - "worker/session-recovery-api.ts"
-      - "worker/entry-connectors.ts"
-      - "src/UnifiedChat.tsx"
-      - "tests/oge-54-durable-agent-session.test.mjs"
-      - "tests/wave-surface-routes.test.mjs"
-      - ".github/workflows/oge-54-durable-agent-session-proof.yml"
   workflow_dispatch:
 
 permissions:

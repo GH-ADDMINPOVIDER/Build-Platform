@@ -1,12 +1,6 @@
 name: OGE-52 Real Runtime Signals Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "src/WaveNext.tsx"
-      - "tests/wave-runtime-signals.test.mjs"
-      - ".github/workflows/oge-52-runtime-signals-proof.yml"
   workflow_dispatch:
 
 permissions:
