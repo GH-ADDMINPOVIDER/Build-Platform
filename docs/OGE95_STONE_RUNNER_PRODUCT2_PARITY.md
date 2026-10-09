@@ -1,4 +1,4 @@
-# STONE RUNNER — OGENIC Product #2: Behavioral Runtime Parity
+> **CURRENT OWNER RE-SCOPE — 2026-10-09:** This remains a historical technical specification, but the active owner of Stone Runner **Product #2 / replica digital factory / full behavioral 1:1** is **Mineral Phase II alias OGE-II-1 (native [Linear OGE-102](https://linear.app/ogenic-sio/issue/OGE-102))**. **OGE-95 now owns Rule Stone Panel ONLY**. The former OGE-95 acceptance/implementation references below are historical context, not new obligations for Rule Panel/OGE-100. OGE-99 carries current Ruby evidence only, not Product #2 full parity. Do not make Phase I depend on future certification.\n\n# STONE RUNNER — OGENIC Product #2: Behavioral Runtime Parity
 
 **Canonical umbrella issue:** OGE-95. **Environment:** `phase-vi-provider-incentive-metering` staging only. **Owner concept:** near-1:1 independent self-host-compatible execution host with autonomous coding-capable agent execution *after* proven integration. **Product #1:** USE CARD / CCS, OGE-78/79. No new databases, secrets, production workers, or billable hosts.
 

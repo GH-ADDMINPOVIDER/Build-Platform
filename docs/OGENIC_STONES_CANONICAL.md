@@ -63,10 +63,10 @@ The defined stone **capabilities are names** for existing architecture and futur
 
 ### Product/issue lock
 
-- **Active Stone Runner engineering umbrella:** [OGE-95](https://linear.app/ogenic-sio/issue/OGE-95) **Stone Runner (Product #2)** on staging branch. Owner-authorized acceptance/closeout children **OGE-96..100** verify the existing scope; **OGE-100** ends Stone Phase. **OGE-101** reserves SAME MIND Part 1 after actual proof-based closure. No new stones or features are created by this numbering. Card Protocol CCS (Product #1) remains preserved.
-- Closed/superseded Linear issues are historical evidence, **not proof their unimplemented acceptance criteria are done**. Missing functionality is tracked within OGE-95; parked non-Runner products are archived, not implemented during this focus.
+- **CURRENT OWNER RE-SCOPE 2026-10-09:** [OGE-95](https://linear.app/ogenic-sio/issue/OGE-95) owns **RULE STONE PANEL ONLY** (canonical names/colors/species, taxonomy, read-only Rule Panel); **STONE RUNNER Product #2 / replica / full 1:1 / future operational intelligence moved to Mineral Phase II alias OGE-II-1 ([Linear OGE-102](https://linear.app/ogenic-sio/issue/OGE-102))**. Functional proof follow-ons returned to original owners: OGE-96→Green/OGE-54, OGE-97→Yellow CCS/OGE-78, OGE-98→Violet/OGE-37, OGE-99→Ruby/OGE-38. OGE-100 is an honest Phase I Rule Panel evidence freeze and handoff, not future Product #2 parity certification. OGE-101 SAME MIND remains a separate next-phase issue. No new stones or authority gates.
+- Closed/superseded Linear issues are historical evidence, **not proof their unimplemented acceptance criteria are done**. Any unresolved functionality stays with its owning functional ticket or explicitly deferred Mineral OGE-II-1; it is **not automatically scope for OGE-95 Rule Panel**. Frozen products stay frozen.
 - Do not rename existing API identifiers or artifacts without a tested versioned compatibility migration.
-- The full single-issue backlog/evidence registry is `docs/OGE95_ONLY_ACTIVE_WORK_MIGRATION.md`.
+- Historical **superseded** single-issue consolidation/evidence registry: `docs/OGE95_ONLY_ACTIVE_WORK_MIGRATION.md`. New current ownership lives in Linear OGE-95/96/97/98/99/100, plus Mineral OGE-II-1 (Linear OGE-102).
 
 ### Operational ownership and single authority
 
@@ -83,7 +83,7 @@ The defined stone **capabilities are names** for existing architecture and futur
 ### Compatibility rules
 
 1. Do not mass-rename existing Worker routes, `white-diamond-registry.ts`, `blue-diamond-registry.ts`, `violet-stone-api.ts`, or the historical CI artifact/schema values: callers already rely on them.
-2. `OGE-95` remains the Stone Runner **umbrella**; OGE-96..100 are owner-approved closeout evidence tasks, not new Stones or competing control planes. The rules-center file remains `config/oge95-rules-center.json`. Do not create an independent policy authority for Gray Stone.
+2. `OGE-95` is the **RULE STONE PANEL ONLY**; OGE-96 (Green/OGE-54), OGE-97 (Yellow/OGE-78), OGE-98 (Violet/OGE-37), OGE-99 (Ruby/OGE-38) are separately owned proof follow-ons. OGE-100 completes an honest Phase I Rule Panel handoff. Mineral Phase II OGE-II-1 (native Linear OGE-102) owns Stone Runner **Product #2** future simulator/1:1/advanced factory. The single rules-center source remains `config/oge95-rules-center.json`; do not create a second Yellow permission authority or rename any of the seven canonical stones.
 3. Exclude billing-blocked Grok/xAI and Meta Model from active agent selection; retain their registry records. Use verified working specialists rather than assuming a provider is ready.
 4. This commit codifies *names and boundaries only*. UI display changes, SDK/router wiring, autonomous coding and stage-to-stage runtime proof need their own commits and verified CI before they are called completed.
 5. Protect `main`, production, Candy, credentials, and remote D1 schema. Work only on `phase-vi-provider-incentive-metering`.
