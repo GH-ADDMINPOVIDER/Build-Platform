@@ -1,3 +1,5 @@
+> **LATEST OWNER OVERRIDE — 2026-10-09 — CONTINUOUS OGE ROADMAP:** Mineral Phase II and alias OGE-II-1 (native Linear OGE-102) have been **CANCELED** by owner along with its separate Linear project. No Product #2 simulated runtime/factory roadmap is active. **Do not reactivate/create Roman-numbered issues or treat old Phase II references below as current instructions.** OGE-101 SAME MIND (In Progress), OGE-103 independent audit, OGE-104 bounded 1LSS recall, OGE-105 A–Z ref lookup, OGE-106 real Agent context intake, OGE-107 live recovery/Ruby verification, OGE-108 anti-forgetting are on one continuously numbered OGE line. OGE-95 Rule Panel remains bounded Done; old 96–99 are Canceled/Deferred (not technically Done). Historic body below remains evidence only. Preserve exact seven Stones + White Diamond identity map and Yellow/Ruby/Green authority. Do not touch main/prod/Candy/D1 schema/secrets.
+
 # OGENIC / WAVE — MASTER IMPLEMENTATION CHECKLIST
 
 Canonical human-readable execution checklist for post-Phase-VI work.
