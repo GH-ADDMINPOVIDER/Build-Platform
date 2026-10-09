@@ -34,7 +34,11 @@ test("Agent AI uses real OpenAI Agent Sessions and preserves canonical 1LSS stam
 
   assert.match(ui, /async function runAgentAI/);
   assert.match(ui, /fetch\("\/api\/chat\/agent"/);
-  assert.match(ui, /experienceMode === "agent-ai"\) await runAgentAI\(prompt\)/);
+  // WAVE routes both ordinary chat and the selected pstack task to the real Agent API.
+  assert.match(ui, /experienceMode === "agent-ai"\) await runAgentAI\(effectivePrompt\)/);
+  assert.match(ui, /const effectivePrompt = selectedPstackPreset/);
+  assert.match(ui, /USER TASK:/);
+  assert.match(ui, /if \(selectedPstackPreset && !pstackTask\)/);
   assert.doesNotMatch(ui, /experienceMode === "agent-ai"\) await runHostedTools\(prompt, "auto"\)/);
 });
 

@@ -17,7 +17,10 @@ test("Agent AI executes through OpenAI Agent Sessions and returns to owner-main 
   const connector = read("worker/connector-app-api.ts");
   const entry = read("worker/entry-connectors.ts");
   assert.match(ui, /experienceMode === "agent-ai"/);
-  assert.match(ui, /runAgentAI\(prompt\)/);
+  assert.match(ui, /runAgentAI\(effectivePrompt\)/);
+  assert.match(ui, /runChat\(effectivePrompt\)/);
+  assert.match(ui, /const effectivePrompt = selectedPstackPreset/);
+  assert.match(ui, /if \(selectedPstackPreset && !pstackTask\)/);
   assert.match(ui, /OGENIC HARNESS · Agent Session · 1LSS/);
   assert.match(ui, /fetch\("\/api\/chat\/agent"/);
   assert.doesNotMatch(ui, /experienceMode === "agent-ai"\) await runHostedTools\(prompt, "auto"\)/);
