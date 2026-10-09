@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 type RuleRef = { category_id:string; description:string };
 type StoneRule = { id:string; name:string; species:string; color:string; function:string; rules:RuleRef[] };
@@ -48,7 +48,7 @@ export default function StoneRulePanel(){
       {stones.map(stone=><button type="button" key={stone.id}
         className={"srStone "+(selected===stone.id?"selected":"")}
         onClick={()=>setSelected(stone.id)} aria-pressed={selected===stone.id}>
-        <span className="srGem" style={{"--stone-color":stone.color} as React.CSSProperties} aria-hidden="true">◆</span>
+        <span className="srGem" style={{"--stone-color":stone.color} as CSSProperties} aria-hidden="true">◆</span>
         <span><strong>{stone.id} · {stone.name}</strong><small>{stone.species} · {stone.function}</small></span>
         <span className="srCount">{stone.rules.length}</span>
       </button>)}
