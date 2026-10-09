@@ -12,6 +12,7 @@ const LegacyControlSurface = lazy(() => import("./LegacyControlSurface"));
 import "./unified-chat.css";
 import "./landing.css";
 import "./wave-next.css";
+import "./stone-rule-panel.css";
 import "./wave-dashboard.css";
 import "./wave-route-polish.css";
 import "./wave-theme.css";
