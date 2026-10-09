@@ -8,11 +8,6 @@ on:
         required: true
         type: boolean
         default: false
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".appstore/release.request"
-
 permissions:
   contents: read
   id-token: write

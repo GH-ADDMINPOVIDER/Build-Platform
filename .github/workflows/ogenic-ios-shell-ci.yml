@@ -1,16 +1,6 @@
 name: OGENIC iOS Shell CI
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/ogenic-ios-shell-ci.yml"
-      - "capacitor.config.ts"
-      - "package.json"
-      - "index.html"
-      - "public/**"
-      - "src/**"
-      - "scripts/apply-ios-brand.sh"
   workflow_dispatch:
 
 permissions:
