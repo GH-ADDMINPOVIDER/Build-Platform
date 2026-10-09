@@ -140,6 +140,47 @@ jobs:
           secret-path: /
           recursive: true
 
+      - name: Check live staging 1LSS metadata read-only (no D1 writes)
+        shell: bash
+        env:
+          STAGING_URL: https://wave.ogenicchocolate.com
+        run: |
+          set -euo pipefail
+          # Do NOT request event/message content or log any real user text.
+          STATE=BLOCKED
+          HTTP=0
+          if test -n "${OGENIC_OPS_KEY:-}"; then
+            BODY="$(mktemp)"
+            trap 'rm -f "$BODY"' EXIT
+            HTTP="$(curl --silent --show-error --max-time 15 --output "$BODY" --write-out '%{http_code}' \
+              --header "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" \
+              "${STAGING_URL}/api/1lss/status" || true)"
+            if test "$HTTP" = 200 && jq -e '
+              .ok == true and .conversation_id == "owner-main" and
+              .session_line == "1LSS_OWNER_MAIN" and
+              (.latest_sequence | type == "number") and
+              ([.surfaces[]? | .source_surface] | sort) == ["ogenic-app","ogenic-web"]
+            ' "$BODY" >/dev/null 2>&1; then
+              STATE=LIVE_READ_ONLY_METADATA_VERIFIED
+              jq '{
+                schema_version:"OGE96_LIVE_1LSS_METADATA_V1", status:"LIVE_READ_ONLY_METADATA_VERIFIED",
+                conversation_id,session_line,latest_sequence,pair_latest_sequence,
+                cross_surface_ready,surfaces:[.surfaces[]|{source_surface,door_seen,fresh,persisted,caught_up_to_pair_latest}],
+                read_only:true,remote_d1_schema_changed:false,event_writes:0,
+                authenticated_live_write_replay_proven:false
+              }' "$BODY" > oge96-live-1lss-metadata.json
+            fi
+          fi
+          if test "$STATE" != LIVE_READ_ONLY_METADATA_VERIFIED; then
+            jq -n --arg status "$STATE" --arg http "$HTTP" '{
+              schema_version:"OGE96_LIVE_1LSS_METADATA_V1",status:$status,
+              http_status:$http,read_only:true,event_writes:0,
+              authenticated_live_write_replay_proven:false,
+              note:"No authenticated live state could be safely verified"
+            }' > oge96-live-1lss-metadata.json
+          fi
+          echo "OGE96_READ_ONLY_STATUS=$STATE HTTP=$HTTP (no messages or credentials logged)"
+
       - name: Probe Manus and OpenAI read-only access without consuming model tokens
         shell: bash
         run: |
@@ -165,6 +206,7 @@ jobs:
             oge95-provider-readiness.json
             oge95-stone-runner-learning.json
             oge98-codex-host-preflight.json
+            oge96-live-1lss-metadata.json
           retention-days: 30
           if-no-files-found: error
 
