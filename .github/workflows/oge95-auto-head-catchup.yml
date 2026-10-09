@@ -1,0 +1,87 @@
+name: OGE-95 AUTO — Latest HEAD Catchup (GitHub-hosted)
+# Single current run, not one heavyweight audit per historical SHA.
+# First-parent list is indexed honestly; only CURRENT source HEAD is tested.
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: oge95-fast-head-catchup-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  latest-head:
+    name: Audit all commit identities, test latest branch HEAD once
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout latest staging HEAD (not stale push SHA)
+        uses: actions/checkout@v4
+        with:
+          ref: phase-vi-provider-incentive-metering
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify branch, index EVERY unseen first-parent SHA as source-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "Ogenicchocolate21debug/Build-Platform"
+          test "$GITHUB_REF_NAME" = "phase-vi-provider-incentive-metering"
+          node --test tests/oge95-fast-catchup.test.mjs
+          node scripts/oge95-fast-catchup.mjs index
+
+      - name: Resolve canonical dependencies once for the actual HEAD
+        id: dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --package-lock-only --no-audit --no-fund
+          npm ci --no-audit --no-fund
+
+      - name: Run canonical tests on current SHA only
+        id: latest_check
+        shell: bash
+        run: npm run check
+
+      - name: Emit honest exact-SHA catchup receipt
+        if: always()
+        shell: bash
+        env:
+          CHECK_OUTCOME: ${{ steps.latest_check.outcome }}
+          DEPS_OUTCOME: ${{ steps.dependencies.outcome }}
+        run: |
+          if test -s oge95-fast-catchup-index.json; then
+            if test "$CHECK_OUTCOME" = success && test "$DEPS_OUTCOME" = success; then
+              export OGE95_HEAD_RESULT=PASS
+            elif test "$DEPS_OUTCOME" = failure || test "$DEPS_OUTCOME" = skipped; then
+              export OGE95_HEAD_RESULT=BLOCKED
+            else
+              export OGE95_HEAD_RESULT=FAIL
+            fi
+            node scripts/oge95-fast-catchup.mjs finalize
+            echo "### OGE-95 — Latest HEAD Catchup" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '"SHA: " + .head_sha, "Commits indexed: " + (.commit_count|tostring), "Latest check: " + .current_head_status, "Historical commits: INDEXED, NOT individually verified", "Old OGE issues: NOT automatically resolved"' oge95-fast-catchup-receipt.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::Commit indexing never completed; no proof"
+          fi
+
+      - name: Publish source catchup ledger with source labels
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge95-fast-catchup-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            oge95-fast-catchup-index.json
+            oge95-fast-catchup-receipt.json
+          if-no-files-found: warn
+          retention-days: 14
