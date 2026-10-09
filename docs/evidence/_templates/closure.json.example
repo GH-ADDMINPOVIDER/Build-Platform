@@ -49,8 +49,11 @@
   "commit_sha": "REPLACE_WITH_EXACT_40_CHAR_SHA",
   "commit_url": "https://github.com/REPLACE_WITH_REAL_COMMIT",
   "ci_run_url": "https://github.com/REPLACE_WITH_REAL_CI",
+  "ci_source_sha": "REPLACE_WITH_EXACT_40_CHAR_SHA",
   "deploy_run_url": "https://github.com/REPLACE_WITH_REAL_DEPLOY",
+  "deploy_source_sha": "REPLACE_WITH_EXACT_40_CHAR_SHA",
   "ruby_proof_url": "https://github.com/REPLACE_WITH_REAL_RUBY",
+  "ruby_source_sha": "REPLACE_WITH_EXACT_40_CHAR_SHA",
   "ruby_verdict": "PENDING",
   "root_cause_or_reason": "REPLACE_WITH_VERIFIED_CAUSE",
   "omitted_step_review": "REPLACE_WITH_REVIEW"

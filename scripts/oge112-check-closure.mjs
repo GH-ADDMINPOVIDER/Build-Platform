@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 const issueFormat=/^OGE-[1-9]\d{0,4}$/;
-const validEvidenceUrl=v=>typeof v==="string"&&/^https:\/\/(github\.com|linear\.app)\//.test(v);
+const validEvidenceUrl=v=>{if(typeof v!=="string"||v.length>2048||!/^https:\/\//i.test(v)||/REPLACE_WITH|placeholder|example/i.test(v))return false;try{const u=new URL(v);return ["github.com","linear.app","dash.cloudflare.com","vercel.com"].includes(u.hostname)&&!u.username&&!u.password}catch{return false}};
 export function auditClosure(root,issue,catalog){
  const errors=[],bad=s=>errors.push(s);
  if(!issueFormat.test(issue||""))return {ok:false,errors:["INVALID_OGE_ID"]};
@@ -31,6 +31,11 @@ export function auditClosure(root,issue,catalog){
    const canonical=catalog.skills[n-1],record=doc.pstack_refs?.find(x=>x.number===n);
    if(!Number.isInteger(n)||!canonical||!record||record.id!==canonical.id||record.sha256!==canonical.sha256)bad("PSTACK_MISMATCH:"+n);
   }
+  if(Array.isArray(doc.pstack_numbers)&&catalog.task_categories[doc.task_category]){
+   const chosen=doc.pstack_numbers.map(n=>catalog.skills[n-1]).filter(Boolean);
+   if(!chosen.some(skill=>skill.categories.includes(doc.task_category)))bad("PSTACK_CATEGORY_MISMATCH");
+   if(doc.pstack_numbers.some((n,i,a)=>!Number.isInteger(n)||(i>0&&a[i-1]>=n)))bad("PSTACK_ORDER_INVALID");
+  }
   for(const who of ["implementer","reviewer","committer","deployer"]){
    const person=doc[who];
    if(!person||typeof person.agent_id!=="string"||!person.agent_id.trim()||!validEvidenceUrl(person.proof_url))bad("ACTOR_PROOF_REQUIRED:"+who);
@@ -39,6 +44,10 @@ export function auditClosure(root,issue,catalog){
   if(!/^[a-f0-9]{40}$/.test(doc.commit_sha||"")||
    typeof doc.commit_url!=="string"||!doc.commit_url.includes(doc.commit_sha))bad("SOURCE_SHA_REQUIRED");
   for(const k of ["ci_run_url","deploy_run_url","ruby_proof_url"])if(!validEvidenceUrl(doc[k]))bad("EVIDENCE_LINK_REQUIRED:"+k);
+  for(const k of ["ci_source_sha","deploy_source_sha","ruby_source_sha"]){
+   if(!/^[a-f0-9]{40}$/.test(doc[k]||""))bad("SOURCE_SHA_REQUIRED:"+k);
+   else if(doc[k]!==doc.commit_sha)bad("SOURCE_SHA_MISMATCH:"+k);
+  }
   if(doc.ruby_verdict!=="PASS")bad("RUBY_VERDICT_PENDING");
   if(!doc.root_cause_or_reason?.trim()||!doc.omitted_step_review?.trim())bad("CAUSE_OR_MISSED_STEP_REPORT_REQUIRED");
  }

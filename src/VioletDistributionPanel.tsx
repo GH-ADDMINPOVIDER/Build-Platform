@@ -5,7 +5,7 @@ type PstackSkill={id:string;description:string;path:string;state:string};
 type PstackNumber={number:number;id:string;categories:string[]};
 type PstackCategory={id:string;label_th:string};
 type PstackCatalog={ok:boolean;controller:string;authority:string;skill_count:number;agent_definition_count:number;execution_state:string;source_pin:string;skills:PstackSkill[];stable_numbers:PstackNumber[];task_categories:PstackCategory[]};
-type PstackSelection={ok:boolean;code?:string;family?:string;capability?:string;selected?:Array<{id:string;path:string;hash:string}>;blue_agents?:Array<{id:string;provider:string;readiness:string;eligible_for_live_preflight:boolean}>;execution_state?:string};
+type PstackSelection={ok:boolean;code?:string;family?:string;capability?:string;selected?:Array<{id:string;path:string;hash:string;number?:number;kind?:string}>;blue_agents?:Array<{id:string;provider:string;readiness:string;eligible_for_live_preflight:boolean}>;execution_state?:string};
 type PstackLearningPlan={ok:boolean;skill_count:number;waves:Array<{wave:number;source_refs:Array<{id:string;hash:string}>}>;learning_state:string;agents:Array<{id:string;readiness:string;read_state:string}>};
 type Planned = {task_id:string;capability:string;agent_id?:string;status:string;depends_on?:string[]};
 type Plan = {ok?:boolean;code?:string;assignments?:Planned[];queue?:Planned[];
@@ -142,7 +142,8 @@ export default function VioletDistributionPanel(){
         {skillSelection&&<div className="wnPolicy" role="status">
           {skillSelection.ok?<>
             <strong>{skillSelection.family} · {skillSelection.execution_state}</strong>
-            <p>Use: {skillSelection.selected?.map(x=>x.id).join(" + ")||"none"} · numbered proof in API</p>
+            <p><strong>Pstack:</strong> {skillSelection.selected?.map(x=>x.number).filter((n):n is number=>Number.isInteger(n)).join(", ")||"none"}</p>
+            <p>Use: {skillSelection.selected?.map(x=>`#${x.number} ${x.id}`).join(" + ")||"none"}</p>
             <p>Required Blue capability: {skillSelection.capability}</p>
             <p>Live Blue candidates: {skillSelection.blue_agents?.filter(x=>x.eligible_for_live_preflight).map(x=>x.id).join(", ")||"none verified"}</p>
             <small>Planning only: no agent has run, no Skill learning proven.</small>

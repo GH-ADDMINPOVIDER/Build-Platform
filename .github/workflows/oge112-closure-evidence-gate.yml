@@ -1,5 +1,12 @@
 name: OGE Closure Circuit and Pstack Actor Proof (STRUCTURE)
 on:
+  push:
+    branches:
+      - phase-vi-provider-incentive-metering
+    paths:
+      - 'docs/evidence/OGE-*/**'
+      - 'scripts/oge112-check-closure.mjs'
+      - 'config/pstack-task-taxonomy.json'
   workflow_dispatch:
     inputs:
       issue_id:
@@ -21,14 +28,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Fail closed on missing diagram, pstack number or ownership
+      - name: Fail closed on missing diagram, Pstack number, actor, or source SHA
         env:
-          ISSUE_ID: ${{ inputs.issue_id }}
+          DISPATCH_ISSUE_ID: ${{ inputs.issue_id }}
+          BASE_SHA: ${{ github.event.before }}
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          node scripts/oge112-check-closure.mjs "$ISSUE_ID"
+          ISSUE_IDS="$DISPATCH_ISSUE_ID"
+          if [[ -z "$ISSUE_IDS" ]]; then
+            if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+              BASE_SHA="$(git rev-parse HEAD^ 2>/dev/null || true)"
+            fi
+            if [[ -z "$BASE_SHA" ]]; then
+              echo "Cannot resolve previous source SHA; refusing to certify closure."
+              exit 2
+            fi
+            ISSUE_IDS="$(git diff --name-only "$BASE_SHA" "$GITHUB_SHA" | sed -nE 's#^docs/evidence/(OGE-[1-9][0-9]{0,4})/.*#\1#p' | sort -u)"
+          fi
+          if [[ -z "$ISSUE_IDS" ]]; then
+            echo "No OGE evidence package changed; shared-validator changes are covered by canonical tests."
+            exit 0
+          fi
+          while IFS= read -r ISSUE_ID; do
+            [[ -z "$ISSUE_ID" ]] && continue
+            node scripts/oge112-check-closure.mjs "$ISSUE_ID"
+          done <<< "$ISSUE_IDS"
       - name: Limits of structural evidence
-        run: echo "Ruby must independently check remote URLs and actual outcomes before Linear Done"
+        run: echo "Ruby must independently authenticate remote URLs and actual outcomes before Linear Done"
