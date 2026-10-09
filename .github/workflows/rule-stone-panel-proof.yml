@@ -14,6 +14,7 @@ on:
       - "tests/violet-claim-contract.test.mjs"
       - "src/main.tsx"
       - "tests/rule-stone-panel.test.mjs"
+      - "scripts/verify-rule-stone-governance.mjs"
       - ".github/workflows/rule-stone-panel-proof.yml"
   workflow_dispatch:
 permissions:
@@ -31,10 +32,20 @@ jobs:
         run: npm install --package-lock-only --ignore-scripts && npm ci
       - name: Stone rule invariants and Violet distribution
         run: node --test tests/rule-stone-panel.test.mjs tests/violet-blue-distribution.test.mjs tests/violet-claim-contract.test.mjs
+      - name: Audit all seven stones against Rule Stone policy
+        run: node scripts/verify-rule-stone-governance.mjs
       - name: Typecheck
         run: npm run typecheck
       - name: Build
         run: npm run build
+      - name: Upload exact SHA rule audit receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rule-stone-governance-${{ github.run_id }}
+          path: rule-stone-governance-evidence.json
+          retention-days: 14
+          if-no-files-found: warn
       - name: Report scope
         run: |
           echo "RULE_STONE_PANEL_CI_SUCCESS"
