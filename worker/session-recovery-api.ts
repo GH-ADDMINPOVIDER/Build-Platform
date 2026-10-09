@@ -149,6 +149,45 @@ export function createSessionRecoveryApi() {
     }, 200, { "Cache-Control": "no-store" });
   });
 
+
+  // OGE-104: owner-authenticated old 1LSS context. Never auto-send to model or promote to Green.
+  api.get("/api/1lss/context-recall", async (c) => {
+    if (!(await ownerOnly(c.req.raw, c.env))) {
+      return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);
+    }
+    const db = c.env.DB;
+    if (!db) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+    const query = clean(c.req.query("q"), 120);
+    if (query.length < 2) return c.json({ ok: false, code: "QUERY_REQUIRED" }, 400);
+    const limit = clampLimit(c.req.query("limit"), 8, 12);
+    const result = await db.prepare(
+      "SELECT id, role, content, model, run_id, created_at, sequence_no, source_surface " +
+      "FROM chat_messages WHERE conversation_id = ? AND instr(lower(content), lower(?)) > 0 " +
+      "ORDER BY sequence_no DESC, created_at DESC, rowid DESC LIMIT ?",
+    ).bind(CONVERSATION_ID, query, limit).all<MessageRow>();
+    const matches = (result.results ?? []).map((message) => ({
+      id: message.id ?? null,
+      role: message.role,
+      excerpt: clean(message.content, 1200)
+        .replace(/sk-[a-z0-9_-]{10,}/gi, "[REDACTED_SECRET]")
+        .replace(/gh[pousr]_[a-z0-9_]{10,}/gi, "[REDACTED_SECRET]")
+        .replace(/bearer\s+[a-z0-9._~+/-]{10,}/gi, "Bearer [REDACTED_SECRET]")
+        .replace(/(?:password|passwd|secret|api[_ -]?key|access[_ -]?token)\s*[:=]\s*\S+/gi, "[REDACTED_SECRET]"),
+      sequence_no: message.sequence_no ?? null,
+      source_surface: message.source_surface ?? "legacy",
+      model: message.model ?? null,
+      verification_state: "UNVERIFIED_SOURCE" as const,
+    }));
+    return c.json({
+      ok: true, conversation_id: CONVERSATION_ID, session_line: "1LSS_OWNER_MAIN",
+      query, matches, count: matches.length, limit,
+      verification_state: "UNVERIFIED_SOURCE",
+      green_promotion: "RUBY_VERIFICATION_REQUIRED",
+      permitted_audience: "AUTHENTICATED_OWNER_ONLY",
+      automatic_provider_dispatch: false,
+    }, 200, { "Cache-Control": "no-store" });
+  });
+
   api.get("/api/1lss/sessions", async (c) => {
     if (!(await ownerOnly(c.req.raw, c.env))) return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);
     const db = c.env.DB;

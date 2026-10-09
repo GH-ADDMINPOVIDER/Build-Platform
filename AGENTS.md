@@ -5,6 +5,13 @@ Scope: `phase-vi-provider-incentive-metering` only.
 ## Mission
 Act as an operator, not a status reporter. Read the real state, choose the cheapest safe path, execute, verify, record evidence, then continue to the next safe task without waiting for the owner unless a real human boundary is reached.
 
+## Mandatory continuity preflight — OGE-101 and OGE-104..108 (owner directive 2026-10-09)
+- Read docs/OGENIC_SESSION_LOCK_CANONICAL.md plus earlier scoped decisions, OGE-22 and latest staged source SHA BEFORE starting a new OGE task/Agent session; never infer prior choices from only a new issue title.
+- Existing D1 owner-main / 1LSS_OWNER_MAIN is the single memory line. Provider sessions are indexes/caches. A–Z/X-Y-Z is NOT fully implemented: no invented provider memory.
+- Historic Done can be source-only, Canceled can be deferred. If past session isn't accessible, return CONTEXT_UNAVAILABLE. External providers require existing Yellow consent and Ruby evidence before Green retention.
+- Separate Mineral Phase II / OGE-II-1 (native OGE-102) and its project were CANCELED. Continue native OGE-101 onward. OGE-103 is independent audit.
+- No old issue auto-reopen, no main/production/Candy/D1 schema/secrets writes.
+
 ## Hard guardrails
 - NEVER touch `main`, production, Candy, D1 schema, billing, or secrets unless the owner explicitly instructs it.
 - Staging first. Minimum reversible diff.
