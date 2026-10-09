@@ -2,7 +2,9 @@ import {useCallback,useEffect,useState,type FormEvent} from "react";
 
 type Actor = {agent_id:string;label:string;provider:string;readiness:string;planning_eligible:boolean;capabilities:string[]};
 type PstackSkill={id:string;description:string;path:string;state:string};
-type PstackCatalog={ok:boolean;controller:string;authority:string;skill_count:number;agent_definition_count:number;execution_state:string;source_pin:string;skills:PstackSkill[]};
+type PstackNumber={number:number;id:string;categories:string[]};
+type PstackCategory={id:string;label_th:string};
+type PstackCatalog={ok:boolean;controller:string;authority:string;skill_count:number;agent_definition_count:number;execution_state:string;source_pin:string;skills:PstackSkill[];stable_numbers:PstackNumber[];task_categories:PstackCategory[]};
 type PstackSelection={ok:boolean;code?:string;family?:string;capability?:string;selected?:Array<{id:string;path:string;hash:string}>;blue_agents?:Array<{id:string;provider:string;readiness:string;eligible_for_live_preflight:boolean}>;execution_state?:string};
 type PstackLearningPlan={ok:boolean;skill_count:number;waves:Array<{wave:number;source_refs:Array<{id:string;hash:string}>}>;learning_state:string;agents:Array<{id:string;readiness:string;read_state:string}>};
 type Planned = {task_id:string;capability:string;agent_id?:string;status:string;depends_on?:string[]};
@@ -20,6 +22,7 @@ export default function VioletDistributionPanel(){
   const [busy,setBusy]=useState(false);
   const [pstack,setPstack]=useState<PstackCatalog|null>(null);
   const [pstackQuery,setPstackQuery]=useState("");
+  const [pstackCategory,setPstackCategory]=useState("");
   const [pstackError,setPstackError]=useState("");
   const [skillTask,setSkillTask]=useState("");
   const [skillSelection,setSkillSelection]=useState<PstackSelection|null>(null);
@@ -43,8 +46,10 @@ export default function VioletDistributionPanel(){
       .catch(err=>{if(active)setPstackError(err instanceof Error?err.message:"PSTACK_CATALOG_UNAVAILABLE")});
     return ()=>{active=false};
   },[]);
-  const matchedSkills=pstack?.skills.filter((s)=>s.id.toLowerCase().includes(pstackQuery.toLowerCase())||
-    s.description.toLowerCase().includes(pstackQuery.toLowerCase()))??[];
+  const matchedSkills=pstack?.skills.filter((s)=>
+    (!pstackCategory||pstack.stable_numbers?.some(x=>x.id===s.id&&x.categories.includes(pstackCategory)))&&
+    (s.id.toLowerCase().includes(pstackQuery.toLowerCase())||
+    s.description.toLowerCase().includes(pstackQuery.toLowerCase())))??[];
 
 
   async function runPlan(e:FormEvent){
@@ -128,7 +133,7 @@ export default function VioletDistributionPanel(){
             try{
               const res=await fetch("/api/violet/pstack/select",{
                 method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},
-                body:JSON.stringify({task:skillTask})});
+                body:JSON.stringify({task:skillTask,category:pstackCategory||undefined})});
               const body=await res.json() as PstackSelection;
               setSkillSelection(res.ok?body:{ok:false,code:body.code||"PSTACK_ROUTER_BLOCKED"});
             }catch{setSkillSelection({ok:false,code:"PSTACK_ROUTER_UNAVAILABLE"})}
@@ -137,7 +142,7 @@ export default function VioletDistributionPanel(){
         {skillSelection&&<div className="wnPolicy" role="status">
           {skillSelection.ok?<>
             <strong>{skillSelection.family} · {skillSelection.execution_state}</strong>
-            <p>Use: {skillSelection.selected?.map(x=>x.id).join(" + ")||"none"}</p>
+            <p>Use: {skillSelection.selected?.map(x=>x.id).join(" + ")||"none"} · numbered proof in API</p>
             <p>Required Blue capability: {skillSelection.capability}</p>
             <p>Live Blue candidates: {skillSelection.blue_agents?.filter(x=>x.eligible_for_live_preflight).map(x=>x.id).join(", ")||"none verified"}</p>
             <small>Planning only: no agent has run, no Skill learning proven.</small>
@@ -161,12 +166,20 @@ export default function VioletDistributionPanel(){
       </div>
       {pstackError&&<div className="wnError" role="alert">{pstackError}</div>}
       {pstack&&<><p className="wnPolicy">Imported {pstack.skill_count} Skills + {pstack.agent_definition_count} Agent definitions · {pstack.execution_state} · automations inert</p>
+        <label>Task category · Rule Stone → Violet
+          <select value={pstackCategory} onChange={e=>setPstackCategory(e.target.value)}>
+            <option value="">Automatic classification</option>
+            {pstack.task_categories?.map(x=><option key={x.id} value={x.id}>{x.id} · {x.label_th}</option>)}
+          </select>
+        </label>
         <label>Search installed skill source
           <input type="search" value={pstackQuery} onChange={e=>setPstackQuery(e.target.value)} placeholder="e.g. swarm, recall, how" />
         </label>
         <div className="wnRows" style={{maxHeight:"320px",overflowY:"auto"}}>
           {matchedSkills.map((skill)=><div className="wnRow" key={skill.id}>
-            <div><strong>{skill.id}</strong><span>{skill.description||"Portable source available · not runtime verified"}</span></div>
+            <div><strong>#{pstack.stable_numbers?.find(x=>x.id===skill.id)?.number} · {skill.id}</strong>
+            <span>{pstack.stable_numbers?.find(x=>x.id===skill.id)?.categories.join(" / ")}</span>
+            <span>{skill.description||"Portable source available · not runtime verified"}</span></div>
             <a href={`https://github.com/Ogenicchocolate21debug/Build-Platform/blob/phase-vi-provider-incentive-metering/${skill.path}`}
               target="_blank" rel="noreferrer" aria-label={`View source for ${skill.id}`}>Source ↗</a>
           </div>)}

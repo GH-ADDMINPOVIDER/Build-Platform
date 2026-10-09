@@ -8,59 +8,197 @@
   "task_categories": {
     "DEBUG": {
       "label_th": "วิเคราะห์และแก้ข้อผิดพลาด",
-      "pattern": "bug|debug|fix|crash|fail|error|incident|root cause|บั๊ก|แก้บั๊ก|พัง|ข้อผิดพลาด|สาเหตุ"
+      "pattern": "bug|debug|fix|crash|fail|error|incident|root cause|บั๊ก|แก้บั๊ก|พัง|ข้อผิดพลาด|สาเหตุ",
+      "recommended_workflow_numbers": [
+        9,
+        7,
+        46
+      ],
+      "recommended_principle_numbers": [
+        24,
+        39
+      ],
+      "blue_required_capability": "code_search"
     },
     "BUILD": {
       "label_th": "สร้างหรือปรับระบบ",
-      "pattern": "build|implement|feature|coding|write code|สร้าง|เขียนโค้ด|พัฒนา|ฟังก์ชันใหม่"
+      "pattern": "build|implement|feature|coding|write code|สร้าง|เขียนโค้ด|พัฒนา|ฟังก์ชันใหม่",
+      "recommended_workflow_numbers": [
+        1,
+        8,
+        46
+      ],
+      "recommended_principle_numbers": [
+        25,
+        40
+      ],
+      "blue_required_capability": "write_file"
     },
     "DEPLOY": {
       "label_th": "ส่งขึ้นระบบและตรวจรันไทม์",
-      "pattern": "deploy|release|pipeline|rollout|staging|production|ดีพลอย|ขึ้นเว็บ|ปล่อยระบบ"
+      "pattern": "deploy|release|pipeline|rollout|staging|production|ดีพลอย|ขึ้นเว็บ|ปล่อยระบบ",
+      "recommended_workflow_numbers": [
+        5,
+        12
+      ],
+      "recommended_principle_numbers": [
+        28,
+        34
+      ],
+      "blue_required_capability": "runtime_verify"
     },
     "MEMORY": {
       "label_th": "ดึงบริบทและเรียนรู้จากงานเดิม",
-      "pattern": "session|memory|recall|context|resume|handoff|continuity|ความจำ|บริบท|เซสชัน|ส่งต่องาน|งานเดิม"
+      "pattern": "session|memory|recall|context|resume|handoff|continuity|ความจำ|บริบท|เซสชัน|ส่งต่องาน|งานเดิม",
+      "recommended_workflow_numbers": [
+        41,
+        42,
+        51
+      ],
+      "recommended_principle_numbers": [
+        20,
+        26
+      ],
+      "blue_required_capability": "context_load"
     },
     "MULTI_AGENT": {
       "label_th": "ประสานหลาย Agent",
-      "pattern": "swarm|multi.agent|parallel|orchestrat|delegate|agent team|หลายเอเจนต์|ทีม|ขนาน|กระจายงาน"
+      "pattern": "swarm|multi.agent|parallel|orchestrat|delegate|agent team|หลายเอเจนต์|ทีม|ขนาน|กระจายงาน",
+      "recommended_workflow_numbers": [
+        45,
+        2,
+        11
+      ],
+      "recommended_principle_numbers": [
+        36,
+        37
+      ],
+      "blue_required_capability": "reasoning"
     },
     "VERIFY": {
       "label_th": "ตรวจหลักฐานและทดสอบ",
-      "pattern": "verify|verification|proof|test|tdd|ruby|qa|evidence|ตรวจ|ทดสอบ|พิสูจน์|หลักฐาน"
+      "pattern": "verify|verification|proof|test|tdd|ruby|qa|evidence|ตรวจ|ทดสอบ|พิสูจน์|หลักฐาน",
+      "recommended_workflow_numbers": [
+        8,
+        12,
+        44
+      ],
+      "recommended_principle_numbers": [
+        34,
+        39
+      ],
+      "blue_required_capability": "runtime_verify"
     },
     "REVIEW": {
       "label_th": "ทบทวน ตรวจความเสี่ยง",
-      "pattern": "review|pull request|\\bpr\\b|audit|risk|security|peer|รีวิว|ตรวจโค้ด|ความเสี่ยง"
+      "pattern": "review|pull request|\\bpr\\b|audit|risk|security|peer|รีวิว|ตรวจโค้ด|ความเสี่ยง",
+      "recommended_workflow_numbers": [
+        5,
+        11,
+        44
+      ],
+      "recommended_principle_numbers": [
+        18,
+        34
+      ],
+      "blue_required_capability": "code_review"
     },
     "ARCHITECTURE": {
       "label_th": "วางโครงสร้างและออกแบบกฎ",
-      "pattern": "architect|architecture|design|structure|domain|schema|ออกแบบ|สถาปัตยกรรม|โครงสร้าง|สคีมา"
+      "pattern": "architect|architecture|design|structure|domain|schema|ออกแบบ|สถาปัตยกรรม|โครงสร้าง|สคีมา",
+      "recommended_workflow_numbers": [
+        1,
+        10,
+        51
+      ],
+      "recommended_principle_numbers": [
+        25,
+        31
+      ],
+      "blue_required_capability": "read_file"
     },
     "RESEARCH": {
       "label_th": "วิจัยหาเหตุผลและทางเลือก",
-      "pattern": "research|investigat|why|explore|compare|ค้นหา|วิจัย|วิเคราะห์|เหตุผล"
+      "pattern": "research|investigat|why|explore|compare|ค้นหา|วิจัย|วิเคราะห์|เหตุผล",
+      "recommended_workflow_numbers": [
+        9,
+        51,
+        11
+      ],
+      "recommended_principle_numbers": [
+        17,
+        35
+      ],
+      "blue_required_capability": "reasoning"
     },
     "UI_UX": {
       "label_th": "ประสบการณ์เว็บและมือถือ",
-      "pattern": "ui|ux|iphone|mobile|frontend|screen|button|หน้าเว็บ|มือถือ|ปุ่ม|หน้าจอ|ดีไซน์"
+      "pattern": "ui|ux|iphone|mobile|frontend|screen|button|หน้าเว็บ|มือถือ|ปุ่ม|หน้าจอ|ดีไซน์",
+      "recommended_workflow_numbers": [
+        13,
+        8,
+        1
+      ],
+      "recommended_principle_numbers": [
+        22,
+        21
+      ],
+      "blue_required_capability": "runtime_verify"
     },
     "AUTOMATION": {
       "label_th": "อัตโนมัติและซ้ำได้ปลอดภัย",
-      "pattern": "automat|workflow|script|idempoten|retry|runner|อัตโนมัติ|สคริปต์|วนซ้ำ|รันเนอร์"
+      "pattern": "automat|workflow|script|idempoten|retry|runner|อัตโนมัติ|สคริปต์|วนซ้ำ|รันเนอร์",
+      "recommended_workflow_numbers": [
+        3,
+        7,
+        43
+      ],
+      "recommended_principle_numbers": [
+        28,
+        19
+      ],
+      "blue_required_capability": "build"
     },
     "PERFORMANCE": {
       "label_th": "ประสิทธิภาพและการใช้ทรัพยากร",
-      "pattern": "benchmark|performance|speed|latency|cost|quota|token|ความเร็ว|เครดิต|โควตา|ประสิทธิภาพ"
+      "pattern": "benchmark|performance|speed|latency|cost|quota|token|ความเร็ว|เครดิต|โควตา|ประสิทธิภาพ",
+      "recommended_workflow_numbers": [
+        4,
+        44,
+        9
+      ],
+      "recommended_principle_numbers": [
+        23,
+        34
+      ],
+      "blue_required_capability": "test"
     },
     "DOCUMENTATION": {
       "label_th": "สื่อสาร อธิบาย จัดทำเอกสาร",
-      "pattern": "document|write|explain|teach|readme|docs|คู่มือ|อธิบาย|เอกสาร|สอน"
+      "pattern": "document|write|explain|teach|readme|docs|คู่มือ|อธิบาย|เอกสาร|สอน",
+      "recommended_workflow_numbers": [
+        48,
+        47,
+        6
+      ],
+      "recommended_principle_numbers": [
+        30,
+        20
+      ],
+      "blue_required_capability": "read_file"
     },
     "OPERATIONS": {
       "label_th": "บริหารงานและส่งต่อ",
-      "pattern": "operate|ops|runbook|task|plan|handover|control|กระบวนการ|จัดงาน|บริหารงาน|ปิดงาน"
+      "pattern": "operate|ops|runbook|task|plan|handover|control|กระบวนการ|จัดงาน|บริหารงาน|ปิดงาน",
+      "recommended_workflow_numbers": [
+        15,
+        16
+      ],
+      "recommended_principle_numbers": [
+        32,
+        33
+      ],
+      "blue_required_capability": "reasoning"
     }
   },
   "skills": [
@@ -70,7 +208,8 @@
       "kind": "workflow",
       "categories": [
         "ARCHITECTURE",
-        "BUILD"
+        "BUILD",
+        "UI_UX"
       ],
       "sha256": "cb2507870a6a6dda4283a3e9642b813f9df5da41b7d78c310c4309d9091d7827",
       "source_path": ".agents/skills/architect/SKILL.md"
@@ -148,7 +287,8 @@
       "kind": "workflow",
       "categories": [
         "VERIFY",
-        "BUILD"
+        "BUILD",
+        "UI_UX"
       ],
       "sha256": "dce6a835a30a6547cab3fa742ea94c2487c947349f0289fbe3a312c539761bf5",
       "source_path": ".agents/skills/create-verification-skill/SKILL.md"
@@ -159,7 +299,8 @@
       "kind": "workflow",
       "categories": [
         "DEBUG",
-        "RESEARCH"
+        "RESEARCH",
+        "PERFORMANCE"
       ],
       "sha256": "0eb9485f0e7d84fee56b5d0f0af0faf4635e3ca87c8cba3970c01293b76ecc19",
       "source_path": ".agents/skills/figure-it-out/SKILL.md"
@@ -181,7 +322,8 @@
       "kind": "workflow",
       "categories": [
         "REVIEW",
-        "MULTI_AGENT"
+        "MULTI_AGENT",
+        "RESEARCH"
       ],
       "sha256": "cdf25c6a9a3e7741a1027387eb5e3bf7c65f17330566c5f093f118f2287db4ae",
       "source_path": ".agents/skills/interrogate/SKILL.md"
@@ -192,7 +334,8 @@
       "kind": "workflow",
       "categories": [
         "VERIFY",
-        "AUTOMATION"
+        "AUTOMATION",
+        "DEPLOY"
       ],
       "sha256": "5943f7747da6aafcf5c1063c988e725c97e415866f5c7746279012f35cb49815",
       "source_path": ".agents/skills/maintain-verification-skill/SKILL.md"
@@ -280,7 +423,8 @@
       "kind": "principle",
       "categories": [
         "MEMORY",
-        "AUTOMATION"
+        "AUTOMATION",
+        "DOCUMENTATION"
       ],
       "sha256": "77044c83a9ac6df78fc643887ea5f1f11f082adaf14b717c060cdaed03cce863",
       "source_path": ".agents/skills/principle-encode-lessons-in-structure/SKILL.md"
@@ -434,7 +578,9 @@
       "kind": "principle",
       "categories": [
         "VERIFY",
-        "DEPLOY"
+        "DEPLOY",
+        "REVIEW",
+        "PERFORMANCE"
       ],
       "sha256": "ec79a15025bac8d33d62011c54f3b612733fd2a024e623b531b3637aa75070e2",
       "source_path": ".agents/skills/principle-prove-it-works/SKILL.md"
@@ -445,7 +591,8 @@
       "kind": "principle",
       "categories": [
         "ARCHITECTURE",
-        "DEBUG"
+        "DEBUG",
+        "RESEARCH"
       ],
       "sha256": "a1c7fd0a96b40e12a74bceb0e6bb20a9666dd844dcabfb624acb27da23b929fe",
       "source_path": ".agents/skills/principle-redesign-from-first-principles/SKILL.md"
@@ -467,7 +614,8 @@
       "kind": "principle",
       "categories": [
         "VERIFY",
-        "OPERATIONS"
+        "OPERATIONS",
+        "MULTI_AGENT"
       ],
       "sha256": "2ccbbacc56ace5afdfb8670cef19d7bd009fb2a0033b9a741cbdf2b6baf72187",
       "source_path": ".agents/skills/principle-sequence-verifiable-units/SKILL.md"
@@ -533,7 +681,8 @@
       "kind": "workflow",
       "categories": [
         "MULTI_AGENT",
-        "OPERATIONS"
+        "OPERATIONS",
+        "AUTOMATION"
       ],
       "sha256": "61e8e201aefb2c7eba9a7f77d85fc66a00606f26773a8a3210dbcfd22c09d6bd",
       "source_path": ".agents/skills/setup-pstack/SKILL.md"
@@ -545,7 +694,8 @@
       "categories": [
         "VERIFY",
         "REVIEW",
-        "MEMORY"
+        "MEMORY",
+        "PERFORMANCE"
       ],
       "sha256": "4debc5860a7b389e4496f5b908340e4bb79cddabf36e5d56cab399a0a299df35",
       "source_path": ".agents/skills/show-me-your-work/SKILL.md"
@@ -567,7 +717,8 @@
       "kind": "workflow",
       "categories": [
         "BUILD",
-        "VERIFY"
+        "VERIFY",
+        "DEBUG"
       ],
       "sha256": "eeb868e2dfebee528d730a67d7b17498fac4bb85dec2e38bc5c5176aca4d5d2f",
       "source_path": ".agents/skills/tdd/SKILL.md"
@@ -621,7 +772,9 @@
       "kind": "workflow",
       "categories": [
         "RESEARCH",
-        "DEBUG"
+        "DEBUG",
+        "MEMORY",
+        "ARCHITECTURE"
       ],
       "sha256": "1f9c0a97e30582b1733110314e171b14f68340b0edf63d14dac422aa2525b17a",
       "source_path": ".agents/skills/why/SKILL.md"

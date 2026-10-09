@@ -41,3 +41,23 @@ test("one Rule Stone source, Violet read-only consumer, Yellow solely authorizes
  assert.match(violet,/pstack_numbered/);
  assert.match(violet,/YELLOW_STONE_ONLY/);
 });
+
+test("Violet category-first routing uses curated numbered defaults, not LLM guessing",()=>{
+ const code=r("worker/violet-pstack-taxonomy.ts");
+ assert.match(code,/choosePstackCategoryStack/);
+ assert.match(code,/TASK_CATEGORY_NEEDS_CLARIFICATION/);
+ const tax=JSON.parse(r("config/pstack-task-taxonomy.json"));
+ for(const [category,meta] of Object.entries(tax.task_categories)){
+  assert.ok(meta.recommended_workflow_numbers.length>=1);
+  assert.ok(meta.recommended_principle_numbers.length>=1);
+  for(const n of [...meta.recommended_workflow_numbers,...meta.recommended_principle_numbers]){
+   assert.ok(tax.skills[n-1].categories.includes(category));
+  }
+ }
+ const api=r("worker/violet-stone-api.ts");
+ assert.match(api,/ruleSelection\.capability/);
+ assert.match(api,/rule_selection:ruleSelection/);
+ const ui=r("src/VioletDistributionPanel.tsx");
+ assert.match(ui,/Task category · Rule Stone → Violet/);
+ assert.match(ui,/stable_numbers/);
+});
