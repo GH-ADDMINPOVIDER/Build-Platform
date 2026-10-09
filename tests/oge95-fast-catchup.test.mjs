@@ -29,16 +29,16 @@ test("strict fail result preserves unverified state",()=>{
  assert.equal(summarizeCatchup(l,"BLOCKED").backlog_status,"LATEST_SOURCE_NOT_VERIFIED");
  assert.throws(()=>summarizeCatchup(l,"DONE"));
 });
-test("push catchup is GitHub-hosted, latest-only and supersedes stale runs",()=>{
+test("push catchup is WAVE self-hosted, latest-only and supersedes stale runs",()=>{
  const wf=readFileSync(".github/workflows/oge95-auto-head-catchup.yml","utf8");
  assert.match(wf,/push:\s*\n\s*branches: \[phase-vi-provider-incentive-metering\]/);
- assert.match(wf,/runs-on: ubuntu-latest/);
+ assert.match(wf,/runs-on: \[self-hosted, linux, x64, wave\]/);
  assert.match(wf,/cancel-in-progress: true/);
  assert.match(wf,/ref: phase-vi-provider-incentive-metering/);
  assert.match(wf,/fetch-depth: 0/);
  assert.match(wf,/scripts\/oge95-fast-catchup.mjs index/);
  assert.match(wf,/npm run check/);
- assert.doesNotMatch(wf,/\[self-hosted/);
+ assert.doesNotMatch(wf,/runs-on: ubuntu-latest/);
  const parent=readFileSync(".github/workflows/oge-95-final-review-intake.yml","utf8");
  assert.doesNotMatch(parent,/^\s*push:\s*$/m);
  assert.match(parent,/workflow_dispatch:/);
