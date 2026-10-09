@@ -50,3 +50,25 @@ test("typed @pstack must open workflow picker locally, not default generic AI st
  assert.doesNotMatch(handler,/await runChat\(|await runAgentAI\(|fetch\(/);
  assert.match(handler,/return;/);
 });
+
+test("mobile preset selection is exclusive, not a chain of repeated prompt text",()=>{
+ assert.match(chat,/function withoutPstackTemplates/);
+ assert.match(chat,/task = task\.split\(preset\.prompt\)\.join\(""\)/);
+ assert.match(chat,/const \[selectedPstackId, setSelectedPstackId\]/);
+ const a=chat.indexOf('aria-label="pstack workflow presets"');
+ const b=chat.indexOf('{visibleTools.map',a);
+ const chooser=chat.slice(a,b);
+ assert.match(chooser,/setSelectedPstackId\(preset\.id\)/);
+ assert.match(chooser,/setDraft\(withoutPstackTemplates\(draft\)\)/);
+ assert.doesNotMatch(chooser,/setDraft\(\[preset\.prompt/);
+ assert.match(chat,/Clear pstack selection/);
+});
+test("no concrete task: no model/tool call even if multiple guided buttons were tapped",()=>{
+ const a=chat.indexOf("async function send()"),b=chat.indexOf("function startNew",a);
+ const action=chat.slice(a,b);
+ assert.match(action,/if \(selectedPstackPreset && !pstackTask\)/);
+ assert.match(action,/USER TASK:/);
+ assert.ok(action.indexOf("if (selectedPstackPreset && !pstackTask)")<action.indexOf("setSending(true)"));
+ assert.match(action,/runChat\(effectivePrompt\)/);
+ assert.match(action,/runAgentAI\(effectivePrompt\)/);
+});

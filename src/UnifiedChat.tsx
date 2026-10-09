@@ -7,6 +7,14 @@ type Role = "user" | "assistant" | "system";
 type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 type ToolMode = "chat" | "web" | "rag" | "github" | "linear" | "n8n" | "meta" | "manus" | "live";
 type ExperienceMode = "chat-api" | "agent-ai";
+
+function withoutPstackTemplates(value: string): string {
+  // One active workflow, never copy old built-in prompt instructions into another.
+  let task = value;
+  for (const preset of pstackWorkflows.workflows) task = task.split(preset.prompt).join("");
+  return task.replace(/(?:^|\n)\s*\+pstack\s*(?=\n|$)/gi, "\n").trim();
+}
+
 type Session = { authenticated?: boolean; user?: { label?: string; role?: string } | null };
 type Message = {
   id?: string;
@@ -153,6 +161,7 @@ export default function UnifiedChat({ surface }: Props) {
   const [modelDock, setModelDock] = useState(false);
   const [newDock, setNewDock] = useState(false);
   const [toolMode, setToolMode] = useState<ToolMode>("chat");
+  const [selectedPstackId, setSelectedPstackId] = useState<string | null>(null);
   const [experienceMode, setExperienceMode] = useState<ExperienceMode>("chat-api");
   const [d1Enabled, setD1Enabled] = useState(() => readBool(MEMORY_KEY, true));
   const [allowPaidFallback, setAllowPaidFallback] = useState(() => readBool(PAID_FALLBACK_KEY, false));
@@ -176,6 +185,7 @@ export default function UnifiedChat({ surface }: Props) {
     return rows.length ? rows : MODEL_CANDIDATES.filter((item) => item.id === DEFAULT_CONFIG.model);
   }, [providerModelIds]);
   const selectedModel = availableModels.find((item) => item.id === chatConfig.model) ?? availableModels[0] ?? MODEL_CANDIDATES[0];
+  const selectedPstackPreset = pstackWorkflows.workflows.find((item) => item.id === selectedPstackId) ?? null;
   const pools = dashboard.incentives?.pools ?? [];
   const exhausted = dashboard.incentives?.policy_state === "EXHAUSTED";
   const requiresOpenAI = !["manus", "live"].includes(toolMode);
@@ -694,19 +704,30 @@ export default function UnifiedChat({ surface }: Props) {
       const subcommand = args.match(/^([a-z-]+)(?:\s+([\s\S]+))?$/i);
       const preset = pstackWorkflows.workflows.find((item) => item.id === subcommand?.[1]?.toLowerCase());
       if (preset) {
-        setDraft([preset.prompt, subcommand?.[2]?.trim()].filter(Boolean).join("\n\n"));
+        setSelectedPstackId(preset.id);
+        setDraft(withoutPstackTemplates(subcommand?.[2]?.trim() || ""));
+        setToolMode("chat");
         setToolDock(false);
         setModelDock(false);
-        setInlineNotice(`pstack ${preset.title} prepared. This is a draft; press Send to use existing WAVE/Yellow quota rules.`);
+        setInlineNotice(`pstack ${preset.title} selected. Type ONE specific task, then press Send. No Agent has been called yet.`);
       } else {
+        setSelectedPstackId(null);
         setDraft(args);
         setCapabilityQuery("pstack");
         setToolDock(true);
         setModelDock(false);
-        setInlineNotice("pstack picker opened. Choose a guided workflow to prepare a draft; nothing has been sent.");
+        setInlineNotice("pstack picker opened. Select one workflow, then describe your task; nothing has been sent.");
       }
       return;
     }
+    const pstackTask = selectedPstackPreset ? withoutPstackTemplates(draft) : "";
+    if (selectedPstackPreset && !pstackTask) {
+      setInlineNotice(`pstack ${selectedPstackPreset.title} selected · พิมพ์โจทย์งานก่อนกด Send เพื่อไม่ให้ AI วนเรียกเครื่องมือ`);
+      return;
+    }
+    const effectivePrompt = selectedPstackPreset
+      ? selectedPstackPreset.prompt + "\n\nUSER TASK:\n" + pstackTask
+      : prompt;
     if (!composerDraft.ready) { setInlineNotice("กำลังอ่าน draft · รอสักครู่"); return; }
     if (attachments.some(row => row.status !== "uploaded")) { setInlineNotice("รอ upload ให้ครบ หรือ retry/เอาไฟล์ที่ล้มเหลวออกก่อนส่ง"); return; }
     if (attachments.length && (toolMode !== "chat" || experienceMode !== "chat-api")) { setInlineNotice("โหมดนี้ยังไม่รับไฟล์แนบ · เลือก WAVE Chat ก่อนส่ง ไฟล์ยังอยู่ครบ"); return; }
@@ -719,15 +740,16 @@ export default function UnifiedChat({ surface }: Props) {
     setSending(true);
     setInlineNotice("");
     const sentText = draft;
-    setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "user", text: prompt, created_at: Date.now(), source_surface: surface }]);
+    setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "user", text: selectedPstackPreset ? `pstack · ${selectedPstackPreset.title}: ${pstackTask}` : prompt, created_at: Date.now(), source_surface: surface }]);
     try {
-      if (toolMode === "manus") await runManus(prompt);
-      else if (toolMode === "live") await runLiveDoor(prompt);
-      else if (toolMode === "github" || toolMode === "linear" || toolMode === "n8n" || toolMode === "meta") await runInlineTool(toolMode, prompt);
-      else if (toolMode === "web" || toolMode === "rag") await runHostedTools(prompt);
-      else if (experienceMode === "agent-ai") await runAgentAI(prompt);
-      else await runChat(prompt);
+      if (toolMode === "manus") await runManus(effectivePrompt);
+      else if (toolMode === "live") await runLiveDoor(effectivePrompt);
+      else if (toolMode === "github" || toolMode === "linear" || toolMode === "n8n" || toolMode === "meta") await runInlineTool(toolMode, effectivePrompt);
+      else if (toolMode === "web" || toolMode === "rag") await runHostedTools(effectivePrompt);
+      else if (experienceMode === "agent-ai") await runAgentAI(effectivePrompt);
+      else await runChat(effectivePrompt);
       composerDraft.store.consume(sentText, []);
+      if (selectedPstackPreset) setSelectedPstackId(null);
       await loadRuntime();
     } catch (error) {
       setInlineNotice(error instanceof Error ? error.message : "Request failed · draft retained");
@@ -850,9 +872,11 @@ export default function UnifiedChat({ surface }: Props) {
           {!!visiblePstackPresets.length && <section className="ucPstackPresets" aria-label="pstack workflow presets">
             <div className="ucDockHead"><div><b>pstack · guided workflows</b><small>MIT patterns · draft only · Cursor plugin not installed</small></div></div>
             {visiblePstackPresets.map((preset) => <button key={preset.id} type="button" className="ucCapability" onClick={() => {
-              setDraft([preset.prompt, draft.trim().replace(/^[@\/]pstack(?:\s+)?/i, "")].filter(Boolean).join("\n\n"));
+              setSelectedPstackId(preset.id);
+              setDraft(withoutPstackTemplates(draft));
+              setToolMode("chat");
               setToolDock(false);
-              setInlineNotice(`pstack ${preset.title} ready in draft. No Agent has been called; press Send to use existing WAVE routing and budget.`);
+              setInlineNotice(`pstack ${preset.title} selected. Type one task; No Agent has been called yet.`);
             }}><span>◇</span><div><b>{preset.title}</b><small>{preset.description} · DRAFT ONLY</small></div><em>＋</em></button>)}
           </section>}
           {visibleTools.map((row) => <button key={row.id} className={`ucCapability ${toolMode === row.id ? "active" : ""}`} onClick={() => { setToolMode(row.id); setToolDock(false); }}><span>{row.id === "live" ? "◎" : row.id === "manus" ? "◉" : row.id === "github" ? "⌘" : row.id === "rag" ? "◇" : "✦"}</span><div><b>{row.label}</b><small>{row.sub} · {row.state}</small></div><em>{toolMode === row.id ? "✓" : "›"}</em></button>)}
@@ -870,6 +894,7 @@ export default function UnifiedChat({ surface }: Props) {
       </section>}
 
       {toolMode !== "chat" && <div className="ucActiveTool"><span>{toolMode.toUpperCase()}</span><button onClick={() => setToolMode("chat")}>×</button></div>}
+      {selectedPstackPreset && <div className="ucActiveTool"><span>pstack · {selectedPstackPreset.title} · add your task</span><button type="button" aria-label="Clear pstack selection" onClick={() => setSelectedPstackId(null)}>×</button></div>}
       <ComposerAttachments rows={attachments} store={composerDraft.store} disabled={sending} />
       {composerDraft.persistenceError && <div className="ucNotice" role="alert">{composerDraft.persistenceError}</div>}
       {inlineNotice && <div className="ucNotice" role="status" aria-live="polite">{inlineNotice}</div>}
@@ -878,7 +903,7 @@ export default function UnifiedChat({ surface }: Props) {
         {EXPERIENCE_MODES.map((item) => <button key={item.id} className={experienceMode === item.id ? "active" : ""} aria-pressed={experienceMode === item.id} onClick={() => selectExperience(item.id)}><b>{item.label}</b><small>{item.state}</small></button>)}
       </div>
       <section className="ucComposer">
-        <textarea ref={composerInput} rows={1} disabled={!composerDraft.ready} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message WAVE…"} />
+        <textarea ref={composerInput} rows={1} disabled={!composerDraft.ready} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={selectedPstackPreset ? "พิมพ์โจทย์งานให้ pstack หนึ่งงาน…" : toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message WAVE…"} />
         <div className="ucComposerBar">
           <button className="ucRound" onClick={() => { setToolDock((value) => !value); setModelDock(false); }}>＋</button>
           <button className="ucModel" onClick={() => { setModelDock((value) => !value); setToolDock(false); }}><i /> <b>{selectedModel.label}</b><small>{EFFORTS.find((row) => row.id === chatConfig.effort)?.label} · ×{chatConfig.boost}</small>⌄</button>
