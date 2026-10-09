@@ -64,3 +64,20 @@ test("Yellow Stone mounts the self-host runtime without replacing the base Worke
   assert.match(source, /base\.fetch/);
   assert.match(source, /base\.scheduled/);
 });
+
+
+test("OGE-98 proof workflow uses existing two-sided OpenAI self-host handoff without main or production writes", () => {
+  const source=read(".github/workflows/oge-28-selfhost-proof.yml");
+  const runner=read(".github/workflows/wave-openai-selfhost-executor.yml");
+  assert.match(source, /branches: \[phase-vi-provider-incentive-metering\]/);
+  assert.match(source, /name: prepare and verify canonical self-host session/);
+  assert.match(source, /name: connect wave-runner-01 to prepared OpenAI session/);
+  assert.match(source, /phase/);
+  assert.match(source, /OGE28_REAL_SELFHOST_PROOF_OK/);
+  assert.match(source, /OGE28_EXECUTOR_PROOF_COMPLETE/);
+  assert.match(source, /OPENAI_EXECUTOR_API_KEY|OPENAI_ENVIRONMENT_KEY/);
+  assert.match(runner, /runs-on: \[self-hosted, linux, x64, wave\]/);
+  assert.match(runner, /exec codex exec-server/);
+  assert.doesNotMatch(source, /refs\/heads\/main/);
+  assert.doesNotMatch(runner, /refs\/heads\/main/);
+});
