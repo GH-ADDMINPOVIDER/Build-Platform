@@ -1,8 +1,10 @@
 name: OGE-95 Final Review Intake - GitHub + Manus + OpenAI
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
+  # Deep reviewer intake and historic per-SHA npm check are intentionally NOT
+  # triggered for every push: they monopolized self-host capacity and queued old
+  # jobs faster than they could complete. Latest HEAD is automatically handled
+  # by oge95-auto-head-catchup.yml on GitHub-hosted runners.
   workflow_dispatch:
 
 permissions:
