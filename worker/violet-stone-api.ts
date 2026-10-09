@@ -9,6 +9,7 @@ type D1Prepared = {
   bind: (...values: unknown[]) => D1Prepared;
   all: <T = Record<string, unknown>>() => Promise<D1Result<T>>;
   first: <T = Record<string, unknown>>() => Promise<T | null>;
+  run: () => Promise<{meta?:{changes?:number};success?:boolean}>;
 };
 type D1 = { prepare: (query: string) => D1Prepared };
 
@@ -520,6 +521,81 @@ export function createVioletStoneApi() {
     }
     const result = planVioletDistribution(request, buildBlueDiamondRegistry(c.env), claims, true);
     return c.json({...result, canonical}, result.http_status, { "Cache-Control": "no-store" });
+  });
+
+  // Metadata-only reservation of EXISTING queued work. Never executes a provider/tool.
+  // Conditional D1 update atomically prevents two competing Violet assignments.
+  api.post("/api/violet/distribution/claim", async (c) => {
+    const body = await c.req.json<{
+      task_id?: string; agent_id?: string;
+    }>().catch(() => ({}));
+    const taskId = clean(body.task_id, 80);
+    const agentId = clean(body.agent_id, 80);
+    if (!/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$/.test(taskId) ||
+        !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$/.test(agentId)) {
+      return c.json({ok:false,code:"INVALID_CLAIM_ID"},400);
+    }
+    if (!c.env.DB) return c.json({ok:false,code:"D1_REQUIRED"},503);
+    const canonical = await canonicalSnapshot(c.env.DB);
+    if (!canonical.available) return c.json({ok:false,code:"CANONICAL_1LSS_REQUIRED"},503);
+    try {
+      const task = await c.env.DB.prepare(
+        "SELECT id, capability, status, claimed_by, resource_key FROM agent_tasks WHERE id = ? LIMIT 1",
+      ).bind(taskId).first<{id:string;capability:string|null;status:string;claimed_by:string|null;resource_key:string|null}>();
+      if (!task) return c.json({ok:false,code:"TASK_NOT_FOUND"},404);
+      if (task.status === "CLAIMED" && task.claimed_by === agentId)
+        return c.json({ok:true,replayed:true,task_id:taskId,agent_id:agentId,
+          status:"CLAIMED",execution_dispatched:false,execution_authority:"YELLOW_STONE_ONLY"},200);
+      if (task.status !== "QUEUED")
+        return c.json({ok:false,code:"TASK_NOT_QUEUED",status:task.status},409);
+      const roster = buildBlueDiamondRegistry(c.env);
+      const agent = roster.find((a) => a.actor_id === agentId);
+      const active = await c.env.DB.prepare(
+        "SELECT claimed_by, status FROM agent_tasks WHERE status IN ('QUEUED','CLAIMED','RUNNING','VERIFYING') LIMIT 501",
+      ).all<ActiveClaim>();
+      if ((active.results || []).length >= 501) return c.json({ok:false,code:"ACTIVE_TASK_SCAN_LIMIT"},503);
+      const planned = planVioletDistribution({
+        tasks:[{task_id:taskId,capability:task.capability || "",preferred_agent_id:agentId}],
+        max_parallel:1,
+      },roster,active.results||[],true);
+      if (!planned.ok || planned.assignments.length !== 1)
+        return c.json({ok:false,code:"NOT_ELIGIBLE_FOR_VIOLET_CLAIM",reason:planned.ok?planned.queue[0]?.status:planned.code},409);
+      // DEGRADED is not verified LIVE; require Blue preflight before a persistent claim.
+      if (!agent || agent.state !== "LIVE")
+        return c.json({ok:false,code:"BLUE_LIVE_PREFLIGHT_REQUIRED",
+          next:"/api/blue-diamond/preflight"},409);
+      const outcome = await c.env.DB.prepare(
+        `UPDATE agent_tasks
+         SET status = 'CLAIMED', claimed_by = ?, claimed_at = CURRENT_TIMESTAMP,
+             updated_at = CURRENT_TIMESTAMP, attempt_count = attempt_count + 1
+         WHERE id = ? AND status = 'QUEUED' AND claimed_by IS NULL
+           AND NOT EXISTS (
+             SELECT 1 FROM agent_tasks AS other
+             WHERE other.id <> ? AND other.claimed_by = ?
+               AND other.status IN ('CLAIMED','RUNNING','VERIFYING')
+           )
+           AND NOT EXISTS (
+             SELECT 1 FROM agent_tasks AS other
+             WHERE other.id <> ? AND ? IS NOT NULL
+               AND other.resource_key = ?
+               AND other.status IN ('CLAIMED','RUNNING','VERIFYING')
+           )`,
+      ).bind(agentId,taskId,taskId,agentId,taskId,task.resource_key,task.resource_key).run();
+      if (outcome.meta?.changes !== 1)
+        return c.json({ok:false,code:"CLAIM_CONFLICT_RETRY_WITH_FRESH_PLAN"},409);
+      const eventId = "violet-claim-" + await digest(taskId + ":" + agentId);
+      await c.env.DB.prepare(
+        `INSERT OR IGNORE INTO agent_events(id,task_id,event_type,actor,external_ref,created_at)
+         VALUES(?,?,'VIOLET_CLAIM_PENDING_YELLOW',?,'YELLOW_APPROVAL_REQUIRED',CURRENT_TIMESTAMP)`,
+      ).bind(eventId,taskId,agentId).run();
+      return c.json({ok:true,replayed:false,task_id:taskId,agent_id:agentId,
+        status:"CLAIMED",execution_dispatched:false,
+        yellow_stone_required:true,execution_authority:"YELLOW_STONE_ONLY",
+        next:"/api/capabilities/execute",ruby_verification:"PENDING",
+        canonical},200,{"Cache-Control":"no-store"});
+    } catch {
+      return c.json({ok:false,code:"D1_CLAIM_UNVERIFIED"},503);
+    }
   });
 
   api.post("/api/violet/plan", async (c) => {
