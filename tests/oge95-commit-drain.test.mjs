@@ -62,12 +62,12 @@ test("every staging push automatically catches up on GitHub-hosted, deep audit s
  const parent=fs(".github/workflows/oge-95-final-review-intake.yml");
  const child=fs(".github/workflows/oge95-commit-drain.yml");
  const fast=fs(".github/workflows/oge95-auto-head-catchup.yml");
- assert.match(fast,/push:\\s*\\n\\s*branches: \\[phase-vi-provider-incentive-metering\\]/);
+ assert.match(fast,/push:\s*\n\s*branches: \[phase-vi-provider-incentive-metering\]/);
  assert.match(fast,/cancel-in-progress: true/);
  assert.match(fast,/runs-on: ubuntu-latest/);
- assert.doesNotMatch(parent,/^\\s*push:\\s*$/m);
+ assert.doesNotMatch(parent,/^\s*push:\s*$/m);
  assert.match(parent,/workflow_dispatch:/);
- assert.match(parent,/commit-drain:\\s*[\\s\\S]*?uses: \\.\\/\\.github\\/workflows\\/oge95-commit-drain\\.yml/);
+ assert.match(parent,/commit-drain:\s*[\s\S]*?uses: \.\/\.github\/workflows\/oge95-commit-drain\.yml/);
  assert.match(child,/workflow_call:/);
  assert.match(child,/cancel-in-progress: false/);
  assert.match(child,/OGE95_DRAIN_ALL_KNOWN_COMMITS_AUDITED/);
