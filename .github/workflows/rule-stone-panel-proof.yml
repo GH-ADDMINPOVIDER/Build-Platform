@@ -1,0 +1,40 @@
+name: Rule Stone Panel - Seven Stone Governance Proof
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "config/oge95-rules-center.json"
+      - "worker/rule-stone-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "worker/violet-distribution-planner.ts"
+      - "src/StoneRulePanel.tsx"
+      - "src/stone-rule-panel.css"
+      - "src/WaveNext.tsx"
+      - "src/main.tsx"
+      - "tests/rule-stone-panel.test.mjs"
+      - ".github/workflows/rule-stone-panel-proof.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build ephemeral lockfile and install
+        run: npm install --package-lock-only --ignore-scripts && npm ci
+      - name: Stone rule invariants and Violet distribution
+        run: node --test tests/rule-stone-panel.test.mjs tests/violet-blue-distribution.test.mjs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Report scope
+        run: |
+          echo "RULE_STONE_PANEL_CI_SUCCESS"
+          echo "READ_ONLY_PANEL_NO_NEW_GATE"
+          echo "NO_REMOTE_D1_OR_PRODUCTION_MUTATION"
