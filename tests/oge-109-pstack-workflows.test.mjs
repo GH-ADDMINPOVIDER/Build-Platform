@@ -33,3 +33,20 @@ test("pstack guided prompt buttons are usable on existing mobile dock",()=>{
  assert.ok(css.includes(".ucPstackPresets"));
  assert.match(chat,/ucPstackPresets/);
 });
+
+test("typed @pstack must open workflow picker locally, not default generic AI status",()=>{
+ const start=chat.indexOf("async function send()");
+ const end=chat.indexOf("function startNew",start);
+ assert.ok(start>0&&end>start);
+ const text=chat.slice(start,end);
+ assert.match(text,/pstackCommand/);
+ assert.match(text,/setCapabilityQuery\("pstack"\)/);
+ assert.match(text,/setToolDock\(true\)/);
+ assert.match(text,/setDraft\(args\)/);
+ assert.match(text,/const preset = pstackWorkflows\.workflows\.find/);
+ assert.match(text,/if \(pstackCommand\)/);
+ assert.ok(text.indexOf("if (pstackCommand)")<text.indexOf("setSending(true)"));
+ const handler=text.slice(text.indexOf("if (pstackCommand)"),text.indexOf("setSending(true)"));
+ assert.doesNotMatch(handler,/await runChat\(|await runAgentAI\(|fetch\(/);
+ assert.match(handler,/return;/);
+});

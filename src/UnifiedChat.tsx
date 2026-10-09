@@ -686,6 +686,27 @@ export default function UnifiedChat({ surface }: Props) {
   async function send() {
     const prompt = draft.trim() || (attachments.length ? "วิเคราะห์ไฟล์ที่แนบมา" : "");
     if (!prompt || sending) return;
+    // OGE-109: @pstack is a WAVE LOCAL workflow picker, not a model/tool request.
+    // No billing, no D1 turn, no external call until the owner chooses and explicitly sends.
+    const pstackCommand = !attachments.length && prompt.match(/^[@/]pstack(?:\s+([\s\S]*))?$/i);
+    if (pstackCommand) {
+      const args = (pstackCommand[1] || "").trim();
+      const subcommand = args.match(/^([a-z-]+)(?:\s+([\s\S]+))?$/i);
+      const preset = pstackWorkflows.workflows.find((item) => item.id === subcommand?.[1]?.toLowerCase());
+      if (preset) {
+        setDraft([preset.prompt, subcommand?.[2]?.trim()].filter(Boolean).join("\n\n"));
+        setToolDock(false);
+        setModelDock(false);
+        setInlineNotice(`pstack ${preset.title} prepared. This is a draft; press Send to use existing WAVE/Yellow quota rules.`);
+      } else {
+        setDraft(args);
+        setCapabilityQuery("pstack");
+        setToolDock(true);
+        setModelDock(false);
+        setInlineNotice("pstack picker opened. Choose a guided workflow to prepare a draft; nothing has been sent.");
+      }
+      return;
+    }
     if (!composerDraft.ready) { setInlineNotice("กำลังอ่าน draft · รอสักครู่"); return; }
     if (attachments.some(row => row.status !== "uploaded")) { setInlineNotice("รอ upload ให้ครบ หรือ retry/เอาไฟล์ที่ล้มเหลวออกก่อนส่ง"); return; }
     if (attachments.length && (toolMode !== "chat" || experienceMode !== "chat-api")) { setInlineNotice("โหมดนี้ยังไม่รับไฟล์แนบ · เลือก WAVE Chat ก่อนส่ง ไฟล์ยังอยู่ครบ"); return; }
@@ -829,7 +850,7 @@ export default function UnifiedChat({ surface }: Props) {
           {!!visiblePstackPresets.length && <section className="ucPstackPresets" aria-label="pstack workflow presets">
             <div className="ucDockHead"><div><b>pstack · guided workflows</b><small>MIT patterns · draft only · Cursor plugin not installed</small></div></div>
             {visiblePstackPresets.map((preset) => <button key={preset.id} type="button" className="ucCapability" onClick={() => {
-              setDraft([preset.prompt, draft.trim()].filter(Boolean).join("\n\n"));
+              setDraft([preset.prompt, draft.trim().replace(/^[@\/]pstack(?:\s+)?/i, "")].filter(Boolean).join("\n\n"));
               setToolDock(false);
               setInlineNotice(`pstack ${preset.title} ready in draft. No Agent has been called; press Send to use existing WAVE routing and budget.`);
             }}><span>◇</span><div><b>{preset.title}</b><small>{preset.description} · DRAFT ONLY</small></div><em>＋</em></button>)}
