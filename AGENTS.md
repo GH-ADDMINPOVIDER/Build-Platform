@@ -12,6 +12,12 @@ Act as an operator, not a status reporter. Read the real state, choose the cheap
 - Separate Mineral Phase II / OGE-II-1 (native OGE-102) and its project were CANCELED. Continue native OGE-101 onward. OGE-103 is independent audit.
 - No old issue auto-reopen, no main/production/Candy/D1 schema/secrets writes.
 
+## pstack guided workflows — OGE-109
+- The upstream pstack from Lauren Tan is MIT-licensed, checked version 0.15.15; license text under third_party/pstack/LICENSE.
+- Cursor-only `/add-plugin pstack` CANNOT run in Cloudflare, Railway or a ChatGPT connector. WAVE exposes FOUR pstack-inspired prompt presets (config/pstack-workflows.json), not a natively installed Cursor plugin and not a model execution service.
+- A preset in the authenticated WAVE Tools panel fills the DRAFT only. It must not send, spend credits, commit, deploy or mutate D1 automatically. A subsequent manual Send uses existing provider route/quota and Yellow/Ruby/Green controls.
+- Before acting, preserve previous owner-main / 1LSS decisions and verify exact current GitHub staging SHA. Native pstack Cursor-specific multi-agent features are UNSUPPORTED unless separately proven. No new memory, Control Tower or paid hosting.
+
 ## Hard guardrails
 - NEVER touch `main`, production, Candy, D1 schema, billing, or secrets unless the owner explicitly instructs it.
 - Staging first. Minimum reversible diff.

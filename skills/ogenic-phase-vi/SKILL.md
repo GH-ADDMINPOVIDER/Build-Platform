@@ -111,3 +111,6 @@ Return only what matters:
 - files/resources changed
 - verification result
 - exact next authorization required, if any
+
+## OGE-109 pstack bounded workflow adoption
+User-visible WAVE Tool Dock supports pstack MIT-inspired investigation, session-pickup, bug-fix and babysit **prompt presets only**. Read `config/pstack-workflows.json` and `skills/ogenic-pstack/SKILL.md`. Preserve exact staging GitHub SHA, old Green/1LSS owner-main decisions, Yellow execution authority and independent Ruby verdict. This is NOT equivalent to installing Cursor's `/add-plugin pstack` or automatic model execution. Full vendor Cursor plugin requires Cursor account installation; Railway/Replit are distinct services. Copyright/license stored in `third_party/pstack/LICENSE`.

@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "name": "pstack-workflow-presets-for-ogenic",
+  "origin": {
+    "repository": "https://github.com/cursor/plugins/tree/main/pstack",
+    "license": "MIT",
+    "copyright": "Copyright (c) 2026 Lauren Tan",
+    "observed_manifest_version": "0.15.15"
+  },
+  "integration_state": "GUIDED_WORKFLOW_PRESETS",
+  "native_cursor_plugin_installed": false,
+  "full_upstream_plugin_executed": false,
+  "model_calls_triggered_by_selection": 0,
+  "canonical_memory": "owner-main / 1LSS_OWNER_MAIN",
+  "workflows": [
+    {
+      "id": "investigation",
+      "title": "Investigation",
+      "description": "Read-only diagnosis with evidence",
+      "prompt": "OGENIC pstack-adapted INVESTIGATION (MIT source: cursor/plugins/pstack). READ ONLY. Before analyzing, retrieve the relevant past OGE decisions/1LSS and the current GitHub staging SHA. Inspect original files and CI/Linear receipts. Classify VERIFIED_SOURCE vs VERIFIED_LIVE vs UNKNOWN; explain root cause and NEXT. Do not edit Issues/files or call billable providers automatically."
+    },
+    {
+      "id": "session-pickup",
+      "title": "Session pickup",
+      "description": "Recover past task, session and source SHA",
+      "prompt": "OGENIC pstack-adapted SESSION PICKUP. First recover the previous Green/1LSS owner-main session refs and verified decisions, then current staging GitHub HEAD and Linear issue ownership; detect old Codex checkout, missing session, expired authorization, or stale source. Return CONTEXT_UNAVAILABLE rather than guessing. Resume only after verified continuity; no new memory DB, no automatic external Agent call."
+    },
+    {
+      "id": "bug-fix",
+      "title": "Bug fix",
+      "description": "Reproduce, minimal fix, test, Ruby verify",
+      "prompt": "OGENIC pstack-adapted BUG FIX. Look up prior OGE incident memory, current branch/CI, reproduce a real bounded staging symptom, identify root cause, show smallest reversible code change and independent Ruby verification needed. Follow existing Yellow authority and owner approval before any consequential mutation; no main/prod/Candy/D1 schema/secrets/paid fallback."
+    },
+    {
+      "id": "babysit",
+      "title": "PR / CI babysit",
+      "description": "Review GitHub PR/CI; no auto-merge",
+      "prompt": "OGENIC pstack-adapted BABYSIT. Inspect exact current staging PR/commit and GitHub Actions run, compare source and runner SHA, assess blockers, prior OGE decision and independent Ruby evidence. Provide READY/FAILED/BLOCKED plus references. No auto-merge, deploy, billing changes, retries or other writes without approved Yellow authority."
+    }
+  ]
+}

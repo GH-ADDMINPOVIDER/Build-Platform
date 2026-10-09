@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import pstackWorkflows from "../config/pstack-workflows.json";
 import ComposerAttachments, { useComposerDraft } from "./ComposerAttachments";
 
 type Surface = "ogenic-app" | "ogenic-web";
@@ -756,6 +757,7 @@ export default function UnifiedChat({ surface }: Props) {
   const matchesCapabilityQuery = (label: string, sub = "") =>
     !normalizedCapabilityQuery || `${label} ${sub}`.toLowerCase().includes(normalizedCapabilityQuery);
   const visibleTools = toolRows.filter((row) => row.live && matchesCapabilityQuery(row.label, row.sub));
+  const visiblePstackPresets = pstackWorkflows.workflows.filter((row) => matchesCapabilityQuery(`pstack ${row.title}`, row.description));
   const visibleConnectorStates = connectors
     .filter((row) => matchesCapabilityQuery(row.label, `${row.kind || ""} ${row.summary || ""}`))
     .slice(0, 12);
@@ -824,8 +826,16 @@ export default function UnifiedChat({ surface }: Props) {
           </div>
           <div className="ucMemoryRow"><span><b>D1 · 1LSS</b><small>{d1Enabled ? "Canonical memory ON" : "Ephemeral · no memory write"}</small></span><button className={d1Enabled ? "toggle on" : "toggle"} disabled={experienceMode === "agent-ai"} aria-label={experienceMode === "agent-ai" ? "Agent AI requires 1LSS memory" : "Toggle 1LSS memory"} onClick={() => setD1Enabled((value) => !value)}><i /></button></div>
           <button className="ucCapability" onClick={() => fileInput.current?.click()}><span>▧</span><div><b>Photos & files</b><small>Attach to this turn</small></div><em>＋</em></button>
+          {!!visiblePstackPresets.length && <section className="ucPstackPresets" aria-label="pstack workflow presets">
+            <div className="ucDockHead"><div><b>pstack · guided workflows</b><small>MIT patterns · draft only · Cursor plugin not installed</small></div></div>
+            {visiblePstackPresets.map((preset) => <button key={preset.id} type="button" className="ucCapability" onClick={() => {
+              setDraft([preset.prompt, draft.trim()].filter(Boolean).join("\n\n"));
+              setToolDock(false);
+              setInlineNotice(`pstack ${preset.title} ready in draft. No Agent has been called; press Send to use existing WAVE routing and budget.`);
+            }}><span>◇</span><div><b>{preset.title}</b><small>{preset.description} · DRAFT ONLY</small></div><em>＋</em></button>)}
+          </section>}
           {visibleTools.map((row) => <button key={row.id} className={`ucCapability ${toolMode === row.id ? "active" : ""}`} onClick={() => { setToolMode(row.id); setToolDock(false); }}><span>{row.id === "live" ? "◎" : row.id === "manus" ? "◉" : row.id === "github" ? "⌘" : row.id === "rag" ? "◇" : "✦"}</span><div><b>{row.label}</b><small>{row.sub} · {row.state}</small></div><em>{toolMode === row.id ? "✓" : "›"}</em></button>)}
-          {!visibleTools.length && <div className="ucCapabilityEmpty">No executable capability matches this search.</div>}
+          {!visibleTools.length && !visiblePstackPresets.length && <div className="ucCapabilityEmpty">No matching executable tool or pstack prompt preset.</div>}
           {!!visibleConnectorStates.length && <div className="ucConnectorStates"><small>CONNECTION STATES</small>{visibleConnectorStates.map((row) => <div key={row.id}><span><b>{row.label}</b><em>{row.kind || "connector"}</em></span><strong>{String(row.state || "NOT_MEASURED").toUpperCase()}</strong></div>)}</div>}
           {!!connected.length && <div className="ucConnected"><small>CONNECTED</small><p>{connected.map((row) => row.label).join(" · ")}</p></div>}
           <div className="ucQuotaRow"><span><b>Quota route</b><small>{dashboard.incentives?.routing_mode || "quota-first"}{exhausted ? " · EXHAUSTED" : quotaMetered ? " · metered" : " · metering pending"}</small></span><button className={allowPaidFallback ? "ucFallback on" : "ucFallback"} onClick={() => setAllowPaidFallback((value) => !value)}>{allowPaidFallback ? "Paid fallback ON" : "Paid fallback OFF"}</button></div>
