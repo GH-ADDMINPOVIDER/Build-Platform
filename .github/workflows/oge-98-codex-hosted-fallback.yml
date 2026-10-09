@@ -3,9 +3,6 @@ name: OGE-98 Codex Scoped Code Proof (GitHub hosted fallback)
 # Fallback after self-host runner's official Codex Action proxy failed before inference.
 # Real Codex code change stays in a disposable worktree. Never auto-push, merge, or deploy.
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths: [".github/workflows/oge-98-codex-hosted-fallback.yml"]
   workflow_dispatch:
     inputs:
       confirm_one_moderated_agent_call:

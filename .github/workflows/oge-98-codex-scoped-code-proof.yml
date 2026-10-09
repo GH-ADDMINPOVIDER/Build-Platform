@@ -2,9 +2,6 @@ name: OGE-98 Codex Scoped Code Task Proof (existing wave-runner-01)
 # One owner-requested staging proof; editing this workflow is the ONLY push trigger.
 # Real Codex code change must remain in a disposable worktree. Never auto-push, merge, or deploy.
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths: [".github/workflows/oge-98-codex-scoped-code-proof.yml"]
   workflow_dispatch:
     inputs:
       confirm_one_moderated_agent_call:

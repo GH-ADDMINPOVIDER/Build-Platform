@@ -1,4 +1,4 @@
-name: OGE-95 AUTO — Latest HEAD Catchup (GitHub-hosted)
+name: OGE-95 AUTO — Latest HEAD Catchup (WAVE self-host)
 # Single current run, not one heavyweight audit per historical SHA.
 # First-parent list is indexed honestly; only CURRENT source HEAD is tested.
 on:

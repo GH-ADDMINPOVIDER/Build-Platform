@@ -1,10 +1,6 @@
 name: OpenAI Live Smoke
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/openai-live-smoke.yml"
   workflow_dispatch:
 
 permissions:
