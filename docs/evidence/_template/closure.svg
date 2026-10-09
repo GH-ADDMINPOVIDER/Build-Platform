@@ -1,13 +1,47 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-<title id="title">OGE closure evidence template</title>
-<desc id="desc">Black and white template for a verified OGE closure summary.</desc>
+<title id="title">OGE closure circuit evidence template</title>
+<desc id="desc">Reusable grayscale circuit from task classification through Pstack, implementation, independent review, commit, deployment, Ruby verification and memory retention. Labels are placeholders, not proof of execution.</desc>
 <rect width="1200" height="630" fill="#fff"/>
-<rect x="48" y="48" width="1104" height="534" rx="28" fill="#fff" stroke="#111" stroke-width="3"/>
-<text x="88" y="120" font-family="Arial, sans-serif" font-size="44" font-weight="700" fill="#111">OGE-&lt;id&gt; · CLOSURE EVIDENCE</text>
-<line x1="88" y1="150" x2="1112" y2="150" stroke="#111" stroke-width="2"/>
-<text x="88" y="220" font-family="Arial, sans-serif" font-size="28" fill="#111">RESULT</text>
-<text x="88" y="290" font-family="Arial, sans-serif" font-size="28" fill="#111">TESTS</text>
-<text x="88" y="360" font-family="Arial, sans-serif" font-size="28" fill="#111">EVIDENCE</text>
-<text x="88" y="430" font-family="Arial, sans-serif" font-size="28" fill="#111">RESIDUAL RISK</text>
-<text x="88" y="530" font-family="Arial, sans-serif" font-size="22" fill="#555">Derived from canonical evidence · no fabricated runtime claims</text>
+<rect x="36" y="32" width="1128" height="566" rx="22" fill="#fff" stroke="#111" stroke-width="3"/>
+<text x="68" y="83" font-family="Arial,sans-serif" font-size="34" font-weight="700" fill="#111">OGE-&lt;id&gt; · CLOSURE CIRCUIT</text>
+<text x="68" y="116" font-family="Arial,sans-serif" font-size="17" fill="#444">Truthful evidence only · replace placeholders with verified results</text>
+<g stroke="#111" stroke-width="2" fill="#f5f5f5">
+<rect x="64" y="151" width="208" height="76" rx="10"/>
+<rect x="310" y="151" width="208" height="76" rx="10"/>
+<rect x="556" y="151" width="208" height="76" rx="10"/>
+<rect x="802" y="151" width="208" height="76" rx="10"/>
+<rect x="930" y="279" width="208" height="76" rx="10"/>
+<rect x="684" y="279" width="208" height="76" rx="10"/>
+<rect x="438" y="279" width="208" height="76" rx="10"/>
+<rect x="192" y="279" width="208" height="76" rx="10"/>
+</g>
+<g font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="#111" text-anchor="middle">
+<text x="168" y="181">TASK + CATEGORY</text><text x="168" y="207">Rule Stone</text>
+<text x="414" y="181">PSTACK</text><text x="414" y="207">#1, #9, #24, #36</text>
+<text x="660" y="181">IMPLEMENTER</text><text x="660" y="207">Agent ID + proof</text>
+<text x="906" y="181">REVIEWER</text><text x="906" y="207">Independent review</text>
+<text x="1034" y="309">COMMIT + CI</text><text x="1034" y="335">Exact SHA + run</text>
+<text x="788" y="309">DEPLOY</text><text x="788" y="335">Exact SHA + run</text>
+<text x="542" y="309">RUBY VERDICT</text><text x="542" y="335">PASS / BLOCKED</text>
+<text x="296" y="309">GREEN / 1LSS</text><text x="296" y="335">Verified memory</text>
+</g>
+<g stroke="#111" stroke-width="3" fill="none">
+<path d="M272 189 H310"/><path d="M518 189 H556"/><path d="M764 189 H802"/>
+<path d="M906 227 V253 H1034 V279"/>
+<path d="M930 317 H892"/><path d="M684 317 H646"/><path d="M438 317 H400"/>
+</g>
+<g fill="#111">
+<path d="M302 183 l8 6 -8 6z"/><path d="M548 183 l8 6 -8 6z"/><path d="M794 183 l8 6 -8 6z"/>
+<path d="M1026 271 l8 8 8 -8z"/><path d="M900 311 l-8 6 8 6z"/><path d="M654 311 l-8 6 8 6z"/><path d="M408 311 l-8 6 8 6z"/>
+</g>
+<line x1="64" y1="391" x2="1138" y2="391" stroke="#111" stroke-width="1.5"/>
+<text x="68" y="425" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#111">Pstack numbers:</text>
+<text x="260" y="425" font-family="Arial,sans-serif" font-size="20" fill="#111">1, 9, 24, 36 (example only — use the actual selected principles)</text>
+<text x="68" y="463" font-family="Arial,sans-serif" font-size="18" fill="#111">Root cause / missed step:</text>
+<text x="310" y="463" font-family="Arial,sans-serif" font-size="18" fill="#444">[verified finding]</text>
+<text x="68" y="497" font-family="Arial,sans-serif" font-size="18" fill="#111">Source SHA:</text>
+<text x="190" y="497" font-family="monospace" font-size="17" fill="#444">commit = CI = deploy = Ruby proof</text>
+<text x="68" y="531" font-family="Arial,sans-serif" font-size="18" fill="#111">Residual risk:</text>
+<text x="190" y="531" font-family="Arial,sans-serif" font-size="17" fill="#444">[known limits / BLOCKED reason]</text>
+<text x="68" y="569" font-family="Arial,sans-serif" font-size="15" fill="#555">Template only. A diagram never substitutes for authenticated evidence or independent Ruby verification.</text>
 </svg>

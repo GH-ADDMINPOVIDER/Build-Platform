@@ -33,7 +33,7 @@ Act as an operator, not a status reporter. Read the real state, choose the cheap
 ## OGE-112 — Rule taxonomy & real closure provenance
 - RULE STONE is sole canonical task category and pstack number authority: `config/pstack-task-taxonomy.json` referenced by `config/oge95-rules-center.json`. VIOLET consumes it and picks skills/team, BLUE checks Agent readiness, YELLOW alone authorizes action, RUBY independent verdict, GREEN only memory. Do not create an additional gating Stone.
 - Every prospective OGE closeout requires truthful visual circuit or UI proof, OGE-specific README and `closure.json` with source checksum-matched `Pstack: 1,9,24,36` numbers, implementer/reviewer/committer/deployer and exact CI/deploy/Ruby evidence. Unverified is BLOCKED, not DONE.
-- Run `node scripts/oge112-check-closure.mjs OGE-ID` before proposed Linear Done. The gate checks structure, not remote authenticated truth and cannot alone block Linear status. No fake screenshot or owner QA delegation.
+- Run `node scripts/oge112-check-closure.mjs OGE-ID` before proposed Linear Done. The same gate runs on staging pushes touching `docs/evidence/OGE-*`; every package must include a truthful circuit/UI visual, README, ordered immutable Pstack number+ID+SHA refs, task-category match, distinct implementer/reviewer, committer, deployer, root-cause/missed-step review, and exact CI/deploy/Ruby source SHA matching `commit_sha`. Ruby must independently authenticate the remote receipts. This GitHub check does not itself prevent a Linear status change; never claim that it does. No fake screenshot or owner QA delegation.
 
 ## Hard guardrails
 - NEVER touch `main`, production, Candy, D1 schema, billing, or secrets unless the owner explicitly instructs it.
