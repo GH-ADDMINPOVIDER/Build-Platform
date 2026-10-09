@@ -1,0 +1,431 @@
+{
+  "schema_version": "1.0",
+  "kind": "VIOLET_PSTACK_PORTABLE_SOURCE",
+  "owner_stone": "VIOLET_STONE_04",
+  "authority_stone": "YELLOW_STONE",
+  "verifier_stone": "RUBY_STONE",
+  "memory": "owner-main / 1LSS_OWNER_MAIN",
+  "github_source": "https://github.com/backnotprop/pstack",
+  "pin_commit": "3a604672c46cd8187d2b19980eae0a34f9f91138",
+  "upstream": "https://github.com/cursor/plugins/tree/main/pstack",
+  "upstream_reference_commit": "ccb5507cec1546dc88135c1139c811e6c59115ba",
+  "license": "MIT",
+  "skill_count": 51,
+  "agent_definition_count": 2,
+  "vendor_complete": true,
+  "compatible_agent_skill_layout": true,
+  "provider_calls_triggered_by_import": 0,
+  "execution_state": "NOT_DISPATCHED",
+  "automation_state": "INERT_SOURCE_ONLY",
+  "full_native_cursor_plugin_installed": false,
+  "skills": [
+    {
+      "id": "architect",
+      "description": "Sketch types, signatures, and module structure before code, then stay in the loop while implementation fills in. Use for /architect, 'architect this', 'design this', or non-trivial work where jumping to code would lock in the wrong shape.",
+      "source_path": "third_party/pstack-portable/skills/architect/SKILL.md",
+      "agent_skill_path": ".agents/skills/architect/SKILL.md",
+      "source_sha256": "cb2507870a6a6dda4283a3e9642b813f9df5da41b7d78c310c4309d9091d7827",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "arena",
+      "description": "Spawn N parallel candidates at the same task, pick a base, graft the strongest parts of the losers into it. Use for /arena, 'arena this', 'throw it in the arena', or when one attempt at a non-trivial artifact would lock in the wrong shape.",
+      "source_path": "third_party/pstack-portable/skills/arena/SKILL.md",
+      "agent_skill_path": ".agents/skills/arena/SKILL.md",
+      "source_sha256": "031af78a3193ca63bbe3789c239702277c080de1f7374a84271c321ef34ed9d5",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "automate-me",
+      "description": "Use for \\\"automate me\\\", \\\"create/update/refresh my -mode skill\\\", \\\"turn/capture my preferences or working style into a skill\\\", or wanting agents to follow how the user works. Drafts or revises a personal -mode skill via create-skill + unslop, optionally pulling fresh evidence from recent transcripts.",
+      "source_path": "third_party/pstack-portable/skills/automate-me/SKILL.md",
+      "agent_skill_path": ".agents/skills/automate-me/SKILL.md",
+      "source_sha256": "96292386917dc7c2dbe29737e3967baf29b8787158af42f070fdded5b91ca804",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "benchmark-checklist",
+      "description": "Vet a perf measurement (limiter, tuning, limits, errors, repeatability, relevance, and whether the work happened) before you report or act on it. Use when you run a benchmark or report a speedup or regression you measured.",
+      "source_path": "third_party/pstack-portable/skills/benchmark-checklist/SKILL.md",
+      "agent_skill_path": ".agents/skills/benchmark-checklist/SKILL.md",
+      "source_sha256": "6a767e788a60428fa14e645ee10fe2e49896e514ff654f668b1d824deb9038e8",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "blast-radius",
+      "description": "Find what a change could break somewhere else before it ships, beyond the diff, and prove the one fact it's safe because of by running real code instead of writing it up. Use for 'blast radius of X', 'what could this break', or reviewing a small diff you don't trust.",
+      "source_path": "third_party/pstack-portable/skills/blast-radius/SKILL.md",
+      "agent_skill_path": ".agents/skills/blast-radius/SKILL.md",
+      "source_sha256": "2e10745b97f5862323dcda3b29ca60d56b5c3c98e37020085d26b48efbe0a436",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "bro",
+      "description": "Restate the last message in plain human language, with no jargon.",
+      "source_path": "third_party/pstack-portable/skills/bro/SKILL.md",
+      "agent_skill_path": ".agents/skills/bro/SKILL.md",
+      "source_sha256": "aa329d0ceeeecb6822a7174ad76bb07a7826a3c52ceb6a588dec4138815084bb",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "correct",
+      "description": "Find the mistakes agents keep repeating in this repo and make each one impossible. Try architecture first, then types, then a lint whose error names the fix, then a test, and write docs last. Prove each check fails on a real past mistake. Repeat this each time the operator corrects you. Use for /correct.",
+      "source_path": "third_party/pstack-portable/skills/correct/SKILL.md",
+      "agent_skill_path": ".agents/skills/correct/SKILL.md",
+      "source_sha256": "bf482bacc972b3f124a4af8bf9364b4b3e280cb5845e44c326ea4f4565e5c904",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "create-verification-skill",
+      "description": "Generate a project-local verification skill that drives your app the way a user does — any language, framework, or platform. Use for /create-verification-skill, \\\"make a control skill for this repo\\\", or when a project has no scripted way to prove UI/CLI/service behavior.",
+      "source_path": "third_party/pstack-portable/skills/create-verification-skill/SKILL.md",
+      "agent_skill_path": ".agents/skills/create-verification-skill/SKILL.md",
+      "source_sha256": "dce6a835a30a6547cab3fa742ea94c2487c947349f0289fbe3a312c539761bf5",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "figure-it-out",
+      "description": "Design an auditable playbook when no narrower one fits: a large migration, an ambitious multi-part change, or work a human reviews after stepping away. Scales rigor to the task, runs a hypothesis loop, and logs decisions via show-me-your-work. Use for /figure-it-out, 'figure it out', a large migration, or when no narrower playbook applies.",
+      "source_path": "third_party/pstack-portable/skills/figure-it-out/SKILL.md",
+      "agent_skill_path": ".agents/skills/figure-it-out/SKILL.md",
+      "source_sha256": "0eb9485f0e7d84fee56b5d0f0af0faf4635e3ca87c8cba3970c01293b76ecc19",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "how",
+      "description": "Use for \\\"how does X work\\\", code walkthroughs before changing something, and placement / ownership / layering questions (\\\"where should this live\\\", \\\"which package owns this\\\", \\\"is this the right layer\\\"). Explains subsystem architecture, runtime flow, onboarding mental models. Use why for motivation.",
+      "source_path": "third_party/pstack-portable/skills/how/SKILL.md",
+      "agent_skill_path": ".agents/skills/how/SKILL.md",
+      "source_sha256": "6039d88a0147776eb058b0a13af495f787a6a40294bfe8868b005c179ed295aa",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "interrogate",
+      "description": "Use for \\\"interrogate\\\", \\\"adversarial review\\\", \\\"multi-model review\\\", \\\"challenge this\\\", \\\"stress test this code\\\", \\\"find blind spots\\\", or \\\"tear this apart\\\". Multiple LLM reviewers challenge changes from independent angles.",
+      "source_path": "third_party/pstack-portable/skills/interrogate/SKILL.md",
+      "agent_skill_path": ".agents/skills/interrogate/SKILL.md",
+      "source_sha256": "cdf25c6a9a3e7741a1027387eb5e3bf7c65f17330566c5f093f118f2287db4ae",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "maintain-verification-skill",
+      "description": "Periodic pass that keeps a project's verification skill and feature map honest: parallel source readers per feature, one live session driving every feature, at most one PR of proven corrections. Use for /maintain-verification-skill or \\\"audit the verify skill\\\".",
+      "source_path": "third_party/pstack-portable/skills/maintain-verification-skill/SKILL.md",
+      "agent_skill_path": ".agents/skills/maintain-verification-skill/SKILL.md",
+      "source_sha256": "5943f7747da6aafcf5c1063c988e725c97e415866f5c7746279012f35cb49815",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "make-bot-ui",
+      "description": ">-",
+      "source_path": "third_party/pstack-portable/skills/make-bot-ui/SKILL.md",
+      "agent_skill_path": ".agents/skills/make-bot-ui/SKILL.md",
+      "source_sha256": "ad19d0bc6764287ec08c2521701974e7dac941f72e4d0fe81a24f4614494586f",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "no-comments",
+      "description": "Spawn Comment Sicko, fix accepted findings, and offer encodings for claimed constraints.",
+      "source_path": "third_party/pstack-portable/skills/no-comments/SKILL.md",
+      "agent_skill_path": ".agents/skills/no-comments/SKILL.md",
+      "source_sha256": "f17bdcdc33f07cacf0efd3e06eb0bd919e8bd7e0e31016d851c01aeb02cf8796",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "poteto-help",
+      "description": "Guides users through pstack setup, /poteto-mode, and picking the skill, playbook, or principle for a task. Type /poteto-help with a question.",
+      "source_path": "third_party/pstack-portable/skills/poteto-help/SKILL.md",
+      "agent_skill_path": ".agents/skills/poteto-help/SKILL.md",
+      "source_sha256": "2fc82841d4645a4010a815bebbcdb788fb09b78fa4b6e7675d7f0b199f9eac72",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "poteto-mode",
+      "description": "poteto's agent style for concise, detailed responses, deliberate subagents, unslopped prose, simple code, and verified work. Use for poteto, /poteto-mode, or requests to work in this style.",
+      "source_path": "third_party/pstack-portable/skills/poteto-mode/SKILL.md",
+      "agent_skill_path": ".agents/skills/poteto-mode/SKILL.md",
+      "source_sha256": "923d54375f398f1850c7cf4465fa805bc2938c6fc2e43a561f7dbfbf9bf7b937",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-attack-the-premise",
+      "description": "Apply when two or more fixes that share one premise have failed the same gate. Take a census of which actors hold the imbalance before the next fix, then question the premise instead of writing another fix that assumes it.",
+      "source_path": "third_party/pstack-portable/skills/principle-attack-the-premise/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-attack-the-premise/SKILL.md",
+      "source_sha256": "c87bd7536f772f8a403ad8155535ee17a1bbec9a353156693eb3bb1520c87ae3",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-boundary-discipline",
+      "description": "Apply when wiring validation, error handling, or framework adapters. Concentrate guards at system boundaries (CLI, config, network, external APIs); trust internal types and keep business logic in pure functions.",
+      "source_path": "third_party/pstack-portable/skills/principle-boundary-discipline/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-boundary-discipline/SKILL.md",
+      "source_sha256": "62ac2862c2caa22dd14531f51c9c6bb445ceb198ca98a687e25b4d47c1f10a28",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-build-the-lever",
+      "description": "Apply to any non-trivial work, not just bulk work: edits, migrations, analyses, checks. Build the tool that does it or proves it (codemod, script, generator, or a skill your subagents follow) instead of working by hand. The tool is the artifact a reviewer can rerun.",
+      "source_path": "third_party/pstack-portable/skills/principle-build-the-lever/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-build-the-lever/SKILL.md",
+      "source_sha256": "458b269eab8e95a1573276955312f7d2a13ae8599879a9efc748248f6bc34b56",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-encode-lessons-in-structure",
+      "description": "Apply when you catch yourself writing the same instruction a second time, or notice a recurring correction. Encode the rule as a lint, metadata flag, runtime check, or script instead of more text.",
+      "source_path": "third_party/pstack-portable/skills/principle-encode-lessons-in-structure/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-encode-lessons-in-structure/SKILL.md",
+      "source_sha256": "77044c83a9ac6df78fc643887ea5f1f11f082adaf14b717c060cdaed03cce863",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-exhaust-the-design-space",
+      "description": "Apply when facing a novel UI interaction or architectural decision with no precedent in the codebase. Build 2-3 competing prototypes and compare side by side before committing.",
+      "source_path": "third_party/pstack-portable/skills/principle-exhaust-the-design-space/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-exhaust-the-design-space/SKILL.md",
+      "source_sha256": "8583310d7297b7823d75494faa57b003564d436807febecdecbd8321abe5cf6e",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-experience-first",
+      "description": "Apply when product, UX, or feature-scope tradeoffs come up. Choose user delight over implementation convenience; ship fewer polished features over more rough ones.",
+      "source_path": "third_party/pstack-portable/skills/principle-experience-first/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-experience-first/SKILL.md",
+      "source_sha256": "58903529d733b1c1a7c9ccf127d45ef3c7d0d9f0b81164a4dc6b80efe6f2912b",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-explain-the-number",
+      "description": "Apply before you trust, report, or act on a number you measured: a speedup, a regression, a throughput, a latency, or an eval result. Find what limits it, and rule out that it measured something other than the work you think.",
+      "source_path": "third_party/pstack-portable/skills/principle-explain-the-number/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-explain-the-number/SKILL.md",
+      "source_sha256": "5aac99e7ce0bb1b37e2579acf4fe88c32a1456d9d46afd4a57cfe1df9092e89c",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-fix-root-causes",
+      "description": "Apply when debugging. Trace each symptom to its root cause and fix it there; reproduce first, ask why until you reach it, resist nil-check guards that silence crashes.",
+      "source_path": "third_party/pstack-portable/skills/principle-fix-root-causes/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-fix-root-causes/SKILL.md",
+      "source_sha256": "ba4cd38da1dcc8fe5432feb64457cba95594736a9b21b2ebf8f8c52aee068707",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-foundational-thinking",
+      "description": "Apply before writing logic: choosing core types and data structures, sequencing scaffold-vs-feature work, asking what concurrent actors share. Get the data structures right so downstream code becomes obvious.",
+      "source_path": "third_party/pstack-portable/skills/principle-foundational-thinking/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-foundational-thinking/SKILL.md",
+      "source_sha256": "864b827e8199d946ce58beca0f89c4ed4099ed6e426fb698a3aaa45de2a9eea2",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-guard-the-context-window",
+      "description": "Apply when context is filling up: large outputs, long files, repeated reads, fan-out planning. Route bulk to subagents; keep summaries in the main thread, not raw payloads.",
+      "source_path": "third_party/pstack-portable/skills/principle-guard-the-context-window/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-guard-the-context-window/SKILL.md",
+      "source_sha256": "d2cef147862576e3d709b7afc149d85196245e8338b9c7eef337c95fba412b3e",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-laziness-protocol",
+      "description": "Apply when refactoring, evaluating diff size, or tempted to add abstractions, layers, or signal threading. Bias toward deletion and the smallest change that solves the problem.",
+      "source_path": "third_party/pstack-portable/skills/principle-laziness-protocol/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-laziness-protocol/SKILL.md",
+      "source_sha256": "9006579e9e3f33955d17569733db688ae65f22577dc3b21803d219a5a8445aff",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-make-operations-idempotent",
+      "description": "Apply when designing commands, lifecycle steps, or processing loops that run amid crashes, restarts, and retries. Converge to the same end state regardless of partial prior runs.",
+      "source_path": "third_party/pstack-portable/skills/principle-make-operations-idempotent/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-make-operations-idempotent/SKILL.md",
+      "source_sha256": "540738217c3da7bf513b9886924ad6a2bc77e58be867f5bd2e1831c74bf2ce70",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-migrate-callers-then-delete-legacy-apis",
+      "description": "Apply when introducing a new internal API while old callers still exist. Migrate callers and delete the old API in the same wave instead of preserving compatibility layers.",
+      "source_path": "third_party/pstack-portable/skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md",
+      "source_sha256": "09978915a4a11990cf0a9a02d9c08cc59e0b7a04c5c24b83aa560fbe4146f75b",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-minimize-reader-load",
+      "description": "Apply when reviewing or shaping code that's hard to trace. Count layers between question and answer, and hidden state in the reader's head; collapse one-caller wrappers and shrink mutable scope.",
+      "source_path": "third_party/pstack-portable/skills/principle-minimize-reader-load/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-minimize-reader-load/SKILL.md",
+      "source_sha256": "42551c5dc74cd578163c148da552db3ff67d29b78600ef216bfd311fb828fe69",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-model-the-domain",
+      "description": "Apply when writing stateful logic, or when code branches a lot or repeats a shape assumption across files. Encode the domain in a structure instead of scattered conditionals.",
+      "source_path": "third_party/pstack-portable/skills/principle-model-the-domain/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-model-the-domain/SKILL.md",
+      "source_sha256": "bbadbb9a723fac3f76e782ae45665eb94058ec10993e4bae36d4dc6b0e4eac07",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-never-block-on-the-human",
+      "description": "Apply when tempted to ask 'should I do X?' on reversible work. Proceed, present the result, let the human course-correct after the fact; reserve confirmation for irreversible actions.",
+      "source_path": "third_party/pstack-portable/skills/principle-never-block-on-the-human/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-never-block-on-the-human/SKILL.md",
+      "source_sha256": "f2764bb9338cbfc788c903cf4b9cd0a5f4042d3a04dd6d59cbd525d9beaadd0a",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-outcome-oriented-execution",
+      "description": "Apply during planned rewrites and migrations with explicit phase boundaries. Converge on the target architecture; don't preserve smooth intermediate states with throwaway compatibility code.",
+      "source_path": "third_party/pstack-portable/skills/principle-outcome-oriented-execution/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-outcome-oriented-execution/SKILL.md",
+      "source_sha256": "10eb91633aa570355ba4bb37088fcade2b22e498df7a58edc749e65bc5a78e2d",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-prove-it-works",
+      "description": "Apply after completing a task, before declaring done. Verify against the real artifact (run the feature, read the actual value, inspect the diff), not a proxy, self-report, or 'it compiles.'",
+      "source_path": "third_party/pstack-portable/skills/principle-prove-it-works/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-prove-it-works/SKILL.md",
+      "source_sha256": "ec79a15025bac8d33d62011c54f3b612733fd2a024e623b531b3637aa75070e2",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-redesign-from-first-principles",
+      "description": "Apply when integrating a new requirement into an existing design. Redesign as if the requirement had been a foundational assumption from day one, instead of bolting it on.",
+      "source_path": "third_party/pstack-portable/skills/principle-redesign-from-first-principles/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-redesign-from-first-principles/SKILL.md",
+      "source_sha256": "a1c7fd0a96b40e12a74bceb0e6bb20a9666dd844dcabfb624acb27da23b929fe",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-separate-before-serializing-shared-state",
+      "description": "Apply when concurrent actors might write to the same file, branch, key, or state object. Eliminate the sharing first; serialize structurally only when one shared writer is a real invariant.",
+      "source_path": "third_party/pstack-portable/skills/principle-separate-before-serializing-shared-state/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-separate-before-serializing-shared-state/SKILL.md",
+      "source_sha256": "05294b40448e927c5da1c7b6f5c6b9fed3744637e3833d2d948b9154a9dd00bb",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-sequence-verifiable-units",
+      "description": "Apply to multi-step work (sweeps, migrations, runs of similar edits) and to how you stack commits and PRs. Break work into small units that each end in a verifiable state, check each before the next, and order delivery so the sequence proves itself to a reviewer.",
+      "source_path": "third_party/pstack-portable/skills/principle-sequence-verifiable-units/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-sequence-verifiable-units/SKILL.md",
+      "source_sha256": "2ccbbacc56ace5afdfb8670cef19d7bd009fb2a0033b9a741cbdf2b6baf72187",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-subtract-before-you-add",
+      "description": "Apply when sequencing an addition, refactor, or rewrite. Remove dead code, redundant validators, and stub references first, then build on the simpler base.",
+      "source_path": "third_party/pstack-portable/skills/principle-subtract-before-you-add/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-subtract-before-you-add/SKILL.md",
+      "source_sha256": "a983a50e732c1ed315eba7aaf47a61329e31c4794eb1ab9d25d9945265b31e03",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-test-behavior-not-implementation",
+      "description": "Apply when you write, change, or keep a test. Call the code the way its users do and assert the result they observe against a literal expected value. If the test would still pass when every imported function returns undefined, rewrite the assertion or delete the test.",
+      "source_path": "third_party/pstack-portable/skills/principle-test-behavior-not-implementation/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-test-behavior-not-implementation/SKILL.md",
+      "source_sha256": "87e40efe4e486f7ea639d2ed1fc0abe6c93b8fd0e89a81218086909d2470a52e",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "principle-type-system-discipline",
+      "description": "Apply when designing types, reviewing a function signature, or writing code in any statically-typed language. Make illegal states unrepresentable, brand semantic primitives, parse external data at boundaries, refuse to lie to the compiler, exhaust variants, derive from authoritative schemas.",
+      "source_path": "third_party/pstack-portable/skills/principle-type-system-discipline/SKILL.md",
+      "agent_skill_path": ".agents/skills/principle-type-system-discipline/SKILL.md",
+      "source_sha256": "c83da8031ffb4c86410030d3e261f659598fca2b7d8158fd9dc269d70a3a025e",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "recall",
+      "description": "Reconstruct your recent working context from your own chat history, live state, and the shared record (user reports, prior fixes, incidents), then hand back a tight current-state brief. Use for 'recall my work on X', 'catch me up', 'what have I been working on', 'where did I leave off', before starting or resuming work.",
+      "source_path": "third_party/pstack-portable/skills/recall/SKILL.md",
+      "agent_skill_path": ".agents/skills/recall/SKILL.md",
+      "source_sha256": "d5c39c7d80afcde16c494cf33247a82ccf58a3d140be85c27a45b96b52618a7e",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "reflect",
+      "description": "Spawn three parallel review subagents over the active transcript, surface learnings, and route each to a concrete edit on an existing skill. Use when the user says reflect.",
+      "source_path": "third_party/pstack-portable/skills/reflect/SKILL.md",
+      "agent_skill_path": ".agents/skills/reflect/SKILL.md",
+      "source_sha256": "241f3c5c8de2eefdfa8ed49efa07e5e51fd37ac8bc7594dfd64f1980fca45d3f",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "setup-pstack",
+      "description": "Configure which models pstack uses per role and at what reasoning budget. Detects your available models and writes an always-applied rule that overrides the skill defaults. Use for /setup-pstack, \"configure pstack models\", \"pstack budget\", or changing pstack's model choices.",
+      "source_path": "third_party/pstack-portable/skills/setup-pstack/SKILL.md",
+      "agent_skill_path": ".agents/skills/setup-pstack/SKILL.md",
+      "source_sha256": "61e8e201aefb2c7eba9a7f77d85fc66a00606f26773a8a3210dbcfd22c09d6bd",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "show-me-your-work",
+      "description": "Keep a reviewable decision trail for long-running or unattended work: a TSV log with one row per decision (what, why, evidence, result). Local by default; commit it when a reviewer needs the trail to trust the result. Use for /show-me-your-work, autonomous or multi-phase runs, or work a human reviews after stepping away.",
+      "source_path": "third_party/pstack-portable/skills/show-me-your-work/SKILL.md",
+      "agent_skill_path": ".agents/skills/show-me-your-work/SKILL.md",
+      "source_sha256": "4debc5860a7b389e4496f5b908340e4bb79cddabf36e5d56cab399a0a299df35",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "swarm",
+      "description": "Fan out N parallel workers, drain them, and return one report. Use for /swarm, 'swarm this', or parallel coverage, races, gauntlets, and exploration.",
+      "source_path": "third_party/pstack-portable/skills/swarm/SKILL.md",
+      "agent_skill_path": ".agents/skills/swarm/SKILL.md",
+      "source_sha256": "63e724b308f355f9940fa6753a6fa728d7c5c0df2104742fa1000019e11b17cd",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "tdd",
+      "description": "Use only when the user explicitly asks for TDD, a failing test, or a regression test, OR when the bug has an obvious cheap local test target. Skip when the test path is unclear, expensive, integration-heavy, or not requested.",
+      "source_path": "third_party/pstack-portable/skills/tdd/SKILL.md",
+      "agent_skill_path": ".agents/skills/tdd/SKILL.md",
+      "source_sha256": "eeb868e2dfebee528d730a67d7b17498fac4bb85dec2e38bc5c5176aca4d5d2f",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "teach",
+      "description": "Explain a body of work plainly so a person actually understands it. Runs the `how` and `why` skills and weaves what they find into one clear explanation. Use for 'teach me this', 'help me really understand X', 'explain this change or subsystem to me'.",
+      "source_path": "third_party/pstack-portable/skills/teach/SKILL.md",
+      "agent_skill_path": ".agents/skills/teach/SKILL.md",
+      "source_sha256": "bd286e5a6290673be2cd28aef7af2ec7f1fb138e6bce156ea657368c7e7fc8a4",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "technical-writing",
+      "description": "Layered technical-writing standard: Diátaxis structure, Google developer style sentences, STE instruction rules, Global English syntax. Use for /technical-writing or when writing or reviewing docs, RFCs, readmes, PR descriptions, or commit messages.",
+      "source_path": "third_party/pstack-portable/skills/technical-writing/SKILL.md",
+      "agent_skill_path": ".agents/skills/technical-writing/SKILL.md",
+      "source_sha256": "f5c512ffeec70bc4e0dee50f7bb4c26742e1be77967a6e8b15d1921e1c209ceb",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "typescript-best-practices",
+      "description": "TypeScript best practices. Use when reading or editing any .ts or .tsx file.",
+      "source_path": "third_party/pstack-portable/skills/typescript-best-practices/SKILL.md",
+      "agent_skill_path": ".agents/skills/typescript-best-practices/SKILL.md",
+      "source_sha256": "28f9e61710e205f6f3c5476f333483cff0e988f6a5b639e2faad536344b40c5e",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "unslop",
+      "description": "Cut AI tells from any writing. Must always apply.",
+      "source_path": "third_party/pstack-portable/skills/unslop/SKILL.md",
+      "agent_skill_path": ".agents/skills/unslop/SKILL.md",
+      "source_sha256": "195411d320b5b328f9f642baf59757ed19aaf0931c0838740e0aca273d538dc1",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    },
+    {
+      "id": "why",
+      "description": "Use for 'why does X work this way', 'why we picked Y', design rationale, regressions, postmortems, or data-backed thresholds. Discovers available MCPs and queries each evidence category (source control, issue tracker, long-form docs, real-time chat, infrastructure observability, error tracking, product analytics warehouse) in parallel, then returns a cited read on decisions and tradeoffs. Use how for runtime behavior.",
+      "source_path": "third_party/pstack-portable/skills/why/SKILL.md",
+      "agent_skill_path": ".agents/skills/why/SKILL.md",
+      "source_sha256": "1f9c0a97e30582b1733110314e171b14f68340b0edf63d14dac422aa2525b17a",
+      "source_state": "IMPORTED_NOT_EXECUTED"
+    }
+  ]
+}
