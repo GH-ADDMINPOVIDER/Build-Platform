@@ -8,6 +8,7 @@ on:
       - "scripts/replica-runner/**"
       - "tests/oge95-factory-core.test.mjs"
       - "tests/oge95-athena-runner-context.test.mjs"
+      - "tests/oge99-declared-parity-matrix.test.mjs"
       - "config/oge95-rules-center.json"
   workflow_dispatch:
     inputs:
@@ -97,6 +98,8 @@ jobs:
             > "$RUNNER_TEMP/replica-workerd-restart.log" 2>&1 &
           PID=$!
           node scripts/replica-runner/verify-1lss-restart.mjs
+          node --test tests/oge99-declared-parity-matrix.test.mjs
+          node scripts/replica-runner/parity-matrix.mjs
       - name: Restore Stone Runner context from prior GitHub artifact
         if: always()
         shell: bash
@@ -143,6 +146,7 @@ jobs:
             replica-evidence.json
             replica-1lss-evidence.json
             replica-1lss-restart-evidence.json
+            oge99-declared-parity-matrix.json
           retention-days: 14
           if-no-files-found: warn
       - name: Publish honest parity measurement
@@ -166,6 +170,10 @@ jobs:
             if test -f replica-1lss-restart-evidence.json; then
               echo '### Local D1 persistence after actual workerd restart'
               jq '{status,checks_passed,checks_total,expected_sequence,remote_d1_access}' replica-1lss-restart-evidence.json
+            fi
+            if test -f oge99-declared-parity-matrix.json; then
+              echo '### OGE-99 — Declared Parity Matrix (honest partial proof)'
+              jq '{result,source_sha,verified_domain_count,not_tested_domain_count,full_operational_1_to_1_certified,ready_to_close_stone_phase}' oge99-declared-parity-matrix.json
             fi
             if test -f athena-runner-context.json; then
               echo '### Stone Runner (commit / CI / deploy context)'
