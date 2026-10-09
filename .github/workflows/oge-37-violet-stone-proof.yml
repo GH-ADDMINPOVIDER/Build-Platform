@@ -6,6 +6,9 @@ on:
     paths:
       - ".github/workflows/oge-37-violet-stone-proof.yml"
       - "worker/violet-stone-api.ts"
+      - "worker/violet-distribution-planner.ts"
+      - "worker/blue-diamond-registry.ts"
+      - "tests/violet-blue-distribution.test.mjs"
       - "worker/entry-yellow-stone.ts"
       - "tests/violet-stone-contract.test.mjs"
       - "src/WhiteDiamondPanel.tsx"
