@@ -75,13 +75,16 @@ jobs:
           else
             echo "OGE95_DRAIN_BOOTSTRAP_FROM_KNOWN_GOOD_CI_SHA"
           fi
-      - name: Unit-test backlog ordering, failed receipts and safety locks
-        run: node --test tests/oge95-commit-drain.test.mjs
+      - name: Unit-test backlog ordering, SHA and historical-Fail classification
+        run: node --test tests/oge95-commit-drain.test.mjs tests/oge95-drain-finalize.test.mjs
       - name: Process EVERY unseen source commit without manual re-trigger
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p oge95-commit-drain-batches
+          if test -s oge95-prior-drain-receipt.json; then
+            cp oge95-prior-drain-receipt.json oge95-inherited-checkpoint.json
+          fi
           N=0
           FAILED=0
           while true; do
@@ -110,6 +113,18 @@ jobs:
             fi
           done
           echo "$FAILED" > oge95-commit-drain-failed-count.txt
+          if test -s oge95-inherited-checkpoint.json; then
+            node scripts/oge95-drain-finalize.mjs \
+              --head="$GITHUB_SHA" \
+              --dir=oge95-commit-drain-batches \
+              --prior=oge95-inherited-checkpoint.json \
+              --output=oge95-commit-drain-final.json
+          else
+            node scripts/oge95-drain-finalize.mjs \
+              --head="$GITHUB_SHA" \
+              --dir=oge95-commit-drain-batches \
+              --output=oge95-commit-drain-final.json
+          fi
       - name: Upload all batch receipts with resume checkpoint
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -120,20 +135,37 @@ jobs:
             oge95-commit-drain-receipt.json
             oge95-commit-drain-batches/
             oge95-commit-drain-failed-count.txt
+            oge95-commit-drain-final.json
           retention-days: 30
           if-no-files-found: warn
-      - name: Surface source test failures without pretending they were repaired
+      - name: Verify current HEAD, retain historical FAILs without claiming they passed
         if: ${{ always() }}
         shell: bash
         run: |
           set -euo pipefail
-          if ! test -s oge95-commit-drain-failed-count.txt; then
-            echo "OGE95_DRAIN_NO_FINAL_RECEIPT"
+          if ! test -s oge95-commit-drain-final.json; then
+            echo "OGE95_DRAIN_FINAL_EVIDENCE_MISSING"
             exit 1
           fi
-          FAILED="$(cat oge95-commit-drain-failed-count.txt)"
-          if test "$FAILED" -gt 0; then
-            echo "OGE95_DRAIN_ALL_COMMITS_PROCESSED_BUT_$FAILED_FAILED_CHECKS"
-            exit 1
-          fi
-          echo "OGE95_DRAIN_ALL_AUDITED_COMMITS_PASS"
+          node --input-type=module <<'NODE'
+          import {readFileSync} from "node:fs";
+          const r=JSON.parse(readFileSync("oge95-commit-drain-final.json","utf8"));
+          if(r.schema!=="OGE95_COMMIT_DRAIN_FINAL_V1" ||
+             r.repository!=="Ogenicchocolate21debug/Build-Platform" ||
+             r.branch!=="phase-vi-provider-incentive-metering" ||
+             r.head_sha!==process.env.GITHUB_SHA ||
+             r.last_processed_sha!==process.env.GITHUB_SHA ||
+             r.all_commits_accounted_for!==true ||
+             r.historical_results_rewritten!==false ||
+             r.authority_to_commit!==false ||
+             r.authority_to_deploy!==false)
+            throw Error("CURRENT_HEAD_ATTESTATION_MISSING_OR_TAMPERED");
+          console.log("OGE95_HISTORICAL_FAIL_RECEIPTS_RETAINED="+r.historical_failed_shas.length);
+          console.log("OGE95_NEWLY_AUDITED="+r.newly_audited_count);
+          if(!r.current_head_healthy){
+            console.error("OGE95_CURRENT_HEAD_NOT_GREEN "+r.state);
+            process.exitCode=1;
+          }else{
+            console.log("OGE95_CURRENT_HEAD_PASS_HISTORICAL_FAILS_NOT_REWRITTEN");
+          }
+          NODE
