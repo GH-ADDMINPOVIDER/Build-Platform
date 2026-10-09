@@ -37,9 +37,33 @@ The **display names above are immutable owner names**; the geological identity b
 
 The defined stone **capabilities are names** for existing architecture and future build contracts, not claims that unproven functionality works. The only authoritative rules configuration continues to be `config/oge95-rules-center.json`; Rule Stone never becomes a second approval checkpoint, and Yellow retains enforcement authority. D1/Green remains canonical memory; Stone Runner GitHub artifacts are reconstructable evidence.
 
+### Owner-locked presentation standard — gemstone cards (2026-10-09)
+
+**Owner display preference, mandatory when presenting the Stone/Diamond roster in chat, WAVE documents, slides, and any later user-facing overview:** Retain the compact visual-card layout approved on 2026-10-09. This is a presentation/species lock only; it is NOT a new Stone, feature request, renderer implementation proof, runtime change or authority change.
+
+**Presentation contract**
+1. Show **seven numbered rows/cards in canonical order 01→07**. Each has a **visible representative gemstone image on the left**, then on the right: **bold 2-digit number + exact uppercase official stone/diamond name**; a **small color + actual gem species** line; a **bold concise English capability heading**; and **one brief Thai sentence describing the real responsibility**. Separate rows with thin neutral dividers.
+2. Show **WHITE DIAMOND — ATHENA** **after** the seven, in a distinctly separate **outside-the-seven command section**, with the SAME card visual pattern. Explain **7 numbered stones/diamonds + 1 unnumbered command diamond = 8 total architectural components**; never call ATHENA Stone 08.
+3. Imagery: polished or faceted single real-looking gemstone centered on a **deep black, clean backdrop**, crisp premium lighting, gemstone's canonical distinct color and stone type, visually uniform crop/aspect ratio and similarly sized thumbnails. **No cartoon gems, pictograms, logos, text overlays, mixed stone varieties, recoloring other species or swapping stone identities.** Responsive mobile presentation can stack on narrow screens but preserve the image/name/species/capability hierarchy.
+4. Keep descriptions short and legible (not one giant architecture table or text-only wall) unless the owner explicitly asks for detailed architecture. Do not substitute colored badges for gemstone photos. Preserve source names even if engineering function names differ.
+5. These are **visual appearance/species references**, **not pinned binary image files**. Images previously shown by dynamic image search are examples, and exact identical pixels are not guaranteed across sessions. Until curated, stored, versioned assets are explicitly available, choose faithful representative images with the art-direction descriptions below; never claim an illustrative image is a permanent asset.
+
+| Order | Exact visible title | Display color / gemstone | Image visual reference | Capability line | Short explanation to show |
+|---|---|---|---|---|---|
+| 01 | **GREEN STONE** | เขียว / Emerald | Rich emerald green, polished or cut beryl gemstone, dark background | **1LSS · One-Line Session** | ความจำหลัก D1 เชื่อมบริบท บทสนทนา และสถานะงานข้าม Session |
+| 02 | **YELLOW STONE** | เหลือง / Citrine | Brilliant golden-yellow citrine quartz gemstone, dark background | **Tools · Capability Execution** | รวม Tools, APIs, SDK, MCP ควบคุมสิทธิ์และอนุมัติการทำงาน |
+| 03 | **BLUE DIAMOND** | ฟ้า / Blue Diamond | Vivid faceted brilliant blue diamond crystal, dark background | **Agents · Identity & Readiness** | จัดทะเบียน AI Agent ความสามารถ ตัวตน และความพร้อมของ Provider |
+| 04 | **VIOLET STONE** | ม่วง / Amethyst | Purple faceted amethyst quartz crystal, dark background | **Multi-Agent Solution** | รวมทีม Agent แบ่งงาน รันขนาน ส่งต่องาน และรวมผลลัพธ์ |
+| 05 | **RUBY STONE** | แดง / Ruby | Deep red polished/faceted natural ruby corundum, dark background | **Verification** | ตรวจความถูกต้องและหลักฐาน ก่อนยืนยันผลเข้า Green |
+| 06 | **STONE RUNNER** | ดำ / Obsidian | Glossy black polished volcanic-glass obsidian, dark background; NOT orange | **Ephemeral Runtime Execution** | สร้างสภาพแวดล้อมรันชั่วคราว Build, Test, Workerd, Local D1 และงานโค้ดที่ได้รับอนุญาต |
+| 07 | **RULE STONE** | เทา / Gray Agate | Light-to-medium slate-gray polished banded agate, obvious layered chalcedony bands, dark background | **Central Rule Taxonomy** | รวมกฎไว้จุดเดียว ลดกฎซ้ำ จัด Scope โดยไม่สร้างด่านอนุมัติซ้ำกับ Yellow |
+| COMMAND (not #08) | **WHITE DIAMOND — ATHENA** | ขาวใส / Colorless Diamond | Clear brilliant colorless diamond, sparkling white facets, black background | **Brain · Intent & Command** | สมองหลักคิด วิเคราะห์ วางแผน และประสานงานภายใต้สิทธิ์เดิม |
+
+**Rule Stone is always visible as #07; never omit it.** Stone species, names and capability mapping above must stay in sync with the locked identity table earlier in this file. Gemini/DeepSeek/Codex/Agent readiness and Stone implementation status must still be reported only from verified evidence, never from artwork.
+
 ### Product/issue lock
 
-- **Active engineering umbrella:** [OGE-95](https://linear.app/ogenic-sio/issue/OGE-95) **Stone Runner (Product #2)** only, staging branch. The completed Card Protocol CCS (Product #1) remains preserved.
+- **Active Stone Runner engineering umbrella:** [OGE-95](https://linear.app/ogenic-sio/issue/OGE-95) **Stone Runner (Product #2)** on staging branch. Owner-authorized acceptance/closeout children **OGE-96..100** verify the existing scope; **OGE-100** ends Stone Phase. **OGE-101** reserves SAME MIND Part 1 after actual proof-based closure. No new stones or features are created by this numbering. Card Protocol CCS (Product #1) remains preserved.
 - Closed/superseded Linear issues are historical evidence, **not proof their unimplemented acceptance criteria are done**. Missing functionality is tracked within OGE-95; parked non-Runner products are archived, not implemented during this focus.
 - Do not rename existing API identifiers or artifacts without a tested versioned compatibility migration.
 - The full single-issue backlog/evidence registry is `docs/OGE95_ONLY_ACTIVE_WORK_MIGRATION.md`.
@@ -59,7 +83,7 @@ The defined stone **capabilities are names** for existing architecture and futur
 ### Compatibility rules
 
 1. Do not mass-rename existing Worker routes, `white-diamond-registry.ts`, `blue-diamond-registry.ts`, `violet-stone-api.ts`, or the historical CI artifact/schema values: callers already rely on them.
-2. `OGE-95` remains the **same** single active bottleneck issue; the rules-center file remains `config/oge95-rules-center.json`. Do not create a second issue or independent policy authority for Gray Stone.
+2. `OGE-95` remains the Stone Runner **umbrella**; OGE-96..100 are owner-approved closeout evidence tasks, not new Stones or competing control planes. The rules-center file remains `config/oge95-rules-center.json`. Do not create an independent policy authority for Gray Stone.
 3. Exclude billing-blocked Grok/xAI and Meta Model from active agent selection; retain their registry records. Use verified working specialists rather than assuming a provider is ready.
 4. This commit codifies *names and boundaries only*. UI display changes, SDK/router wiring, autonomous coding and stage-to-stage runtime proof need their own commits and verified CI before they are called completed.
 5. Protect `main`, production, Candy, credentials, and remote D1 schema. Work only on `phase-vi-provider-incentive-metering`.
