@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { buildWhiteDiamondRegistry, type RegistryEnv, type WhiteDiamondAgent } from "./white-diamond-registry";
+import { buildBlueDiamondRegistry } from "./blue-diamond-registry";
+import { planVioletDistribution, type DistributionInput, type ActiveClaim } from "./violet-distribution-planner";
 
 type D1Result<T = Record<string, unknown>> = { results?: T[]; success?: boolean };
 type D1Prepared = {
@@ -472,6 +474,52 @@ export function createVioletStoneApi() {
       ...live,
       policy: "AGENTS_INTERACTIVE_EXECUTORS_SEPARATE_YELLOW_AUTHORITY_ONLY",
     }, 200, { "Cache-Control": "no-store" });
+  });
+
+  // Violet owns team selection. Blue owns identities; Yellow alone can authorize execution.
+  // Planning is read-only against existing canonical D1 task occupancy.
+  api.get("/api/violet/distribution/roster", (c) => {
+    const actors = buildBlueDiamondRegistry(c.env);
+    return c.json({
+      ok: true,
+      controller: "VIOLET_STONE_04",
+      source_registry: "BLUE_DIAMOND_03",
+      agents: actors.filter((actor) => actor.agent_eligible).map((actor) => ({
+        agent_id: actor.actor_id,
+        label: actor.label,
+        provider: actor.provider,
+        actor_class: actor.actor_class,
+        maturity: actor.maturity,
+        readiness: actor.state,
+        capabilities: actor.capabilities,
+        planning_eligible: actor.actor_class === "execution_agent" &&
+          actor.maturity === "PROVEN" && Boolean(actor.auth_ref) &&
+          (actor.state === "LIVE" || actor.state === "DEGRADED"),
+      })),
+      execution_authority: "YELLOW_STONE_ONLY",
+      planning_only: true,
+    }, 200, { "Cache-Control": "no-store" });
+  });
+
+  api.post("/api/violet/distribution/plan", async (c) => {
+    const request = await c.req.json<DistributionInput>().catch(() => ({} as DistributionInput));
+    const canonical = await canonicalSnapshot(c.env.DB);
+    if (!canonical.available) {
+      return c.json({ok:false,code:"CANONICAL_1LSS_REQUIRED",canonical},503);
+    }
+    let claims: ActiveClaim[] = [];
+    try {
+      if (!c.env.DB) throw new Error("D1_UNAVAILABLE");
+      const rows = await c.env.DB.prepare(
+        "SELECT claimed_by, status FROM agent_tasks WHERE status IN ('QUEUED','CLAIMED','RUNNING','VERIFYING') LIMIT 501",
+      ).all<ActiveClaim>();
+      claims = rows.results ?? [];
+      if (claims.length >= 501) return c.json({ok:false,code:"ACTIVE_TASK_SCAN_LIMIT"},503);
+    } catch {
+      return c.json({ok:false,code:"ACTIVE_TASK_READ_FAILED"},503);
+    }
+    const result = planVioletDistribution(request, buildBlueDiamondRegistry(c.env), claims, true);
+    return c.json({...result, canonical}, result.http_status, { "Cache-Control": "no-store" });
   });
 
   api.post("/api/violet/plan", async (c) => {
