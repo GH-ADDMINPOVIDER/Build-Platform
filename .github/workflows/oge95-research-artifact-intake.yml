@@ -1,9 +1,6 @@
 name: OGE-95 Import DeepSeek Dual-Source Research Evidence (No API Call)
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths: [".github/workflows/oge95-research-artifact-intake.yml"]
   workflow_dispatch:
 
 permissions:

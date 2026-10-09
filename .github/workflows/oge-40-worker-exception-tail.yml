@@ -1,10 +1,6 @@
 name: OGE-40 Worker Exception Tail
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/oge-40-worker-exception-tail.yml"
   workflow_dispatch:
 
 permissions:

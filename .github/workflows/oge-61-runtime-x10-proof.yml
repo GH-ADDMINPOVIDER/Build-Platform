@@ -1,13 +1,6 @@
 name: OGE-61 Runtime x10 Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "scripts/runtime-x10-clone.mjs"
-      - "scripts/reduce-runtime-x10.mjs"
-      - "tests/oge-61-runtime-x10.test.mjs"
-      - ".github/workflows/oge-61-runtime-x10-proof.yml"
   workflow_dispatch:
 
 permissions:

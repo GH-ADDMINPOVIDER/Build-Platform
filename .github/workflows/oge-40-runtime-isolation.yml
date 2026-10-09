@@ -1,10 +1,6 @@
 name: OGE-40 Runtime Isolation
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/oge-40-runtime-isolation.yml"
   workflow_dispatch:
 
 permissions:

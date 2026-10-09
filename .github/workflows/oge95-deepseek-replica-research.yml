@@ -2,9 +2,6 @@ name: OGE-95 DeepSeek Replica Architecture Research (One-Shot)
 # One authorized bounded research job triggered by this workflow source change.
 # Other project commits will NOT trigger another paid call.
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths: [".github/workflows/oge95-deepseek-replica-research.yml"]
   workflow_dispatch:
     inputs:
       confirm_single_paid_call:

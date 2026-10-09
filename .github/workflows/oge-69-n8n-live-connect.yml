@@ -1,19 +1,6 @@
 name: OGE-69/70 n8n Live Connect + Execution Fabric Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/oge-69-n8n-live-connect.yml"
-      - "deploy/n8n-selfhost/workflows/**"
-      - "config/n8n-legacy-migration.json"
-      - "config/n8n-oge-placement.json"
-      - "config/providers.json"
-      - "database/migrations/0015_n8n_execution_fabric_reconcile.sql"
-      - "tests/oge-70-n8n-execution-fabric.test.mjs"
-      - "worker/n8n-migration-api.ts"
-      - "src/MaopLab.tsx"
-      - "config/staging-runtime-bindings.json"
   workflow_dispatch:
 
 permissions:

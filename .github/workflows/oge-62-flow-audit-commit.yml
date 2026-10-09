@@ -1,13 +1,6 @@
 name: OGE-62 Flow Audit Commit Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "scripts/flow-runtime-clone.mjs"
-      - "scripts/audit-flow-runtime-results.mjs"
-      - "tests/oge-62-flow-audit-commit.test.mjs"
-      - ".github/workflows/oge-62-flow-audit-commit.yml"
   workflow_dispatch:
 
 permissions:
