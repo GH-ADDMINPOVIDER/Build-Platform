@@ -55,9 +55,9 @@ try {
   check("content_and_surface_persisted", msgs[0].source_surface === "chatgpt-app" &&
     msgs[1].source_surface === "chatgpt-app" &&
     msgs[2].source_surface === "ogenic-web" &&
-    msgs[0].content === "synthetic OGE95 local cross-surface input " + run &&
-    msgs[1].content === "synthetic OGE95 local reply " + run &&
-    msgs[2].content === "synthetic OGE95 web turn " + run, "MESSAGE_MISMATCH");
+    msgs[0].text === "synthetic OGE95 local cross-surface input " + run &&
+    msgs[1].text === "synthetic OGE95 local reply " + run &&
+    msgs[2].text === "synthetic OGE95 web turn " + run, "MESSAGE_MISMATCH");
   check("cursor_persisted", msgs.map(m => m.sequence_no).join(",") ===
     [start + 1, start + 2, start + 3].join(",") && b.cursor === after, b.cursor);
   const id = "oge95-stone-runner-fixture-" + run;
