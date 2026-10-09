@@ -8,7 +8,7 @@ const basics = () => ({
   branch: "phase-vi-provider-incentive-metering", runId: "123",
   replica: {source_sha:sha,local_db_only:true,provider_inference_calls:0,real_cloudflare_deploy:false,
     status:"LOCAL_PROOF_PASS",local_checks_passed:12,local_checks_total:12,
-    staging_comparison:{status:"SURFACE_TARGET_MET",tests_matched:10,tests_total:10,
+    staging_comparison:{status:"SURFACE_TARGET_MET",tests_matched:10,tests_total:10,surface_match_ratio:1,reached_target:true,
       cases:Array.from({length:10},(_,i)=>({test:"case"+i,match:true}))}},
   oneLine:{source_sha:sha,remote_d1_access:false,provider_calls:0,
     status:"LOCAL_1LSS_PASS",checks_passed:13,checks_total:13},
@@ -48,4 +48,26 @@ test("OGE-99 cannot treat incomplete public case list as ten-route proof",()=>{
   v.replica.staging_comparison.cases=v.replica.staging_comparison.cases.slice(0,9);
   const out=buildParityMatrix(v);
   assert.equal(out.checks.find(x=>x.id==="ten_public_staging_surface_contracts").status,"FAIL");
+});
+
+test("OGE-99 reports 9/10 as threshold-met partial parity without inventing 10/10",()=>{
+  const v=basics();
+  v.replica.staging_comparison.tests_matched=9;
+  v.replica.staging_comparison.surface_match_ratio=0.9;
+  v.replica.staging_comparison.cases[9].match=false;
+  const out=buildParityMatrix(v);
+  assert.equal(out.checks.find(x=>x.id==="ten_public_staging_surface_contracts").status,"PASS");
+  assert.match(out.checks.find(x=>x.id==="ten_public_staging_surface_contracts").observation,/9\\/10/);
+  assert.equal(out.full_operational_1_to_1_certified,false);
+  assert.equal(out.ready_to_close_stone_phase,false);
+});
+test("OGE-99 rejects 8/10 below threshold rather than treating it as success",()=>{
+  const v=basics();
+  v.replica.staging_comparison.tests_matched=8;
+  v.replica.staging_comparison.surface_match_ratio=0.8;
+  v.replica.staging_comparison.reached_target=false;
+  v.replica.staging_comparison.cases[8].match=false;
+  v.replica.staging_comparison.cases[9].match=false;
+  const out=buildParityMatrix(v);
+  assert.equal(out.result,"LOCAL_PARITY_EVIDENCE_FAILED");
 });
