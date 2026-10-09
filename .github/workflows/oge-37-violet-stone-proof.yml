@@ -9,6 +9,8 @@ on:
       - "worker/violet-distribution-planner.ts"
       - "worker/blue-diamond-registry.ts"
       - "tests/violet-blue-distribution.test.mjs"
+      - "tests/violet-claim-contract.test.mjs"
+      - "src/VioletDistributionPanel.tsx"
       - "worker/entry-yellow-stone.ts"
       - "tests/violet-stone-contract.test.mjs"
       - "src/WhiteDiamondPanel.tsx"
@@ -35,7 +37,7 @@ jobs:
         run: npm install --package-lock-only && npm ci
 
       - name: Violet contract
-        run: node --test tests/violet-stone-contract.test.mjs tests/violet-blue-distribution.test.mjs
+        run: node --test tests/violet-stone-contract.test.mjs tests/violet-blue-distribution.test.mjs tests/violet-claim-contract.test.mjs
 
       - name: Typecheck
         run: npm run typecheck
