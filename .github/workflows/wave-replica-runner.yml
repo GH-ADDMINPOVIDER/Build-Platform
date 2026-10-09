@@ -82,6 +82,7 @@ jobs:
           fi
           node scripts/replica-runner/verify-1lss.mjs
           node scripts/replica-runner/compare.mjs
+          node scripts/replica-runner/verify-ccs.mjs
           # OGE-96: force a genuine process teardown and boot from the SAME persistent local D1.
           kill -TERM -- "-$PID"
           wait "$PID" 2>/dev/null || true
@@ -147,6 +148,7 @@ jobs:
             replica-1lss-evidence.json
             replica-1lss-restart-evidence.json
             oge99-declared-parity-matrix.json
+            oge97-local-ccs-evidence.json
           retention-days: 14
           if-no-files-found: warn
       - name: Publish honest parity measurement
@@ -170,6 +172,10 @@ jobs:
             if test -f replica-1lss-restart-evidence.json; then
               echo '### Local D1 persistence after actual workerd restart'
               jq '{status,checks_passed,checks_total,expected_sequence,remote_d1_access}' replica-1lss-restart-evidence.json
+            fi
+            if test -f oge97-local-ccs-evidence.json; then
+              echo '### OGE-97 — Local CCS policy/transition HTTP proof'
+              jq '{status,checks_passed,checks_total,actual_lease_persisted,real_tool_invoked} ' oge97-local-ccs-evidence.json
             fi
             if test -f oge99-declared-parity-matrix.json; then
               echo '### OGE-99 — Declared Parity Matrix (honest partial proof)'
