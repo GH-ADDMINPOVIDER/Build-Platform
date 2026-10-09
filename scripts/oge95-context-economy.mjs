@@ -17,6 +17,21 @@ export function pack(source){
  return {schema:"OGE95_TOOL_LOG_DEDUPE_V1",source_sha256:digest(source),original_chars:source.length,
    preview_chars:preview.length,preview,items,context:"EPHEMERAL_TOOL_LOG_ONLY",canonical_state_mutated:false};
 }
+
+/** A safe optional preview for an existing agent handoff; full evidence stays local. */
+export function previewForAgent(source,options={}){
+ const budget=options.maxChars??4000;
+ if(!Number.isInteger(budget)||budget<1||budget>400000)throw Error("INVALID_PREVIEW_BUDGET");
+ const packet=pack(source);
+ if(unpack(packet)!==source)throw Error("RESTORE_VERIFICATION_FAILED");
+ const potentiallySensitive=/(?:authorization|password|api[_-]?key|secret|cookie)\s*[:=]\s*\S+/i.test(source);
+ const status=potentiallySensitive?"REDACTION_REQUIRED":packet.preview_chars>budget?"REFERENCE_REQUIRED":"PREVIEW_READY";
+ return {schema:"OGE95_AGENT_LOG_PREVIEW_V1",status,
+   source_sha256:packet.source_sha256,original_chars:packet.original_chars,
+   preview_chars:packet.preview_chars,verified_reversible:true,
+   measured_tokens:false,provider_calls:0,
+   preview:status==="PREVIEW_READY"?packet.preview:null};
+}
 export function unpack(record){
  if(record?.schema!=="OGE95_TOOL_LOG_DEDUPE_V1")throw Error("INVALID_RECORD");
  const lines=record.items.flatMap(x=>{
