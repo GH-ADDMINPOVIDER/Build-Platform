@@ -11,6 +11,7 @@ import { createWhiteDiamondApi } from "./white-diamond-api";
 import { createBlueDiamondApi } from "./blue-diamond-api";
 import { createVioletStoneApi } from "./violet-stone-api";
 import { createRubyStoneApi } from "./ruby-stone-api";
+import { createRuleStoneApi } from "./rule-stone-api";
 import { createKnowledgeRefineryApi } from "./knowledge-refinery-api";
 import { createPageIndexApi } from "./pageindex-api";
 import { createMoliBrowserApi } from "./moli-browser-api";
@@ -39,6 +40,7 @@ const whiteDiamondApi = createWhiteDiamondApi();
 const blueDiamondApi = createBlueDiamondApi();
 const violetStoneApi = createVioletStoneApi();
 const rubyStoneApi = createRubyStoneApi();
+const ruleStoneApi = createRuleStoneApi();
 const knowledgeRefineryApi = createKnowledgeRefineryApi();
 const pageIndexApi = createPageIndexApi();
 const moliBrowserApi = createMoliBrowserApi();
@@ -236,6 +238,9 @@ export default {
     }
     if (pathname.startsWith("/api/violet/")) {
       return violetStoneApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/rule-stone/")) {
+      return ruleStoneApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/ruby/")) {
       return rubyStoneApi.fetch(request, env as never, ctx as never);
