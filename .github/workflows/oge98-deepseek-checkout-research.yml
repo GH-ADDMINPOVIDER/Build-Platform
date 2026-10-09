@@ -1,0 +1,67 @@
+name: OGE-98 DeepSeek Wrong Checkout Research (Owner One-Shot)
+# Exactly one triggered research call for this source addition; other pushes do not rerun this metered job.
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: [".github/workflows/oge98-deepseek-checkout-research.yml"]
+  workflow_dispatch:
+    inputs:
+      confirm_single_paid_call:
+        description: "Explicitly approve one metered DeepSeek READ call (no retry)"
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: oge98-deepseek-one-shot
+  cancel-in-progress: false
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+jobs:
+  read-only-research:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.confirm_single_paid_call == true) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout exact owner-approved staging commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Read existing server-side ops authorization from Infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: Make one bounded DeepSeek READ request through existing Yellow
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/oge98-deepseek-checkout-diagnostic.mjs
+      - name: Upload sanitized research; never print answer or secrets into logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge98-deepseek-checkout-${{ github.run_id }}
+          path: oge98-deepseek-checkout-diagnostic.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Print one-shot status only
+        if: always()
+        shell: bash
+        run: |
+          if test -f oge98-deepseek-checkout-diagnostic.json; then
+            jq '{status,http_status,calls_attempted,retries,error_code,source_sha,model}' oge98-deepseek-checkout-diagnostic.json
+          else
+            echo 'BLOCKED_NO_RESEARCH_RECEIPT'
+          fi
