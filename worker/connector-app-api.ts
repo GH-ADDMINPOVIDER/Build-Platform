@@ -596,6 +596,12 @@ export function createConnectorAppApi() {
         phase: c.env.OGENIC_PHASE,
         version: c.env.CF_VERSION_METADATA ?? null,
       });
+      if (d1Context.state !== "LIVE") {
+        return c.json({
+          ok: false, code: "CANONICAL_CONTEXT_UNAVAILABLE",
+          state: d1Context.state, message: "Verified D1 context unavailable; no new provider Agent session created.",
+        }, 503);
+      }
       d1CanonicalState = d1Context.state;
 
       const agentResponse = await fetch(`${OPENAI_API_BASE}/agents/sessions`, {

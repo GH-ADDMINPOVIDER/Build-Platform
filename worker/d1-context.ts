@@ -7,7 +7,7 @@ type D1Prepared = {
 export type D1ContextDb = { prepare: (query: string) => D1Prepared };
 
 export type CanonicalD1Context = {
-  state: "LIVE" | "UNBOUND";
+  state: "LIVE" | "UNBOUND" | "UNAVAILABLE";
   text: string;
   counts: Record<string, number>;
 };
@@ -42,7 +42,7 @@ function section(label: string, rows: unknown[]) {
 export async function readCanonicalD1Context(db?: D1ContextDb, runtime: RuntimeEvidence = {}): Promise<CanonicalD1Context> {
   if (!db) return { state: "UNBOUND", text: "D1 canonical context is not bound.", counts: {} };
 
-  const [meta, toolkits, planes, policies, bindings, sources, knowledge] = await Promise.all([
+  const [meta, toolkits, planes, policies, bindings, sources, knowledge, recentTurns, sessionIndex] = await Promise.all([
     safeRows(db, "SELECT key, value FROM system_meta ORDER BY key LIMIT 60"),
     safeRows(db, "SELECT id, name, phase, status, entrypoint, control_plane, runtime_provider, database_provider, version, updated_at FROM toolkits ORDER BY updated_at DESC LIMIT 20"),
     safeRows(db, "SELECT id, ordinal, name, description, status, source_id, updated_at FROM system_planes ORDER BY ordinal LIMIT 40"),
@@ -50,6 +50,8 @@ export async function readCanonicalD1Context(db?: D1ContextDb, runtime: RuntimeE
     safeRows(db, "SELECT provider_id, environment, binding_type, status, last_checked_at FROM provider_bindings ORDER BY provider_id, environment LIMIT 100"),
     safeRows(db, "SELECT id, provider_id, title, source_kind, status, precedence, migration_status, source_last_edited_at, updated_at FROM canonical_sources ORDER BY precedence, id LIMIT 80"),
     safeRows(db, "SELECT id, project_id, source_id, title, substr(body, 1, 2200) AS body, format, canonical, source_last_edited_at, updated_at FROM knowledge_documents ORDER BY canonical DESC, updated_at DESC LIMIT 10"),
+    safeRows(db, "SELECT sequence_no, source_surface, model, created_at FROM chat_messages WHERE conversation_id = 'owner-main' ORDER BY sequence_no DESC LIMIT 12"),
+    safeRows(db, "SELECT source_surface, COUNT(*) AS ref_count, MAX(last_sequence) AS last_sequence FROM chat_session_refs WHERE conversation_id = 'owner-main' GROUP BY source_surface ORDER BY source_surface LIMIT 30"),
   ]);
 
   const runtimeEvidence = [{
@@ -64,8 +66,23 @@ export async function readCanonicalD1Context(db?: D1ContextDb, runtime: RuntimeE
     worker_version_timestamp: clip(runtime.version?.timestamp, 120) || null,
   }];
 
+
+  const canonicalRowCount = meta.length + toolkits.length + planes.length + policies.length + bindings.length + sources.length + knowledge.length + recentTurns.length + sessionIndex.length;
+  if (canonicalRowCount === 0) {
+    return { state: "UNAVAILABLE", text: "D1 binding exists, but no canonical data or session pointers were retrieved; do not claim prior-context continuity.", counts: {} };
+  }
+
   const text = [
     section("LIVE_RUNTIME_EVIDENCE", runtimeEvidence),
+    section("HISTORICAL_CONTEXT_INDEX_NOT_FULL_MEMORY", [{
+      conversation_id: "owner-main",
+      session_line: "1LSS_OWNER_MAIN",
+      recent_turn_pointers: recentTurns,
+      session_surface_counts: sessionIndex,
+      message_text_loaded: false,
+      verification_state: "SOURCE_POINTERS_ONLY",
+      next_action: "OWNER_AUTHENTICATED_CONTEXT_RECALL_AND_RUBY_VERIFICATION_REQUIRED",
+    }]),
     section("SYSTEM_META", meta),
     section("TOOLKITS", toolkits),
     section("SYSTEM_PLANES", planes),
@@ -86,6 +103,8 @@ export async function readCanonicalD1Context(db?: D1ContextDb, runtime: RuntimeE
       provider_bindings: bindings.length,
       canonical_sources: sources.length,
       knowledge_documents: knowledge.length,
+      recent_turn_pointers: recentTurns.length,
+      session_reference_surfaces: sessionIndex.length,
     },
   };
 }

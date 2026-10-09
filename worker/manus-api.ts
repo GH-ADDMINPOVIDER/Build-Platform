@@ -47,6 +47,9 @@ export function createManusApi() {
     const prompt = clean(body.prompt, 13_000);
     if (!prompt) return c.json({ ok: false, code: "INVALID_REQUEST", message: "prompt is required" }, 400);
     const d1Context = await readCanonicalD1Context(c.env.DB);
+    if (d1Context.state !== "LIVE") {
+      return c.json({ ok: false, code: "CANONICAL_CONTEXT_UNAVAILABLE", state: d1Context.state }, 503);
+    }
     const canonicalContext = clean(d1Context.text, 4_000);
     const delegatedPrompt = `OGENIC SHARED DIRECTION — load this before executing the owner task. Preserve 1LSS continuity and do not create a separate source of truth.\n\nCANONICAL D1 CONTEXT:\n${canonicalContext}\n\nOWNER TASK:\n${prompt}`;
 
