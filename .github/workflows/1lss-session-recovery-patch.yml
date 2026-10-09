@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   patch:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 15
     steps:
       - name: Checkout staging branch
