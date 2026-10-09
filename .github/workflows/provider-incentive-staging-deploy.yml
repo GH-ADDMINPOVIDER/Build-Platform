@@ -44,6 +44,22 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Reject superseded staging SHA before credentials or deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "phase-vi-provider-incentive-metering"
+          REMOTE_HEAD="$(git ls-remote --exit-code origin refs/heads/phase-vi-provider-incentive-metering | awk '{print $1}')"
+          if ! [[ "$REMOTE_HEAD" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Unable to verify authoritative staging HEAD; refusing deployment"
+            exit 1
+          fi
+          if test "$GITHUB_SHA" != "$REMOTE_HEAD"; then
+            echo "::error::Stale staging source $GITHUB_SHA (current HEAD $REMOTE_HEAD); refusing superseded deployment"
+            exit 1
+          fi
+          echo "Verified exact staging source SHA $GITHUB_SHA"
+
       - name: Detect staging change scope
         id: scope
         shell: bash
