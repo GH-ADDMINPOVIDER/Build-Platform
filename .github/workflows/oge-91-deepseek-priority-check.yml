@@ -1,10 +1,6 @@
 name: OGE-91 DeepSeek Priority Validation (No API Calls)
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/oge-91-deepseek-priority-check.yml"
   workflow_dispatch:
 
 permissions:

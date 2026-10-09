@@ -1,15 +1,6 @@
 name: OGE-69 n8n Self-Host Migration Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "config/n8n-legacy-migration.json"
-      - "config/staging-runtime-bindings.json"
-      - "worker/n8n-migration-api.ts"
-      - "src/MaopLab.tsx"
-      - "tests/oge-69-n8n-selfhost-migration.test.mjs"
-      - ".github/workflows/oge-69-n8n-selfhost-migration-proof.yml"
   workflow_dispatch:
 
 permissions:

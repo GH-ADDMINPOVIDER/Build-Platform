@@ -1,16 +1,6 @@
 name: OGE-39 Knowledge Refinery Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "worker/knowledge-refinery.ts"
-      - "worker/knowledge-refinery-api.ts"
-      - "worker/entry-yellow-stone.ts"
-      - "infra/knowledge-sandbox/Dockerfile"
-      - "scripts/knowledge-sandbox-smoke.mjs"
-      - "tests/knowledge-refinery-contract.test.mjs"
-      - ".github/workflows/oge-39-knowledge-refinery-proof.yml"
   workflow_dispatch:
 
 permissions:

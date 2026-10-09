@@ -1,19 +1,6 @@
 name: OGE-37 Violet Stone Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/oge-37-violet-stone-proof.yml"
-      - "worker/violet-stone-api.ts"
-      - "worker/violet-distribution-planner.ts"
-      - "worker/blue-diamond-registry.ts"
-      - "tests/violet-blue-distribution.test.mjs"
-      - "tests/violet-claim-contract.test.mjs"
-      - "src/VioletDistributionPanel.tsx"
-      - "worker/entry-yellow-stone.ts"
-      - "tests/violet-stone-contract.test.mjs"
-      - "src/WhiteDiamondPanel.tsx"
   workflow_dispatch:
 
 permissions:

@@ -1,17 +1,6 @@
 name: OGE-36 ATHENA NL Command Planner Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/oge-36-athena-nl-command-planner-proof.yml"
-      - "scripts/verify-oge-36-runtime.mjs"
-      - "tests/athena-command-planner-contract.test.mjs"
-      - "worker/athena-command-planner.ts"
-      - "worker/entry-yellow-stone.ts"
-      - "worker/capability-execution-api.ts"
-      - "worker/athena-chat-api.ts"
-      - "src/WaveNext.tsx"
   workflow_dispatch:
 
 permissions:

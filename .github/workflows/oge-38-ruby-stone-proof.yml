@@ -1,15 +1,6 @@
 name: OGE-38 Ruby Stone Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/oge-38-ruby-stone-proof.yml"
-      - "worker/ruby-stone-api.ts"
-      - "worker/violet-stone-api.ts"
-      - "worker/entry-yellow-stone.ts"
-      - "tests/ruby-stone-contract.test.mjs"
-      - "tests/violet-stone-contract.test.mjs"
   workflow_dispatch:
 
 permissions:
