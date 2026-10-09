@@ -10,6 +10,8 @@ on:
       - "src/StoneRulePanel.tsx"
       - "src/stone-rule-panel.css"
       - "src/WaveNext.tsx"
+      - "src/VioletDistributionPanel.tsx"
+      - "tests/violet-claim-contract.test.mjs"
       - "src/main.tsx"
       - "tests/rule-stone-panel.test.mjs"
       - ".github/workflows/rule-stone-panel-proof.yml"
@@ -28,7 +30,7 @@ jobs:
       - name: Build ephemeral lockfile and install
         run: npm install --package-lock-only --ignore-scripts && npm ci
       - name: Stone rule invariants and Violet distribution
-        run: node --test tests/rule-stone-panel.test.mjs tests/violet-blue-distribution.test.mjs
+        run: node --test tests/rule-stone-panel.test.mjs tests/violet-blue-distribution.test.mjs tests/violet-claim-contract.test.mjs
       - name: Typecheck
         run: npm run typecheck
       - name: Build
