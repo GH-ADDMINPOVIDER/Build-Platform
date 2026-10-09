@@ -1,16 +1,6 @@
 name: OGE-36 Staging Cloud Fallback
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/oge-36-staging-cloud-fallback.yml"
-      - "config/staging-runtime-bindings.json"
-      - "tests/staging-provider-secret-coverage.test.mjs"
-      - "worker/blue-diamond-registry.ts"
-      - "worker/white-diamond-registry.ts"
-      - "worker/athena-command-planner.ts"
-      - "worker/entry-yellow-stone.ts"
   workflow_dispatch:
 
 permissions:

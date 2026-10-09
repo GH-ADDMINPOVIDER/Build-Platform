@@ -1,10 +1,6 @@
 name: Meta Staging Token Repair
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/meta-token-repair-staging.yml"
   workflow_dispatch:
 
 permissions:

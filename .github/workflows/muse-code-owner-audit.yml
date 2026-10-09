@@ -2,10 +2,6 @@ name: Muse Code Owner Audit
 # Staging-only Muse execution lane. Account login is the only owner gate.
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/muse-code-owner-audit.yml"
   workflow_dispatch:
 
 permissions:

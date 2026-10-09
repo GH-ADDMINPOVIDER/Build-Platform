@@ -1,11 +1,6 @@
 name: Meta Inline UI Patch
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/meta-inline-ui-patch.yml"
-      - "scripts/patch-meta-inline-ui.py"
   workflow_dispatch:
 
 permissions:

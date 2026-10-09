@@ -1,10 +1,6 @@
 name: OGE-40 GitHub Token Isolation
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/oge-40-github-token-isolation.yml"
   workflow_dispatch:
 
 permissions:

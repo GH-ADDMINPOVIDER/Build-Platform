@@ -1,11 +1,6 @@
 name: Muse Code Staging Readiness
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/muse-code-staging-smoke.yml"
-      - "scripts/muse/**"
   workflow_dispatch:
 
 permissions:

@@ -1,10 +1,6 @@
 name: LINE Read-Only Staging Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/line-readonly-staging-proof.yml"
   workflow_dispatch:
 
 permissions:

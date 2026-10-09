@@ -1,11 +1,6 @@
 name: Meta Facebook Staging Readiness
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/meta-suite-readiness-staging.yml"
-      - "config/meta-suite.staging.json"
   workflow_dispatch:
 
 permissions:
