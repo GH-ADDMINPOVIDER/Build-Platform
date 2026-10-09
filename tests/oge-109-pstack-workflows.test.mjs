@@ -30,6 +30,6 @@ test("original 1LSS, Yellow and Ruby authority retained",()=>{
 
 test("pstack guided prompt buttons are usable on existing mobile dock",()=>{
  const css=read("src/unified-chat.css");
- assert.match(css,/\\.ucPstackPresets/);
+ assert.ok(css.includes(".ucPstackPresets"));
  assert.match(chat,/ucPstackPresets/);
 });

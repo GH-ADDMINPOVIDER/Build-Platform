@@ -377,3 +377,5 @@ button { color: inherit; }
 .ucPstackPresets .ucDockHead{padding:2px 4px 6px}
 .ucPstackPresets .ucDockHead small{max-width:270px;line-height:1.35}
 .ucPstackPresets .ucCapability{width:100%}
+
+.ucPstackPresets .ucCapability:focus-visible{outline:2px solid var(--uc-accent);outline-offset:2px}
