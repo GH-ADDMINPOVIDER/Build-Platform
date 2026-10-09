@@ -99,3 +99,6 @@ The defined stone **capabilities are names** for existing architecture and futur
 - Obsidian execution host: `infra/replica-runner/STONE_RUNNER.md`, `.github/workflows/wave-replica-runner.yml`
 
 **Why Rule Stone (gray) exists separately:** explain and centrally manage the rules; it must *not* duplicate Yellow's already-established enforcement/authorization. 
+
+## Owner routing clarification — OGE-110 pstack (2026-10-09)
+Full pstack skills and portable multi-agent workflow selection belong to **Violet Stone #04** (Multi-Agent Solution), NOT Yellow #02. Yellow is the sole capability authorization / tool execution gate. Blue #03 retains agent identity and readiness, Ruby verifies, Green/1LSS remains the only canonical memory. The pinned MIT skill source (51 skills, 2 agent definitions) is imported to `.agents/skills` and cataloged through Violet read-only API; executable multi-agent features are **NOT certified** by source import. Historic OGE-109 WAVE four prompt presets remain an interface, not another Stone or runtime. This clarifies ownership only and does not alter names/colors/species in the canonical seven-Stone map.

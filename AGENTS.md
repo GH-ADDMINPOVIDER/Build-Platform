@@ -18,6 +18,12 @@ Act as an operator, not a status reporter. Read the real state, choose the cheap
 - A preset in the authenticated WAVE Tools panel fills the DRAFT only. It must not send, spend credits, commit, deploy or mutate D1 automatically. A subsequent manual Send uses existing provider route/quota and Yellow/Ruby/Green controls.
 - Before acting, preserve previous owner-main / 1LSS decisions and verify exact current GitHub staging SHA. Native pstack Cursor-specific multi-agent features are UNSUPPORTED unless separately proven. No new memory, Control Tower or paid hosting.
 
+## OGE-110 — Full portable pstack source belongs to VIOLET STONE
+- Violet is the **workflow and multi-agent coordinator**, never Yellow. The complete MIT portable skill source catalog is pinned at `3a604672c46cd8187d2b19980eae0a34f9f91138` from `backnotprop/pstack`, mirrored into `third_party/pstack-portable` and standard `.agents/skills/` (51 Skills + 2 agent definitions).
+- `GET /api/violet/pstack/catalog` is authenticated/read-only skill inventory and NEVER calls providers. `src/VioletDistributionPanel.tsx` exposes mobile searchable source cards. A catalog/Skill file is NOT proof of actual agent execution or an installed native Cursor plugin.
+- Blue verifies eligible agents, Violet selects workflow/team, Yellow alone authorizes paid calls/tool side effects, Ruby independently verifies; Green/1LSS holds one canonical owner-main memory line. Pinned third-party scripts and automations are data ONLY and must never be executed without separate review and authorizations.
+- OGE-109 four WAVE prompt presets are still the existing composer UI. OGE-110 imports source and exposes catalog; real /swarm, /poteto-mode, provider-specific subprocesses and UI automation require host capability, quota consent, proven receipts; report UNSUPPORTED rather than inventing missing providers. No new paid Railway/Replit runtime or desktop Cursor required.
+
 ## Hard guardrails
 - NEVER touch `main`, production, Candy, D1 schema, billing, or secrets unless the owner explicitly instructs it.
 - Staging first. Minimum reversible diff.

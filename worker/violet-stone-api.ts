@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import pstackFullCatalog from "../config/pstack-full-catalog.json";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { buildWhiteDiamondRegistry, type RegistryEnv, type WhiteDiamondAgent } from "./white-diamond-registry";
 import { buildBlueDiamondRegistry } from "./blue-diamond-registry";
@@ -462,6 +463,28 @@ export function createVioletStoneApi() {
     agents: ["OpenAI • Agent • CEO", "Codex • Agent • CTO", "Manus • Agent • COO"],
     accuracy_policy: "NOT_MEASURED_UNTIL_RUBY_EVIDENCE",
     schema_change: false,
+  }, 200, { "Cache-Control": "no-store" }));
+
+  // OGE-110: complete portable skill SOURCE catalog; Violet owns workflow selection.
+  // This is not provider execution: Yellow alone authorizes calls, Ruby independently verifies.
+  api.get("/api/violet/pstack/catalog", (c) => c.json({
+    ok: true,
+    controller: "VIOLET_STONE_04",
+    authority: "YELLOW_STONE_ONLY",
+    source_pin: pstackFullCatalog.pin_commit,
+    upstream: pstackFullCatalog.upstream,
+    skill_count: pstackFullCatalog.skill_count,
+    agent_definition_count: pstackFullCatalog.agent_definition_count,
+    source_installed: pstackFullCatalog.vendor_complete,
+    execution_state: "NOT_DISPATCHED",
+    automation_state: "INERT_SOURCE_ONLY",
+    canonical_memory: "owner-main / 1LSS_OWNER_MAIN",
+    skills: pstackFullCatalog.skills.map((item) => ({
+      id: item.id,
+      description: item.description,
+      path: item.agent_skill_path,
+      state: "SOURCE_AVAILABLE_NOT_RUNTIME_VERIFIED",
+    })),
   }, 200, { "Cache-Control": "no-store" }));
 
   api.get("/api/violet/status", async (c) => {

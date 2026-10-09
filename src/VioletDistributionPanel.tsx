@@ -1,6 +1,8 @@
 import {useCallback,useEffect,useState,type FormEvent} from "react";
 
 type Actor = {agent_id:string;label:string;provider:string;readiness:string;planning_eligible:boolean;capabilities:string[]};
+type PstackSkill={id:string;description:string;path:string;state:string};
+type PstackCatalog={ok:boolean;controller:string;authority:string;skill_count:number;agent_definition_count:number;execution_state:string;source_pin:string;skills:PstackSkill[]};
 type Planned = {task_id:string;capability:string;agent_id?:string;status:string;depends_on?:string[]};
 type Plan = {ok?:boolean;code?:string;assignments?:Planned[];queue?:Planned[];
   planned_count?:number;waiting_count?:number;execution_authority?:string;planning_only?:boolean};
@@ -14,6 +16,9 @@ export default function VioletDistributionPanel(){
   const [claim,setClaim]=useState<Claim|null>(null);
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
+  const [pstack,setPstack]=useState<PstackCatalog|null>(null);
+  const [pstackQuery,setPstackQuery]=useState("");
+  const [pstackError,setPstackError]=useState("");
 
   const load=useCallback(async()=>{
     try{
@@ -24,6 +29,17 @@ export default function VioletDistributionPanel(){
     }catch(e){setError(e instanceof Error?e.message:"BLUE_ROSTER_UNAVAILABLE")}
   },[]);
   useEffect(()=>{void load()},[load]);
+  useEffect(()=>{
+    let active=true;
+    void fetch("/api/violet/pstack/catalog",{credentials:"same-origin",cache:"no-store"})
+      .then(async(res)=>{const body=await res.json().catch(()=>({}));if(!res.ok||!body.ok)throw Error(body.code||"PSTACK_CATALOG_UNAVAILABLE");return body as PstackCatalog;})
+      .then(data=>{if(active)setPstack(data)})
+      .catch(err=>{if(active)setPstackError(err instanceof Error?err.message:"PSTACK_CATALOG_UNAVAILABLE")});
+    return ()=>{active=false};
+  },[]);
+  const matchedSkills=pstack?.skills.filter((s)=>s.id.toLowerCase().includes(pstackQuery.toLowerCase())||
+    s.description.toLowerCase().includes(pstackQuery.toLowerCase()))??[];
+
 
   async function runPlan(e:FormEvent){
     e.preventDefault();setError("");setPlan(null);setClaim(null);setBusy(true);
@@ -89,6 +105,25 @@ export default function VioletDistributionPanel(){
       </div>)}
     </div>}
     {claim&&<div className="wnPolicy" role="status">Task {claim.task_id} → {claim.status}. Execution dispatched: {String(claim.execution_dispatched===true)}. Yellow approval and Ruby proof still required.</div>}
+    <section className="wnCard" aria-label="Violet pstack complete skill source">
+      <div className="wnCardHead"><div><span className="wnKicker">VIOLET · pstack portable</span><h3>Full Skill Library</h3></div>
+        <span className="wnCount">{pstack? pstack.skill_count : "…"}</span></div>
+      <p className="wnPolicy">Portable MIT source for compatible coding agents. Source present ≠ Agent executed. Violet routes, Yellow authorizes, Ruby verifies, Green remembers. No Cursor subscription needed.</p>
+      {pstackError&&<div className="wnError" role="alert">{pstackError}</div>}
+      {pstack&&<><p className="wnPolicy">Imported {pstack.skill_count} Skills + {pstack.agent_definition_count} Agent definitions · {pstack.execution_state} · automations inert</p>
+        <label>Search installed skill source
+          <input type="search" value={pstackQuery} onChange={e=>setPstackQuery(e.target.value)} placeholder="e.g. swarm, recall, how" />
+        </label>
+        <div className="wnRows" style={{maxHeight:"320px",overflowY:"auto"}}>
+          {matchedSkills.map((skill)=><div className="wnRow" key={skill.id}>
+            <div><strong>{skill.id}</strong><span>{skill.description||"Portable source available · not runtime verified"}</span></div>
+            <a href={`https://github.com/Ogenicchocolate21debug/Build-Platform/blob/phase-vi-provider-incentive-metering/${skill.path}`}
+              target="_blank" rel="noreferrer" aria-label={`View source for ${skill.id}`}>Source ↗</a>
+          </div>)}
+          {!matchedSkills.length&&<p className="wnPolicy">No matching skill.</p>}
+        </div>
+      </>}
+    </section>
     <p className="wnPolicy">Rule Stone provides shared rules · Yellow alone approves execution · Ruby verifies · Green retains. CLAIMED ≠ RUNNING or DONE.</p>
   </section>;
 }
