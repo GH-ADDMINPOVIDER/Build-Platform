@@ -33,6 +33,13 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           echo "REVIEWER_INTAKE_GITHUB_SHA_OK"
 
+      - name: Check actual OGE-98 Codex host prerequisites without dispatching an agent
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/oge98-codex-host-preflight.mjs
+          echo "OGE98_PREFLIGHT_ONLY_NOT_AGENT_EXECUTION"
+
       - name: Recreate deterministic ten-clone evidence for this exact source SHA
         shell: bash
         run: |
@@ -157,6 +164,7 @@ jobs:
             oge95-same-sha-audit.json
             oge95-provider-readiness.json
             oge95-stone-runner-learning.json
+            oge98-codex-host-preflight.json
           retention-days: 30
           if-no-files-found: error
 
