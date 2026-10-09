@@ -23,7 +23,8 @@ test("OGE-104 owner-only bounded old 1LSS recall",()=>{
 });
 test("OGE-104 scoped query and redaction",()=>{
  assert.match(source,/clampLimit\(c.req.query\("limit"\), 8, 12\)/);
- assert.match(source,/clean\(message.content, 1200\)/);
+ assert.match(source,/redactSessionExcerpt\(message.content\)/);
+ assert.match(source,/return clean\(safe, 1200\)/);
  assert.match(source,/REDACTED_SECRET/);
  assert.match(source,/QUERY_REQUIRED/);
 });
@@ -33,4 +34,10 @@ test("no-forget agent source preflight",()=>{
  assert.match(spec,/OGE-105/);
  assert.match(spec,/UNVERIFIED_SOURCE/);
  assert.match(spec,/OGE-102/);
+});
+
+test("owner recall and resolver are wired into active entry",()=>{
+ const entry=read("worker/entry-connectors.ts");
+ assert.match(entry,/pathname === "\/api\/1lss\/context-recall"/);
+ assert.match(entry,/pathname === "\/api\/1lss\/resolve-session"/);
 });

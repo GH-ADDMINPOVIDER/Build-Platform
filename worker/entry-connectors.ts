@@ -274,7 +274,7 @@ export default {
     if (pathname === "/api/live-door") {
       return liveDoorApi.fetch(request, env, ctx as never);
     }
-    if (pathname === "/api/1lss/history-page" || pathname === "/api/1lss/sessions" || pathname.startsWith("/api/1lss/sessions/")) {
+    if (pathname === "/api/1lss/history-page" || pathname === "/api/1lss/context-recall" || pathname === "/api/1lss/resolve-session" || pathname === "/api/1lss/sessions" || pathname.startsWith("/api/1lss/sessions/")) {
       return sessionRecoveryApi.fetch(request, env, ctx as never);
     }
     if (

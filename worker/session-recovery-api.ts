@@ -49,6 +49,12 @@ const SURFACES = new Set([
   "external-harness",
   "plugin-harness",
   "openai-agent",
+  "codex",
+  "claude",
+  "deepseek",
+  "gemini",
+  "line",
+  "perplexity",
   "unknown",
 ]);
 
@@ -86,6 +92,16 @@ function mapMessage(message: MessageRow) {
     source_surface: message.source_surface ?? "legacy",
   };
 }
+
+function redactSessionExcerpt(value: unknown) {
+  const safe = String(value ?? "")
+    .replace(/sk-[a-z0-9_-]{10,}/gi, "[REDACTED_SECRET]")
+    .replace(/gh[pousr]_[a-z0-9_]{10,}/gi, "[REDACTED_SECRET]")
+    .replace(/bearer\s+[a-z0-9._~+/-]{10,}/gi, "Bearer [REDACTED_SECRET]")
+    .replace(/(?:password|passwd|secret|api[_ -]?key|access[_ -]?token)\s*[:=]\s*\S+/gi, "[REDACTED_SECRET]");
+  return clean(safe, 1200);
+}
+
 async function ownerOnly(request: Request, env: SessionRecoveryBindings) {
   return hasOwnerSession(request, env);
 }
@@ -168,11 +184,7 @@ export function createSessionRecoveryApi() {
     const matches = (result.results ?? []).map((message) => ({
       id: message.id ?? null,
       role: message.role,
-      excerpt: clean(message.content, 1200)
-        .replace(/sk-[a-z0-9_-]{10,}/gi, "[REDACTED_SECRET]")
-        .replace(/gh[pousr]_[a-z0-9_]{10,}/gi, "[REDACTED_SECRET]")
-        .replace(/bearer\s+[a-z0-9._~+/-]{10,}/gi, "Bearer [REDACTED_SECRET]")
-        .replace(/(?:password|passwd|secret|api[_ -]?key|access[_ -]?token)\s*[:=]\s*\S+/gi, "[REDACTED_SECRET]"),
+      excerpt: redactSessionExcerpt(message.content),
       sequence_no: message.sequence_no ?? null,
       source_surface: message.source_surface ?? "legacy",
       model: message.model ?? null,
@@ -185,6 +197,54 @@ export function createSessionRecoveryApi() {
       green_promotion: "RUBY_VERIFICATION_REQUIRED",
       permitted_audience: "AUTHENTICATED_OWNER_ONLY",
       automatic_provider_dispatch: false,
+    }, 200, { "Cache-Control": "no-store" });
+  });
+
+
+  // OGE-105: exact provider/model session REFERENCE only; no automatic provider resume.
+  api.get("/api/1lss/resolve-session", async (c) => {
+    if (!(await ownerOnly(c.req.raw, c.env))) {
+      return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);
+    }
+    const db = c.env.DB;
+    if (!db) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+    const surface = clean(c.req.query("source_surface"), 60).toLowerCase();
+    if (!surface || !SURFACES.has(surface) || surface === "unknown" || surface === "external-harness") {
+      return c.json({ ok: false, code: "EXPLICIT_PROVIDER_REQUIRED" }, 400);
+    }
+    const model = clean(c.req.query("model"), 80);
+    const effort = clean(c.req.query("reasoning_effort"), 20);
+    if (surface === "openai-agent" && (!model || !effort)) {
+      return c.json({ ok: false, code: "MODEL_AND_EFFORT_REQUIRED" }, 400);
+    }
+    if (surface !== "openai-agent" && (model || effort)) {
+      return c.json({ ok: false, code: "UNVERIFIED_PROVIDER_MODEL_LOCK" }, 422);
+    }
+    const result = await db.prepare(
+      "SELECT id, source_surface, session_ref, session_url, label, " +
+      "first_sequence, last_sequence, first_seen_at, last_seen_at " +
+      "FROM chat_session_refs WHERE conversation_id = ? AND source_surface = ? " +
+      "ORDER BY last_seen_at DESC, last_sequence DESC LIMIT 50",
+    ).bind(CONVERSATION_ID, surface).all<SessionRefRow>();
+    const rows = result.results ?? [];
+    const expectedLabel = surface === "openai-agent" ? "OpenAI Agent Session · " + model + " · " + effort : "";
+    const candidates = expectedLabel ? rows.filter((r) => r.label === expectedLabel) : rows;
+    if (!candidates.length) return c.json({ ok: false, code: "SESSION_REF_NOT_FOUND" }, 404);
+    if (!expectedLabel && candidates.length > 1) {
+      return c.json({ ok: false, code: "SESSION_REF_AMBIGUOUS", count: candidates.length }, 409);
+    }
+    const session = candidates[0];
+    return c.json({
+      ok: true,
+      conversation_id: CONVERSATION_ID,
+      session_line: "1LSS_OWNER_MAIN",
+      provider_bucket: surface.charAt(0).toUpperCase(),
+      source_surface: surface,
+      session,
+      model_lock: expectedLabel || "UNVERIFIED",
+      provider_liveness: "NOT_TESTED",
+      can_auto_resume: false,
+      explicit_live_validation_required: true,
     }, 200, { "Cache-Control": "no-store" });
   });
 

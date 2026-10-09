@@ -23,3 +23,6 @@ Existing read-only owner-auth GET /api/1lss/context-recall?q=...&limit=... retri
 
 ## Security and boundaries
 Yellow alone authorizes real external transmissions/tools; Ruby independently verifies, Green retains verified compact summaries and evidence pointers. Raw credentials and private chain-of-thought are never persisted in D1 knowledge. No new tables, production, main, Candy, secrets or speculative full parity claims. Owner canceled OGE-II-1 native OGE-102 and entire Mineral Phase II Project; do not resurrect the simulated product track.
+
+## OGE-105 current bounded lookup, NOT live reusable session proof
+Owner-authenticated GET /api/1lss/resolve-session?source_surface=openai-agent&model=...&reasoning_effort=... returns a matching existing provider session reference by exact recorded model/effort label, or explicit denial/ambiguity. Other providers including LINE/Gemini/DeepSeek/Codex can register refs through existing owner-auth API but have no verified model lock or automatic resume. can_auto_resume=false until independently verified live provider readiness. This does not implement X/Y/Z permission semantics or external authorization.
