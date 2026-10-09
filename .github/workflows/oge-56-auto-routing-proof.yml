@@ -1,11 +1,6 @@
 name: OGE-56 AUTO Routing V1 Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "packages/auto-routing/**"
-      - ".github/workflows/oge-56-auto-routing-proof.yml"
   workflow_dispatch:
 
 permissions:

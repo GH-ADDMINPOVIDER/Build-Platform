@@ -1,14 +1,6 @@
 name: OGE-64 WAVE Shell Hygiene Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "src/main.tsx"
-      - "src/LegacyControlSurface.tsx"
-      - "public/sw.js"
-      - "tests/oge-64-wave-shell-hygiene.test.mjs"
-      - ".github/workflows/oge-64-wave-shell-hygiene-proof.yml"
   workflow_dispatch:
 
 permissions:

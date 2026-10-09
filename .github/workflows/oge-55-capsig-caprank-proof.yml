@@ -1,12 +1,6 @@
 name: OGE-55 CapSig CapRank Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "worker/capsig-caprank.ts"
-      - "tests/oge-55-capsig-caprank.test.mjs"
-      - ".github/workflows/oge-55-capsig-caprank-proof.yml"
   workflow_dispatch:
 
 permissions:

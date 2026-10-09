@@ -1,14 +1,6 @@
 name: OGE-57 Task Inbox Core Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "worker/task-inbox-api.ts"
-      - "worker/entry-yellow-stone.ts"
-      - "tests/oge-57-task-inbox-core.test.mjs"
-      - "tests/fixtures/oge-57-task-inbox-roundtrip.json"
-      - ".github/workflows/oge-57-task-inbox-core-proof.yml"
   workflow_dispatch:
 
 permissions:

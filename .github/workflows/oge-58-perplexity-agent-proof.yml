@@ -1,15 +1,6 @@
 name: OGE-58 Perplexity Agent Bridge Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "package.json"
-      - "worker/perplexity-agent-api.ts"
-      - "worker/entry-yellow-stone.ts"
-      - "scripts/perplexity-agent-smoke.mjs"
-      - "tests/oge-58-perplexity-agent.test.mjs"
-      - ".github/workflows/oge-58-perplexity-agent-proof.yml"
   workflow_dispatch:
 
 permissions:

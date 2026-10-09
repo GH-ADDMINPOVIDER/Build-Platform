@@ -1,17 +1,6 @@
 name: OGE-59 DeepSeek Bridge Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "worker/deepseek-api.ts"
-      - "worker/entry-yellow-stone.ts"
-      - "scripts/deepseek-smoke.mjs"
-      - "config/staging-runtime-bindings.json"
-      - "package.json"
-      - "tests/oge-59-deepseek-bridge.test.mjs"
-      - ".github/workflows/provider-incentive-staging-deploy.yml"
-      - ".github/workflows/oge-59-deepseek-bridge-proof.yml"
   workflow_dispatch:
 
 permissions:

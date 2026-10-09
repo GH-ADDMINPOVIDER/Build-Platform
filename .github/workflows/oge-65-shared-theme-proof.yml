@@ -1,18 +1,6 @@
 name: OGE-65 Shared Theme Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "src/WaveThemeToggle.tsx"
-      - "src/wave-theme.css"
-      - "src/main.tsx"
-      - "src/LegacyControlSurface.tsx"
-      - "src/unified-chat.css"
-      - "src/landing.css"
-      - "src/wave-next.css"
-      - "tests/oge-65-shared-theme.test.mjs"
-      - ".github/workflows/oge-65-shared-theme-proof.yml"
   workflow_dispatch:
 
 permissions:

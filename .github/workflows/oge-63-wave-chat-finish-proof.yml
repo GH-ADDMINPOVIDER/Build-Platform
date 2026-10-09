@@ -1,15 +1,6 @@
 name: OGE-63 WAVE Chat Finish Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "src/UnifiedChat.tsx"
-      - "src/unified-chat.css"
-      - "worker/chat-message-action-api.ts"
-      - "worker/entry-yellow-stone.ts"
-      - "tests/oge-63-wave-chat-finish.test.mjs"
-      - ".github/workflows/oge-63-wave-chat-finish-proof.yml"
   workflow_dispatch:
 
 permissions:
