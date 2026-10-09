@@ -1,0 +1,166 @@
+name: OGE-98 Codex Scoped Code Task Proof (existing wave-runner-01)
+# One owner-requested staging proof; editing this workflow is the ONLY push trigger.
+# Real Codex code change must remain in a disposable worktree. Never auto-push, merge, or deploy.
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: [".github/workflows/oge-98-codex-scoped-code-proof.yml"]
+  workflow_dispatch:
+    inputs:
+      confirm_one_moderated_agent_call:
+        description: "Explicitly authorize one Codex run with existing paid OpenAI API binding"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: oge98-scoped-code-task
+  cancel-in-progress: false
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+
+jobs:
+  codex-scoped-task:
+    if: ${{ github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering' && (github.event_name == 'push' || inputs.confirm_one_moderated_agent_call == true) }}
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact canonical staging SHA with no commit permissions
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Lock branch, clean tree and local Ruby verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(hostname)" = wave-runner-01
+          test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+          command -v ruby >/dev/null || { echo "::error::RUBY_CLI_MISSING"; exit 1; }
+          ruby --version
+          command -v node >/dev/null
+          echo 'OGE98_CANONICAL_SELFHOST_READY'
+
+      - name: Create isolated disposable worktree pinned to exact CI SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/oge98-code-proof-$GITHUB_RUN_ID"
+          test ! -e "$WORK"
+          git worktree add --detach "$WORK" "$GITHUB_SHA" >/dev/null
+          test "$(git -C "$WORK" rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git -C "$WORK" status --porcelain)"
+          echo "OGE98_WORKTREE=$WORK" >> "$GITHUB_ENV"
+          echo "OGE98_ISOLATED_WORKTREE_READY"
+
+      - name: Load existing OpenAI application binding through Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Validate model key presence without printing or spreading credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OPENAI_API_KEY:-}" || { echo "::error::OPENAI_APPLICATION_BINDING_MISSING"; exit 1; }
+          echo 'OGE98_CODEX_APP_BINDING_PRESENT'
+
+      - name: Ask real Codex agent to create exactly one harmless isolated test fixture
+        id: agent
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ env.OPENAI_API_KEY }}
+          working-directory: ${{ env.OGE98_WORKTREE }}
+          permission-profile: ":workspace"
+          safety-strategy: drop-sudo
+          output-file: ${{ runner.temp }}/oge98-codex-final.txt
+          prompt: |
+            Owner-approved OGE-98 ONE bounded code-generation proof, entirely in this disposable staging SHA worktree.
+            Create EXACTLY ONE file: tests/oge98-agent-smoke.test.mjs.
+            The file must use node:test and node:assert/strict, with two nontrivial deterministic tests:
+            (1) normalize a list of duplicate sorted event sequence numbers into distinct ascending integers
+                and assert exact expected output;
+            (2) a small idempotency Set fixture proves two events with the same key cause one insertion only.
+            Do not edit, delete or read any other existing source file. Do not run git commit, git push,
+            git remote, curl, npm install or any network command. Do not request/inspect credentials or user data.
+            Do not modify any protected branch, Worker, D1, production or Candy. No other files may change.
+            Keep file under 3 KB. Report the file you created and its local node test result.
+
+      - name: Fail closed unless Codex wrote exactly the allowed file, then test and Ruby-audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$OGE98_WORKTREE"
+          cd "$WORK"
+          EXPECTED='?? tests/oge98-agent-smoke.test.mjs'
+          test "$(git status --porcelain)" = "$EXPECTED" || { echo "::error::AGENT_CHANGED_UNAPPROVED_PATHS_OR_NO_DIFF"; exit 1; }
+          test ! -L tests/oge98-agent-smoke.test.mjs
+          test -s tests/oge98-agent-smoke.test.mjs
+          test "$(wc -c < tests/oge98-agent-smoke.test.mjs)" -le 3072
+          node --test tests/oge98-agent-smoke.test.mjs > "$RUNNER_TEMP/oge98-agent-node-test.log" 2>&1 ||
+            { echo "::error::CODEX_GENERATED_TEST_FAILED"; tail -n 40 "$RUNNER_TEMP/oge98-agent-node-test.log"; exit 1; }
+          ruby -rdigest -rjson -e '
+            f="tests/oge98-agent-smoke.test.mjs"
+            text=File.binread(f)
+            abort "RUBY_AGENT_FIXTURE_MISSING_CONTRACT" unless text.include?("node:test") &&
+              text.include?("node:assert/strict") && text.scan(/\\btest\\s*\\(/).length >= 2
+            abort "RUBY_PROTECTED_COMMAND_IN_PROOF" if text.match?(/\\b(?:execSync|spawn|fetch|child_process|process\\.env|curl|https?:\\/\\/)\\b/)
+            record={
+              schema_version:"OGE98_RUBY_DETERMINISTIC_CODE_PROOF_V1",
+              source_sha:ENV.fetch("GITHUB_SHA"),
+              run_id:ENV.fetch("GITHUB_RUN_ID"),
+              repository:ENV.fetch("GITHUB_REPOSITORY"),
+              branch:ENV.fetch("GITHUB_REF_NAME"),
+              expected_changed_file:f,
+              file_sha256:Digest::SHA256.hexdigest(text),
+              agent_generated_test:"PASS",
+              ruby_scope_contract:"PASS",
+              changes_pushed:false,
+              agent_session_api_selfhost_same_run:false,
+              independent_semantic_model_review:false,
+              ready_to_close_oge98:false,
+              status:"RUBY_DETERMINISTIC_LOCAL_PASS"
+            }
+            File.write(File.join(ENV.fetch("RUNNER_TEMP"),"oge98-ruby-code-proof.json"),JSON.pretty_generate(record)+"\\n")
+            puts "OGE98_RUBY_DETERMINISTIC_LOCAL_PASS"
+          '
+          test -s "$RUNNER_TEMP/oge98-ruby-code-proof.json"
+          (git diff --no-index /dev/null tests/oge98-agent-smoke.test.mjs > "$RUNNER_TEMP/oge98-agent-generated.patch" || test "$?" -eq 1)
+          echo "OGE98_AGENT_CODE_TEST_PASS"
+
+      - name: Upload safe local-only artifact for owner and Ruby audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge98-scoped-code-proof-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/oge98-ruby-code-proof.json
+            ${{ runner.temp }}/oge98-agent-node-test.log
+            ${{ runner.temp }}/oge98-agent-generated.patch
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Remove isolated worktree, leave source branch unchanged
+        if: always()
+        shell: bash
+        run: |
+          if test -n "${OGE98_WORKTREE:-}" && test -d "$OGE98_WORKTREE"; then
+            git worktree remove --force "$OGE98_WORKTREE" 2>/dev/null || true
+            git worktree prune || true
+          fi
+          echo "OGE98_NO_AUTOPUSH_OR_DEPLOY"
