@@ -5,7 +5,10 @@ import { readFile } from "node:fs/promises";
 const workflow = await readFile(new URL("../.github/workflows/parallel-agent-runtime.yml", import.meta.url), "utf8");
 
 test("OGE-47 runtime workflow is canonical-branch-only and three-way parallel", () => {
-  assert.match(workflow, /^\s{2}workflow_dispatch:/m);\n  assert.doesNotMatch(workflow, /^\s{2}push:/m);\n  assert.equal((workflow.match(/if: github.ref_name == 'phase-vi-provider-incentive-metering'/g) || []).length, 2);\n  assert.match(workflow, /always\(\) && github.ref_name == 'phase-vi-provider-incentive-metering'/);
+  assert.match(workflow, /^\s{2}workflow_dispatch:/m);
+  assert.doesNotMatch(workflow, /^\s{2}push:/m);
+  assert.equal((workflow.match(/if: github.ref_name == 'phase-vi-provider-incentive-metering'/g) || []).length, 2);
+  assert.match(workflow, /always\(\) && github.ref_name == 'phase-vi-provider-incentive-metering'/);
   assert.doesNotMatch(workflow, /branches:\s*\[[^\]]*(?:main|develop)/i);
   assert.match(workflow, /fail-fast:\s*false/);
   assert.match(workflow, /max-parallel:\s*3/);
