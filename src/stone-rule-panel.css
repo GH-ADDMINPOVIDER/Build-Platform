@@ -1,0 +1,25 @@
+.srPanel{background:rgba(13,15,19,.91);border:1px solid rgba(180,190,210,.16);border-radius:16px;padding:20px;color:#eff1f5;display:grid;gap:16px}
+.srHead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.srHead h3{margin:4px 0 8px;font-size:1.4rem;line-height:1.25}
+.srHead p,.srFoot p{margin:4px 0;color:#a9afb9;font-size:.9rem;line-height:1.5}
+.srHead button{border:1px solid #596273;color:#f7f9fa;background:transparent;border-radius:9px;padding:9px 12px;cursor:pointer}
+.srHead button:disabled{opacity:.5;cursor:default}
+.srSummary{display:flex;flex-wrap:wrap;gap:8px}
+.srSummary span{background:#1b2028;border:1px solid #333944;border-radius:9px;padding:9px 12px;font-size:.83rem}
+.srSummary strong{color:#f5f5f5}
+.srStones{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px}
+.srStone{width:100%;display:flex;gap:12px;align-items:center;text-align:left;color:inherit;background:#161a21;border:1px solid #333a45;border-radius:12px;padding:11px;cursor:pointer;min-width:0}
+.srStone:hover,.srStone.selected{border-color:#aaafb9;background:#252a32}
+.srGem{flex:0 0 42px;height:42px;border-radius:10px;color:var(--stone-color);display:grid;place-items:center;font-size:37px;line-height:1;text-shadow:0 0 14px var(--stone-color);background:radial-gradient(circle at 45% 35%,#353d4b 0%,#090b10 72%)}
+.srStone>span:nth-child(2){flex:1;min-width:0}
+.srStone strong{display:block;font-size:.82rem;line-height:1.3}
+.srStone small{display:block;color:#aab0bb;line-height:1.45;margin-top:3px;font-size:.73rem}
+.srCount{border:1px solid #485361;border-radius:7px;padding:2px 5px;color:#c3cad5;font-size:.75rem}
+.srDetail{padding:16px;background:#1b2028;border:1px solid #333a45;border-radius:12px}
+.srDetail h4{margin:0 0 10px;font-size:1rem}
+.srDetail p{margin:8px 0;padding-bottom:8px;border-bottom:1px solid #353b45;line-height:1.55;font-size:.86rem}
+.srDetail p:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
+.srDetail strong{color:#c4c9d3;margin-right:8px}
+.srFoot{border-top:1px solid #303640;padding-top:10px}
+.srFoot code{font-size:.8rem;overflow-wrap:anywhere;color:#d3d9e6}
+@media(max-width:600px){.srPanel{padding:12px}.srHead{display:block}.srHead button{margin-top:12px}.srStones{grid-template-columns:1fr}.srStone{padding:10px}}
