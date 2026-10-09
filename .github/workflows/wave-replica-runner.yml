@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   ephemeral-replica:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 30
     steps:
       - name: Checkout exact staging SHA

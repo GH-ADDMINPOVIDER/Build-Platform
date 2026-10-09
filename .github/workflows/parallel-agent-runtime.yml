@@ -26,7 +26,7 @@ env:
 jobs:
   runtime-clones:
     name: Runtime clone / ${{ matrix.worker }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -78,7 +78,7 @@ jobs:
     name: Serial reducer / Ruby pre-gate
     needs: runtime-clones
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 10
 
     steps:
@@ -112,7 +112,7 @@ jobs:
   docker-refinery-substrate:
     name: Docker refinery substrate / no paid research call
     needs: serial-reducer
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 10
 
     steps:
