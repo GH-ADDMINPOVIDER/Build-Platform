@@ -1,0 +1,58 @@
+name: OGE-110 Violet full portable pstack source intake
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-110-violet-pstack-intake.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: oge110-violet-intake-staging
+  cancel-in-progress: false
+jobs:
+  vendor-source-only:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase-vi-provider-incentive-metering
+          fetch-depth: 1
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Fetch pinned public portable mirror (no vendor commands executed)
+        uses: actions/checkout@v4
+        with:
+          repository: backnotprop/pstack
+          ref: 3a604672c46cd8187d2b19980eae0a34f9f91138
+          path: .pstack-vendor-source
+          persist-credentials: false
+      - name: Verify upstream content SHA and import 51 inert Markdown skill sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .pstack-vendor-source rev-parse HEAD)" = "3a604672c46cd8187d2b19980eae0a34f9f91138"
+          node scripts/oge-110-import-portable-pstack.mjs .pstack-vendor-source
+      - name: Validate source-only manifest and frozen Violet-Yellow authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/oge-110-violet-pstack-intake.test.mjs
+          node -e 'const m=require("./config/pstack-full-catalog.json");if(m.skill_count!==51||m.agent_definition_count!==2||m.execution_state!=="NOT_DISPATCHED"||m.automation_state!=="INERT_SOURCE_ONLY")process.exit(1)'
+      - name: Commit only imported skill sources to canonical staging, never production
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "phase-vi-provider-incentive-metering"
+          git fetch origin phase-vi-provider-incentive-metering --depth=1
+          test "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)" || { echo "::error::STALE_STAGING_SHA_ABORT"; exit 3; }
+          git add -- .agents/skills third_party/pstack-portable config/pstack-full-catalog.json
+          if git diff --cached --quiet; then echo "OGE110_IMPORT_ALREADY_CURRENT"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "vendor(violet): pin 51 portable pstack skills + 2 agents as non-executable source (OGE-110)"
+          git push origin HEAD:refs/heads/phase-vi-provider-incentive-metering
+          echo "OGE110_IMPORT_COMMITTED_SOURCE_ONLY"
