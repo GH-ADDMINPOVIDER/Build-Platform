@@ -528,7 +528,7 @@ export function createVioletStoneApi() {
   api.post("/api/violet/distribution/claim", async (c) => {
     const body = await c.req.json<{
       task_id?: string; agent_id?: string;
-    }>().catch(() => ({}));
+    }>().catch(() => ({ } as { task_id?: string; agent_id?: string }));
     const taskId = clean(body.task_id, 80);
     const agentId = clean(body.agent_id, 80);
     if (!/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$/.test(taskId) ||
