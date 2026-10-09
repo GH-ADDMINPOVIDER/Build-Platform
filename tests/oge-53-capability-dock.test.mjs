@@ -12,7 +12,7 @@ test("OGE-53 capability dock searches only real runtime-backed execution rows", 
   assert.match(chat, /Search capabilities/);
   assert.match(chat, /visibleTools = toolRows\.filter\(\(row\) => row\.live/);
   assert.match(chat, /toolLive\(/);
-  assert.match(chat, /No executable capability matches this search/);
+  assert.match(chat, /No matching executable tool or pstack prompt preset/);
 });
 
 test("connector states are visible without becoming fake execution buttons", () => {
