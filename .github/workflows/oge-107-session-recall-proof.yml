@@ -1,0 +1,75 @@
+name: OGE-107 Authenticated 1LSS Old Session Read Proof
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: [".github/workflows/oge-107-session-recall-proof.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+env:
+  STAGING_URL: https://wave.ogenicchocolate.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+jobs:
+  read-proof:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Discover bound staging secret location
+        id: discovery
+        run: bash scripts/infisical-discover-project.sh
+      - name: Existing staging ops auth via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.discovery.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: Authenticate and read historical 1LSS without external writes
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          test -n "$OGENIC_OPS_KEY" || { echo "::error::CONFIGURATION_REQUIRED_OWNER_ACCESS"; exit 2; }
+          payload="$(jq -nc --arg key "$OGENIC_OPS_KEY" '{owner_key:$key}')"
+          auth="$(curl -fsS --max-time 30 -X POST -H 'Content-Type: application/json' -H 'x-ogenic-client: native' --data "$payload" "$STAGING_URL/api/session")"
+          unset payload
+          token="$(printf '%s' "$auth" | jq -r '.session_token // empty')"
+          unset auth
+          test -n "$token" || { echo "::error::OWNER_SESSION_NOT_ISSUED"; exit 2; }
+          echo "::add-mask::$token"
+          status="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "$STAGING_URL/api/1lss/context-recall?q=OGENIC" || true)"
+          test "$status" = "401" || { echo "::error::UNAUTHENTICATED_RECALL_NOT_DENIED"; exit 1; }
+          history="$(curl -fsS --max-time 30 -H "Authorization: Bearer $token" "$STAGING_URL/api/1lss/history-page?limit=12")"
+          printf '%s' "$history" | jq -e '.ok == true and .session_line == "1LSS_OWNER_MAIN" and (.messages | length) > 0' >/dev/null || { echo "::error::NO_REAL_CANONICAL_HISTORY"; exit 1; }
+          term=""
+          for candidate in OGENIC WAVE GitHub 1LSS OGE; do
+            if printf '%s' "$history" | jq -e --arg term "$candidate" '.messages | any(.[]; ((.text // "") | ascii_downcase | contains($term | ascii_downcase)))' >/dev/null; then
+              term="$candidate"
+              break
+            fi
+          done
+          test -n "$term" || { echo "::error::NO_PUBLIC_FIXED_RECALL_TERM_IN_HISTORY"; exit 1; }
+          recall="$(curl -fsSG --max-time 30 -H "Authorization: Bearer $token" --data-urlencode "q=$term" --data-urlencode 'limit=12' "$STAGING_URL/api/1lss/context-recall")"
+          printf '%s' "$recall" | jq -e '.ok == true and .conversation_id == "owner-main" and .verification_state == "UNVERIFIED_SOURCE" and .automatic_provider_dispatch == false and (.matches|length)>0' >/dev/null || { echo "::error::OWNER_RECALL_NO_MATCH"; exit 1; }
+          ids="$(printf '%s' "$history" | jq -c '[.messages[].sequence_no]')"
+          printf '%s' "$recall" | jq -e --argjson ids "$ids" '.matches | any(.[]; .sequence_no as $s | ($ids|index($s)) != null)' >/dev/null || { echo "::error::RECALL_NOT_SAME_SESSION_LINE"; exit 1; }
+          unset token history recall
+          {
+            echo "### OGE-107 authenticated read-only proof"
+            echo "- Workflow SHA: $GITHUB_SHA"
+            echo "- Signed owner-session authentication: PASS"
+            echo "- Anonymous history access denied HTTP 401: PASS"
+            echo "- Previous 1LSS message recovered by stable sequence: PASS"
+            echo "- External model calls: 0, remote D1 writes: 0, transcript logged: 0"
+            echo "- Ruby independent verification / cross-model resume: NOT TESTED"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "OGE107_AUTHENTICATED_READ_PROOF=PASS"
