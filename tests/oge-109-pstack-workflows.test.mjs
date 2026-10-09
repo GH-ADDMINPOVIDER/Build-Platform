@@ -72,3 +72,14 @@ test("no concrete task: no model/tool call even if multiple guided buttons were 
  assert.match(action,/runChat\(effectivePrompt\)/);
  assert.match(action,/runAgentAI\(effectivePrompt\)/);
 });
+
+test("legacy multi-preset iPhone drafts are repaired locally before agent invocation",()=>{
+ const from=chat.indexOf("async function send()");
+ const until=chat.indexOf("function startNew",from);
+ const source=chat.slice(from,until);
+ assert.match(source,/pstackWorkflows\.workflows\.some\(\(preset\) => prompt\.includes\(preset\.prompt\)\)/);
+ assert.match(source,/setDraft\(withoutPstackTemplates\(prompt\)\)/);
+ assert.match(source,/Old stacked pstack prompts removed/);
+ assert.match(source,/setToolDock\(true\)/);
+ assert.ok(source.indexOf("Old stacked pstack prompts removed") < source.indexOf("setSending(true)"));
+});

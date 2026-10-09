@@ -720,6 +720,17 @@ export default function UnifiedChat({ surface }: Props) {
       }
       return;
     }
+    // Old iPhone drafts may still contain several exact pstack template bodies from pre-fix UI.
+    // Intercept locally instead of consuming ATHENA's bounded tool loop on a task-less prompt.
+    if (!selectedPstackPreset && !attachments.length &&
+      pstackWorkflows.workflows.some((preset) => prompt.includes(preset.prompt))) {
+      setDraft(withoutPstackTemplates(prompt));
+      setCapabilityQuery("pstack");
+      setToolDock(true);
+      setModelDock(false);
+      setInlineNotice("Old stacked pstack prompts removed. Select ONE workflow and type one task; no Agent was called.");
+      return;
+    }
     const pstackTask = selectedPstackPreset ? withoutPstackTemplates(draft) : "";
     if (selectedPstackPreset && !pstackTask) {
       setInlineNotice(`pstack ${selectedPstackPreset.title} selected · พิมพ์โจทย์งานก่อนกด Send เพื่อไม่ให้ AI วนเรียกเครื่องมือ`);
