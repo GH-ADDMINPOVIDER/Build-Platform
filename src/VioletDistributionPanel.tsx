@@ -3,6 +3,8 @@ import {useCallback,useEffect,useState,type FormEvent} from "react";
 type Actor = {agent_id:string;label:string;provider:string;readiness:string;planning_eligible:boolean;capabilities:string[]};
 type PstackSkill={id:string;description:string;path:string;state:string};
 type PstackCatalog={ok:boolean;controller:string;authority:string;skill_count:number;agent_definition_count:number;execution_state:string;source_pin:string;skills:PstackSkill[]};
+type PstackSelection={ok:boolean;code?:string;family?:string;capability?:string;selected?:Array<{id:string;path:string;hash:string}>;blue_agents?:Array<{id:string;provider:string;readiness:string;eligible_for_live_preflight:boolean}>;execution_state?:string};
+type PstackLearningPlan={ok:boolean;skill_count:number;waves:Array<{wave:number;source_refs:Array<{id:string;hash:string}>}>;learning_state:string;agents:Array<{id:string;readiness:string;read_state:string}>};
 type Planned = {task_id:string;capability:string;agent_id?:string;status:string;depends_on?:string[]};
 type Plan = {ok?:boolean;code?:string;assignments?:Planned[];queue?:Planned[];
   planned_count?:number;waiting_count?:number;execution_authority?:string;planning_only?:boolean};
@@ -19,6 +21,10 @@ export default function VioletDistributionPanel(){
   const [pstack,setPstack]=useState<PstackCatalog|null>(null);
   const [pstackQuery,setPstackQuery]=useState("");
   const [pstackError,setPstackError]=useState("");
+  const [skillTask,setSkillTask]=useState("");
+  const [skillSelection,setSkillSelection]=useState<PstackSelection|null>(null);
+  const [skillLearning,setSkillLearning]=useState<PstackLearningPlan|null>(null);
+  const [skillRouterBusy,setSkillRouterBusy]=useState(false);
 
   const load=useCallback(async()=>{
     try{
@@ -109,6 +115,50 @@ export default function VioletDistributionPanel(){
       <div className="wnCardHead"><div><span className="wnKicker">VIOLET · pstack portable</span><h3>Full Skill Library</h3></div>
         <span className="wnCount">{pstack? pstack.skill_count : "…"}</span></div>
       <p className="wnPolicy">Portable MIT source for compatible coding agents. Source present ≠ Agent executed. Violet routes, Yellow authorizes, Ruby verifies, Green remembers. No Cursor subscription needed.</p>
+
+      <div className="wnForm" aria-label="Violet pstack Skill Intelligence">
+        <label>What is your task? Violet will choose relevant Skills (no model call).
+          <textarea value={skillTask} maxLength={600} rows={2}
+            placeholder="e.g. investigate repeated CI bug or recover previous 1LSS context"
+            onChange={e=>setSkillTask(e.target.value)}/>
+        </label>
+        <button className="wnPrimary" type="button" disabled={skillRouterBusy||skillTask.trim().length<3}
+          onClick={async()=>{
+            setSkillRouterBusy(true);setSkillSelection(null);
+            try{
+              const res=await fetch("/api/violet/pstack/select",{
+                method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({task:skillTask})});
+              const body=await res.json() as PstackSelection;
+              setSkillSelection(res.ok?body:{ok:false,code:body.code||"PSTACK_ROUTER_BLOCKED"});
+            }catch{setSkillSelection({ok:false,code:"PSTACK_ROUTER_UNAVAILABLE"})}
+            finally{setSkillRouterBusy(false)}
+          }}>{skillRouterBusy?"Checking…":"Choose Skills (read-only)"}</button>
+        {skillSelection&&<div className="wnPolicy" role="status">
+          {skillSelection.ok?<>
+            <strong>{skillSelection.family} · {skillSelection.execution_state}</strong>
+            <p>Use: {skillSelection.selected?.map(x=>x.id).join(" + ")||"none"}</p>
+            <p>Required Blue capability: {skillSelection.capability}</p>
+            <p>Live Blue candidates: {skillSelection.blue_agents?.filter(x=>x.eligible_for_live_preflight).map(x=>x.id).join(", ")||"none verified"}</p>
+            <small>Planning only: no agent has run, no Skill learning proven.</small>
+          </>:<strong>{skillSelection.code}</strong>}
+        </div>}
+        <button type="button" disabled={skillRouterBusy} onClick={async()=>{
+          setSkillRouterBusy(true);
+          try{
+            const res=await fetch("/api/violet/pstack/learning-plan",{credentials:"same-origin",cache:"no-store"});
+            const data=await res.json() as PstackLearningPlan;
+            if(!res.ok||!data.ok)throw Error("LEARNING_PLAN_UNAVAILABLE");
+            setSkillLearning(data);
+          }catch{setSkillLearning(null);setPstackError("LEARNING_PLAN_UNAVAILABLE")}
+          finally{setSkillRouterBusy(false)}
+        }}>View 51-skill learning syllabus (no AI cost)</button>
+        {skillLearning&&<div className="wnPolicy">
+          {skillLearning.skill_count} skills · {skillLearning.waves.length} waves · {skillLearning.learning_state}
+          <p>{skillLearning.agents.length} registered agent identities · none certified as learned by this plan</p>
+          <small>Provider source-read + independent Ruby receipt required before Green retention.</small>
+        </div>}
+      </div>
       {pstackError&&<div className="wnError" role="alert">{pstackError}</div>}
       {pstack&&<><p className="wnPolicy">Imported {pstack.skill_count} Skills + {pstack.agent_definition_count} Agent definitions · {pstack.execution_state} · automations inert</p>
         <label>Search installed skill source

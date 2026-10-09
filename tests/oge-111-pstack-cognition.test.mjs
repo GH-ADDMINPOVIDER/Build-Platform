@@ -42,3 +42,22 @@ test("Violet authenticated API is planning only, no direct provider or D1 write"
  assert.match(api,/automatic_dispatch:false/);
  assert.match(rd("AGENTS.md"),/OGE-111 — pstack source-backed cognition/);
 });
+
+test("existing Violet plan and handoff embed skill references before any actual Agent execution",()=>{
+ const api=rd("worker/violet-stone-api.ts");
+ const plan=api.slice(api.indexOf("export async function buildVioletPlan"),api.indexOf("function createHandoff"));
+ const handoff=api.slice(api.indexOf("function createHandoff"),api.indexOf("function merge"));
+ assert.match(plan,/pstack_skill_stack:selectPstackSkillStack\(intent,pstackFullCatalog\.skills\)/);
+ assert.match(plan,/pstack_source_full_text_loaded:false/);
+ assert.match(handoff,/pstack_skill_stack:selectPstackSkillStack/);
+ assert.match(handoff,/full_skill_source_read_by_provider:false/);
+});
+test("mobile Violet UI can request read-only skill selection and 51-skill learning syllabus",()=>{
+ const ui=rd("src/VioletDistributionPanel.tsx");
+ assert.match(ui,/Violet pstack Skill Intelligence/);
+ assert.match(ui,/\/api\/violet\/pstack\/select/);
+ assert.match(ui,/\/api\/violet\/pstack\/learning-plan/);
+ assert.match(ui,/Choose Skills \(read-only\)/);
+ assert.match(ui,/Planning only: no agent has run/);
+ assert.match(ui,/none certified as learned/);
+});

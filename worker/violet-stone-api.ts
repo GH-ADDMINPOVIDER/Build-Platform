@@ -379,6 +379,9 @@ export async function buildVioletPlan(body: PlanBody, env: VioletStoneBindings) 
       handoff_route: "/api/violet/handoff",
       merge_route: "/api/violet/merge",
       canonical,
+      pstack_skill_stack:selectPstackSkillStack(intent,pstackFullCatalog.skills),
+      pstack_source_full_text_loaded:false,
+      skill_execution_state:"NOT_DISPATCHED",
     },
   };
 }
@@ -401,6 +404,8 @@ function createHandoff(body: HandoffBody, agents: VioletIdentity[]) {
     yellow_stone_route: "/api/capabilities/execute",
     execution_authority: "YELLOW_STONE_ONLY",
     direct_execution_bypass: false,
+    pstack_skill_stack:selectPstackSkillStack(clean(body.intent,1600),pstackFullCatalog.skills),
+    full_skill_source_read_by_provider:false,
   };
   if (requestedPermission !== "READ" || executeRequested) {
     return { status: 409 as const, body: { ok: false, code: "HUMAN_APPROVAL_REQUIRED", handoff: envelope } };
