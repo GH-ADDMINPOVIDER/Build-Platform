@@ -32,7 +32,7 @@ jobs:
         run: npm install --package-lock-only && npm ci
 
       - name: Violet contract
-        run: node --test tests/violet-stone-contract.test.mjs
+        run: node --test tests/violet-stone-contract.test.mjs tests/violet-blue-distribution.test.mjs
 
       - name: Typecheck
         run: npm run typecheck
