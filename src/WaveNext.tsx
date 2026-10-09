@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import McpConfigCenter from "./McpConfigCenter";
 import WhiteDiamondPanel from "./WhiteDiamondPanel";
+import StoneRulePanel from "./StoneRulePanel";
 
 type SessionState = { authenticated?: boolean; user?: { label?: string; role?: string } | null };
 type IncentivePool = {
@@ -102,7 +103,7 @@ type CommandResult = {
   command_handoff?: { admission?: string; actor_id?: string; execution_authority?: string; yellow_stone_route?: string; direct_execution_bypass?: boolean };
 };
 
-type Tab = "run" | "agent" | "session" | "connections" | "approvals" | "history";
+type Tab = "run" | "agent" | "rules" | "session" | "connections" | "approvals" | "history";
 type Surface = "operate" | "command" | "agents";
 type Props = { initialTab?: Tab; surface?: Surface };
 
@@ -252,7 +253,7 @@ function MetricBar({ label, value, detail }: { label: string; value: unknown; de
 function initialDashboardTab(fallback: Tab) {
   try {
     const requested = new URLSearchParams(window.location.search).get("tab");
-    return (["run", "agent", "session", "connections", "approvals", "history"] as Tab[]).includes(requested as Tab)
+    return (["run", "agent", "rules", "session", "connections", "approvals", "history"] as Tab[]).includes(requested as Tab)
       ? requested as Tab
       : fallback;
   } catch {
@@ -473,7 +474,7 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
       </section>}
 
       <nav className="wnTabs" aria-label="WAVE dashboard sections">
-        {(["run", "agent", "session", "connections", "approvals", "history"] as Tab[]).map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}
+        {(["run", "agent", "rules", "session", "connections", "approvals", "history"] as Tab[]).map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}
       </nav>
 
       {error && <div className="wnError">{error}</div>}
@@ -609,6 +610,8 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
           <div className="wnPolicy">{selfHost?.policy || "Policy status unavailable"}</div>
         </section>
       </>}
+
+      {tab === "rules" && <StoneRulePanel />}
 
       {tab === "session" && <section className="wnCard">
         <div className="wnCardHead"><div><span className="wnKicker">GREEN STONE</span><h3>Session continuity</h3></div><State value={bridge?.cross_surface_ready ? "READY" : "DEGRADED"} /></div>
