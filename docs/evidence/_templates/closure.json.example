@@ -1,0 +1,57 @@
+{
+  "issue_id": "OGE-112",
+  "closeout_state": "READY_FOR_RUBY_REVIEW",
+  "task_category": "DEBUG",
+  "pstack_numbers": [
+    1,
+    9,
+    24,
+    36
+  ],
+  "pstack_refs": [
+    {
+      "number": 1,
+      "id": "architect",
+      "sha256": "cb2507870a6a6dda4283a3e9642b813f9df5da41b7d78c310c4309d9091d7827"
+    },
+    {
+      "number": 9,
+      "id": "figure-it-out",
+      "sha256": "0eb9485f0e7d84fee56b5d0f0af0faf4635e3ca87c8cba3970c01293b76ecc19"
+    },
+    {
+      "number": 24,
+      "id": "principle-fix-root-causes",
+      "sha256": "ba4cd38da1dcc8fe5432feb64457cba95594736a9b21b2ebf8f8c52aee068707"
+    },
+    {
+      "number": 36,
+      "id": "principle-separate-before-serializing-shared-state",
+      "sha256": "05294b40448e927c5da1c7b6f5c6b9fed3744637e3833d2d948b9154a9dd00bb"
+    }
+  ],
+  "implementer": {
+    "agent_id": "REPLACE_WITH_REAL_ID",
+    "proof_url": "https://github.com/REPLACE_WITH_REAL_RECEIPT"
+  },
+  "reviewer": {
+    "agent_id": "REPLACE_WITH_INDEPENDENT_ID",
+    "proof_url": "https://github.com/REPLACE_WITH_REAL_RECEIPT"
+  },
+  "committer": {
+    "agent_id": "REPLACE_WITH_REAL_ID",
+    "proof_url": "https://github.com/REPLACE_WITH_REAL_RECEIPT"
+  },
+  "deployer": {
+    "agent_id": "REPLACE_WITH_REAL_ID",
+    "proof_url": "https://github.com/REPLACE_WITH_REAL_RECEIPT"
+  },
+  "commit_sha": "REPLACE_WITH_EXACT_40_CHAR_SHA",
+  "commit_url": "https://github.com/REPLACE_WITH_REAL_COMMIT",
+  "ci_run_url": "https://github.com/REPLACE_WITH_REAL_CI",
+  "deploy_run_url": "https://github.com/REPLACE_WITH_REAL_DEPLOY",
+  "ruby_proof_url": "https://github.com/REPLACE_WITH_REAL_RUBY",
+  "ruby_verdict": "PENDING",
+  "root_cause_or_reason": "REPLACE_WITH_VERIFIED_CAUSE",
+  "omitted_step_review": "REPLACE_WITH_REVIEW"
+}

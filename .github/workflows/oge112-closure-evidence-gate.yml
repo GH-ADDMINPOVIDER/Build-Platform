@@ -1,0 +1,34 @@
+name: OGE Closure Circuit and Pstack Actor Proof (STRUCTURE)
+on:
+  workflow_dispatch:
+    inputs:
+      issue_id:
+        description: Exact OGE issue ID e.g. OGE-112
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.ref_name == 'phase-vi-provider-incentive-metering'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fail closed on missing diagram, pstack number or ownership
+        env:
+          ISSUE_ID: ${{ inputs.issue_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node scripts/oge112-check-closure.mjs "$ISSUE_ID"
+      - name: Limits of structural evidence
+        run: echo "Ruby must independently check remote URLs and actual outcomes before Linear Done"

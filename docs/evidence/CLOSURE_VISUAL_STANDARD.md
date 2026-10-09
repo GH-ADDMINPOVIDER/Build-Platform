@@ -40,3 +40,6 @@ Every closure README must contain:
 - RESIDUAL RISK
 
 The visual is a summary of evidence, not a substitute for evidence.
+
+## OGE-112 closure evidence and actor chain
+Prospectively use `closure.json` alongside README and a truthful `closure.svg`/real UI image. Add README heading `ROOT CAUSE / MISSED STEPS`. Canonical skill numbers 1..51 must match `config/pstack-task-taxonomy.json` and checksummed IDs: e.g. `Pstack: 1,9,24,36`. Record implementer, reviewer, committer, deployer with verifiable IDs/links; exact SHA, CI/deploy receipts, independent Ruby PASS and mistakes/missed steps. Do not fabricate reviewer, image or deployment for documentation-only tasks: such issues require explicit scoped exception through existing approvals. A structural gate cannot prove remote links or block Linear independently. Run `node scripts/oge112-check-closure.mjs OGE-123`, or GitHub Action `oge112-closure-evidence-gate.yml` on staging. **The previous graphic standard was not automatically enforced**: observed closure images in GitHub exist only for OGE-80 through OGE-88 in the inspected commit. Never report every later issue had an image without evidence.

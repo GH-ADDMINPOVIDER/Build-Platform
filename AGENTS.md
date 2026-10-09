@@ -30,6 +30,11 @@ Act as an operator, not a status reporter. Read the real state, choose the cheap
 - Agents retrieve selected full Skills when authorized, receive owner-main/1LSS context separately, and must report real source fingerprints and session receipt. Ruby verifies before any Green canonical retention. No new D1 schema or second memory database, no 51xN paid automatic calls.
 - Missing Blue readiness or Yellow consent means NOT_DISPATCHED; never claim learned/completed from a prompt or CI compilation.
 
+## OGE-112 — Rule taxonomy & real closure provenance
+- RULE STONE is sole canonical task category and pstack number authority: `config/pstack-task-taxonomy.json` referenced by `config/oge95-rules-center.json`. VIOLET consumes it and picks skills/team, BLUE checks Agent readiness, YELLOW alone authorizes action, RUBY independent verdict, GREEN only memory. Do not create an additional gating Stone.
+- Every prospective OGE closeout requires truthful visual circuit or UI proof, OGE-specific README and `closure.json` with source checksum-matched `Pstack: 1,9,24,36` numbers, implementer/reviewer/committer/deployer and exact CI/deploy/Ruby evidence. Unverified is BLOCKED, not DONE.
+- Run `node scripts/oge112-check-closure.mjs OGE-ID` before proposed Linear Done. The gate checks structure, not remote authenticated truth and cannot alone block Linear status. No fake screenshot or owner QA delegation.
+
 ## Hard guardrails
 - NEVER touch `main`, production, Candy, D1 schema, billing, or secrets unless the owner explicitly instructs it.
 - Staging first. Minimum reversible diff.
