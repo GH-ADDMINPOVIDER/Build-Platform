@@ -34,14 +34,27 @@ export function analyze(paths,graph){
   edges:flow.slice(1).map((to,i)=>[flow[i],to]).filter(e=>allowed.has(e.join("->"))),
   source:"docs/architecture/oge-system-edges.json",runtime_verified:false,review_required:true};
 }
+export function analyzeChanges(changes,graph){
+ if(!Array.isArray(changes)||changes.length>200)throw Error("INVALID_CHANGES");
+ const paths=changes.map(x=>x.path);
+ const out=analyze(paths,graph);
+ if(new Set(paths).size!==paths.length)throw Error("DUPLICATE_FILE");
+ const count={added:0,modified:0,deleted:0,type_changed:0};
+ for(const x of changes){
+  if(!x||typeof x.path!=="string"||!["A","M","D","T"].includes(x.status))throw Error("INVALID_STATUS");
+  count[({A:"added",M:"modified",D:"deleted",T:"type_changed"})[x.status]]++;
+ }
+ return {...out,change_summary:count,changed_files:changes.sort((a,b)=>a.path.localeCompare(b.path,"en")),diff_status_verified:true};
+}
 export function svg(report,graph){
  const labels=new Map(graph.nodes.map(n=>[n.id,n.label]));
- const height=110+report.flow.length*91;
+ const height=145+report.flow.length*91+(report.change_summary?18:0);
  const body=['<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="'+height+'" viewBox="0 0 1040 '+height+'" role="img">',
   '<title>WAVE source review (not runtime proof)</title><rect width="100%" height="100%" fill="#fff"/>',
   '<text x="40" y="41" font-family="Arial" font-weight="bold" font-size="24">WAVE REVIEW IMPACT MAP</text>'];
+ if(report.change_summary){const c=report.change_summary;body.push('<text x="40" y="58" font-family="Arial" font-size="13">Diff facts: +'+c.added+' ~'+c.modified+' -'+c.deleted+' type '+c.type_changed+'</text>');}
  report.flow.forEach((id,i)=>{
-  const y=58+i*91,hit=report.candidate_nodes.includes(id);
+  const y=(report.change_summary?76:58)+i*91,hit=report.candidate_nodes.includes(id);
   body.push('<rect x="40" y="'+y+'" width="960" height="67" rx="8" stroke="#444" fill="'+(hit?"#111":"#f4f4f4")+'"/>');
   body.push('<text x="60" y="'+(y+27)+'" font-family="Arial" font-size="18" fill="'+(hit?"#fff":"#111")+'">'+esc(id)+'</text>');
   body.push('<text x="60" y="'+(y+50)+'" font-family="Arial" font-size="14" fill="'+(hit?"#fff":"#555")+'">'+esc(labels.get(id)||id)+'</text>');
@@ -56,6 +69,10 @@ export function markdown(report){
  return ["# OGE95 source-impact diagram (review only)",fence+"mermaid","flowchart TD",
  ...report.flow.map(x=>"  "+x+'["'+x+'"]'),
  ...report.edges.map(e=>"  "+e[0]+" --> "+e[1]),fence,
+ ...(report.change_summary?[
+  "Exact git file changes: "+JSON.stringify(report.change_summary),
+  ...report.changed_files.map(x=>"- "+x.status+" : "+x.path)
+ ]:[]),
  "Candidate nodes: "+(report.candidate_nodes.join(", ")||"none"),
  "Unmapped files: "+(report.unmapped.join(", ")||"none"),
  "This does not prove new data-flow edges, bugs, tests, or deployments."].join("\n")+"\n";
@@ -64,12 +81,15 @@ function main(){
  const base=process.argv[2]||"HEAD~1";
  if(base!=="HEAD~1"&&!/^[0-9a-f]{40}$/i.test(base))throw Error("INVALID_BASE");
  if(execFileSync("git",["branch","--show-current"],{encoding:"utf8"}).trim()!==BRANCH)throw Error("STAGING_ONLY");
- const files=execFileSync("git",["diff","--name-only","--diff-filter=ACDMRT",base,"HEAD"],{encoding:"utf8"}).trim().split("\n").filter(Boolean);
+ const changes=execFileSync("git",["diff","--name-status","--no-renames","--diff-filter=ACDMT",base,"HEAD"],{encoding:"utf8"}).split("\n").filter(Boolean).map(row=>{
+  const tab=row.indexOf("\t");if(tab<1)throw Error("INVALID_DIFF_ROW");
+  return {status:row.slice(0,tab),path:row.slice(tab+1)};
+ });
  const graph=JSON.parse(readFileSync("docs/architecture/oge-system-edges.json","utf8"));
- const r=analyze(files,graph);r.head_sha=execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();
+ const r=analyzeChanges(changes,graph);r.head_sha=execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();
  writeFileSync("oge95-review-impact.json",JSON.stringify(r,null,2)+"\n");
  writeFileSync("oge95-review-impact.svg",svg(r,graph));
  writeFileSync("oge95-review-impact.md",markdown(r));
- console.log(JSON.stringify({result:"SOURCE_REVIEW_READY",head:r.head_sha,files:files.length,unknown:r.unmapped.length,provider_calls:0}));
+ console.log(JSON.stringify({result:"SOURCE_REVIEW_READY",head:r.head_sha,files:changes.length,counts:r.change_summary,unknown:r.unmapped.length,provider_calls:0}));
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))main();
