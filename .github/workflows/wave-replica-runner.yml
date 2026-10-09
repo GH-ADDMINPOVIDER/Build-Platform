@@ -65,14 +65,15 @@ jobs:
           # Disposable, synthetic local test credential; never a staging/production secret.
           TEST_OPS_KEY="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("hex"))')"
           export REPLICA_TEST_OPS_KEY="$TEST_OPS_KEY"
-          npx wrangler dev \
+          # Run in an isolated process group so restart cannot accidentally reuse an orphan workerd.
+          setsid npx wrangler dev \
             --config dist/ogenic_phase_vi_staging/replica.wrangler.json \
             --local --ip 127.0.0.1 --port 8787 \
             --var "OGENIC_OPS_KEY:$TEST_OPS_KEY" \
             --persist-to "$PERSIST_DIR" \
             > "$RUNNER_TEMP/replica-workerd.log" 2>&1 &
           PID=$!
-          trap 'kill "$PID" 2>/dev/null || true' EXIT
+          trap 'kill -TERM -- "-$PID" 2>/dev/null || true' EXIT
           if ! node scripts/replica-runner/verify.mjs; then
             echo '::error::Local Replica parity proof failed; sanitized tail follows'
             tail -n 40 "$RUNNER_TEMP/replica-workerd.log" | sed -E 's/(sk-[[:alnum:]_-]{12,}|gh[pousr]_[[:alnum:]]{12,})/[REDACTED]/g'
@@ -80,6 +81,22 @@ jobs:
           fi
           node scripts/replica-runner/verify-1lss.mjs
           node scripts/replica-runner/compare.mjs
+          # OGE-96: force a genuine process teardown and boot from the SAME persistent local D1.
+          kill -TERM -- "-$PID"
+          wait "$PID" 2>/dev/null || true
+          PORT_CLOSED=false
+          for i in $(seq 1 20); do
+            if curl --silent --max-time 1 --output /dev/null http://127.0.0.1:8787/; then sleep 0.25; else PORT_CLOSED=true; break; fi
+          done
+          test "$PORT_CLOSED" = true || { echo "::error::Old workerd still listening; restart proof invalid"; exit 1; }
+          setsid npx wrangler dev \
+            --config dist/ogenic_phase_vi_staging/replica.wrangler.json \
+            --local --ip 127.0.0.1 --port 8787 \
+            --var "OGENIC_OPS_KEY:$TEST_OPS_KEY" \
+            --persist-to "$PERSIST_DIR" \
+            > "$RUNNER_TEMP/replica-workerd-restart.log" 2>&1 &
+          PID=$!
+          node scripts/replica-runner/verify-1lss-restart.mjs
       - name: Restore Stone Runner context from prior GitHub artifact
         if: always()
         shell: bash
@@ -125,6 +142,7 @@ jobs:
           path: |
             replica-evidence.json
             replica-1lss-evidence.json
+            replica-1lss-restart-evidence.json
           retention-days: 14
           if-no-files-found: warn
       - name: Publish honest parity measurement
@@ -144,6 +162,10 @@ jobs:
             if test -f replica-1lss-evidence.json; then
               echo '### Local stateful 1LSS proof (synthetic data)'
               jq '{status,checks_passed,checks_total,unique_inserted,duplicate_retry_prevented,source_surfaces,remote_d1_access}' replica-1lss-evidence.json
+            fi
+            if test -f replica-1lss-restart-evidence.json; then
+              echo '### Local D1 persistence after actual workerd restart'
+              jq '{status,checks_passed,checks_total,expected_sequence,remote_d1_access}' replica-1lss-restart-evidence.json
             fi
             if test -f athena-runner-context.json; then
               echo '### Stone Runner (commit / CI / deploy context)'
