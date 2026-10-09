@@ -1,18 +1,6 @@
 name: OGE-47/48 Parallel Runtime One-Pass Refinery
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/parallel-agent-runtime.yml"
-      - "scripts/parallel-agent-runtime.mjs"
-      - "scripts/reduce-parallel-agent-results.mjs"
-      - "scripts/one-pass-runtime-refinery.mjs"
-      - "tests/oge-47-parallel-agent-runtime-policy.test.mjs"
-      - "tests/oge-48-one-pass-runtime-refinery.test.mjs"
-      - "infra/knowledge-sandbox/**"
-      - "worker/knowledge-refinery.ts"
-      - "worker/provider-readiness.ts"
   workflow_dispatch:
 
 permissions:

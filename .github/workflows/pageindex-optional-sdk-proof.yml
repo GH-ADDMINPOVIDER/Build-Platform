@@ -1,10 +1,6 @@
 name: PageIndex Optional Python SDK Proof (Zero LLM)
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/pageindex-optional-sdk-proof.yml"
   workflow_dispatch:
 
 permissions:

@@ -1,10 +1,6 @@
 name: Provider Readiness Audit
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/provider-readiness-audit.yml"
   workflow_dispatch:
 
 permissions:

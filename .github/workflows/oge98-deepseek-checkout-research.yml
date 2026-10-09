@@ -1,9 +1,6 @@
 name: OGE-98 DeepSeek Wrong Checkout Research (Owner One-Shot)
 # Exactly one triggered research call for this source addition; other pushes do not rerun this metered job.
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths: [".github/workflows/oge98-deepseek-checkout-research.yml"]
   workflow_dispatch:
     inputs:
       confirm_single_paid_call:

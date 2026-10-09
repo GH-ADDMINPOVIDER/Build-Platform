@@ -1,11 +1,6 @@
 name: OIDC Contract Check
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "config/github-oidc.staging.json"
-      - ".github/workflows/oidc-contract-check.yml"
   workflow_dispatch:
 
 permissions:

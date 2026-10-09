@@ -1,11 +1,6 @@
 name: Phase VI Final Runtime Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/phase-vi-final-runtime-proof.yml"
-      - "scripts/verify-phase-vi-final-runtime.sh"
   workflow_dispatch:
 
 permissions:

@@ -1,10 +1,6 @@
 name: WAVE Command Plane Staging Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "src/.wave-deploy-trigger"
   workflow_dispatch:
 
 permissions:
