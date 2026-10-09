@@ -732,6 +732,15 @@
       "no_duplicate_auth": true,
       "unapproved_paid_auto_dispatch": false,
       "do_not_promote_without_ruby": true
+    },
+    "pstack_task_taxonomy": {
+      "metadata_index": "config/pstack-task-taxonomy.json",
+      "producer": "RULE_STONE_07",
+      "consumer": "VIOLET_STONE_04",
+      "classification_only": true,
+      "approval_gateway": false,
+      "source_manifest": "config/pstack-full-catalog.json",
+      "permanent_skill_numbers": 51
     }
   }
 }

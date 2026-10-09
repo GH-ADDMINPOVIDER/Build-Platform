@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import pstackFullCatalog from "../config/pstack-full-catalog.json";
+import pstackTaxonomy from "../config/pstack-task-taxonomy.json";
+import { classifyPstackIntent, numberPstackSkills } from "./violet-pstack-taxonomy";
 import { selectPstackSkillStack, planSkillLearning } from "./violet-pstack-selector";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { buildWhiteDiamondRegistry, type RegistryEnv, type WhiteDiamondAgent } from "./white-diamond-registry";
@@ -480,6 +482,7 @@ export function createVioletStoneApi() {
     source_pin: pstackFullCatalog.pin_commit,
     upstream: pstackFullCatalog.upstream,
     skill_count: pstackFullCatalog.skill_count,
+    stable_numbers: pstackTaxonomy.skills.map(s=>({number:s.number,id:s.id,categories:s.categories})),
     agent_definition_count: pstackFullCatalog.agent_definition_count,
     source_installed: pstackFullCatalog.vendor_complete,
     execution_state: "NOT_DISPATCHED",
@@ -502,7 +505,9 @@ export function createVioletStoneApi() {
     const candidates=buildBlueDiamondRegistry(c.env).filter(a=>a.agent_eligible &&
       a.actor_class==="execution_agent" && a.maturity==="PROVEN" &&
       a.capabilities.includes(selected.capability));
-    return c.json({...selected,controller:"VIOLET_STONE_04",
+    const classification=classifyPstackIntent(body?.task,pstackTaxonomy);
+    const numbered=numberPstackSkills(selected.selected.map(s=>s.id),pstackTaxonomy);
+    return c.json({...selected,task_classification:classification,pstack_numbered: numbered,controller:"VIOLET_STONE_04",
       blue_agents:candidates.map(a=>({id:a.actor_id,provider:a.provider,readiness:a.state,
         eligible_for_live_preflight:a.state==="LIVE",automatic_dispatch:false})),
       execution_authority:"YELLOW_STONE_ONLY",independent_verifier:"RUBY_STONE",
