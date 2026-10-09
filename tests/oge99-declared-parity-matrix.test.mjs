@@ -57,7 +57,7 @@ test("OGE-99 reports 9/10 as threshold-met partial parity without inventing 10/1
   v.replica.staging_comparison.cases[9].match=false;
   const out=buildParityMatrix(v);
   assert.equal(out.checks.find(x=>x.id==="ten_public_staging_surface_contracts").status,"PASS");
-  assert.match(out.checks.find(x=>x.id==="ten_public_staging_surface_contracts").observation,/9\\/10/);
+  assert.ok(out.checks.find(x=>x.id==="ten_public_staging_surface_contracts").observation.includes("9/10"));
   assert.equal(out.full_operational_1_to_1_certified,false);
   assert.equal(out.ready_to_close_stone_phase,false);
 });
