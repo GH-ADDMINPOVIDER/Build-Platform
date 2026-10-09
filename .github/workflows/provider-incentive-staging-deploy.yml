@@ -15,9 +15,16 @@ on:
       - "database/**"
       - "config/**"
       - "package.json"
+      - "package-lock.json"
       - "vite.config.ts"
       - "wrangler.jsonc"
   workflow_dispatch:
+
+# One staging deploy per branch; new pushes supersede queued/running stale deploys.
+# Keep separate from the continuous latest-HEAD CI group.
+concurrency:
+  group: oge95-staging-auto-deploy-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -321,6 +328,14 @@ jobs:
           UI_ONLY: ${{ steps.scope.outputs.ui_only }}
         run: |
           set -euo pipefail
+          # Recheck immediately before the side effect: a newer push may have
+          # arrived while credentials, dependencies, and build were prepared.
+          REMOTE_HEAD="$(git ls-remote --exit-code origin refs/heads/phase-vi-provider-incentive-metering | awk '{print $1}')"
+          if ! [[ "$REMOTE_HEAD" =~ ^[0-9a-f]{40}$ ]] || test "$GITHUB_SHA" != "$REMOTE_HEAD"; then
+            echo "::error::Staging HEAD changed or cannot be verified before deploy; refusing superseded Worker mutation"
+            exit 1
+          fi
+          echo "Deployment source still current: $GITHUB_SHA"
           if test "$UI_ONLY" = "true"; then
             npx wrangler deploy --config dist/ogenic_phase_vi_staging/wrangler.json --keep-vars
             echo "Frontend-only staging code deployed; existing secrets kept; D1 migrations skipped."
