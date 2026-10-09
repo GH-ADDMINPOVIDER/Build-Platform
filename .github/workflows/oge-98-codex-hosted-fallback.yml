@@ -1,0 +1,232 @@
+name: OGE-98 Codex Scoped Code Proof (GitHub hosted fallback)
+# One owner-requested staging proof; editing this workflow is the ONLY push trigger.
+# Fallback after self-host runner's official Codex Action proxy failed before inference.
+# Real Codex code change stays in a disposable worktree. Never auto-push, merge, or deploy.
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: [".github/workflows/oge-98-codex-hosted-fallback.yml"]
+  workflow_dispatch:
+    inputs:
+      confirm_one_moderated_agent_call:
+        description: "Explicitly authorize one Codex run with existing paid OpenAI API binding"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: oge98-scoped-code-hosted-fallback
+  cancel-in-progress: false
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+
+jobs:
+  codex-scoped-task:
+    if: ${{ github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering' && (github.event_name == 'push' || inputs.confirm_one_moderated_agent_call == true) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact canonical staging SHA with no commit permissions
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Lock branch and clean tree on isolated GitHub-hosted runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+           command -v node >/dev/null
+          echo 'OGE98_CANONICAL_HOSTED_FALLBACK_READY'
+
+      - name: Create isolated disposable worktree pinned to exact CI SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/oge98-code-proof-$GITHUB_RUN_ID"
+          test ! -e "$WORK"
+          git worktree add --detach "$WORK" "$GITHUB_SHA" >/dev/null
+          test "$(git -C "$WORK" rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git -C "$WORK" status --porcelain)"
+          echo "OGE98_WORKTREE=$WORK" >> "$GITHUB_ENV"
+          echo "OGE98_ISOLATED_WORKTREE_READY"
+
+      - name: Load existing OpenAI application binding through Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+
+      - name: Validate model key presence without printing or spreading credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OPENAI_API_KEY:-}" || { echo "::error::OPENAI_APPLICATION_BINDING_MISSING"; exit 1; }
+          echo 'OGE98_CODEX_APP_BINDING_PRESENT'
+
+      - name: Ask real Codex agent to create exactly one harmless isolated test fixture
+        id: agent
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ env.OPENAI_API_KEY }}
+          working-directory: ${{ runner.temp }}/oge98-code-proof-${{ github.run_id }}
+          permission-profile: ":workspace"
+          safety-strategy: drop-sudo
+          output-file: ${{ runner.temp }}/oge98-codex-final.txt
+          prompt: |
+            Owner-approved OGE-98 ONE bounded code-generation proof, entirely in this disposable staging SHA worktree.
+            Create EXACTLY ONE file: tests/oge98-agent-smoke.test.mjs.
+            The file must use node:test and node:assert/strict, with two nontrivial deterministic tests:
+            (1) normalize a list of duplicate sorted event sequence numbers into distinct ascending integers
+                and assert exact expected output;
+            (2) a small idempotency Set fixture proves two events with the same key cause one insertion only.
+            Do not edit, delete or read any other existing source file. Do not run git commit, git push,
+            git remote, curl, npm install or any network command. Do not request/inspect credentials or user data.
+            Do not modify any protected branch, Worker, D1, production or Candy. No other files may change.
+            Keep file under 3 KB. Report the file you created and its local node test result.
+
+      - name: Fail closed unless Codex wrote exactly the allowed file, then test and emit bounded evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$OGE98_WORKTREE"
+          cd "$WORK"
+          EXPECTED='?? tests/oge98-agent-smoke.test.mjs'
+          test "$(git status --porcelain)" = "$EXPECTED" || { echo "::error::AGENT_CHANGED_UNAPPROVED_PATHS_OR_NO_DIFF"; exit 1; }
+          test ! -L tests/oge98-agent-smoke.test.mjs
+          test -s tests/oge98-agent-smoke.test.mjs
+          test "$(wc -c < tests/oge98-agent-smoke.test.mjs)" -le 3072
+          node --test tests/oge98-agent-smoke.test.mjs > "$RUNNER_TEMP/oge98-agent-node-test.log" 2>&1 ||
+            { echo "::error::CODEX_GENERATED_TEST_FAILED"; tail -n 40 "$RUNNER_TEMP/oge98-agent-node-test.log"; exit 1; }
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from "node:fs";
+          import {createHash} from "node:crypto";
+          import {join} from "node:path";
+          const path="tests/oge98-agent-smoke.test.mjs";
+          const data=readFileSync(path,"utf8");
+          const record={
+            schema_version:"OGE98_SELFHOST_AGENT_CODE_RECEIPT_V1",
+            source_sha:process.env.GITHUB_SHA,
+            run_id:process.env.GITHUB_RUN_ID,
+            repository:process.env.GITHUB_REPOSITORY,
+            branch:process.env.GITHUB_REF_NAME,
+            expected_changed_file:path,
+            file_sha256:createHash("sha256").update(data).digest("hex"),
+            agent_generated_test:"PASS",
+            independent_ruby_audit:"PENDING",
+            changes_pushed:false,
+            status:"AGENT_LOCAL_TEST_PASS_RUBY_PENDING"
+          };
+          writeFileSync(join(process.env.RUNNER_TEMP,"oge98-agent-code-receipt.json"),JSON.stringify(record,null,2));
+          console.log("OGE98_LOCAL_CODE_RECEIPT_EMITTED");
+          NODE
+          test -s "$RUNNER_TEMP/oge98-agent-code-receipt.json"
+          (git diff --no-index /dev/null tests/oge98-agent-smoke.test.mjs > "$RUNNER_TEMP/oge98-agent-generated.patch" || test "$?" -eq 1)
+          echo "OGE98_AGENT_CODE_TEST_PASS"
+
+      - name: Upload safe local-only artifact for owner and Ruby audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge98-scoped-code-proof-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/oge98-agent-code-receipt.json
+            ${{ runner.temp }}/oge98-code-proof-${{ github.run_id }}/tests/oge98-agent-smoke.test.mjs
+            ${{ runner.temp }}/oge98-agent-node-test.log
+            ${{ runner.temp }}/oge98-agent-generated.patch
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Remove isolated worktree, leave source branch unchanged
+        if: always()
+        shell: bash
+        run: |
+          if test -n "${OGE98_WORKTREE:-}" && test -d "$OGE98_WORKTREE"; then
+            git worktree remove --force "$OGE98_WORKTREE" 2>/dev/null || true
+            git worktree prune || true
+          fi
+          echo "OGE98_NO_AUTOPUSH_OR_DEPLOY"
+
+  independent-ruby-audit:
+    name: independently verify agent-generated patch on GitHub-hosted runner
+    needs: [codex-scoped-task]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download only the current run's bounded code evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: oge98-scoped-code-proof-${{ github.run_id }}
+          path: oge98-audit
+      - name: Setup independent Ruby verifier
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - name: Verify exact SHA, allowed fixture, no secret access, and deterministic content
+        shell: bash
+        run: |
+          set -euo pipefail
+          find oge98-audit -maxdepth 6 -type f -print | sed -E 's/[^a-zA-Z0-9._/ -]/_/g'
+          ruby -rdigest -rjson -e '
+            root="oge98-audit"
+            receipt=JSON.parse(File.read(File.join(root,"oge98-agent-code-receipt.json")))
+            filename=Dir.glob(File.join(root,"**","oge98-agent-smoke.test.mjs")).first
+            abort "RUBY_FIXTURE_NOT_FOUND" unless filename && File.file?(filename)
+            text=File.binread(filename)
+            abort "RUBY_SHA_OR_BRANCH_MISMATCH" unless receipt.fetch("source_sha")==ENV.fetch("GITHUB_SHA") &&
+              receipt.fetch("branch")=="phase-vi-provider-incentive-metering" &&
+              receipt.fetch("repository")=="Ogenicchocolate21debug/Build-Platform"
+            abort "RUBY_FILE_DIGEST_MISMATCH" unless Digest::SHA256.hexdigest(text)==receipt.fetch("file_sha256")
+            abort "RUBY_AGENT_TEST_NOT_RUN" unless receipt.fetch("agent_generated_test")=="PASS"
+            abort "RUBY_AGENT_FIXTURE_CONTRACT_MISSING" unless text.include?("node:test") &&
+              text.include?("node:assert/strict") && text.scan("test(").length>=2
+            abort "RUBY_FIXTURE_BUDGET_EXCEEDED" if text.bytesize>3072
+            denied=["execSync", "spawn(", "child_process", "process.env", "fetch(", "curl ", "http://", "https://", "require(", "import("]
+            abort "RUBY_UNSAFE_CODE_PATTERNS" if denied.any?{|item| text.include?(item)}
+            attestation={
+              schema_version:"OGE98_RUBY_INDEPENDENT_HOSTED_V1",
+              source_sha:receipt.fetch("source_sha"),
+              receipt_sha256:Digest::SHA256.hexdigest(File.binread(File.join(root,"oge98-agent-code-receipt.json"))),
+              fixture_sha256:receipt.fetch("file_sha256"),
+              bounded_file_scope:"PASS",
+              agent_generated_node_test:"PASS",
+              independent_ruby_contract:"PASS",
+              semantic_ai_review:"NOT_TESTED",
+              no_auto_commit:true,
+              same_openai_agents_session_as_oge28:false,
+              ready_to_close_oge98:false,
+              status:"RUBY_DETERMINISTIC_HOSTED_PASS"
+            }
+            File.write("oge98-ruby-independent-attestation.json",JSON.pretty_generate(attestation))
+            puts "OGE98_INDEPENDENT_RUBY_PASS"
+          '
+      - name: Independently replay node:test from agent's generated file
+        shell: bash
+        run: |
+          set -euo pipefail
+          TEST_FILE="$(find oge98-audit -name oge98-agent-smoke.test.mjs -type f | head -n1)"
+          test -n "$TEST_FILE"
+          node --test "$TEST_FILE"
+          echo 'OGE98_INDEPENDENT_NODE_REPLAY_PASS'
+      - name: Publish independent Ruby attestation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oge98-independent-ruby-${{ github.run_id }}
+          path: oge98-ruby-independent-attestation.json
+          retention-days: 14
+          if-no-files-found: warn
