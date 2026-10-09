@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import pstackFullCatalog from "../config/pstack-full-catalog.json";
+import { selectPstackSkillStack, planSkillLearning } from "./violet-pstack-selector";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { buildWhiteDiamondRegistry, type RegistryEnv, type WhiteDiamondAgent } from "./white-diamond-registry";
 import { buildBlueDiamondRegistry } from "./blue-diamond-registry";
@@ -486,6 +487,35 @@ export function createVioletStoneApi() {
       state: "SOURCE_AVAILABLE_NOT_RUNTIME_VERIFIED",
     })),
   }, 200, { "Cache-Control": "no-store" }));
+
+
+  // Read-only task-to-skill router; never dispatches or certifies provider knowledge.
+  api.post("/api/violet/pstack/select", async (c) => {
+    const body=await c.req.json<{task?:unknown}>().catch(()=>null);
+    const selected=selectPstackSkillStack(body?.task,pstackFullCatalog.skills);
+    if(!selected.ok)return c.json(selected,400,{ "Cache-Control":"no-store" });
+    const candidates=buildBlueDiamondRegistry(c.env).filter(a=>a.agent_eligible &&
+      a.actor_class==="execution_agent" && a.maturity==="PROVEN" &&
+      a.capabilities.includes(selected.capability));
+    return c.json({...selected,controller:"VIOLET_STONE_04",
+      blue_agents:candidates.map(a=>({id:a.actor_id,provider:a.provider,readiness:a.state,
+        eligible_for_live_preflight:a.state==="LIVE",automatic_dispatch:false})),
+      execution_authority:"YELLOW_STONE_ONLY",independent_verifier:"RUBY_STONE",
+      green_memory:"owner-main / 1LSS_OWNER_MAIN",prior_context_loaded:false,
+      planning_only:true},200,{ "Cache-Control":"no-store" });
+  });
+  // A bounded 51/51 syllabus is not evidence that any model has read it.
+  api.get("/api/violet/pstack/learning-plan", (c) => c.json({
+    ok:true,...planSkillLearning(pstackFullCatalog.skills),
+    source_pin:pstackFullCatalog.pin_commit,
+    controller:"VIOLET_STONE_04",execution_authority:"YELLOW_STONE_ONLY",
+    required_real_agent_receipt:"SESSION_ID_SOURCE_HASHES_AND_INDEPENDENT_RUBY_PROOF",
+    agents:buildBlueDiamondRegistry(c.env).filter(a=>a.agent_eligible).map(a=>({
+      id:a.actor_id,provider:a.provider,readiness:a.state,maturity:a.maturity,
+      read_state:"NOT_VERIFIED",dispatch_state:"NOT_DISPATCHED",
+    })),
+    canonical_memory:"owner-main / 1LSS_OWNER_MAIN",
+  },200,{ "Cache-Control":"no-store" }));
 
   api.get("/api/violet/status", async (c) => {
     const agents = buildVioletAgentRegistry(c.env);
