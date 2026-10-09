@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import McpConfigCenter from "./McpConfigCenter";
 import WhiteDiamondPanel from "./WhiteDiamondPanel";
+import VioletDistributionPanel from "./VioletDistributionPanel";
 import StoneRulePanel from "./StoneRulePanel";
 
 type SessionState = { authenticated?: boolean; user?: { label?: string; role?: string } | null };
@@ -538,6 +539,7 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
 
       {tab === "agent" && <>
         <WhiteDiamondPanel />
+        <VioletDistributionPanel />
 
         <section className="wnStatusSection">
           <div className="wnStatusTitle">
