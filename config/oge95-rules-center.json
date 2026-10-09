@@ -617,5 +617,121 @@
     "required_authority": "EXISTING_YELLOW_PERMISSIONS_ONLY",
     "rule_stone": "TAXONOMY_NOT_SECOND_GATE",
     "canonical_state": "GREEN_1LSS_D1_NOT_RUNNER_EVIDENCE"
+  },
+  "stone_rule_panel": {
+    "schema_version": "RULE_STONE_PANEL_V1",
+    "canonical_owner": "RULE_STONE_07",
+    "authority": "CANONICAL_RULE_TAXONOMY_ONLY",
+    "policy_file": "config/oge95-rules-center.json",
+    "edit_here_first": true,
+    "yellow_only_exec_authority": true,
+    "rules_shared_across_all_stones": true,
+    "separate_approval_gateway": false,
+    "stones": [
+      {
+        "id": "01",
+        "name": "GREEN STONE",
+        "species": "Emerald",
+        "color": "#10B981",
+        "function": "1LSS · One-Line Session",
+        "category_ids": [
+          "01_scope_identity",
+          "03_deduplication",
+          "07_verify_retain",
+          "08_security"
+        ]
+      },
+      {
+        "id": "02",
+        "name": "YELLOW STONE",
+        "species": "Citrine",
+        "color": "#EAB308",
+        "function": "Tools · Capability Execution",
+        "category_ids": [
+          "02_execution_workflow",
+          "04_cost_tokens_context",
+          "08_security"
+        ]
+      },
+      {
+        "id": "03",
+        "name": "BLUE DIAMOND",
+        "species": "Blue Diamond",
+        "color": "#3B82F6",
+        "function": "Agents · Identity & Readiness",
+        "category_ids": [
+          "01_scope_identity",
+          "05_provider_sources",
+          "08_security"
+        ]
+      },
+      {
+        "id": "04",
+        "name": "VIOLET STONE",
+        "species": "Amethyst",
+        "color": "#8B5CF6",
+        "function": "Multi-Agent Solution",
+        "category_ids": [
+          "02_execution_workflow",
+          "03_deduplication",
+          "04_cost_tokens_context",
+          "09_observability_and_errors"
+        ]
+      },
+      {
+        "id": "05",
+        "name": "RUBY STONE",
+        "species": "Ruby",
+        "color": "#DC2626",
+        "function": "Verification",
+        "category_ids": [
+          "07_verify_retain",
+          "09_observability_and_errors"
+        ]
+      },
+      {
+        "id": "06",
+        "name": "STONE RUNNER",
+        "species": "Obsidian",
+        "color": "#111113",
+        "function": "Ephemeral Runtime Execution",
+        "category_ids": [
+          "02_execution_workflow",
+          "06_replica_compute",
+          "07_verify_retain",
+          "08_security"
+        ]
+      },
+      {
+        "id": "07",
+        "name": "RULE STONE",
+        "species": "Gray Agate",
+        "color": "#64748B",
+        "function": "Central Rule Taxonomy",
+        "category_ids": [
+          "01_scope_identity",
+          "03_deduplication",
+          "08_security",
+          "10_change_management"
+        ]
+      }
+    ],
+    "policy_flow": [
+      "RULE_STONE_TAXONOMY",
+      "ATHENA_INTENT",
+      "BLUE_REGISTRY",
+      "VIOLET_PLANNING",
+      "YELLOW_AUTHORIZED_EXECUTION",
+      "OBSIDIAN_RUNTIME",
+      "RUBY_VERIFICATION",
+      "GREEN_1LSS"
+    ],
+    "limits": {
+      "remote_schema_change": false,
+      "write_secrets": false,
+      "no_duplicate_auth": true,
+      "unapproved_paid_auto_dispatch": false,
+      "do_not_promote_without_ruby": true
+    }
   }
 }
