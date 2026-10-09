@@ -27,3 +27,9 @@ test("original 1LSS, Yellow and Ruby authority retained",()=>{
  assert.match(read("skills/ogenic-phase-vi/SKILL.md"),/OGE-109 pstack/);
  assert.match(read("skills/ogenic-pstack/SKILL.md"),/Yellow retains sole execution approval/);
 });
+
+test("pstack guided prompt buttons are usable on existing mobile dock",()=>{
+ const css=read("src/unified-chat.css");
+ assert.match(css,/\\.ucPstackPresets/);
+ assert.match(chat,/ucPstackPresets/);
+});

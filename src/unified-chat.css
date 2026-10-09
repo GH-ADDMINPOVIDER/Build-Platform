@@ -371,3 +371,9 @@ button { color: inherit; }
 :root[data-og-theme="light"] .ucMessage.assistant .ucMessageMeta b{color:#554aa0}
 :root[data-og-theme="light"] .ucOrb{background:linear-gradient(145deg,#f7f7ff,#6879df 58%,#a4b2ff)}
 :root[data-og-theme="light"] .ucMessageMore{background:rgba(255,255,255,.96)}
+
+/* OGE-109: guided pstack presets, not executable capability buttons. */
+.ucPstackPresets{border-top:1px solid var(--uc-line);margin-top:10px;padding-top:10px;display:grid;gap:6px}
+.ucPstackPresets .ucDockHead{padding:2px 4px 6px}
+.ucPstackPresets .ucDockHead small{max-width:270px;line-height:1.35}
+.ucPstackPresets .ucCapability{width:100%}
