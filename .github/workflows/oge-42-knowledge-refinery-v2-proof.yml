@@ -1,14 +1,6 @@
 name: OGE-42 Knowledge Refinery V2 Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "worker/knowledge-refinery-v2.ts"
-      - "tests/knowledge-refinery-v2-contract.test.mjs"
-      - "tests/fixtures/oge-42-knowledge-refinery-v2.json"
-      - "scripts/knowledge-refinery-v2-proof.mjs"
-      - ".github/workflows/oge-42-knowledge-refinery-v2-proof.yml"
   workflow_dispatch:
 
 permissions:

@@ -1,18 +1,6 @@
 name: WAVE NEXT Public Route Verify
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/wave-next-public-route-verify.yml"
-      - "src/WaveNext.tsx"
-      - "src/Landing.tsx"
-      - "src/wave-next.css"
-      - "src/wave-route-polish.css"
-      - "src/main.tsx"
-      - "src/ComposerAttachments.tsx"
-      - "tests/wave-next-ui.test.mjs"
-      - "tests/wave-surface-routes.test.mjs"
   workflow_dispatch:
 
 permissions:

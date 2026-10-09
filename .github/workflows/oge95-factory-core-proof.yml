@@ -1,12 +1,6 @@
 name: OGE-95 Replica Factory Core - Evidence Proof
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/oge95-factory-core-proof.yml"
-      - "scripts/replica-runner/factory-*.mjs"
-      - "tests/oge95-factory-core.test.mjs"
   workflow_dispatch:
 
 permissions:

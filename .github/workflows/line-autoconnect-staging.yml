@@ -1,13 +1,6 @@
 name: LINE Staging Auto-Connect
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/line-autoconnect-staging.yml"
-      - "worker/connector-runtime.ts"
-      - "worker/connector-app-api.ts"
-      - "worker/provider-connect-api.ts"
   workflow_dispatch:
 
 permissions:

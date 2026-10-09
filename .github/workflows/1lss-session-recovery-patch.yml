@@ -1,13 +1,6 @@
 name: 1LSS Session Recovery Patch
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/1lss-session-recovery-patch.yml"
-      - "scripts/patch-1lss-session-recovery.py"
-      - "worker/session-recovery-api.ts"
-      - "database/migrations/0011_1lss_session_refs.sql"
   workflow_dispatch:
 
 permissions:

@@ -1,21 +1,5 @@
 name: Rule Stone Panel - Seven Stone Governance Proof
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "config/oge95-rules-center.json"
-      - "worker/rule-stone-api.ts"
-      - "worker/entry-yellow-stone.ts"
-      - "worker/violet-distribution-planner.ts"
-      - "src/StoneRulePanel.tsx"
-      - "src/stone-rule-panel.css"
-      - "src/WaveNext.tsx"
-      - "src/VioletDistributionPanel.tsx"
-      - "tests/violet-claim-contract.test.mjs"
-      - "src/main.tsx"
-      - "tests/rule-stone-panel.test.mjs"
-      - "scripts/verify-rule-stone-governance.mjs"
-      - ".github/workflows/rule-stone-panel-proof.yml"
   workflow_dispatch:
 permissions:
   contents: read

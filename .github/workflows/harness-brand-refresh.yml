@@ -1,10 +1,6 @@
 name: OGENIC HARNESS Brand Refresh
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/harness-brand-refresh.yml"
   workflow_dispatch:
 
 permissions:

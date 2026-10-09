@@ -1,16 +1,6 @@
 name: Diagnostic Full Check
 
 on:
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - ".github/workflows/diagnostic-full-check.yml"
-      - "worker/ruby-stone-api.ts"
-      - "worker/violet-stone-api.ts"
-      - "src/WhiteDiamondPanel.tsx"
-      - "tests/white-diamond-contract.test.mjs"
-      - "tests/ruby-stone-contract.test.mjs"
-      - "tests/violet-stone-contract.test.mjs"
   workflow_dispatch:
 
 permissions:
