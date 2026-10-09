@@ -53,3 +53,13 @@ test("Rule Stone Panel visible in WAVE tabs, fails closed on missing policy",()=
   assert.match(ui,/STONE_REGISTRY_MISMATCH/);
   assert.match(ui,/rules_updated_by|source_file/);
 });
+
+test("Stone Runner host and locked stone colors match canonical staging architecture",()=>{
+  assert.equal(rules.categories["06_replica_compute"].host,"SELF_HOSTED_WAVE_RUNNER_01");
+  assert.equal(rules.runtime_contracts.replica.job_host,"self-hosted/linux/x64/wave");
+  assert.equal(rules.runtime_contracts.replica.cost_policy.uses_existing_github_hosted_allowance,false);
+  assert.equal(stones[0].color,"#16A34A");
+  assert.equal(stones[6].color,"#6B7280");
+  assert.equal(rules.stone_rule_panel.separate_approval_gateway,false);
+  assert.equal(rules.stone_rule_panel.yellow_only_exec_authority,true);
+});

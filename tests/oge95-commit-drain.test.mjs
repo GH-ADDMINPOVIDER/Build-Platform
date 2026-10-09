@@ -57,14 +57,14 @@ test("reject malformed checkpoints and altered receipts",()=>{
  assert.throws(()=>plan({base:sha(1),head:sha(2),commits:[sha(2)],limit:100}));
 });
 
-test("every staging push automatically catches up on GitHub-hosted, deep audit stays manual",()=>{
+test("every staging push automatically catches up on WAVE self-host, deep audit stays manual",()=>{
  const fs=(p)=>readFileSync(p,"utf8");
  const parent=fs(".github/workflows/oge-95-final-review-intake.yml");
  const child=fs(".github/workflows/oge95-commit-drain.yml");
  const fast=fs(".github/workflows/oge95-auto-head-catchup.yml");
  assert.match(fast,/push:\s*\n\s*branches: \[phase-vi-provider-incentive-metering\]/);
  assert.match(fast,/cancel-in-progress: true/);
- assert.match(fast,/runs-on: ubuntu-latest/);
+ assert.match(fast,/runs-on: \[self-hosted, linux, x64, wave\]/);
  assert.doesNotMatch(parent,/^\s*push:\s*$/m);
  assert.match(parent,/workflow_dispatch:/);
  assert.match(parent,/commit-drain:\s*[\s\S]*?uses: \.\/\.github\/workflows\/oge95-commit-drain\.yml/);

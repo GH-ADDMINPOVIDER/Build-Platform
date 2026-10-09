@@ -15,8 +15,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
+      - name: Generate temporary lockfile before clean install
+        run: npm install --package-lock-only --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
       - name: Dashboard contract
         run: node --test tests/wave-dashboard-contract.test.mjs
       - name: Typecheck

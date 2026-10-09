@@ -97,7 +97,7 @@
     },
     "06_replica_compute": {
       "description": "Clone app behavior locally, never confuse simulated services with live deployment",
-      "host": "GITHUB_HOSTED_EPHEMERAL",
+      "host": "SELF_HOSTED_WAVE_RUNNER_01",
       "runtime": "SAME_COMPILED_WORKER_IN_WORKERD",
       "d1": "LOCAL_SYNTHETIC_ONLY",
       "target": "1:1 measurable tested behavior; full external/edge equivalence unproved",
@@ -472,7 +472,7 @@
       "schema_version": "OGENIC_REPLICA_RUNNER_V1",
       "name": "WAVE Replica Runner",
       "target": "0.9:1 local-to-staging operational parity (a goal, not a certified metric)",
-      "job_host": "github-hosted/ubuntu-latest",
+      "job_host": "self-hosted/linux/x64/wave",
       "local_runtime": "Cloudflare workerd through Wrangler dev --local",
       "source": {
         "repository": "Ogenicchocolate21debug/Build-Platform",
@@ -490,7 +490,7 @@
         "browser_binding": "local-simulated"
       },
       "cost_policy": {
-        "uses_existing_github_hosted_allowance": true,
+        "uses_existing_github_hosted_allowance": false,
         "billable_provider_calls": "THROUGH_EXISTING_YELLOW_IF_AUTHORIZED",
         "cloudflare_deploy": false,
         "railway_deploy": false,
@@ -632,7 +632,7 @@
         "id": "01",
         "name": "GREEN STONE",
         "species": "Emerald",
-        "color": "#10B981",
+        "color": "#16A34A",
         "function": "1LSS · One-Line Session",
         "category_ids": [
           "01_scope_identity",
@@ -706,7 +706,7 @@
         "id": "07",
         "name": "RULE STONE",
         "species": "Gray Agate",
-        "color": "#64748B",
+        "color": "#6B7280",
         "function": "Central Rule Taxonomy",
         "category_ids": [
           "01_scope_identity",
