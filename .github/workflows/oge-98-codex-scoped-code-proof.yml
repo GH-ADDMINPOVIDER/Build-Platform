@@ -164,7 +164,7 @@ jobs:
   independent-ruby-audit:
     name: independently verify agent-generated patch on GitHub-hosted runner
     needs: [codex-scoped-task]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 5
     steps:
       - name: Download only the current run's bounded code evidence

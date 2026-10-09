@@ -19,7 +19,7 @@ env:
 jobs:
   runtime-clones:
     name: Clone / ${{ matrix.runtime_id }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 8
     strategy:
       fail-fast: false
@@ -89,7 +89,7 @@ jobs:
     name: Reducer / verify 10 of 10
     needs: runtime-clones
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4

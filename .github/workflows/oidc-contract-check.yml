@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     steps:
       - uses: actions/checkout@v4
       - name: Verify actual GitHub OIDC claims match pinned staging contract

@@ -23,7 +23,7 @@ env:
 jobs:
   read-only-research:
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.confirm_single_paid_call == true) }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 6
     steps:
       - name: Checkout exact owner-approved staging commit

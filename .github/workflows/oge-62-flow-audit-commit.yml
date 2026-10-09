@@ -19,7 +19,7 @@ env:
 jobs:
   runtime-clones:
     name: Runtime / ${{ matrix.runtime_id }} / self-verify
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     permissions:
       contents: read
     timeout-minutes: 8
@@ -86,7 +86,7 @@ jobs:
     name: GitHub audit / verify final summary
     needs: runtime-clones
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     permissions:
       contents: read
     timeout-minutes: 8
@@ -134,7 +134,7 @@ jobs:
     name: Yellow commit gate / audited summary
     needs: github-audit
     if: needs.github-audit.result == 'success'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, wave]
     permissions:
       contents: write
     timeout-minutes: 8
