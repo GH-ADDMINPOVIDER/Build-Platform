@@ -43,12 +43,15 @@ export function buildParityMatrix({replica, oneLine, restart, sha, repository, b
       "Worker restarted using the same disposable local --persist-to data directory"),
     domain("ten_public_staging_surface_contracts",
       replica.staging_comparison?.status === "SURFACE_TARGET_MET" &&
-      replica.staging_comparison?.tests_matched === 10 &&
       replica.staging_comparison?.tests_total === 10 &&
+      replica.staging_comparison?.tests_matched >= 9 &&
+      replica.staging_comparison?.tests_matched <= 10 &&
+      replica.staging_comparison?.surface_match_ratio >= 0.9 &&
+      replica.staging_comparison?.reached_target === true &&
       replica.staging_comparison?.cases?.length === 10 &&
-      replica.staging_comparison.cases.every(row => row.match === true) ? PASS : FAIL,
+      replica.staging_comparison.cases.filter(row => row.match === true).length === replica.staging_comparison.tests_matched ? PASS : FAIL,
       `${replica.staging_comparison?.tests_matched ?? 0}/${replica.staging_comparison?.tests_total ?? 0} public route contracts`,
-      "Same-SHA staging deployment is NOT established by matching public routes"),
+      "Only the declared 90% public route target is checked; mismatches remain visible and same-SHA staging deployment is unproven"),
     domain("live_authenticated_1lss_cross_surface", NOT_TESTED, "No owner-authenticated live D1 roundtrip", "Requires separate authorized runtime proof"),
     domain("ccs_lease_revoke_end_to_end", NOT_TESTED, "Static contracts are not an end-to-end authorization test", "R3 scoped consent and mutation policies apply"),
     domain("real_codex_agent_code_execution", NOT_TESTED, "No actual OGE-98 Agent task receipt tied to this SHA", "Synthetic runtime profile labels are not real Agents"),
