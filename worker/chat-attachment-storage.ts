@@ -304,8 +304,8 @@ export async function ensureR2AttachmentOpenAIFile(
     await saveR2AttachmentManifest(env, manifest);
     throw new Error(`${inputBlocker}:${manifest.mime_type.startsWith("image/") ? "image exceeds the conservative 20 MiB model input limit" : "file exceeds the conservative 48 MiB model input limit"}; stored object requires chunked extraction`);
   }
-  if (manifest.openai_file_id) return manifest;
   assertFileHandoffGate();
+  if (manifest.openai_file_id) return manifest;
   const apiKey = String(env.OPENAI_API_KEY ?? "").trim();
   if (!apiKey) throw new Error("CONFIGURATION_REQUIRED:OPENAI_API_KEY");
   if (manifest.status !== "UPLOADED" && manifest.status !== "PROVIDER_FILE_READY" && manifest.status !== "HANDED_OFF") throw new Error("ATTACHMENT_NOT_UPLOADED");
@@ -379,7 +379,6 @@ export async function resolveR2ReferenceToOpenAIFile(
 ): Promise<{ file_id: string; manifest: R2AttachmentManifest } | null> {
   if (!isR2AttachmentReference(storedValue)) return null;
   assertFileHandoffGate();
-  assertFileHandoffGate();
   const handle = parseR2AttachmentReference(storedValue);
   if (!handle) throw new Error("ATTACHMENT_REFERENCE_INVALID");
   const manifest = await loadR2AttachmentManifest(env, handle);
@@ -394,6 +393,7 @@ export async function readR2AttachmentObject(
   storedValue: string,
 ): Promise<{ object: R2ObjectBodyLike; manifest: R2AttachmentManifest } | null> {
   if (!isR2AttachmentReference(storedValue)) return null;
+  assertFileHandoffGate();
   const handle = parseR2AttachmentReference(storedValue);
   if (!handle) throw new Error("ATTACHMENT_REFERENCE_INVALID");
   const manifest = await loadR2AttachmentManifest(env, handle);
@@ -458,6 +458,7 @@ export async function recordR2FileHandoffEvidence(
 
 export async function markR2ReferenceHandedOff(env: ChatAttachmentStorageEnv, storedValue: string): Promise<R2AttachmentManifest | null> {
   if (!isR2AttachmentReference(storedValue)) return null;
+  assertFileHandoffGate();
   const handle = parseR2AttachmentReference(storedValue);
   if (!handle) throw new Error("ATTACHMENT_REFERENCE_INVALID");
   const manifest = await loadR2AttachmentManifest(env, handle);
