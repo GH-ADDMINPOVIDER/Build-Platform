@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   validate-and-bundle:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event_name == 'pull_request' && github.head_ref == 'tawatchaisamornrum11/oge-113-wave-file-handoff-loop-mcp-status-gate-r2-multipart-agent-retrieval' && fromJSON('["self-hosted", "linux", "x64", "wave"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 
