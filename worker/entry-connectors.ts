@@ -220,6 +220,32 @@ async function prepareTurnBeforeExecution(
   }
 }
 
+async function dispatchAndFinishTurn(
+  request: Request,
+  dispatch: () => Promise<Response>,
+  env: Bindings,
+  prepared: PreparedTurn,
+) {
+  let response: Response;
+  try {
+    response = await dispatch();
+  } catch {
+    // Do not persist raw exception text. The stable error code is sufficient
+    // for incident correlation and keeps secrets out of 1LSS/Discord history.
+    console.warn("OGENIC_1LSS_HANDLER_THROWN", {
+      route: new URL(request.url).pathname,
+      source_surface: prepared.sourceSurface,
+      failure_code: "UNHANDLED_CHAT_HANDLER_ERROR",
+    });
+    response = Response.json({
+      ok: false,
+      code: "UNHANDLED_CHAT_HANDLER_ERROR",
+      message: "The chat handler failed before returning a response. Its failure will be stamped into canonical history when available.",
+    }, { status: 502, headers: { "Cache-Control": "no-store" } });
+  }
+  return finishTurnWithReceipt(request, response, env, prepared);
+}
+
 async function finishTurnWithReceipt(
   request: Request,
   response: Response,
@@ -522,9 +548,12 @@ export default {
       return chatModelApi.fetch(request, env, ctx as never);
     }
     if (pathname === "/api/chat/athena") {
-      const stampRequest = request.clone();
-      const response = await athenaChatApi.fetch(request, env, ctx as never);
-      return await finishTurnWithReceipt(stampRequest, response, env, preparedTurn);
+      return await dispatchAndFinishTurn(
+        request.clone(),
+        () => athenaChatApi.fetch(request, env, ctx as never),
+        env,
+        preparedTurn,
+      );
     }
     if (
       pathname === "/api/chat/model" ||
@@ -544,36 +573,50 @@ export default {
         : await canonicalChatModelRequest(request, sourceSurface);
 
       if (pathname === "/api/chat/model" && await defaultWaveTextOnly(canonicalRequest)) {
-        const stampRequest = canonicalRequest.clone();
-        const athenaRequest = await athenaChatRequest(canonicalRequest);
-        const response = await athenaChatApi.fetch(athenaRequest, env, ctx as never);
-        return await finishTurnWithReceipt(stampRequest, response, env, preparedTurn);
+        return await dispatchAndFinishTurn(
+          canonicalRequest.clone(),
+          async () => {
+            const athenaRequest = await athenaChatRequest(canonicalRequest);
+            return athenaChatApi.fetch(athenaRequest, env, ctx as never);
+          },
+          env,
+          preparedTurn,
+        );
       }
-      const stampRequest = request.clone();
-      const response = await chatModelApi.fetch(canonicalRequest, env, ctx as never);
-      return await finishTurnWithReceipt(stampRequest, response, env, preparedTurn);
+      return await dispatchAndFinishTurn(
+        request.clone(),
+        () => chatModelApi.fetch(canonicalRequest, env, ctx as never),
+        env,
+        preparedTurn,
+      );
     }
     if (pathname === "/api/manus/status" || pathname === "/api/manus/task") {
       return manusApi.fetch(request, env, ctx as never);
     }
     if (pathname === "/api/chat/agent") {
-      if (await freshAgentReadRequest(request)) {
-        const stampRequest = request.clone();
-        const athenaRequest = await athenaChatRequest(request);
-        const athenaResponse = await athenaChatApi.fetch(athenaRequest, env, ctx as never);
-        const response = await withFreshAgentHandoffEvidence(athenaResponse);
-        return await finishTurnWithReceipt(stampRequest, response, env, preparedTurn);
-      }
-      const stampRequest = request.clone();
-      const cached = await cachedAgentReplay(request, env);
-      if (cached) return await finishTurnWithReceipt(stampRequest, cached, env, preparedTurn);
-      const response = await connectorApi.fetch(request, env, ctx as never);
-      return await finishTurnWithReceipt(stampRequest, response, env, preparedTurn);
+      return await dispatchAndFinishTurn(
+        request.clone(),
+        async () => {
+          if (await freshAgentReadRequest(request)) {
+            const athenaRequest = await athenaChatRequest(request);
+            const athenaResponse = await athenaChatApi.fetch(athenaRequest, env, ctx as never);
+            return withFreshAgentHandoffEvidence(athenaResponse);
+          }
+          const cached = await cachedAgentReplay(request, env);
+          if (cached) return cached;
+          return connectorApi.fetch(request, env, ctx as never);
+        },
+        env,
+        preparedTurn,
+      );
     }
     if (pathname === "/api/chat/functions") {
-      const stampRequest = request.clone();
-      const response = await connectorApi.fetch(request, env, ctx as never);
-      return await finishTurnWithReceipt(stampRequest, response, env, preparedTurn);
+      return await dispatchAndFinishTurn(
+        request.clone(),
+        () => connectorApi.fetch(request, env, ctx as never),
+        env,
+        preparedTurn,
+      );
     }
     if (
       pathname === "/api/connectors" ||
