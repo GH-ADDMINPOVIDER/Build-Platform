@@ -155,6 +155,17 @@ export async function beginR2AttachmentUpload(
   if (!mime || mime === "application/octet-stream") throw new Error("UNSUPPORTED_ATTACHMENT_TYPE");
   if (!Number.isSafeInteger(size) || size <= 4_000_000 || size > R2_ATTACHMENT_MAX_BYTES) throw new Error("ATTACHMENT_SIZE_OUT_OF_RANGE");
   if (!input.idempotency_key || input.idempotency_key.length > 240) throw new Error("IDEMPOTENCY_KEY_REQUIRED");
+  const idempotencyDigest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`owner-main:${input.idempotency_key}`)))]
+    .map(byte => byte.toString(16).padStart(2, "0")).join("");
+  const idempotencyObjectKey = r2IdempotencyKey(idempotencyDigest);
+  const existingMap = await bucket.get(idempotencyObjectKey);
+  if (existingMap) {
+    const mapped = await existingMap.text().then(value => JSON.parse(value) as { handle?: string }).catch(() => ({}));
+    if (mapped.handle && isSafeUploadHandle(mapped.handle)) {
+      const existing = await loadR2AttachmentManifest(env, mapped.handle);
+      if (existing && existing.expires_at > Date.now() && existing.status !== "ABORTED" && existing.status !== "EXPIRED") return existing;
+    }
+  }
   const handle = crypto.randomUUID();
   const key = `attachments/owner-main/${handle}/${filename.replace(/[/\\]/g, "_")}`;
   const upload = await bucket.createMultipartUpload(key, {
@@ -169,6 +180,9 @@ export async function beginR2AttachmentUpload(
     created_at: Date.now(), expires_at: Date.now() + R2_ATTACHMENT_TTL_MS,
   };
   await saveR2AttachmentManifest(env, manifest);
+  await bucket.put(idempotencyObjectKey, JSON.stringify({ handle, expires_at: manifest.expires_at }), {
+    httpMetadata: { contentType: "application/json; charset=utf-8", cacheControl: "no-store" },
+  });
   return manifest;
 }
 
