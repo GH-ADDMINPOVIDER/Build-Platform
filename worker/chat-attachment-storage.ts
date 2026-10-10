@@ -12,7 +12,9 @@ export const R2_ATTACHMENT_REF_PREFIX = "R2REF1:";
 export const R2_ATTACHMENT_MANIFEST_PREFIX = "__wave_chat_uploads/manifests/";
 export const R2_ATTACHMENT_IDEMPOTENCY_PREFIX = "__wave_chat_uploads/idempotency/";
 export const R2_ATTACHMENT_PART_SIZE = 8 * 1024 * 1024;
-export const R2_ATTACHMENT_MAX_BYTES = 1_073_741_824; // 1 GiB per file; policy cap, not R2's platform maximum.
+export const R2_ATTACHMENT_MAX_BYTES = 1_073_741_824; // 1 GiB storage cap; not the model input cap.
+export const R2_RESPONSES_FILE_MAX_BYTES = 48 * 1024 * 1024; // Stay below the Responses API 50 MB request/file ceiling.
+export const R2_RESPONSES_IMAGE_MAX_BYTES = 20 * 1024 * 1024; // Conservative per-image ceiling.
 export const R2_ATTACHMENT_TTL_MS = 24 * 60 * 60 * 1000;
 
 export type R2UploadedPartLike = { partNumber: number; etag: string };
@@ -57,9 +59,10 @@ export type R2AttachmentManifest = {
   total_parts: number;
   owner_id: "owner";
   conversation_id: "owner-main";
-  status: "UPLOADING" | "UPLOADED" | "HANDED_OFF" | "ABORTED" | "EXPIRED";
+  status: "UPLOADING" | "UPLOADED" | "PROVIDER_FILE_READY" | "HANDED_OFF" | "ABORTED" | "EXPIRED";
   created_at: number;
   expires_at: number;
+  idempotency_object_key: string;
   object_etag?: string;
   openai_upload_id?: string;
   openai_upload_created_at?: number;
@@ -129,7 +132,7 @@ export async function loadR2AttachmentManifest(env: ChatAttachmentStorageEnv, ha
   if (!object) return null;
   const parsed = await object.text().then(value => JSON.parse(value) as R2AttachmentManifest).catch(() => null);
   if (!parsed || parsed.version !== 1 || parsed.handle !== handle || parsed.owner_id !== "owner" || parsed.conversation_id !== "owner-main") return null;
-  if (parsed.expires_at <= Date.now() && parsed.status === "UPLOADING") {
+  if (parsed.expires_at <= Date.now() && parsed.status !== "ABORTED" && parsed.status !== "EXPIRED") {
     parsed.status = "EXPIRED";
     await saveR2AttachmentManifest(env, parsed);
     return parsed;
@@ -163,7 +166,12 @@ export async function beginR2AttachmentUpload(
     const mapped = await existingMap.text().then(value => JSON.parse(value) as { handle?: string }).catch(() => ({}));
     if (mapped.handle && isSafeUploadHandle(mapped.handle)) {
       const existing = await loadR2AttachmentManifest(env, mapped.handle);
-      if (existing && existing.expires_at > Date.now() && existing.status !== "ABORTED" && existing.status !== "EXPIRED") return existing;
+      if (existing && existing.expires_at > Date.now() && existing.status !== "ABORTED" && existing.status !== "EXPIRED") {
+        if (existing.filename !== filename || existing.mime_type !== mime || existing.size_bytes !== size) {
+          throw new Error("IDEMPOTENCY_KEY_CONFLICT");
+        }
+        return existing;
+      }
     }
   }
   const handle = crypto.randomUUID();
@@ -178,6 +186,7 @@ export async function beginR2AttachmentUpload(
     total_parts: Math.ceil(size / R2_ATTACHMENT_PART_SIZE),
     owner_id: "owner", conversation_id: "owner-main", status: "UPLOADING",
     created_at: Date.now(), expires_at: Date.now() + R2_ATTACHMENT_TTL_MS,
+    idempotency_object_key: idempotencyObjectKey,
   };
   await saveR2AttachmentManifest(env, manifest);
   await bucket.put(idempotencyObjectKey, JSON.stringify({ handle, expires_at: manifest.expires_at }), {
@@ -207,7 +216,7 @@ export async function completeR2AttachmentUpload(
   parts: R2UploadedPartLike[],
 ): Promise<R2AttachmentManifest> {
   const bucket = requiredBucket(env);
-  if (manifest.status === "UPLOADED" || manifest.status === "HANDED_OFF") return manifest;
+  if (manifest.status === "UPLOADED" || manifest.status === "PROVIDER_FILE_READY" || manifest.status === "HANDED_OFF") return manifest;
   if (manifest.status !== "UPLOADING") throw new Error("UPLOAD_SESSION_NOT_OPEN");
   if (manifest.expires_at <= Date.now()) throw new Error("UPLOAD_SESSION_EXPIRED");
   if (!Array.isArray(parts) || parts.length !== manifest.total_parts) throw new Error("UPLOAD_PART_LIST_INCOMPLETE");
@@ -260,7 +269,13 @@ export async function ensureR2AttachmentOpenAIFile(
   if (manifest.openai_file_id) return manifest;
   const apiKey = String(env.OPENAI_API_KEY ?? "").trim();
   if (!apiKey) throw new Error("CONFIGURATION_REQUIRED:OPENAI_API_KEY");
-  if (manifest.status !== "UPLOADED" && manifest.status !== "HANDED_OFF") throw new Error("ATTACHMENT_NOT_UPLOADED");
+  if (manifest.size_bytes > R2_RESPONSES_FILE_MAX_BYTES) {
+    throw new Error("MODEL_INPUT_TOO_LARGE:Responses API file input must remain below 50 MB; stored file requires a chunked extraction path");
+  }
+  if (manifest.mime_type.startsWith("image/") && manifest.size_bytes > R2_RESPONSES_IMAGE_MAX_BYTES) {
+    throw new Error("MODEL_INPUT_TOO_LARGE:Image input exceeds the conservative 20 MiB per-image limit");
+  }
+  if (manifest.status !== "UPLOADED" && manifest.status !== "PROVIDER_FILE_READY" && manifest.status !== "HANDED_OFF") throw new Error("ATTACHMENT_NOT_UPLOADED");
   const bucket = requiredBucket(env);
   const now = Date.now();
   let uploadId = manifest.openai_upload_id;
@@ -274,6 +289,7 @@ export async function ensureR2AttachmentOpenAIFile(
         bytes: manifest.size_bytes,
         purpose: "user_data",
         mime_type: manifest.mime_type,
+        expires_after: { anchor: "created_at", seconds: 86_400 },
       }),
     });
     const upload = await openAIJson(uploadResponse);
@@ -290,7 +306,7 @@ export async function ensureR2AttachmentOpenAIFile(
     const offset = partIndex * R2_ATTACHMENT_PART_SIZE;
     const length = Math.min(R2_ATTACHMENT_PART_SIZE, manifest.size_bytes - offset);
     const objectPart = await bucket.get(manifest.key, { range: { offset, length } });
-    if (!objectPart || objectPart.size !== length) throw new Error("R2_OBJECT_PART_NOT_FOUND");
+    if (!objectPart) throw new Error("R2_OBJECT_PART_NOT_FOUND");
     const bytes = await objectPart.arrayBuffer();
     if (bytes.byteLength !== length) throw new Error("R2_OBJECT_PART_SIZE_MISMATCH");
     const form = new FormData();
@@ -317,7 +333,7 @@ export async function ensureR2AttachmentOpenAIFile(
   const fileId = String(file.id ?? "");
   if (completed.status !== "completed" || !fileId) throw new Error("OPENAI_UPLOAD_COMPLETION_UNVERIFIED");
   manifest.openai_file_id = fileId;
-  manifest.status = "HANDED_OFF";
+  manifest.status = "PROVIDER_FILE_READY";
   manifest.handoff_error_code = undefined;
   await saveR2AttachmentManifest(env, manifest);
   return manifest;
@@ -345,8 +361,72 @@ export async function readR2AttachmentObject(
   const handle = parseR2AttachmentReference(storedValue);
   if (!handle) throw new Error("ATTACHMENT_REFERENCE_INVALID");
   const manifest = await loadR2AttachmentManifest(env, handle);
-  if (!manifest || (manifest.status !== "UPLOADED" && manifest.status !== "HANDED_OFF")) throw new Error("ATTACHMENT_NOT_FOUND");
+  if (!manifest || (manifest.status !== "UPLOADED" && manifest.status !== "PROVIDER_FILE_READY" && manifest.status !== "HANDED_OFF")) throw new Error("ATTACHMENT_NOT_FOUND");
   const object = await requiredBucket(env).get(manifest.key);
   if (!object || object.size !== manifest.size_bytes) throw new Error("R2_OBJECT_NOT_FOUND");
   return { object, manifest };
+}
+
+export async function markR2ReferenceHandedOff(env: ChatAttachmentStorageEnv, storedValue: string): Promise<R2AttachmentManifest | null> {
+  if (!isR2AttachmentReference(storedValue)) return null;
+  const handle = parseR2AttachmentReference(storedValue);
+  if (!handle) throw new Error("ATTACHMENT_REFERENCE_INVALID");
+  const manifest = await loadR2AttachmentManifest(env, handle);
+  if (!manifest || !manifest.openai_file_id || !["PROVIDER_FILE_READY", "HANDED_OFF"].includes(manifest.status)) {
+    throw new Error("ATTACHMENT_HANDOFF_NOT_READY");
+  }
+  if (manifest.status !== "HANDED_OFF") {
+    manifest.status = "HANDED_OFF";
+    manifest.handoff_error_code = undefined;
+    await saveR2AttachmentManifest(env, manifest);
+  }
+  return manifest;
+}
+
+/**
+ * Prune expired objects and their provider files. Process a bounded page on each
+ * scheduled tick so cleanup never monopolizes a Worker invocation.
+ */
+export async function cleanExpiredR2Attachments(env: ChatAttachmentStorageEnv, maxItems = 50) {
+  if (!env.CHAT_UPLOADS?.list) return { ok: false, code: "CONFIGURATION_REQUIRED:R2_BUCKET", scanned: 0, deleted: 0 };
+  const bucket = env.CHAT_UPLOADS;
+  const page = await bucket.list({ prefix: R2_ATTACHMENT_MANIFEST_PREFIX, limit: Math.max(1, Math.min(100, maxItems)) });
+  let scanned = 0;
+  let deleted = 0;
+  const errors: string[] = [];
+  for (const listed of page.objects) {
+    scanned += 1;
+    try {
+      const object = await bucket.get(listed.key);
+      if (!object) continue;
+      const manifest = await object.text().then(value => JSON.parse(value) as R2AttachmentManifest).catch(() => null);
+      if (!manifest || manifest.version !== 1 || !isSafeUploadHandle(String(manifest.handle ?? ""))) continue;
+      if (manifest.expires_at > Date.now() && manifest.status !== "EXPIRED" && manifest.status !== "ABORTED") continue;
+      if (manifest.status === "UPLOADING") {
+        await bucket.resumeMultipartUpload(manifest.key, manifest.r2_upload_id).abort().catch(() => undefined);
+      }
+      await bucket.delete(manifest.key).catch(() => undefined);
+      if (manifest.openai_upload_id && !manifest.openai_file_id && env.OPENAI_API_KEY) {
+        await fetch(`https://api.openai.com/v1/uploads/${encodeURIComponent(manifest.openai_upload_id)}/cancel`, {
+          method: "POST", headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
+        }).catch(() => undefined);
+      }
+      if (manifest.openai_file_id && env.OPENAI_API_KEY) {
+        const response = await fetch(`https://api.openai.com/v1/files/${encodeURIComponent(manifest.openai_file_id)}`, {
+          method: "DELETE", headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
+        });
+        if (!response.ok && response.status !== 404) errors.push("OPENAI_FILE_CLEANUP_FAILED");
+      }
+      await bucket.delete(listed.key).catch(() => undefined);
+      if (manifest.idempotency_object_key) await bucket.delete(manifest.idempotency_object_key).catch(() => undefined);
+      if (env.DB) {
+        await env.DB.prepare("DELETE FROM chat_attachments WHERE id = ? AND conversation_id = ?")
+          .bind(manifest.attachment_id, manifest.conversation_id).run();
+      }
+      deleted += 1;
+    } catch {
+      errors.push("EXPIRED_FILE_CLEANUP_FAILED");
+    }
+  }
+  return { ok: errors.length === 0, scanned, deleted, errors: [...new Set(errors)], has_more: page.truncated === true };
 }
