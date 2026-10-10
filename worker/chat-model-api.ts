@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { hasOwnerSession, type AuthBindings } from "./app-auth";
 import { readIncentiveSnapshot } from "./provider-incentives";
 import { readCanonicalD1Context, recordChatUsage } from "./d1-context";
+import { isR2AttachmentReference, resolveR2ReferenceToOpenAIFile, type ChatAttachmentStorageEnv } from "./chat-attachment-storage";
 
 type D1Result<T = Record<string, unknown>> = { results?: T[] };
 type D1Prepared = {
@@ -315,10 +316,26 @@ export function createChatModelApi() {
         `SELECT filename, mime_type, data_base64 FROM chat_attachments WHERE id = ? AND conversation_id = ?`,
       ).bind(id, CONVERSATION_ID).first<AttachmentRow>();
       if (!row) return c.json({ ok: false, code: "ATTACHMENT_NOT_FOUND", id }, 404);
-      if (row.mime_type.startsWith("image/")) {
-        content.push({ type: "input_image", detail: "auto", image_url: `data:${row.mime_type};base64,${row.data_base64}` });
-      } else {
-        content.push({ type: "input_file", filename: row.filename, file_data: row.data_base64 });
+      try {
+        const storedReference = isR2AttachmentReference(row.data_base64)
+          ? await resolveR2ReferenceToOpenAIFile(c.env as unknown as ChatAttachmentStorageEnv, row.data_base64)
+          : null;
+        if (storedReference?.file_id) {
+          if (row.mime_type.startsWith("image/")) {
+            content.push({ type: "input_image", detail: "auto", file_id: storedReference.file_id });
+          } else {
+            content.push({ type: "input_file", file_id: storedReference.file_id, filename: row.filename });
+          }
+        } else if (row.mime_type.startsWith("image/")) {
+          content.push({ type: "input_image", detail: "auto", image_url: `data:${row.mime_type};base64,${row.data_base64}` });
+        } else {
+          content.push({ type: "input_file", filename: row.filename, file_data: row.data_base64 });
+        }
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : "ATTACHMENT_HANDOFF_FAILED";
+        const code = message.split(":")[0];
+        const status = message.startsWith("CONFIGURATION_REQUIRED") ? 503 : code === "ATTACHMENT_NOT_FOUND" ? 404 : 409;
+        return c.json({ ok: false, code, attachment_id: id, message: status === 503 ? "Large-file storage or model handoff is not configured" : "Attachment handoff could not be verified" }, status);
       }
     }
 
