@@ -79,6 +79,13 @@ def is_non_secret_token_metric(key: str) -> bool:
     return compact.endswith(safe_suffixes)
 
 
+def is_environment_variable_name(key: str, value: str) -> bool:
+    """Allow *_env fields to name an environment variable, never a literal token."""
+    normalized_key = key.lower().replace("-", "_")
+    candidate = value.strip().strip('"').strip("'").strip()
+    return normalized_key.endswith("_env") and re.fullmatch(r"[A-Z][A-Z0-9_]{2,}", candidate) is not None
+
+
 def looks_like_plaintext_secret(value: str) -> bool:
     cleaned = value.strip().rstrip(",").strip().strip('"').strip("'").strip()
     lowered = cleaned.lower()
@@ -165,6 +172,8 @@ def main() -> None:
             normalized_key = key.lower().replace("-", "_")
             leaf_key = normalized_key.rsplit(".", 1)[-1]
             if leaf_key in NON_SECRET_TOKEN_KEYS or is_non_secret_token_metric(leaf_key):
+                continue
+            if is_environment_variable_name(leaf_key, value.strip()):
                 continue
             compact_key = re.sub(r"[^a-z0-9]", "", leaf_key)
             if compact_key.endswith(NON_SECRET_STATUS_SUFFIXES):
