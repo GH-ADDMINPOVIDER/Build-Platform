@@ -631,7 +631,7 @@ export default {
     if (pathname === "/api/chat/athena") {
       return await dispatchAndFinishTurn(
         request.clone(),
-        () => athenaChatApi.fetch(request, env, ctx as never),
+        async () => await athenaChatApi.fetch(request, env, ctx as never),
         env,
         preparedTurn,
       );
@@ -666,7 +666,7 @@ export default {
       }
       return await dispatchAndFinishTurn(
         request.clone(),
-        () => chatModelApi.fetch(canonicalRequest, env, ctx as never),
+        async () => await chatModelApi.fetch(canonicalRequest, env, ctx as never),
         env,
         preparedTurn,
       );
@@ -694,7 +694,7 @@ export default {
     if (pathname === "/api/chat/functions") {
       return await dispatchAndFinishTurn(
         request.clone(),
-        () => connectorApi.fetch(request, env, ctx as never),
+        async () => await connectorApi.fetch(request, env, ctx as never),
         env,
         preparedTurn,
       );
