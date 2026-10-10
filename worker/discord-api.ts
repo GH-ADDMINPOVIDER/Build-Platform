@@ -310,7 +310,7 @@ export function createDiscordApi() {
     }
     const channelId = c.req.param("channelId");
     if (!SNOWFLAKE.test(channelId)) return c.json({ ok: false, code: "INVALID_CHANNEL_ID" }, 400);
-    const body = await c.req.json<{ content?: unknown }>().catch(() => ({}));
+    const body = await c.req.json<{ content?: unknown }>().catch(() => ({} as { content?: unknown }));
     const content = typeof body.content === "string" ? body.content.trim() : "";
     if (!content) return c.json({ ok: false, code: "MESSAGE_CONTENT_REQUIRED" }, 400);
     if (new TextEncoder().encode(content).byteLength > 1800) {
