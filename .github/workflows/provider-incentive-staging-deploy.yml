@@ -721,8 +721,20 @@ jobs:
             exit 0
           fi
 
+          STATUS_FILE="$(mktemp)"
           BODY_FILE="$(mktemp)"
-          trap 'rm -f "$BODY_FILE"' EXIT
+          trap 'rm -f "$STATUS_FILE" "$BODY_FILE"' EXIT
+
+          STATUS_CODE="$(curl --silent --show-error --output "$STATUS_FILE" --write-out '%{http_code}' \
+            --header "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" \
+            "${STAGING_URL}/api/discord/status")"
+          echo "Discord status probe HTTP $STATUS_CODE"
+          if jq -e 'type == "object"' "$STATUS_FILE" >/dev/null 2>&1; then
+            jq '{ok,state,code,message,missing,bot,guild,channel_count:(.channels|length),capabilities}' "$STATUS_FILE"
+          else
+            echo "Discord status response was not JSON; bytes=$(wc -c < "$STATUS_FILE")"
+          fi
+
           HTTP_CODE="$(curl --silent --show-error --output "$BODY_FILE" --write-out '%{http_code}' \
             --request POST \
             --header "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" \
@@ -731,9 +743,9 @@ jobs:
             "${STAGING_URL}/api/discord/workspace/bootstrap")"
 
           if test "$HTTP_CODE" != "200" && test "$HTTP_CODE" != "207"; then
-            echo "::error::Discord workspace bootstrap endpoint returned HTTP $HTTP_CODE"
-            cat "$BODY_FILE"
-            echo "- Discord workspace bootstrap: HTTP $HTTP_CODE (see step log)." >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Discord workspace bootstrap endpoint returned HTTP $HTTP_CODE; response bytes=$(wc -c < "$BODY_FILE")"
+            if test -s "$BODY_FILE"; then jq '{ok,state,code,message,guild,created_count,reused_count,issues}' "$BODY_FILE" 2>/dev/null || head -c 1200 "$BODY_FILE"; fi
+            echo "- Discord workspace bootstrap: HTTP $HTTP_CODE (see status probe in step log)." >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
