@@ -2,14 +2,31 @@ name: OGE-51 Composer Attachment Reliability Proof
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - phase-vi-provider-incentive-metering
+    paths:
+      - "src/ComposerAttachments.tsx"
+      - "src/McpConfigCenter.tsx"
+      - "src/UnifiedChat.tsx"
+      - "src/composer-draft.ts"
+      - "worker/chat-attachment-storage.ts"
+      - "worker/chat-model-api.ts"
+      - "worker/entry.ts"
+      - "worker/openai-runtime.ts"
+      - "tests/composer-draft.test.mjs"
+      - "tests/composer-attachment-reliability.test.mjs"
+      - "tests/chat-attachment-storage.test.mjs"
+      - ".github/workflows/oge-51-composer-attachment-proof.yml"
 
 permissions:
   contents: read
 
 jobs:
   proof:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'tawatchaisamornrum11/oge-113-wave-file-handoff-loop-mcp-status-gate-r2-multipart-agent-retrieval'
     runs-on: [self-hosted, linux, x64, wave]
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
