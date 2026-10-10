@@ -384,7 +384,7 @@ root.post("/api/chat/attachments/multipart", async (c) => {
         `INSERT OR IGNORE INTO chat_attachments(id, conversation_id, filename, mime_type, data_base64, size_bytes, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       ).bind(manifest.attachment_id, SAME_MIND_CONVERSATION_ID, manifest.filename, manifest.mime_type, r2AttachmentReference(manifest.handle), manifest.size_bytes, manifest.created_at).run();
-      return c.json({ ok: true, attachment: { id: manifest.attachment_id, filename: manifest.filename, mime_type: manifest.mime_type, size_bytes: manifest.size_bytes, storage: "R2", status: manifest.status, handoff_state: manifest.openai_file_id ? "HANDED_OFF" : "PENDING" } }, 200);
+      return c.json({ ok: true, attachment: { id: manifest.attachment_id, filename: manifest.filename, mime_type: manifest.mime_type, size_bytes: manifest.size_bytes, storage: "R2", status: manifest.status, handoff_state: manifest.status } }, 200);
     }
     return c.json({ ok: true, upload: { handle: manifest.handle, part_size_bytes: manifest.part_size_bytes, total_parts: manifest.total_parts, size_bytes: manifest.size_bytes, expires_at: manifest.expires_at, status: manifest.status } }, 201);
   } catch (cause) {
