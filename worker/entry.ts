@@ -16,15 +16,21 @@ import {
   abortR2AttachmentUpload,
   beginR2AttachmentUpload,
   chatAttachmentStorageStatus,
+  cleanExpiredR2Attachments,
   completeR2AttachmentUpload,
+  fileHandoffGateStatus,
   loadR2AttachmentManifest,
   parseR2AttachmentReference,
   r2AttachmentReference,
+  recordR2FileHandoffEvidence,
   resolveR2ReferenceToOpenAIFile,
   readR2AttachmentObject,
+  r2ModelInputBlocker,
   uploadR2AttachmentPart,
   R2_ATTACHMENT_MAX_BYTES,
   R2_ATTACHMENT_PART_SIZE,
+  R2_RESPONSES_FILE_MAX_BYTES,
+  R2_RESPONSES_IMAGE_MAX_BYTES,
   type ChatAttachmentStorageEnv,
   type R2BucketLike,
   type R2UploadedPartLike,
@@ -171,6 +177,35 @@ function normalizeAttachmentMime(value: unknown) {
   return String(value ?? "").trim().toLowerCase().slice(0, 120);
 }
 
+async function readBoundedUploadPart(request: Request, maxBytes: number): Promise<ArrayBuffer> {
+  const reader = request.body?.getReader();
+  if (!reader) throw new Error("UPLOAD_PART_BODY_REQUIRED");
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel("UPLOAD_PART_TOO_LARGE").catch(() => undefined);
+        throw new Error("UPLOAD_PART_TOO_LARGE");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const output = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    output.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return output.buffer;
+}
+
 function parseBase64DataUrl(value: unknown) {
   if (typeof value !== "string" || value.length === 0 || value.length > MAX_ATTACHMENT_DATA_URL_CHARS) return null;
   const match = /^data:([^;,]+);base64,([A-Za-z0-9+/=\r\n]+)$/.exec(value);
@@ -301,20 +336,31 @@ root.get("/api/chat/attachments/status", async (c) => {
     attachments = await Promise.all((rows.results ?? []).map(async (row) => {
       const handle = parseR2AttachmentReference(row.data_base64);
       if (!handle) {
-        return { id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes, status: "LEGACY_SMALL_FILE", can_handoff: true, created_at: row.created_at };
+        return { id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes, status: "LEGACY_SMALL_FILE", can_handoff: false, handoff_blocker: null, created_at: row.created_at };
       }
       try {
         const manifest = await loadR2AttachmentManifest(c.env as unknown as ChatAttachmentStorageEnv, handle);
-        const status = !manifest ? "BLOCKED" : manifest.status === "HANDED_OFF" ? "HANDED_OFF" : manifest.status;
-        return { id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes, status, can_handoff: Boolean(manifest && (manifest.status === "UPLOADED" || manifest.status === "HANDED_OFF")), created_at: row.created_at };
+        if (!manifest) return { id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes, status: "BLOCKED", can_handoff: false, handoff_blocker: "ATTACHMENT_MANIFEST_NOT_FOUND", created_at: row.created_at };
+        const blocker = r2ModelInputBlocker({ mime_type: row.mime_type, size_bytes: row.size_bytes });
+        const status = blocker ? "STORED_PREPROCESSING_REQUIRED" : manifest.status;
+        const canPrepare = !blocker && manifest.status === "UPLOADED" && state.gate_state === "READY";
+        return {
+          id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes,
+          status, can_handoff: canPrepare, handoff_blocker: blocker || manifest.handoff_error_code || null,
+          created_at: row.created_at,
+        };
       } catch {
-        return { id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes, status: "CONFIGURATION_REQUIRED", can_handoff: false, created_at: row.created_at };
+        return { id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes, status: "CONFIGURATION_REQUIRED", can_handoff: false, handoff_blocker: "R2_BUCKET_OR_CCS_GATE_REQUIRED", created_at: row.created_at };
       }
     }));
   } catch {
     // Status remains useful when D1 is missing; never infer that files exist.
   }
-  return c.json({ ...state, latest_attachments: attachments }, 200, { "Cache-Control": "no-store" });
+  return c.json({
+    ...state,
+    latest_attachments: attachments,
+    model_input_limits: { file_bytes: R2_RESPONSES_FILE_MAX_BYTES, image_bytes: R2_RESPONSES_IMAGE_MAX_BYTES },
+  }, 200, { "Cache-Control": "no-store" });
 });
 
 root.post("/api/chat/attachments/multipart", async (c) => {
@@ -324,6 +370,7 @@ root.post("/api/chat/attachments/multipart", async (c) => {
   const size = Number(body.size_bytes);
   const idempotencyKey = String(c.req.header("Idempotency-Key") ?? "").trim();
   if (!filename || !mime || !Number.isSafeInteger(size)) return c.json({ ok: false, code: "INVALID_ATTACHMENT_METADATA" }, 400);
+  if (fileHandoffGateStatus().ok !== true) return c.json({ ok: false, code: "CCS_GATE_BLOCKED" }, 409);
   if (!ALLOWED_R2_ATTACHMENT_MIME.has(mime)) return c.json({ ok: false, code: "UNSUPPORTED_ATTACHMENT_TYPE", mime_type: mime }, 415);
   if (size <= MAX_ATTACHMENT_BYTES || size > R2_ATTACHMENT_MAX_BYTES) return c.json({ ok: false, code: "ATTACHMENT_SIZE_OUT_OF_RANGE", min_bytes_exclusive: MAX_ATTACHMENT_BYTES, max_bytes: R2_ATTACHMENT_MAX_BYTES }, 413);
   if (!idempotencyKey || idempotencyKey.length > 240) return c.json({ ok: false, code: "IDEMPOTENCY_KEY_REQUIRED" }, 400);
