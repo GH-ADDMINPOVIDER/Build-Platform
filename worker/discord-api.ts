@@ -65,6 +65,7 @@ const WORKSPACE: WorkspaceGroup[] = [
       { name: "wave-commands", topic: "Owner requests for WAVE/OGENIC. Do not post credentials." },
       { name: "agent-runs", topic: "Agent execution summaries, run IDs and verified artifacts." },
       { name: "approval-queue", topic: "Actions waiting for explicit owner approval." },
+      { name: "wave-inbox", topic: "Upload images, screenshots, PDFs and files here for WAVE/OGENIC agent review. Add a short context note. Never upload passwords, API keys, bot tokens or other secrets." },
     ],
   },
   {
