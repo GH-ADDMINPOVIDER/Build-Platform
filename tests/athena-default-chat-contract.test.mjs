@@ -11,7 +11,11 @@ test("default WAVE text chat routes through ATHENA while attachments keep the ex
   assert.match(entry, /url\.pathname = "\/api\/chat\/athena"/);
   assert.match(entry, /attachment_ids/);
   assert.match(entry, /attachments\.length === 0/);
-  assert.match(entry, /return chatModelApi\.fetch\(canonicalRequest/);
+  assert.match(entry, /const response = await chatModelApi\.fetch\(canonicalRequest/);
+  assert.match(entry, /return await finishTurnWithReceipt\(stampRequest, response, env, preparedTurn\)/);
+  assert.match(entry, /prepareTurnBeforeExecution\(request, env, pathname\)/);
+  assert.match(entry, /memory_persistence: receipt/);
+  assert.match(entry, /X-OGENIC-1LSS-PERSISTENCE/);
 });
 
 test("ATHENA reuses exactly the OGE-32 verified private tool registry and never auto-enables hosted search", async () => {
@@ -46,9 +50,13 @@ test("ATHENA uses per-round idempotency and stamps verified tool evidence back t
   assert.match(api, /Idempotency-Key/);
   assert.match(api, /:round:\$\{round\}/);
   assert.match(api, /verified_tool_calls/);
-  assert.match(entry, /stampFunctionTurn\(stampRequest, response, env\)/);
+  assert.match(entry, /await stampFunctionTurn\(request\.clone\(\), response, env\)/);
   assert.match(entry, /\[TOOL \$\{name\}\] \$\{state\}/);
   assert.match(entry, /appendOneLine\(env, "assistant"/);
+  assert.match(entry, /\[TURN_FAILURE\]/);
+  assert.match(entry, /PERSISTENCE_WRITE_FAILED/);
+  assert.match(entry, /redactOneLineContent\(content\)/);
+  assert.doesNotMatch(entry, /stampFunctionTurn\(stampRequest, response, env\)\.catch\(\(\) => undefined\)/);
 });
 
 test("verified private reads surface rejected provider credentials as REAUTH_REQUIRED instead of generic failure", async () => {
