@@ -41,6 +41,13 @@ type FunctionTurnResponse = {
 };
 
 const clip = (value: unknown, max: number) => String(value ?? "").trim().slice(0, max);
+function redactOneLineContent(value: unknown) {
+  return clip(value, 7000)
+    .replace(/sk-[a-z0-9_-]{10,}/gi, "[REDACTED_SECRET]")
+    .replace(/gh[pousr]_[a-z0-9_]{10,}/gi, "[REDACTED_SECRET]")
+    .replace(/bearer\s+[a-z0-9._~+/-]{10,}/gi, "Bearer [REDACTED_SECRET]")
+    .replace(/((?:password|passwd|secret|api[_ -]?key|access[_ -]?token)\s*[:=]\s*)\S+/gi, "$1[REDACTED_SECRET]");
+}
 
 async function ensureOneLine(env: Bindings) {
   if (!env.DB) return;
@@ -92,7 +99,7 @@ async function appendOneLine(
     `1lss_${crypto.randomUUID()}`,
     ONE_LINE_ID,
     role,
-    clip(content, 7000),
+    redactOneLineContent(content),
     model,
     runId,
     Date.now(),
@@ -276,6 +283,7 @@ async function finishTurnWithReceipt(
   let overall = "NOT_APPLICABLE";
   if (prepared.state === "SAVED" && resultState === "SAVED") overall = "SAVED";
   else if (prepared.state === "SAVED" && resultState === "FAILURE_RECORDED") overall = "SAVED_WITH_FAILURE";
+  else if (prepared.state === "FAILED" && resultState === "FAILURE_RECORDED") overall = "USER_TURN_NOT_CONFIRMED";
   else if (prepared.state === "SAVED") overall = "USER_TURN_ONLY";
   else if (resultState === "SAVED") overall = "SAVED_LATE";
   else if (prepared.state === "UNAVAILABLE" || resultState === "D1_UNAVAILABLE") overall = "UNAVAILABLE";
@@ -302,6 +310,8 @@ async function finishTurnWithReceipt(
   if (!((headers.get("content-type") || "").includes("application/json")) || !result || Array.isArray(result)) {
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
   }
+  headers.delete("content-length");
+  headers.delete("content-encoding");
   headers.set("content-type", "application/json; charset=utf-8");
   return new Response(JSON.stringify({ ...result, memory_persistence: receipt }), {
     status: response.status,
