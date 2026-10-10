@@ -188,7 +188,9 @@ export default function DiscordWorkspacePanel() {
     }
   }
 
-  const connected = Boolean(status?.ok && status.state === "CONNECTED");
+  const currentGuild = status?.guild;
+  const currentBot = status?.bot;
+  const connected = Boolean(status?.ok && status.state === "CONNECTED" && currentGuild && currentBot);
 
   return <section className="discordWorkspace" aria-label="Discord workspace integration">
     <header className="discordWorkspaceHead">
@@ -216,11 +218,11 @@ export default function DiscordWorkspacePanel() {
       {status.missing && <small>Missing binding: {status.missing}</small>}
     </div>}
 
-    {connected && status.guild && status.bot && <>
+    {connected && currentGuild && currentBot && <>
       <div className="discordMetricGrid">
-        <article><small>BOT</small><strong>{status.bot.global_name || status.bot.username}</strong><span>{status.bot.id}</span></article>
-        <article><small>SERVER</small><strong>{status.guild.name}</strong><span>{status.guild.id}</span></article>
-        <article><small>CHANNELS</small><strong>{status.guild.channel_count}</strong><span>{status.guild.category_count} categories · {status.guild.forum_count} forums</span></article>
+        <article><small>BOT</small><strong>{currentBot.global_name || currentBot.username}</strong><span>{currentBot.id}</span></article>
+        <article><small>SERVER</small><strong>{currentGuild.name}</strong><span>{currentGuild.id}</span></article>
+        <article><small>CHANNELS</small><strong>{currentGuild.channel_count}</strong><span>{currentGuild.category_count} categories · {currentGuild.forum_count} forums</span></article>
       </div>
 
       <div className="discordWorkspaceTools">
