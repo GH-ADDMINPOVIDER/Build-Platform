@@ -1,14 +1,16 @@
 // Unsent device-local draft only. Sent messages/attachments remain canonical in D1.
-export type UploadedAttachment = { id: string; filename: string; mime_type: string; size_bytes: number };
+export type UploadedAttachment = { id: string; filename: string; mime_type: string; size_bytes: number; storage?: "D1_BASE64" | "R2"; status?: string; handoff_state?: string; reference?: string };
+export type MultipartUploadSession = { handle: string; part_size_bytes: number; parts: Array<{ part_number: number; etag: string }>; created_at: number };
 export type DraftAttachment = {
   localId: string; filename: string; mime_type: string; size_bytes: number; blob: Blob;
   status: "queued" | "uploading" | "uploaded" | "failed";
   progress: number | null; error?: string; uploaded?: UploadedAttachment; uploadedAt?: number;
+  uploadSession?: MultipartUploadSession;
 };
 export type ComposerDraft = { text: string; attachments: DraftAttachment[]; ready: boolean; persistenceError: string };
 type SavedDraft = Pick<ComposerDraft, "text" | "attachments">;
 export type DraftPersistence = { load(): Promise<SavedDraft | undefined>; save(draft: SavedDraft): Promise<void>; saveText?(text: string): void };
-export type AttachmentUpload = (attachment: DraftAttachment, progress: (value: number | null) => void, signal: AbortSignal) => Promise<UploadedAttachment>;
+export type AttachmentUpload = (attachment: DraftAttachment, progress: (value: number | null) => void, signal: AbortSignal, saveUploadSession: (session: MultipartUploadSession | undefined) => void) => Promise<UploadedAttachment>;
 
 export class ComposerDraftStore {
   private state: ComposerDraft = { text: "", attachments: [], ready: false, persistenceError: "" };
@@ -43,7 +45,7 @@ export class ComposerDraftStore {
   setText(text: string) { this.emit({ ...this.state, text }); void this.persist().catch(() => undefined); }
   async add(file: File) {
     if (!this.state.ready) throw new Error("กำลังอ่าน draft · รอสักครู่");
-    if (file.size > 4_000_000) throw new Error("ไฟล์เกิน 4 MB");
+    if (file.size > 1_073_741_824) throw new Error("ไฟล์เกิน 1 GiB · จำกัดขนาดไฟล์ต่อรายการ");
     if (this.state.attachments.length >= 4) throw new Error("แนบได้ 4 ไฟล์ · เอาไฟล์ออกก่อนเพิ่มใหม่");
     const row: DraftAttachment = { localId: crypto.randomUUID(), filename: file.name, mime_type: file.type || "application/octet-stream", size_bytes: file.size, blob: file, status: "queued", progress: null };
     this.emit({ ...this.state, attachments: [...this.state.attachments, row] });
@@ -62,9 +64,14 @@ export class ComposerDraftStore {
     const controller = new AbortController(); this.controllers.set(localId, controller);
     this.update(localId, { status: "uploading", progress: null, error: undefined, uploaded: undefined });
     try {
-      const uploaded = await this.transport(row, value => this.update(localId, { progress: value }, false), controller.signal);
+      const uploaded = await this.transport(
+        row,
+        value => this.update(localId, { progress: value }, false),
+        controller.signal,
+        session => this.update(localId, { uploadSession: session }),
+      );
       if (!uploaded?.id || !uploaded.filename || !uploaded.mime_type || !Number.isFinite(uploaded.size_bytes)) throw new Error("INVALID_UPLOAD_RESPONSE");
-      this.update(localId, { status: "uploaded", uploaded, uploadedAt: Date.now(), progress: 100, error: undefined });
+      this.update(localId, { status: "uploaded", uploaded, uploadedAt: Date.now(), progress: 100, error: undefined, uploadSession: undefined });
     } catch (error) {
       this.update(localId, { status: "failed", progress: null, error: error instanceof Error ? error.message : "Upload failed · retry" });
     } finally { this.controllers.delete(localId); }
