@@ -319,11 +319,29 @@ export function createChatModelApi() {
       text: `You are Ammonite, OGENIC AI, the owner's continuous copilot.\n\n1LSS SESSION INVARIANT:\n- D1 conversation id "owner-main" is ONE canonical ordered life line. Web, OGENIC App, ChatGPT Dev harness, ChatGPT App harness, Live Assist, and approved agents are doors into that same line when they persist here.\n- source_surface is metadata only. Never create a second conversational truth for another surface.\n- sequence_no is the authoritative turn order. Prefer it over timestamps when deciding what happened latest.\n- The timeline below is chronological evidence. Do not replace it with a project's latest deployment, commit, runtime, or status unless the owner explicitly asks for project/system status.\n- Temporal references such as "ล่าสุด", "เมื่อกี้", "ก่อนหน้านี้", "last time", "earlier", and "previously" refer first to the newest relevant persisted interaction in this 1LSS line.\n- Distinguish "last interaction/conversation" from "latest project state/status". If wording could mean either, prefer the conversation timeline unless the owner names a project/system/status.\n- Never claim a surface was synchronized unless that turn exists in this D1 line or verified runtime evidence says so.\n- Never expose secrets or tokens in chat. Never guess a verified state.\n- Reply in the user's language and natural tone.\n\nCANONICAL 1LSS OWNER-MAIN (oldest to newest):\n${history || "No prior persisted messages."}\n\nCANONICAL D1 READ-ONLY CONTEXT + LIVE RUNTIME EVIDENCE:\n${d1Context.text}\n\nCURRENT OWNER MESSAGE [source=${sourceSurface}]:\n${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
     }];
 
+    const attachmentRowsForTurn: Array<{ id: string; row: AttachmentRow }> = [];
     for (const id of attachmentIds) {
       const row = await db.prepare(
-        `SELECT filename, mime_type, data_base64 FROM chat_attachments WHERE id = ? AND conversation_id = ?`,
+        `SELECT filename, mime_type, data_base64, size_bytes FROM chat_attachments WHERE id = ? AND conversation_id = ?`,
       ).bind(id, CONVERSATION_ID).first<AttachmentRow>();
       if (!row) return c.json({ ok: false, code: "ATTACHMENT_NOT_FOUND", id }, 404);
+      attachmentRowsForTurn.push({ id, row });
+    }
+    const totalAttachmentBytes = attachmentRowsForTurn.reduce((sum, item) => sum + Math.max(0, Number(item.row.size_bytes ?? 0)), 0);
+    if (totalAttachmentBytes > 48 * 1024 * 1024) {
+      return c.json({
+        ok: false, code: "MODEL_INPUT_TOO_LARGE",
+        message: "All attached files combined must remain below 48 MiB for direct model input; this upload is stored, but a chunked extraction path is required",
+      }, 413);
+    }
+    for (const { id, row } of attachmentRowsForTurn) {
+      if (row.mime_type.startsWith("image/") && Number(row.size_bytes ?? 0) > 20 * 1024 * 1024) {
+        return c.json({
+          ok: false, code: "MODEL_INPUT_TOO_LARGE",
+          message: "An image exceeds the conservative 20 MiB per-image limit; the original remains stored",
+          attachment_id: id,
+        }, 413);
+      }
       try {
         const storedReference = isR2AttachmentReference(row.data_base64)
           ? await resolveR2ReferenceToOpenAIFile(c.env as unknown as ChatAttachmentStorageEnv, row.data_base64)
@@ -343,11 +361,22 @@ export function createChatModelApi() {
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : "ATTACHMENT_HANDOFF_FAILED";
         const code = message.split(":")[0];
-        const status = message.startsWith("CONFIGURATION_REQUIRED") ? 503 : code === "ATTACHMENT_NOT_FOUND" ? 404 : 409;
-        return c.json({ ok: false, code, attachment_id: id, message: status === 503 ? "Large-file storage or model handoff is not configured" : "Attachment handoff could not be verified" }, status);
+        const status = message.startsWith("CONFIGURATION_REQUIRED") ? 503
+          : code === "ATTACHMENT_NOT_FOUND" ? 404
+          : code === "MODEL_INPUT_TOO_LARGE" ? 413
+          : 409;
+        return c.json({
+          ok: false,
+          code,
+          attachment_id: id,
+          message: status === 503
+            ? "Large-file storage or model handoff is not configured"
+            : code === "MODEL_INPUT_TOO_LARGE"
+              ? "The file is stored, but its size requires a chunked extraction path"
+              : "Attachment handoff could not be verified",
+        }, status);
       }
     }
-
     const visibleUserText = `${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}${attachmentIds.length ? `\n\n[${attachmentIds.length} attachment(s)]` : ""}`;
     const existingUser = await db.prepare(
       `SELECT sequence_no FROM chat_messages WHERE conversation_id = ? AND idempotency_key = ? LIMIT 1`,
