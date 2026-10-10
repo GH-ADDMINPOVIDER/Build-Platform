@@ -120,7 +120,7 @@ async function discordRequest(env: DiscordBindings, path: string, init: RequestI
     const data = response.status === 204 ? null : await response.json().catch(() => null) as any;
     if (response.status === 429 && attempt < 2) {
       const retrySeconds = Number(data?.retry_after ?? 1);
-      const waitMs = Math.min(Math.max(retrySeconds, 0.25), 3) * 1000 + 150;
+      const waitMs = Math.min(Math.max(retrySeconds, 0.25), 15) * 1000 + 150;
       await new Promise((resolve) => setTimeout(resolve, waitMs));
       continue;
     }
@@ -263,11 +263,11 @@ export function createDiscordApi() {
       },
       channels: channels.map(safeChannel).sort((left, right) => left.position - right.position || left.name.localeCompare(right.name)),
       capabilities: {
-        read_channels: true,
-        read_messages: true,
-        read_attachment_metadata: true,
-        create_channels: true,
-        send_messages: true,
+        read_channels: "verified",
+        read_messages: "available_on_channel_read",
+        read_attachment_metadata: "available_in_message_payload",
+        create_channels: "verified_when_bootstrap_runs",
+        send_messages: "verified_when_message_is_sent",
         realtime_gateway: false,
       },
     });
