@@ -259,50 +259,80 @@ type StoredAgentSessionRef = {
   last_seen_at?: number | null;
 };
 
-async function latestStoredAgentSession(env: ConnectorAppBindings) {
-  if (!env.DB) return null;
-  return env.DB.prepare(
-    `SELECT session_ref, label, last_seen_at
-     FROM chat_session_refs
-     WHERE conversation_id = 'owner-main' AND source_surface = 'openai-agent'
-     ORDER BY last_seen_at DESC
-     LIMIT 1`,
-  ).first<StoredAgentSessionRef>().catch(() => null);
+type StoredAgentSessionLookup =
+  | { ok: true; session: StoredAgentSessionRef | null }
+  | { ok: false; code: "D1_BINDING_UNAVAILABLE" | "SESSION_REFERENCE_READ_FAILED" };
+
+async function latestStoredAgentSession(env: ConnectorAppBindings): Promise<StoredAgentSessionLookup> {
+  if (!env.DB) return { ok: false, code: "D1_BINDING_UNAVAILABLE" };
+  try {
+    const session = await env.DB.prepare(
+      `SELECT session_ref, label, last_seen_at
+       FROM chat_session_refs
+       WHERE conversation_id = 'owner-main' AND source_surface = 'openai-agent'
+       ORDER BY last_seen_at DESC
+       LIMIT 1`,
+    ).first<StoredAgentSessionRef>();
+    return { ok: true, session: session ?? null };
+  } catch {
+    // A read failure is NOT the same as "there is no session". Never create
+    // another provider session when the canonical reference cannot be read.
+    return { ok: false, code: "SESSION_REFERENCE_READ_FAILED" };
+  }
 }
 
-async function rememberAgentSession(env: ConnectorAppBindings, sessionId: string, label: string) {
-  if (!env.DB || !sessionId) return;
-  const now = Date.now();
-  await env.DB.prepare(
-    `INSERT OR IGNORE INTO chat_conversations(id, owner_id, title, created_at, updated_at)
-     VALUES ('owner-main', 'owner', 'OGENIC SAME MIND', ?, ?)`,
-  ).bind(now, now).run();
-  const conversation = await env.DB.prepare(
-    `SELECT last_sequence FROM chat_conversations WHERE id = 'owner-main' LIMIT 1`,
-  ).first<{ last_sequence?: number }>().catch(() => null);
-  const sequence = Math.max(0, Number(conversation?.last_sequence ?? 0)) || null;
-  await env.DB.prepare(
-    `INSERT INTO chat_session_refs(
-       id, conversation_id, source_surface, session_ref, session_url, label,
-       first_sequence, last_sequence, first_seen_at, last_seen_at
-     ) VALUES (?, 'owner-main', 'openai-agent', ?, NULL, ?, ?, ?, ?, ?)
-     ON CONFLICT(conversation_id, source_surface, session_ref) DO UPDATE SET
-       label = excluded.label,
-       last_sequence = CASE
-         WHEN excluded.last_sequence IS NULL THEN chat_session_refs.last_sequence
-         WHEN chat_session_refs.last_sequence IS NULL THEN excluded.last_sequence
-         ELSE MAX(chat_session_refs.last_sequence, excluded.last_sequence)
-       END,
-       last_seen_at = excluded.last_seen_at`,
-  ).bind(
-    `agent_session_${crypto.randomUUID()}`,
-    clean(sessionId, 220),
-    clean(label, 160),
-    sequence,
-    sequence,
-    now,
-    now,
-  ).run();
+async function rememberAgentSession(env: ConnectorAppBindings, sessionId: string, label: string): Promise<boolean> {
+  const safeSessionId = clean(sessionId, 220);
+  const safeLabel = clean(label, 160);
+  if (!env.DB || !safeSessionId || !safeLabel) return false;
+  try {
+    const now = Date.now();
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO chat_conversations(id, owner_id, title, created_at, updated_at)
+       VALUES ('owner-main', 'owner', 'OGENIC SAME MIND', ?, ?)`,
+    ).bind(now, now).run();
+    const conversation = await env.DB.prepare(
+      `SELECT last_sequence FROM chat_conversations WHERE id = 'owner-main' LIMIT 1`,
+    ).first<{ last_sequence?: number }>();
+    const sequence = Math.max(0, Number(conversation?.last_sequence ?? 0)) || null;
+    await env.DB.prepare(
+      `INSERT INTO chat_session_refs(
+         id, conversation_id, source_surface, session_ref, session_url, label,
+         first_sequence, last_sequence, first_seen_at, last_seen_at
+       ) VALUES (?, 'owner-main', 'openai-agent', ?, NULL, ?, ?, ?, ?, ?)
+       ON CONFLICT(conversation_id, source_surface, session_ref) DO UPDATE SET
+         label = excluded.label,
+         last_sequence = CASE
+           WHEN excluded.last_sequence IS NULL THEN chat_session_refs.last_sequence
+           WHEN chat_session_refs.last_sequence IS NULL THEN excluded.last_sequence
+           ELSE MAX(chat_session_refs.last_sequence, excluded.last_sequence)
+         END,
+         last_seen_at = excluded.last_seen_at`,
+    ).bind(
+      `agent_session_${crypto.randomUUID()}`,
+      safeSessionId,
+      safeLabel,
+      sequence,
+      sequence,
+      now,
+      now,
+    ).run();
+
+    const saved = await env.DB.prepare(
+      `SELECT session_ref, label
+       FROM chat_session_refs
+       WHERE conversation_id = 'owner-main'
+         AND source_surface = 'openai-agent'
+         AND session_ref = ?
+       LIMIT 1`,
+    ).bind(safeSessionId).first<{ session_ref: string; label: string }>();
+    return saved?.session_ref === safeSessionId && saved.label === safeLabel;
+  } catch {
+    console.warn("OGENIC_AGENT_SESSION_REFERENCE_PERSIST_FAILED", {
+      failure_code: "SESSION_REFERENCE_WRITE_OR_VERIFY_FAILED",
+    });
+    return false;
+  }
 }
 
 async function touchAgentSession(env: ConnectorAppBindings, sessionId: string, label: string) {
@@ -559,7 +589,18 @@ export function createConnectorAppApi() {
       }, 429);
     }
 
-    const storedSession = await latestStoredAgentSession(c.env);
+    const sessionLookup = await latestStoredAgentSession(c.env);
+    if (!sessionLookup.ok) {
+      return c.json({
+        ok: false,
+        code: "AGENT_SESSION_REFERENCE_READ_FAILED",
+        reference_state: sessionLookup.code,
+        message: "Could not verify the canonical Agent Session reference. No new provider session was created.",
+        retry_policy: "NO_AUTO_RETRY",
+        new_session_required: false,
+      }, 503);
+    }
+    const storedSession = sessionLookup.session;
     let agent: Awaited<ReturnType<typeof readAgentSessionStream>>;
     let sessionContinuation = false;
     let d1CanonicalState: string = "SESSION_CONTINUATION";
@@ -679,7 +720,21 @@ export function createConnectorAppApi() {
     }
 
     if (!sessionContinuation) {
-      await rememberAgentSession(c.env, sessionId, requestedAgentSessionLabel(model, effort));
+      const referenceSaved = await rememberAgentSession(c.env, sessionId, requestedAgentSessionLabel(model, effort));
+      if (!referenceSaved) {
+        return c.json({
+          ok: false,
+          code: "AGENT_SESSION_REFERENCE_NOT_CONFIRMED",
+          message: "The provider finished the turn, but its durable session reference could not be confirmed in 1LSS. Do not automatically retry or create another session.",
+          text: agent.text,
+          model,
+          agent_session_id: sessionId,
+          agent_terminal: agent.terminal,
+          runtime: "OPENAI_AGENT_SESSION",
+          session_reference_state: "NOT_CONFIRMED",
+          retry_policy: "NO_AUTO_RETRY",
+        }, 503, { "Cache-Control": "no-store" });
+      }
     }
 
     await recordChatUsage(c.env.DB, {
