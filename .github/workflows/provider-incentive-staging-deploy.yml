@@ -708,3 +708,48 @@ jobs:
             exit 1
           fi
           echo "Owner auth, connector hub, Browser Run mobile bridge, and Manus bridge state verified without starting billable sessions/tasks."
+
+      - name: Bootstrap Discord workspace (idempotent)
+        if: steps.scope.outputs.ui_only != 'true'
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if test -z "${DISCORD_TOKEN:-}"; then
+            echo "::warning::DISCORD_TOKEN is not configured in Infisical; skipping Discord workspace bootstrap."
+            echo "- Discord workspace bootstrap: skipped (DISCORD_TOKEN missing)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          BODY_FILE="$(mktemp)"
+          trap 'rm -f "$BODY_FILE"' EXIT
+          HTTP_CODE="$(curl --silent --show-error --output "$BODY_FILE" --write-out '%{http_code}' \
+            --request POST \
+            --header "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" \
+            --header 'content-type: application/json' \
+            --data '{}' \
+            "${STAGING_URL}/api/discord/workspace/bootstrap")"
+
+          if test "$HTTP_CODE" != "200" && test "$HTTP_CODE" != "207"; then
+            echo "::error::Discord workspace bootstrap endpoint returned HTTP $HTTP_CODE"
+            cat "$BODY_FILE"
+            echo "- Discord workspace bootstrap: HTTP $HTTP_CODE (see step log)." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          jq -e '.state == "BOOTSTRAPPED" or .state == "PARTIAL"' "$BODY_FILE" >/dev/null || {
+            echo "::error::Discord workspace bootstrap returned an unexpected response."
+            cat "$BODY_FILE"
+            exit 1
+          }
+          STATE="$(jq -r '.state' "$BODY_FILE")"
+          CREATED="$(jq -r '.created_count // 0' "$BODY_FILE")"
+          REUSED="$(jq -r '.reused_count // 0' "$BODY_FILE")"
+          CHANNELS="$(jq -r '.channel_count // 0' "$BODY_FILE")"
+          ISSUES="$(jq -c '.issues // []' "$BODY_FILE")"
+          echo "Discord workspace bootstrap result: state=$STATE created=$CREATED reused=$REUSED channels=$CHANNELS"
+          echo "- Discord workspace bootstrap: **$STATE**; created $CREATED; reused $REUSED; server channels $CHANNELS." >> "$GITHUB_STEP_SUMMARY"
+          if test "$STATE" != "BOOTSTRAPPED"; then
+            echo "::warning::Discord workspace bootstrap was partial: $ISSUES"
+            echo "- Issues: `$ISSUES`" >> "$GITHUB_STEP_SUMMARY"
+          fi
