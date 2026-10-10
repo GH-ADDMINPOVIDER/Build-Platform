@@ -323,6 +323,66 @@ async function finishTurnWithReceipt(
       resultSequence = storedAssistant?.sequence_no == null ? null : Number(storedAssistant.sequence_no);
       resultState = resultSequence ? "SAVED" : "RESULT_NOT_CONFIRMED";
       if (!resultSequence) failureCode = "ASSISTANT_TURN_NOT_CONFIRMED";
+
+      // The provider reference is first written before the assistant message
+      // is stamped. Advance its saved range to include the completed assistant
+      // turn, so another agent opening this door retrieves the whole exchange.
+      const agentSessionId = result?.runtime === "OPENAI_AGENT_SESSION"
+        ? clip(result?.agent_session_id, 220)
+        : "";
+      if (resultSequence && agentSessionId) {
+        let rangeConfirmed = false;
+        try {
+          await env.DB.prepare(
+            `UPDATE chat_session_refs
+             SET last_sequence = CASE
+               WHEN last_sequence IS NULL THEN ?
+               WHEN last_sequence < ? THEN ?
+               ELSE last_sequence
+             END,
+             last_seen_at = ?
+             WHERE conversation_id = ?
+               AND source_surface = 'openai-agent'
+               AND session_ref = ?`,
+          ).bind(
+            resultSequence,
+            resultSequence,
+            resultSequence,
+            Date.now(),
+            ONE_LINE_ID,
+            agentSessionId,
+          ).run();
+          const range = await env.DB.prepare(
+            `SELECT last_sequence FROM chat_session_refs
+             WHERE conversation_id = ?
+               AND source_surface = 'openai-agent'
+               AND session_ref = ?
+             LIMIT 1`,
+          ).bind(ONE_LINE_ID, agentSessionId).first<{ last_sequence?: number }>();
+          rangeConfirmed = Number(range?.last_sequence ?? 0) >= resultSequence;
+        } catch {
+          rangeConfirmed = false;
+        }
+        if (!rangeConfirmed) {
+          resultState = "SAVED_WITH_FAILURE";
+          failureCode = "SESSION_RANGE_NOT_CONFIRMED";
+          const rangeEvent = await appendOneLine(
+            env,
+            "system",
+            "[SESSION_RANGE_UPDATE_FAILED] assistant turn saved but Agent session door range was not confirmed",
+            prepared.sourceSurface || "unknown",
+            (prepared.requestKey || "turn") + ":session-range-failure",
+            null,
+            agentSessionId,
+          ).catch(() => null);
+          if (!rangeEvent) {
+            console.warn("OGENIC_SESSION_RANGE_RECEIPT_FAILED", {
+              route: pathname,
+              failure_code: "SESSION_RANGE_NOT_CONFIRMED",
+            });
+          }
+        }
+      }
     } catch {
       resultState = "RESULT_NOT_CONFIRMED";
       failureCode = "PERSISTENCE_WRITE_FAILED";
