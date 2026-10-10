@@ -30,6 +30,9 @@ async function uploadLargeAttachment(
   signal: AbortSignal,
   saveUploadSession: (session: MultipartUploadSession | undefined) => void,
 ): Promise<UploadedAttachment> {
+  if (Capacitor.isNativePlatform()) {
+    throw new Error("Large-file binary upload needs the browser WAVE Chat transport; use wave.ogenicchocolate.com/chat in Safari until the native byte-stream bridge is wired.");
+  }
   let session = row.uploadSession ? { ...row.uploadSession, parts: [...row.uploadSession.parts] } : undefined;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
