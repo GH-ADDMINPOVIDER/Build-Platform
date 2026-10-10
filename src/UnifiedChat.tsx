@@ -16,6 +16,22 @@ function withoutPstackTemplates(value: string): string {
 }
 
 type Session = { authenticated?: boolean; user?: { label?: string; role?: string } | null };
+type MemoryPersistenceReceipt = {
+  status?: string;
+  user_sequence_no?: number | null;
+  result_sequence_no?: number | null;
+  failure_code?: string;
+};
+type PersistedTurnResponse = {
+  ok?: boolean;
+  code?: string;
+  message?: string;
+  text?: string;
+  model?: string;
+  agent_session_id?: string;
+  session_continuation?: boolean;
+  memory_persistence?: MemoryPersistenceReceipt;
+};
 type Message = {
   id?: string;
   role?: Role | string;
@@ -107,6 +123,21 @@ function readBool(key: string, fallback: boolean) {
   return fallback;
 }
 function cleanText(value: unknown, max = 7000) { return String(value ?? "").trim().slice(0, max); }
+function memoryPersistenceNotice(body: PersistedTurnResponse, headerStatus?: string | null) {
+  const receipt = body.memory_persistence;
+  const status = cleanText(receipt?.status || headerStatus, 80).toUpperCase();
+  if (!status || status === "NOT_APPLICABLE") return "";
+  const sequence = Number(receipt?.result_sequence_no ?? receipt?.user_sequence_no ?? 0);
+  const ref = sequence > 0 ? ` · #${sequence}` : "";
+  const code = receipt?.failure_code ? ` · ${cleanText(receipt.failure_code, 100)}` : "";
+  if (status === "SAVED") return `1LSS SAVED${ref}`;
+  if (status === "SAVED_WITH_FAILURE") return `1LSS SAVED · TURN FAILURE RECORDED${ref}`;
+  if (status === "USER_TURN_ONLY") return `1LSS USER TURN SAVED; RESULT NOT CONFIRMED${ref}${code}`;
+  if (status === "UNAVAILABLE") return `1LSS UNAVAILABLE · NOT CONFIRMED${code}`;
+  if (status === "FAILED" || status === "USER_TURN_NOT_CONFIRMED") return `1LSS ${status} · NOT CONFIRMED${code}`;
+  if (status === "PARTIAL") return `1LSS PARTIAL · VERIFY HISTORY${ref}${code}`;
+  return `1LSS ${status}${ref}${code}`;
+}
 function toolLive(value?: string) { return ["LIVE", "BOUND", "CONFIGURED", "READY", "OPERATIONAL"].includes(String(value ?? "").toUpperCase()); }
 function timeAgo(ts?: number) {
   if (!ts) return "";
@@ -535,11 +566,17 @@ export default function UnifiedChat({ surface }: Props) {
         new_session: newAgentSession,
       }),
     });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok || !body?.ok) throw new Error(body?.message || body?.code || `HTTP_${response.status}`);
+    const body = await response.json().catch(() => ({})) as PersistedTurnResponse;
+    const persistence = memoryPersistenceNotice(body, response.headers.get("X-OGENIC-1LSS-PERSISTENCE"));
+    if (!response.ok || !body?.ok) {
+      throw new Error([body?.message || body?.code || `HTTP_${response.status}`, persistence].filter(Boolean).join(" · "));
+    }
     if (body.agent_session_id) {
       setNewAgentSession(false);
-      setInlineNotice(`Agent Session · ${body.agent_session_id}${body.session_continuation ? " · continued" : " · new"}`);
+      const sessionNotice = `Agent Session · ${body.agent_session_id}${body.session_continuation ? " · continued" : " · new"}`;
+      setInlineNotice([sessionNotice, persistence].filter(Boolean).join(" · "));
+    } else if (persistence) {
+      setInlineNotice(persistence);
     }
     await loadHistory();
   }
@@ -563,12 +600,16 @@ export default function UnifiedChat({ surface }: Props) {
         allow_paid_fallback: allowPaidFallback,
       }),
     });
-    const body = await response.json().catch(() => ({}));
+    const body = await response.json().catch(() => ({})) as PersistedTurnResponse & { id?: string };
     if (body?.code === "ATTACHMENT_NOT_FOUND") composerDraft.store.unavailable(body.id);
-    if (!response.ok || !body?.ok) throw new Error(body?.message || body?.code || `HTTP_${response.status}`);
+    const persistence = memoryPersistenceNotice(body, response.headers.get("X-OGENIC-1LSS-PERSISTENCE"));
+    if (!response.ok || !body?.ok) {
+      throw new Error([body?.message || body?.code || `HTTP_${response.status}`, persistence].filter(Boolean).join(" · "));
+    }
     composerDraft.store.consume(sentDraft.text, sentDraft.attachments.map(item => item.localId));
     if (d1Enabled) await loadHistory();
     else setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "assistant", text: body.text, model: body.model, created_at: Date.now() }]);
+    if (persistence) setInlineNotice(persistence);
   }
 
   function messageActionKey(message: Message, index: number) {
