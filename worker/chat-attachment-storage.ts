@@ -15,8 +15,8 @@ export const R2_ATTACHMENT_MANIFEST_PREFIX = "__wave_chat_uploads/manifests/";
 export const R2_ATTACHMENT_IDEMPOTENCY_PREFIX = "__wave_chat_uploads/idempotency/";
 export const R2_ATTACHMENT_PART_SIZE = 8 * 1024 * 1024;
 export const R2_ATTACHMENT_MAX_BYTES = 1_073_741_824; // 1 GiB storage cap; not the model input cap.
-export const R2_RESPONSES_FILE_MAX_BYTES = 48 * 1024 * 1024; // Stay below the Responses API 50 MB request/file ceiling.
-export const R2_RESPONSES_IMAGE_MAX_BYTES = 20 * 1024 * 1024; // Conservative per-image ceiling.
+export const R2_RESPONSES_FILE_MAX_BYTES = 48_000_000; // Decimal bytes; safely below the Responses API 50 MB request/file ceiling.
+export const R2_RESPONSES_IMAGE_MAX_BYTES = 20_000_000; // Decimal bytes; conservative per-image ceiling.
 export const R2_ATTACHMENT_TTL_MS = 24 * 60 * 60 * 1000;
 
 export type R2UploadedPartLike = { partNumber: number; etag: string };
@@ -145,8 +145,8 @@ export function chatAttachmentStorageStatus(env: ChatAttachmentStorageEnv) {
     max_file_bytes_label: "1 GiB stored",
     max_direct_model_file_bytes: R2_RESPONSES_FILE_MAX_BYTES,
     max_direct_model_image_bytes: R2_RESPONSES_IMAGE_MAX_BYTES,
-    max_direct_model_file_label: "48 MiB",
-    max_direct_model_image_label: "20 MiB",
+    max_direct_model_file_label: "48 MB",
+    max_direct_model_image_label: "20 MB",
     part_size_bytes: R2_ATTACHMENT_PART_SIZE,
     part_size_bytes_label: "8 MiB",
     expires_after_hours: 24,
