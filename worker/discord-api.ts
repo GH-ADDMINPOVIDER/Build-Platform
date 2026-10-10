@@ -336,8 +336,8 @@ export function createDiscordApi() {
 
   api.post("/api/discord/workspace/bootstrap", async (c) => {
     if (!sameOrigin(c.req.raw)) return c.json({ ok: false, code: "ORIGIN_DENIED" }, 403);
-    if (!(await hasOwnerSession(c.req.raw, c.env))) {
-      return c.json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401);
+    if (!(await hasOwnerOrOpsAccess(c.req.raw, c.env))) {
+      return c.json({ ok: false, code: "OWNER_OR_OPS_AUTH_REQUIRED" }, 401);
     }
 
     const id = guildId(c.env);
