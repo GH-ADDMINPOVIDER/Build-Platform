@@ -193,7 +193,7 @@ export async function beginR2AttachmentUpload(
   const idempotencyObjectKey = r2IdempotencyKey(idempotencyDigest);
   const existingMap = await bucket.get(idempotencyObjectKey);
   if (existingMap) {
-    const mapped = await existingMap.text().then(value => JSON.parse(value) as { handle?: string }).catch(() => ({}));
+    const mapped = await existingMap.text().then(value => JSON.parse(value) as { handle?: string }).catch((): { handle?: string } => ({}));
     if (mapped.handle && isSafeUploadHandle(mapped.handle)) {
       const existing = await loadR2AttachmentManifest(env, mapped.handle);
       if (existing && existing.expires_at > Date.now() && existing.status !== "ABORTED" && existing.status !== "EXPIRED") {
@@ -480,9 +480,10 @@ export async function markR2ReferenceHandedOff(env: ChatAttachmentStorageEnv, st
  * scheduled tick so cleanup never monopolizes a Worker invocation.
  */
 export async function cleanExpiredR2Attachments(env: ChatAttachmentStorageEnv, maxItems = 50) {
-  if (!env.CHAT_UPLOADS?.list) return { ok: false, code: "CONFIGURATION_REQUIRED:R2_BUCKET", scanned: 0, deleted: 0 };
   const bucket = env.CHAT_UPLOADS;
-  const page = await bucket.list({ prefix: R2_ATTACHMENT_MANIFEST_PREFIX, limit: Math.max(1, Math.min(100, maxItems)) });
+  const listObjects = bucket?.list;
+  if (!bucket || !listObjects) return { ok: false, code: "CONFIGURATION_REQUIRED:R2_BUCKET", scanned: 0, deleted: 0 };
+  const page = await listObjects.call(bucket, { prefix: R2_ATTACHMENT_MANIFEST_PREFIX, limit: Math.max(1, Math.min(100, maxItems)) });
   let scanned = 0;
   let deleted = 0;
   const errors: string[] = [];
