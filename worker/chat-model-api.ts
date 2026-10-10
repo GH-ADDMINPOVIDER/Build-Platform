@@ -55,7 +55,7 @@ type ChatRow = {
   sequence_no?: number | null;
   source_surface?: string | null;
 };
-type AttachmentRow = { filename: string; mime_type: string; data_base64: string };
+type AttachmentRow = { filename: string; mime_type: string; data_base64: string; size_bytes: number };
 type ResponsesBody = {
   output?: Array<{ content?: Array<{ type?: string; text?: string; refusal?: string }> }>;
   usage?: { total_tokens?: number } | null;
