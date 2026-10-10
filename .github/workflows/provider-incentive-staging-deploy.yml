@@ -120,6 +120,68 @@ jobs:
           secret-path: /
           recursive: true
 
+      - name: Probe Discord bot token from Infisical
+        id: discord_token_probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
+
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          output = Path(os.environ["GITHUB_OUTPUT"])
+
+          def report(status: str, detail: str) -> None:
+              with output.open("a", encoding="utf-8") as stream:
+                  stream.write(f"status={status}\\n")
+              with summary.open("a", encoding="utf-8") as stream:
+                  stream.write("### Discord credential probe\\n\\n")
+                  stream.write(f"- Status: **{status}**\\n")
+                  stream.write(f"- Detail: {detail}\\n")
+                  stream.write("- Bot token value was not printed or persisted to an artifact.\\n\\n")
+
+          token = os.environ.get("DISCORD_TOKEN", "").strip()
+          if not token:
+              print("::warning::DISCORD_TOKEN was not loaded from Infisical staging root; Discord probe skipped.")
+              report("missing", "DISCORD_TOKEN not found in the job environment.")
+              raise SystemExit(0)
+
+          request = Request(
+              "https://discord.com/api/v10/users/@me",
+              headers={
+                  "Authorization": f"Bot {token}",
+                  "User-Agent": "OGENIC-WAVE-Discord-Credential-Probe/1.0",
+              },
+              method="GET",
+          )
+          try:
+              with urlopen(request, timeout=15) as response:
+                  status = response.status
+                  data = json.loads(response.read().decode("utf-8"))
+          except HTTPError as error:
+              print(f"::warning::Discord token probe returned HTTP {error.code}; response body withheld.")
+              report("failed", f"Discord returned HTTP {error.code}; response body withheld.")
+              raise SystemExit(0)
+          except (URLError, TimeoutError, OSError, json.JSONDecodeError) as error:
+              print(f"::warning::Discord token probe could not complete ({type(error).__name__}); details withheld.")
+              report("unreachable", f"Request failed ({type(error).__name__}); details withheld.")
+              raise SystemExit(0)
+
+          bot_id = str(data.get("id", ""))
+          username = str(data.get("username", ""))
+          if status != 200 or data.get("bot") is not True or not bot_id or not username:
+              print("::warning::Discord accepted the request but response was not a recognizable bot identity.")
+              report("unexpected_identity", "Response did not identify a bot account.")
+              raise SystemExit(0)
+
+          print(f"::notice::Discord bot credential verified: {username} (ID {bot_id}); token not printed.")
+          report("verified", f"Bot username: {username}; bot ID: {bot_id}.")
+          PY
+
       - name: Normalize canonical runtime secret names
         shell: bash
         run: |
