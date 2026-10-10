@@ -275,7 +275,24 @@ async function finishTurnWithReceipt(
     const code = clip(result?.code || result?.error_code || "", 100)
       .replace(/[^A-Za-z0-9_.-]/g, "_") || ("HTTP_" + response.status);
     try {
-      resultSequence = await appendOneLine(
+      // Some errors happen after the provider completed a turn but before its
+      // durable session reference was confirmed. Preserve that final text and
+      // session ID in 1LSS while still recording the failed reference state.
+      const failedOutput = typeof result?.text === "string" ? clip(result.text, 7000) : "";
+      let outputSequence: number | null = null;
+      if (failedOutput) {
+        outputSequence = await appendOneLine(
+          env,
+          "assistant",
+          failedOutput,
+          prepared.sourceSurface || "unknown",
+          (prepared.requestKey || "turn") + ":assistant",
+          clip(result?.model, 100) || null,
+          clip(result?.agent_session_id, 220) || null,
+        );
+        if (!outputSequence) throw new Error("FAILED_TURN_OUTPUT_NOT_CONFIRMED");
+      }
+      const failureSequence = await appendOneLine(
         env,
         "system",
         "[TURN_FAILURE] route=" + pathname + " http=" + response.status + " code=" + code,
@@ -284,8 +301,11 @@ async function finishTurnWithReceipt(
         null,
         null,
       );
-      resultState = resultSequence ? "FAILURE_RECORDED" : "FAILURE_NOT_RECORDED";
-      if (!resultSequence) failureCode = "FAILURE_EVENT_NOT_CONFIRMED";
+      resultSequence = outputSequence || failureSequence;
+      resultState = failureSequence
+        ? (outputSequence ? "SAVED_WITH_FAILURE" : "FAILURE_RECORDED")
+        : "FAILURE_NOT_RECORDED";
+      if (!failureSequence) failureCode = "FAILURE_EVENT_NOT_CONFIRMED";
     } catch {
       resultState = "FAILURE_NOT_RECORDED";
       failureCode = "PERSISTENCE_WRITE_FAILED";
@@ -316,7 +336,7 @@ async function finishTurnWithReceipt(
 
   let overall = "NOT_APPLICABLE";
   if (prepared.state === "SAVED" && resultState === "SAVED") overall = "SAVED";
-  else if (prepared.state === "SAVED" && resultState === "FAILURE_RECORDED") overall = "SAVED_WITH_FAILURE";
+  else if (prepared.state === "SAVED" && (resultState === "FAILURE_RECORDED" || resultState === "SAVED_WITH_FAILURE")) overall = "SAVED_WITH_FAILURE";
   else if (prepared.state === "FAILED" && resultState === "FAILURE_RECORDED") overall = "USER_TURN_NOT_CONFIRMED";
   else if (prepared.state === "SAVED" && resultState === "RESULT_NOT_CONFIRMED") overall = "USER_TURN_ONLY";
   else if (prepared.state === "SAVED") overall = "PARTIAL";
