@@ -1,7 +1,14 @@
 import incentives from "../config/provider-incentives.staging.json";
 import { readIncentiveSnapshot } from "./provider-incentives";
 import { readCanonicalD1Context } from "./d1-context";
-import { isR2AttachmentReference, resolveR2ReferenceToOpenAIFile, type ChatAttachmentStorageEnv } from "./chat-attachment-storage";
+import {
+  isR2AttachmentReference,
+  markR2ReferenceHandedOff,
+  recordR2FileHandoffEvidence,
+  resolveR2ReferenceToOpenAIFile,
+  type ChatAttachmentStorageEnv,
+  type R2AttachmentManifest,
+} from "./chat-attachment-storage";
 import type { Adapter, AdapterContext, AdapterResult, Json, WorkflowBindings } from "./workflow-engine";
 
 type OpenAIMode = "fast" | "balanced" | "power" | "api" | "codex";
@@ -139,7 +146,12 @@ async function attachmentRows(env: WorkflowBindings, input: Json) {
   return rows;
 }
 
-async function responsesInputFor(env: WorkflowBindings, input: Json, operation: "chat" | "codex") {
+async function responsesInputFor(
+  env: WorkflowBindings,
+  input: Json,
+  operation: "chat" | "codex",
+  r2AttachmentsForThisTurn: Array<{ attachment_id: string; stored_value: string; manifest: R2AttachmentManifest }> = [],
+) {
   if (operation === "codex") return promptFor(input, operation);
 
   const content: Array<Record<string, unknown>> = [{ type: "input_text", text: promptFor(input, operation) }];
@@ -148,6 +160,7 @@ async function responsesInputFor(env: WorkflowBindings, input: Json, operation: 
       ? await resolveR2ReferenceToOpenAIFile(env as unknown as ChatAttachmentStorageEnv, attachment.data_base64)
       : null;
     if (storedReference?.file_id) {
+      r2AttachmentsForThisTurn.push({ attachment_id: attachment.id, stored_value: attachment.data_base64, manifest: storedReference.manifest });
       if (attachment.mime_type.startsWith("image/")) {
         content.push({ type: "input_image", detail: "auto", file_id: storedReference.file_id });
       } else {
@@ -243,8 +256,10 @@ async function invokeOpenAI(
   }
 
   const structured = operation === "codex";
+  const r2AttachmentsForThisTurn: Array<{ attachment_id: string; stored_value: string; manifest: R2AttachmentManifest }> = [];
   const d1Context = await readCanonicalD1Context(env.DB);
   const sharedDirection = `OGENIC canonical D1 direction (read-only):\n${d1Context.text.slice(0, 6000)}\n\nPreserve 1LSS continuity. Treat D1 as shared operating context and never invent a separate source of truth.`;
+  const modelInput = await responsesInputFor(env, input, operation, r2AttachmentsForThisTurn);
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     signal: context.signal,
@@ -255,7 +270,7 @@ async function invokeOpenAI(
     },
     body: JSON.stringify({
       model: routed.route.model,
-      input: await responsesInputFor(env, input, operation),
+      input: modelInput,
       instructions: structured
         ? `${sharedDirection}\n\nReturn only a concise implementation summary and a unified diff patch. Do not call tools. Do not include credentials or secrets.`
         : `${sharedDirection}\n\nAnswer the user request directly. Use attached images/files when present. Do not call tools. Keep secrets and credentials out of the response.`,
@@ -304,6 +319,20 @@ async function invokeOpenAI(
     };
   }
 
+  let fileHandoffState = r2AttachmentsForThisTurn.length ? "EVIDENCE_PENDING" : "NOT_APPLICABLE";
+  if (operation === "chat" && r2AttachmentsForThisTurn.length) {
+    try {
+      for (const item of r2AttachmentsForThisTurn) {
+        await recordR2FileHandoffEvidence(env as unknown as ChatAttachmentStorageEnv, item.manifest, "FILE_HANDOFF_COMPLETED");
+        const handedOff = await markR2ReferenceHandedOff(env as unknown as ChatAttachmentStorageEnv, item.stored_value);
+        if (!handedOff || handedOff.status !== "HANDED_OFF") throw new Error("HANDOFF_STATE_NOT_PERSISTED");
+      }
+      fileHandoffState = "HANDED_OFF";
+    } catch {
+      fileHandoffState = "EVIDENCE_PENDING";
+    }
+  }
+
   const totalTokens = Math.max(0, Math.floor(Number(body.usage?.total_tokens ?? 0)));
   const usage: Record<string, number> = {
     openai_input_tokens: Math.max(0, Math.floor(Number(body.usage?.input_tokens ?? 0))),
@@ -330,6 +359,8 @@ async function invokeOpenAI(
       mode: routed.route.mode,
       incentive_pool: routed.route.pool,
       fallback_reason: routed.fallbackReason ?? null,
+      file_handoff_state: fileHandoffState,
+      verified_attachment_count: fileHandoffState === "HANDED_OFF" ? r2AttachmentsForThisTurn.length : 0,
     },
     usage,
   };
