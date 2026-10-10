@@ -53,6 +53,15 @@ test("reuse failure is fail-closed and never silently creates another provider s
   assert.match(handler.slice(continuation, createPath), /return c\.json\(/);
 });
 
+test("Agent session door range advances through the persisted assistant result", () => {
+  const entry = read("worker/entry-connectors.ts");
+  assert.match(entry, /SESSION_RANGE_UPDATE_FAILED/);
+  assert.match(entry, /UPDATE chat_session_refs/);
+  assert.match(entry, /source_surface = 'openai-agent' AND session_ref = \?/);
+  assert.match(entry, /result_sequence_no/);
+  assert.match(entry, /SESSION_RANGE_NOT_CONFIRMED/);
+});
+
 test("canonical D1 context is replayed only on new provider-session creation", () => {
   const handler = connector.slice(
     connector.indexOf('api.post("/api/chat/agent"'),
