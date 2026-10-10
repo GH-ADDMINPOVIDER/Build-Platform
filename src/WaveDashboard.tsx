@@ -1,4 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import DiscordWorkspacePanel from "./DiscordWorkspacePanel";
 
 type Session = { authenticated?: boolean; user?: { label?: string; role?: string } | null };
 type Dashboard = {
@@ -316,6 +317,8 @@ export default function WaveDashboard() {
           </div>
         </article>
       </section>
+
+      <DiscordWorkspacePanel />
 
       <footer className="wdFooter">
         <span>WAVE · OGENIC HARNESS · owner-main · 1LSS_OWNER_MAIN</span>

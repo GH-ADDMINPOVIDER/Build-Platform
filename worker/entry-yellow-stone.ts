@@ -30,6 +30,7 @@ import { createN8nMigrationApi } from "./n8n-migration-api";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { planAthenaCommand } from "./athena-command-planner";
+import { createDiscordApi } from "./discord-api";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
@@ -57,6 +58,7 @@ const useCardApi = createUseCardApi();
 const capabilityCardStoneApi = createCapabilityCardStoneApi();
 // CCS facade route proof trigger
 const n8nMigrationApi = createN8nMigrationApi();
+const discordApi = createDiscordApi();
 
 const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
@@ -218,6 +220,9 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
 export default {
   async fetch(request: Request, env: Bindings, ctx: unknown) {
     const pathname = new URL(request.url).pathname;
+    if (pathname.startsWith("/api/discord/")) {
+      return discordApi.fetch(request, env as never, ctx as never);
+    }
     if (pathname === "/api/capabilities/resolve") {
       return resolverApi.fetch(request, env, ctx as never);
     }
