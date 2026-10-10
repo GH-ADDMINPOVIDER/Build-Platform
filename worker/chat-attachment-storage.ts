@@ -117,7 +117,11 @@ export function chatAttachmentStorageStatus(env: ChatAttachmentStorageEnv) {
     owner_scope: "owner-main",
     session_line: "1LSS_OWNER_MAIN",
     max_file_bytes: R2_ATTACHMENT_MAX_BYTES,
-    max_file_bytes_label: "1 GiB",
+    max_file_bytes_label: "1 GiB stored",
+    max_direct_model_file_bytes: R2_RESPONSES_FILE_MAX_BYTES,
+    max_direct_model_image_bytes: R2_RESPONSES_IMAGE_MAX_BYTES,
+    max_direct_model_file_label: "48 MiB",
+    max_direct_model_image_label: "20 MiB",
     part_size_bytes: R2_ATTACHMENT_PART_SIZE,
     part_size_bytes_label: "8 MiB",
     expires_after_hours: 24,
@@ -266,15 +270,15 @@ export async function ensureR2AttachmentOpenAIFile(
   env: ChatAttachmentStorageEnv,
   manifest: R2AttachmentManifest,
 ): Promise<R2AttachmentManifest> {
+  const inputBlocker = r2ModelInputBlocker(manifest);
+  if (inputBlocker) {
+    manifest.handoff_error_code = inputBlocker;
+    await saveR2AttachmentManifest(env, manifest);
+    throw new Error(`${inputBlocker}:${manifest.mime_type.startsWith("image/") ? "image exceeds the conservative 20 MiB model input limit" : "file exceeds the conservative 48 MiB model input limit"}; stored object requires chunked extraction`);
+  }
   if (manifest.openai_file_id) return manifest;
   const apiKey = String(env.OPENAI_API_KEY ?? "").trim();
   if (!apiKey) throw new Error("CONFIGURATION_REQUIRED:OPENAI_API_KEY");
-  if (manifest.size_bytes > R2_RESPONSES_FILE_MAX_BYTES) {
-    throw new Error("MODEL_INPUT_TOO_LARGE:Responses API file input must remain below 50 MB; stored file requires a chunked extraction path");
-  }
-  if (manifest.mime_type.startsWith("image/") && manifest.size_bytes > R2_RESPONSES_IMAGE_MAX_BYTES) {
-    throw new Error("MODEL_INPUT_TOO_LARGE:Image input exceeds the conservative 20 MiB per-image limit");
-  }
   if (manifest.status !== "UPLOADED" && manifest.status !== "PROVIDER_FILE_READY" && manifest.status !== "HANDED_OFF") throw new Error("ATTACHMENT_NOT_UPLOADED");
   const bucket = requiredBucket(env);
   const now = Date.now();
@@ -299,6 +303,7 @@ export async function ensureR2AttachmentOpenAIFile(
     manifest.openai_upload_id = uploadId;
     manifest.openai_upload_created_at = now;
     manifest.openai_part_ids = [];
+    manifest.handoff_error_code = undefined;
     await saveR2AttachmentManifest(env, manifest);
   }
   const totalParts = Math.ceil(manifest.size_bytes / R2_ATTACHMENT_PART_SIZE);
@@ -367,6 +372,59 @@ export async function readR2AttachmentObject(
   return { object, manifest };
 }
 
+export function r2ModelInputBlocker(manifest: Pick<R2AttachmentManifest, "mime_type" | "size_bytes">) {
+  if (manifest.mime_type.startsWith("image/") && manifest.size_bytes > R2_RESPONSES_IMAGE_MAX_BYTES) return "MODEL_INPUT_TOO_LARGE";
+  if (manifest.size_bytes > R2_RESPONSES_FILE_MAX_BYTES) return "MODEL_INPUT_TOO_LARGE";
+  return null;
+}
+
+export async function recordR2FileHandoffEvidence(
+  env: ChatAttachmentStorageEnv,
+  manifest: R2AttachmentManifest,
+  eventType: "FILE_UPLOAD_COMPLETED" | "PROVIDER_FILE_READY" | "FILE_HANDOFF_COMPLETED",
+) {
+  if (!env.DB) throw new Error("CONFIGURATION_REQUIRED:D1");
+  const db = env.DB;
+  const now = Date.now();
+  const idempotencyKey = `file_handoff:${eventType}:${manifest.attachment_id}`;
+  const existing = await db.prepare(
+    `SELECT sequence_no FROM chat_messages WHERE conversation_id = ? AND idempotency_key = ? LIMIT 1`,
+  ).bind(manifest.conversation_id, idempotencyKey).first<{ sequence_no?: number }>();
+  if (existing?.sequence_no) return Number(existing.sequence_no);
+
+  await db.prepare(
+    `INSERT OR IGNORE INTO chat_conversations (id, owner_id, title, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?)`,
+  ).bind(manifest.conversation_id, manifest.owner_id, "OGENIC SAME MIND", now, now).run();
+  const sequence = await db.prepare(
+    `UPDATE chat_conversations SET last_sequence = last_sequence + 1, updated_at = ? WHERE id = ? RETURNING last_sequence`,
+  ).bind(now, manifest.conversation_id).first<{ last_sequence: number }>();
+  if (!sequence || !Number.isFinite(Number(sequence.last_sequence))) throw new Error("1LSS_SEQUENCE_UNAVAILABLE");
+
+  const evidence = {
+    schema: "OGENIC_FILE_HANDOFF_EVIDENCE_V1",
+    event_type: eventType,
+    attachment_id: manifest.attachment_id,
+    mime_type: manifest.mime_type,
+    size_bytes: manifest.size_bytes,
+    storage: "cloudflare_r2",
+    card: "EXISTING_MCP_STATUS_GATE",
+    gate_protocol: "CCS/1.0",
+    owner_scope: "owner-main",
+    session_line: "1LSS_OWNER_MAIN",
+    verified_from_bytes: eventType === "FILE_HANDOFF_COMPLETED",
+    direct_execution_bypass: false,
+    secret_values_included: false,
+  };
+  await db.prepare(
+    `INSERT OR IGNORE INTO chat_messages(
+       id, conversation_id, role, content, model, run_id, created_at,
+       sequence_no, source_surface, idempotency_key
+     ) VALUES (?, ?, 'system', ?, NULL, NULL, ?, ?, 'ogenic-web', ?)`,
+  ).bind(`fileev_${crypto.randomUUID()}`, manifest.conversation_id, JSON.stringify(evidence), now, Number(sequence.last_sequence), idempotencyKey).run();
+  return Number(sequence.last_sequence);
+}
+
 export async function markR2ReferenceHandedOff(env: ChatAttachmentStorageEnv, storedValue: string): Promise<R2AttachmentManifest | null> {
   if (!isR2AttachmentReference(storedValue)) return null;
   const handle = parseR2AttachmentReference(storedValue);
@@ -375,6 +433,8 @@ export async function markR2ReferenceHandedOff(env: ChatAttachmentStorageEnv, st
   if (!manifest || !manifest.openai_file_id || !["PROVIDER_FILE_READY", "HANDED_OFF"].includes(manifest.status)) {
     throw new Error("ATTACHMENT_HANDOFF_NOT_READY");
   }
+  const inputBlocker = r2ModelInputBlocker(manifest);
+  if (inputBlocker) throw new Error(`${inputBlocker}:stored file requires a chunked extraction path`);
   if (manifest.status !== "HANDED_OFF") {
     manifest.status = "HANDED_OFF";
     manifest.handoff_error_code = undefined;
