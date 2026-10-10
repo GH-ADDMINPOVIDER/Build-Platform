@@ -112,8 +112,25 @@ async function discordRequest(env: DiscordBindings, path: string, init: RequestI
 
     let response: Response;
     try {
-      response = await fetch(DISCORD_API + path, { ...init, headers, redirect: "error" });
+      const requestUrl = new URL(DISCORD_API + path);
+      response = await fetch(requestUrl.toString(), { ...init, headers, redirect: "manual" });
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("location");
+        if (!location) return { ok: false, status: 502, data: { code: "DISCORD_REDIRECT_WITHOUT_LOCATION" } };
+        const target = new URL(location, requestUrl);
+        if (target.protocol !== "https:" || target.origin !== requestUrl.origin) {
+          return { ok: false, status: 502, data: { code: "DISCORD_UNSAFE_REDIRECT" } };
+        }
+        response = await fetch(target.toString(), { ...init, headers, redirect: "manual" });
+        if (response.status >= 300 && response.status < 400) {
+          return { ok: false, status: 502, data: { code: "DISCORD_REDIRECT_LOOP" } };
+        }
+      }
     } catch {
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 350 * (attempt + 1)));
+        continue;
+      }
       return { ok: false, status: 502, data: { code: "DISCORD_NETWORK_ERROR" } };
     }
 
@@ -222,11 +239,18 @@ export function createDiscordApi() {
     ]);
 
     if (!botResult.ok || !botResult.data?.id || botResult.data?.bot !== true) {
+      const code = typeof botResult.data?.code === "string"
+        ? botResult.data.code
+        : requestErrorCode(botResult.status);
+      const invalidToken = botResult.status === 401 || code === "DISCORD_TOKEN_INVALID";
       return c.json({
         ok: false,
-        state: "TOKEN_INVALID",
-        code: requestErrorCode(botResult.status),
-        message: "Discord rejected the bot credential. Check DISCORD_TOKEN in Infisical.",
+        state: invalidToken ? "TOKEN_INVALID" : "API_UNAVAILABLE",
+        code,
+        upstream_status: botResult.status,
+        message: invalidToken
+          ? "Discord rejected the bot credential. Check DISCORD_TOKEN in Infisical."
+          : "WAVE could not complete a request to the Discord API. Check the upstream status and retry.",
       }, 502);
     }
 
@@ -348,10 +372,16 @@ export function createDiscordApi() {
 
     const guildResult = await discordRequest(c.env, "/guilds/" + id);
     if (!guildResult.ok) {
+      const code = typeof guildResult.data?.code === "string"
+        ? guildResult.data.code
+        : requestErrorCode(guildResult.status);
       return c.json({
         ok: false,
-        code: requestErrorCode(guildResult.status),
-        message: "Nika Wave cannot access the configured server. Verify the server ID and bot membership.",
+        code,
+        upstream_status: guildResult.status,
+        message: code === "DISCORD_NETWORK_ERROR" || code === "DISCORD_UNSAFE_REDIRECT" || code === "DISCORD_REDIRECT_LOOP"
+          ? "WAVE could not reach the Discord API safely. Retry the connection check."
+          : "Nika Wave cannot access the configured server. Verify the server ID and bot membership.",
       }, clientStatus(guildResult.status));
     }
 
