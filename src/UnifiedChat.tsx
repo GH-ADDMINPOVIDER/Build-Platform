@@ -825,7 +825,7 @@ export default function UnifiedChat({ surface }: Props) {
     : `WEB${webReady ? "✓" : "○"} · APP${appReady ? "✓" : "○"}`;
 
   return <main className="ucShell">
-    <input ref={fileInput} type="file" className="ucHidden" accept="image/*,.pdf,.txt,.md,.csv,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = ""; }} />
+    <input ref={fileInput} type="file" className="ucHidden" accept="image/*,.pdf,.txt,.md,.csv,.json,.zip,.7z,.tar,.gz,.docx,.xlsx,.pptx,.mp3,.wav,.mp4" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = ""; }} />
 
     <header className="ucTopbar">
       <button className="ucBrand" onClick={() => setNewDock((value) => !value)}><img src="/assets/wave-logo.webp" alt="" /><span><b>WAVE</b><small>{surface === "ogenic-app" ? "SAME MIND · APP" : "SAME MIND · WEB"}</small></span></button>
