@@ -378,7 +378,7 @@ root.post("/api/chat/attachments/multipart", async (c) => {
     const manifest = await beginR2AttachmentUpload(c.env as unknown as ChatAttachmentStorageEnv, {
       filename, mime_type: mime, size_bytes: size, idempotency_key: idempotencyKey,
     });
-    if (manifest.status === "UPLOADED" || manifest.status === "HANDED_OFF") {
+    if (manifest.status === "UPLOADED" || manifest.status === "PROVIDER_FILE_READY" || manifest.status === "HANDED_OFF") {
       await ensureSameMindConversation(c.env);
       await requireDb(c.env).prepare(
         `INSERT OR IGNORE INTO chat_attachments(id, conversation_id, filename, mime_type, data_base64, size_bytes, created_at)
