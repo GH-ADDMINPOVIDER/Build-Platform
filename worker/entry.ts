@@ -12,12 +12,29 @@ import {
 import { createCodexPatchAdapter, createOpenAIGenerateAdapter } from "./openai-runtime";
 import { createAuthApi, hasOwnerSession } from "./app-auth";
 import { createAppApi, type AppBindings } from "./app-api";
+import {
+  abortR2AttachmentUpload,
+  beginR2AttachmentUpload,
+  chatAttachmentStorageStatus,
+  completeR2AttachmentUpload,
+  loadR2AttachmentManifest,
+  parseR2AttachmentReference,
+  r2AttachmentReference,
+  resolveR2ReferenceToOpenAIFile,
+  readR2AttachmentObject,
+  uploadR2AttachmentPart,
+  R2_ATTACHMENT_MAX_BYTES,
+  R2_ATTACHMENT_PART_SIZE,
+  type ChatAttachmentStorageEnv,
+  type R2BucketLike,
+  type R2UploadedPartLike,
+} from "./chat-attachment-storage";
 import policyConfig from "../config/workflow-engine.staging.json";
 import linearCodexDraftPr from "../workflows/linear-codex-draft-pr.v1.json";
 import openaiChat from "../workflows/openai-chat.v1.json";
 import smokeWorkflow from "../workflows/workflow-engine-smoke.v1.json";
 
-type RootBindings = WorkflowBindings & AppBindings & { OPENAI_API_KEY?: string };
+type RootBindings = WorkflowBindings & AppBindings & { OPENAI_API_KEY?: string; CHAT_UPLOADS?: R2BucketLike };
 type RootEnv = { Bindings: RootBindings };
 type OpenAIRuntimeBindings = RootBindings;
 
@@ -68,6 +85,20 @@ const ALLOWED_ATTACHMENT_MIME = new Set([
   "text/markdown",
   "text/csv",
   "application/json",
+]);
+const ALLOWED_R2_ATTACHMENT_MIME = new Set([
+  ...ALLOWED_ATTACHMENT_MIME,
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/x-7z-compressed",
+  "application/x-tar",
+  "application/gzip",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "audio/mpeg",
+  "audio/wav",
+  "video/mp4",
 ]);
 const SAME_MIND_CORE = `You are OGENIC AI, the continuous owner copilot for OGENIC Phase VI. Maintain continuity from the supplied recent conversation instead of behaving like a blank new assistant.
 Canonical operating context: staging only; active branch is phase-vi-provider-incentive-metering; never touch main or production unless the owner explicitly approves it; OGENIC_OPS_KEY is owner-only and secrets must stay server-side; Cloudflare Worker plus D1 are the durable control plane; GitHub, Linear and n8n access must stay behind server-side adapters; the current product surfaces are Overview, AI Chat, Live Tools, Workflows and Tasks.
@@ -252,6 +283,185 @@ root.get("/api/chat/history", async (c) => {
       created_at: message.created_at,
     })),
   });
+});
+
+root.get("/api/chat/attachments/status", async (c) => {
+  const state = chatAttachmentStorageStatus(c.env as unknown as ChatAttachmentStorageEnv);
+  let attachments: Array<Record<string, unknown>> = [];
+  try {
+    const rows = await requireDb(c.env).prepare(
+      `SELECT id, filename, mime_type, data_base64, size_bytes, created_at
+       FROM chat_attachments
+       WHERE conversation_id = ?
+       ORDER BY created_at DESC
+       LIMIT 8`,
+    ).bind(SAME_MIND_CONVERSATION_ID).all<{
+      id: string; filename: string; mime_type: string; data_base64: string; size_bytes: number; created_at: number;
+    }>();
+    attachments = await Promise.all((rows.results ?? []).map(async (row) => {
+      const handle = parseR2AttachmentReference(row.data_base64);
+      if (!handle) {
+        return { id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes, status: "LEGACY_SMALL_FILE", can_handoff: true, created_at: row.created_at };
+      }
+      try {
+        const manifest = await loadR2AttachmentManifest(c.env as unknown as ChatAttachmentStorageEnv, handle);
+        const status = !manifest ? "BLOCKED" : manifest.status === "HANDED_OFF" ? "HANDED_OFF" : manifest.status;
+        return { id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes, status, can_handoff: Boolean(manifest && (manifest.status === "UPLOADED" || manifest.status === "HANDED_OFF")), created_at: row.created_at };
+      } catch {
+        return { id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes, status: "CONFIGURATION_REQUIRED", can_handoff: false, created_at: row.created_at };
+      }
+    }));
+  } catch {
+    // Status remains useful when D1 is missing; never infer that files exist.
+  }
+  return c.json({ ...state, latest_attachments: attachments }, 200, { "Cache-Control": "no-store" });
+});
+
+root.post("/api/chat/attachments/multipart", async (c) => {
+  const body = await c.req.json<{ filename?: unknown; mime_type?: unknown; size_bytes?: unknown }>().catch(() => ({}));
+  const filename = cleanAttachmentName(body.filename);
+  const mime = normalizeAttachmentMime(body.mime_type);
+  const size = Number(body.size_bytes);
+  const idempotencyKey = String(c.req.header("Idempotency-Key") ?? "").trim();
+  if (!filename || !mime || !Number.isSafeInteger(size)) return c.json({ ok: false, code: "INVALID_ATTACHMENT_METADATA" }, 400);
+  if (!ALLOWED_R2_ATTACHMENT_MIME.has(mime)) return c.json({ ok: false, code: "UNSUPPORTED_ATTACHMENT_TYPE", mime_type: mime }, 415);
+  if (size <= MAX_ATTACHMENT_BYTES || size > R2_ATTACHMENT_MAX_BYTES) return c.json({ ok: false, code: "ATTACHMENT_SIZE_OUT_OF_RANGE", min_bytes_exclusive: MAX_ATTACHMENT_BYTES, max_bytes: R2_ATTACHMENT_MAX_BYTES }, 413);
+  if (!idempotencyKey || idempotencyKey.length > 240) return c.json({ ok: false, code: "IDEMPOTENCY_KEY_REQUIRED" }, 400);
+  try {
+    const manifest = await beginR2AttachmentUpload(c.env as unknown as ChatAttachmentStorageEnv, {
+      filename, mime_type: mime, size_bytes: size, idempotency_key: idempotencyKey,
+    });
+    if (manifest.status === "UPLOADED" || manifest.status === "HANDED_OFF") {
+      await ensureSameMindConversation(c.env);
+      await requireDb(c.env).prepare(
+        `INSERT OR IGNORE INTO chat_attachments(id, conversation_id, filename, mime_type, data_base64, size_bytes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(manifest.attachment_id, SAME_MIND_CONVERSATION_ID, manifest.filename, manifest.mime_type, r2AttachmentReference(manifest.handle), manifest.size_bytes, manifest.created_at).run();
+      return c.json({ ok: true, attachment: { id: manifest.attachment_id, filename: manifest.filename, mime_type: manifest.mime_type, size_bytes: manifest.size_bytes, storage: "R2", status: manifest.status, handoff_state: manifest.openai_file_id ? "HANDED_OFF" : "PENDING" } }, 200);
+    }
+    return c.json({ ok: true, upload: { handle: manifest.handle, part_size_bytes: manifest.part_size_bytes, total_parts: manifest.total_parts, size_bytes: manifest.size_bytes, expires_at: manifest.expires_at, status: manifest.status } }, 201);
+  } catch (cause) {
+    const code = cause instanceof Error ? cause.message.split(":")[0] : "UPLOAD_START_FAILED";
+    const configurationRequired = String(cause instanceof Error ? cause.message : "").startsWith("CONFIGURATION_REQUIRED");
+    return c.json({ ok: false, code: configurationRequired ? String(cause instanceof Error ? cause.message : code) : code }, configurationRequired ? 503 : code === "ATTACHMENT_SIZE_OUT_OF_RANGE" ? 413 : 400);
+  }
+});
+
+root.put("/api/chat/attachments/multipart/:handle/parts/:partNumber", async (c) => {
+  const handle = c.req.param("handle");
+  const partNumber = Number(c.req.param("partNumber"));
+  const storageEnv = c.env as unknown as ChatAttachmentStorageEnv;
+  try {
+    const manifest = await loadR2AttachmentManifest(storageEnv, handle);
+    if (!manifest) return c.json({ ok: false, code: "UPLOAD_SESSION_NOT_FOUND" }, 404);
+    if (manifest.status !== "UPLOADING") return c.json({ ok: false, code: "UPLOAD_SESSION_NOT_OPEN", status: manifest.status }, 409);
+    if (!c.req.raw.body) return c.json({ ok: false, code: "UPLOAD_PART_BODY_REQUIRED" }, 400);
+    // Buffer only one bounded 8 MiB part, never the entire large file.
+    const bytes = await c.req.arrayBuffer();
+    const part = await uploadR2AttachmentPart(storageEnv, manifest, partNumber, bytes);
+    return c.json({ ok: true, part: { part_number: part.partNumber, etag: part.etag }, part_size_bytes: bytes.byteLength }, 200, { "Cache-Control": "no-store" });
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : "UPLOAD_PART_FAILED";
+    const code = message.split(":")[0];
+    const status = message.startsWith("CONFIGURATION_REQUIRED") ? 503 : message === "UPLOAD_SESSION_EXPIRED" ? 410 : 400;
+    return c.json({ ok: false, code }, status);
+  }
+});
+
+root.post("/api/chat/attachments/multipart/:handle/complete", async (c) => {
+  const handle = c.req.param("handle");
+  const body = await c.req.json<{ parts?: unknown }>().catch(() => ({}));
+  const parts: R2UploadedPartLike[] = Array.isArray(body.parts) ? body.parts.map((item) => {
+    const part = item && typeof item === "object" ? item as Record<string, unknown> : {};
+    return { partNumber: Number(part.part_number ?? part.partNumber), etag: String(part.etag ?? "") };
+  }) : [];
+  const storageEnv = c.env as unknown as ChatAttachmentStorageEnv;
+  try {
+    const manifest = await loadR2AttachmentManifest(storageEnv, handle);
+    if (!manifest) return c.json({ ok: false, code: "UPLOAD_SESSION_NOT_FOUND" }, 404);
+    const completed = await completeR2AttachmentUpload(storageEnv, manifest, parts);
+    await ensureSameMindConversation(c.env);
+    const db = requireDb(c.env);
+    const now = Date.now();
+    await db.prepare("DELETE FROM chat_attachments WHERE created_at < ?").bind(now - ATTACHMENT_TTL_MS).run();
+    await db.prepare(
+      `INSERT OR IGNORE INTO chat_attachments(id, conversation_id, filename, mime_type, data_base64, size_bytes, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(completed.attachment_id, SAME_MIND_CONVERSATION_ID, completed.filename, completed.mime_type, r2AttachmentReference(completed.handle), completed.size_bytes, completed.created_at).run();
+    return c.json({
+      ok: true,
+      attachment: { id: completed.attachment_id, filename: completed.filename, mime_type: completed.mime_type, size_bytes: completed.size_bytes, storage: "R2", status: completed.status, handoff_state: completed.openai_file_id ? "HANDED_OFF" : "PENDING", reference: completed.attachment_id },
+      gate: { protocol: "CCS/1.0", state: "UPLOADED", direct_execution_bypass: false },
+    }, 201, { "Cache-Control": "no-store" });
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : "UPLOAD_COMPLETE_FAILED";
+    const code = message.split(":")[0];
+    const status = message.startsWith("CONFIGURATION_REQUIRED") ? 503 : message === "UPLOAD_SESSION_EXPIRED" ? 410 : 400;
+    return c.json({ ok: false, code }, status);
+  }
+});
+
+root.delete("/api/chat/attachments/multipart/:handle", async (c) => {
+  const handle = c.req.param("handle");
+  const storageEnv = c.env as unknown as ChatAttachmentStorageEnv;
+  try {
+    const manifest = await loadR2AttachmentManifest(storageEnv, handle);
+    if (!manifest) return c.json({ ok: false, code: "UPLOAD_SESSION_NOT_FOUND" }, 404);
+    const result = await abortR2AttachmentUpload(storageEnv, manifest);
+    return c.json({ ok: true, handle: result.handle, status: result.status }, 200, { "Cache-Control": "no-store" });
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : "UPLOAD_ABORT_FAILED";
+    return c.json({ ok: false, code: message.split(":")[0] }, message.startsWith("CONFIGURATION_REQUIRED") ? 503 : 400);
+  }
+});
+
+root.post("/api/chat/attachments/:id/handoff", async (c) => {
+  const id = c.req.param("id");
+  try {
+    const row = await requireDb(c.env).prepare(
+      `SELECT id, filename, mime_type, data_base64, size_bytes FROM chat_attachments WHERE id = ? AND conversation_id = ? LIMIT 1`,
+    ).bind(id, SAME_MIND_CONVERSATION_ID).first<{ id: string; filename: string; mime_type: string; data_base64: string; size_bytes: number }>();
+    if (!row) return c.json({ ok: false, code: "ATTACHMENT_NOT_FOUND" }, 404);
+    if (!parseR2AttachmentReference(row.data_base64)) {
+      return c.json({ ok: true, attachment: { id: row.id, filename: row.filename, size_bytes: row.size_bytes }, handoff: { state: "LEGACY_SMALL_FILE", path: "existing_chat_model_path" } }, 200, { "Cache-Control": "no-store" });
+    }
+    const resolved = await resolveR2ReferenceToOpenAIFile(c.env as unknown as ChatAttachmentStorageEnv, row.data_base64);
+    return c.json({ ok: true, attachment: { id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes }, handoff: { state: "HANDED_OFF", reference: row.id, storage: "R2", direct_execution_bypass: false, provider_file_ready: Boolean(resolved?.file_id) } }, 200, { "Cache-Control": "no-store" });
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : "ATTACHMENT_HANDOFF_FAILED";
+    const code = message.split(":")[0];
+    const status = message.startsWith("CONFIGURATION_REQUIRED") ? 503 : code === "ATTACHMENT_NOT_FOUND" ? 404 : 409;
+    return c.json({ ok: false, code }, status);
+  }
+});
+
+root.get("/api/chat/attachments/:id/content", async (c) => {
+  const id = c.req.param("id");
+  try {
+    const row = await requireDb(c.env).prepare(
+      `SELECT id, filename, mime_type, data_base64, size_bytes FROM chat_attachments WHERE id = ? AND conversation_id = ? LIMIT 1`,
+    ).bind(id, SAME_MIND_CONVERSATION_ID).first<{ id: string; filename: string; mime_type: string; data_base64: string; size_bytes: number }>();
+    if (!row) return c.json({ ok: false, code: "ATTACHMENT_NOT_FOUND" }, 404);
+    let stream: ReadableStream<Uint8Array>;
+    if (parseR2AttachmentReference(row.data_base64)) {
+      const resolved = await readR2AttachmentObject(c.env as unknown as ChatAttachmentStorageEnv, row.data_base64);
+      if (!resolved?.object.body) return c.json({ ok: false, code: "R2_OBJECT_NOT_FOUND" }, 404);
+      stream = resolved.object.body;
+    } else {
+      const bytes = Uint8Array.from(atob(row.data_base64), (character) => character.charCodeAt(0));
+      stream = new ReadableStream<Uint8Array>({ start(controller) { controller.enqueue(bytes); controller.close(); } });
+    }
+    const safeName = row.filename.replace(/[\r\n"]/g, "_");
+    return new Response(stream, { status: 200, headers: {
+      "Content-Type": row.mime_type, "Content-Length": String(row.size_bytes),
+      "Content-Disposition": `attachment; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(row.filename)}`,
+      "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+    } });
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : "ATTACHMENT_READ_FAILED";
+    const code = message.split(":")[0];
+    return c.json({ ok: false, code }, message.startsWith("CONFIGURATION_REQUIRED") ? 503 : code === "ATTACHMENT_NOT_FOUND" ? 404 : 409);
+  }
 });
 
 root.post("/api/chat/attachments", async (c) => {
