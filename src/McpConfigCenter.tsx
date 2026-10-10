@@ -31,6 +31,7 @@ type FileHandoffAttachment = {
   size_bytes: number;
   status: string;
   can_handoff: boolean;
+  handoff_blocker?: string | null;
   created_at?: number;
 };
 type FileHandoffStatus = {
@@ -43,16 +44,22 @@ type FileHandoffStatus = {
   session_line?: string;
   max_file_bytes?: number;
   max_file_bytes_label?: string;
+  max_direct_model_file_bytes?: number;
+  max_direct_model_image_bytes?: number;
+  max_direct_model_file_label?: string;
+  max_direct_model_image_label?: string;
   part_size_bytes_label?: string;
   direct_execution_bypass?: boolean;
+  ccs_gate?: { protocol?: string; state?: string; ok?: boolean; fail_closed?: boolean; direct_execution_bypass?: boolean; code?: string | null };
+  model_input_limits?: { file_bytes?: number; image_bytes?: number };
   latest_attachments?: FileHandoffAttachment[];
   code?: string;
 };
 
 const stateTone = (value?: string) => {
   const state = String(value || "CONFIGURATION_REQUIRED").toUpperCase();
-  if (state === "LIVE" || state === "CONFIGURED" || state === "READY" || state === "UPLOADED" || state === "HANDED_OFF" || state === "LEGACY_SMALL_FILE" || state === "BOUND") return "is-live";
-  if (state === "DEGRADED" || state === "SIMULATED" || state === "UPLOADING" || state === "BLOCKED" || state === "FAILED") return "is-warn";
+  if (state === "LIVE" || state === "CONFIGURED" || state === "READY" || state === "UPLOADED" || state === "PROVIDER_FILE_READY" || state === "HANDED_OFF" || state === "LEGACY_SMALL_FILE" || state === "BOUND") return "is-live";
+  if (state === "DEGRADED" || state === "SIMULATED" || state === "UPLOADING" || state === "BLOCKED" || state === "FAILED" || state === "STORED_PREPROCESSING_REQUIRED") return "is-warn";
   if (state === "OFFLINE") return "is-offline";
   return "is-config";
 };
@@ -161,9 +168,11 @@ export default function McpConfigCenter() {
       <div className="wnRow">
         <div>
           <strong>File handoff · existing MCP Status gate</strong>
-          <span>{fileHandoff?.storage?.provider || "Cloudflare R2"} · 8 MiB multipart · owner-main / 1LSS · direct execution bypass disabled</span>
+          <span>{fileHandoff?.ccs_gate?.protocol || "CCS/1.0"} · {fileHandoff?.storage?.provider || "Cloudflare R2"} · {fileHandoff?.part_size_bytes_label || "8 MiB"} multipart · owner-main / 1LSS · direct execution bypass disabled</span>
+          <span>Storage cap {fileHandoff?.max_file_bytes_label || "1 GiB"} · direct model input {fileHandoff?.max_direct_model_file_label || "48 MiB"} · image {fileHandoff?.max_direct_model_image_label || "20 MiB"}</span>
           {fileHandoff?.storage?.code && <span>{fileHandoff.storage.code}</span>}
           {fileHandoff?.agent_handoff?.code && <span>{fileHandoff.agent_handoff.code}</span>}
+          {fileHandoff?.ccs_gate?.code && <span>{fileHandoff.ccs_gate.code}</span>}
         </div>
         <div className="wnActionRow">
           <span className={`wnState ${stateTone(fileHandoff?.gate_state)}`}>{String(fileHandoff?.gate_state || "NOT_MEASURED").toUpperCase()}</span>
@@ -174,15 +183,17 @@ export default function McpConfigCenter() {
         <div>
           <strong title={attachment.filename}>{attachment.filename}</strong>
           <span>{attachment.mime_type} · {(attachment.size_bytes / (1024 * 1024)).toFixed(1)} MiB · {attachment.id}</span>
+          {attachment.handoff_blocker && <span>{attachment.handoff_blocker === "MODEL_INPUT_TOO_LARGE" ? "Stored, but direct model input limit is exceeded; chunked extraction is required" : attachment.handoff_blocker}</span>}
+          {attachment.status === "PROVIDER_FILE_READY" && <span>Provider file ready; send a WAVE Chat prompt with this attachment selected to verify the agent read</span>}
         </div>
         <div className="wnActionRow">
           <span className={`wnState ${stateTone(attachment.status)}`}>{String(attachment.status).toUpperCase()}</span>
-          {attachment.can_handoff && attachment.status !== "HANDED_OFF" && <button disabled={Boolean(busy)} onClick={() => void handoffFile(attachment.id)}>{busy === `handoff:${attachment.id}` ? "Passing…" : "Pass through gate"}</button>}
+          {attachment.can_handoff && attachment.status === "UPLOADED" && <button disabled={Boolean(busy)} onClick={() => void handoffFile(attachment.id)}>{busy === `handoff:${attachment.id}` ? "Preparing…" : "Prepare for handoff"}</button>}
         </div>
       </div>)}
       {!(fileHandoff?.latest_attachments || []).length && <div className="wnEmpty">No recent file references in owner-main. Select a file in WAVE Chat; large files use the same authenticated MCP gate.</div>}
       <div className="wnPolicy">
-        Large-file uploads stay CONFIGURATION_REQUIRED until an R2 bucket is bound. Files remain in R2; the card only passes a validated reference to the existing agent path.
+        Large-file uploads stay CONFIGURATION_REQUIRED until an R2 bucket is bound. R2 storage up to 1 GiB is separate from direct model input (48 MiB total; 20 MiB per image). Larger files are retained but marked for chunked extraction; the card never claims the agent read them until a successful model turn is recorded in 1LSS.
       </div>
     </div>
 
