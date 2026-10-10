@@ -176,12 +176,17 @@ async function prepareTurnBeforeExecution(
   }
 
   const headers = new Headers(request.headers);
-  const requestKey = clip(headers.get("idempotency-key") || body.idempotency_key || ("1lss_" + crypto.randomUUID()), 180);
+  const suppliedRequestKey = clip(headers.get("idempotency-key") || body.idempotency_key || "", 180);
+  const requestKey = suppliedRequestKey || ("1lss_" + crypto.randomUUID());
   const requestedSurface = clip(body.source_surface || headers.get("x-ogenic-surface"), 60).toLowerCase();
   const sourceSurface = CONTINUITY_SURFACES.has(requestedSurface)
     ? requestedSurface
     : defaultContinuitySurface(pathname);
-  headers.set("idempotency-key", requestKey);
+  // Preserve the Agent endpoint's required caller-stable idempotency key. A
+  // server-generated storage key may record a rejected request, but must never
+  // make a keyless Agent submission look safely replayable.
+  if (suppliedRequestKey || pathname !== "/api/chat/agent") headers.set("idempotency-key", requestKey);
+  else headers.delete("idempotency-key");
   headers.set("x-ogenic-surface", sourceSurface);
   headers.delete("content-length");
   const forwarded = new Request(request.url, {
