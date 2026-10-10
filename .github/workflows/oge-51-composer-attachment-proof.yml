@@ -26,6 +26,9 @@ jobs:
       - name: Attachment reliability contract
         run: node --test tests/composer-attachment-reliability.test.mjs
 
+      - name: Large-file storage, multipart, and handoff safety contract
+        run: node --test tests/chat-attachment-storage.test.mjs
+
       - name: Typecheck
         run: npm run typecheck
 
