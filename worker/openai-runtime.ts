@@ -154,8 +154,19 @@ async function responsesInputFor(
 ) {
   if (operation === "codex") return promptFor(input, operation);
 
+  const attachments = await attachmentRows(env, input);
+  const totalAttachmentBytes = attachments.reduce((sum, item) => sum + Math.max(0, Number(item.size_bytes ?? 0)), 0);
+  if (totalAttachmentBytes > 48 * 1024 * 1024) {
+    throw new Error("MODEL_INPUT_TOO_LARGE:all attached files combined must remain below 48 MiB for direct model input");
+  }
+  for (const attachment of attachments) {
+    if (attachment.mime_type.startsWith("image/") && Number(attachment.size_bytes ?? 0) > 20 * 1024 * 1024) {
+      throw new Error("MODEL_INPUT_TOO_LARGE:image exceeds the conservative 20 MiB per-image limit");
+    }
+  }
+
   const content: Array<Record<string, unknown>> = [{ type: "input_text", text: promptFor(input, operation) }];
-  for (const attachment of await attachmentRows(env, input)) {
+  for (const attachment of attachments) {
     const storedReference = isR2AttachmentReference(attachment.data_base64)
       ? await resolveR2ReferenceToOpenAIFile(env as unknown as ChatAttachmentStorageEnv, attachment.data_base64)
       : null;
@@ -259,7 +270,21 @@ async function invokeOpenAI(
   const r2AttachmentsForThisTurn: Array<{ attachment_id: string; stored_value: string; manifest: R2AttachmentManifest }> = [];
   const d1Context = await readCanonicalD1Context(env.DB);
   const sharedDirection = `OGENIC canonical D1 direction (read-only):\n${d1Context.text.slice(0, 6000)}\n\nPreserve 1LSS continuity. Treat D1 as shared operating context and never invent a separate source of truth.`;
-  const modelInput = await responsesInputFor(env, input, operation, r2AttachmentsForThisTurn);
+  let modelInput: unknown;
+  try {
+    modelInput = await responsesInputFor(env, input, operation, r2AttachmentsForThisTurn);
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : "ATTACHMENT_INPUT_FAILED";
+    const code = message.split(":")[0];
+    return {
+      state: "failed",
+      error_code: code,
+      retryable: false,
+      message: code === "MODEL_INPUT_TOO_LARGE"
+        ? "Attachment is stored, but direct model input needs a chunked extraction path"
+        : "Attachment input could not pass the existing file handoff gate",
+    };
+  }
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     signal: context.signal,
