@@ -26,7 +26,7 @@ test("a failed canonical session-ref read never creates a replacement Agent sess
     connector.indexOf("async function latestStoredAgentSession"),
     connector.indexOf("async function rememberAgentSession"),
   );
-  assert.doesNotMatch(lookup, /\\.catch\\(\\(\\) => null\\)/);
+  assert.doesNotMatch(lookup, /\.catch\(\(\) => null\)/);
 });
 
 test("ordinary follow-up reuses the saved Agents session events API", () => {
