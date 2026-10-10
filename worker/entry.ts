@@ -403,8 +403,12 @@ root.put("/api/chat/attachments/multipart/:handle/parts/:partNumber", async (c) 
     if (!manifest) return c.json({ ok: false, code: "UPLOAD_SESSION_NOT_FOUND" }, 404);
     if (manifest.status !== "UPLOADING") return c.json({ ok: false, code: "UPLOAD_SESSION_NOT_OPEN", status: manifest.status }, 409);
     if (!c.req.raw.body) return c.json({ ok: false, code: "UPLOAD_PART_BODY_REQUIRED" }, 400);
-    // Buffer only one bounded 8 MiB part, never the entire large file.
-    const bytes = await c.req.arrayBuffer();
+    const contentLength = Number(c.req.header("content-length") || 0);
+    if (Number.isFinite(contentLength) && contentLength > R2_ATTACHMENT_PART_SIZE) {
+      return c.json({ ok: false, code: "UPLOAD_PART_TOO_LARGE", max_bytes: R2_ATTACHMENT_PART_SIZE }, 413);
+    }
+    // Buffer at most one bounded 8 MiB part, never the entire large file.
+    const bytes = await readBoundedUploadPart(c.req.raw, R2_ATTACHMENT_PART_SIZE);
     const part = await uploadR2AttachmentPart(storageEnv, manifest, partNumber, bytes);
     return c.json({ ok: true, part: { part_number: part.partNumber, etag: part.etag }, part_size_bytes: bytes.byteLength }, 200, { "Cache-Control": "no-store" });
   } catch (cause) {
@@ -426,6 +430,7 @@ root.post("/api/chat/attachments/multipart/:handle/complete", async (c) => {
   try {
     const manifest = await loadR2AttachmentManifest(storageEnv, handle);
     if (!manifest) return c.json({ ok: false, code: "UPLOAD_SESSION_NOT_FOUND" }, 404);
+    if (fileHandoffGateStatus().ok !== true) return c.json({ ok: false, code: "CCS_GATE_BLOCKED" }, 409);
     const completed = await completeR2AttachmentUpload(storageEnv, manifest, parts);
     await ensureSameMindConversation(c.env);
     const db = requireDb(c.env);
@@ -435,10 +440,11 @@ root.post("/api/chat/attachments/multipart/:handle/complete", async (c) => {
       `INSERT OR IGNORE INTO chat_attachments(id, conversation_id, filename, mime_type, data_base64, size_bytes, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).bind(completed.attachment_id, SAME_MIND_CONVERSATION_ID, completed.filename, completed.mime_type, r2AttachmentReference(completed.handle), completed.size_bytes, completed.created_at).run();
+    await recordR2FileHandoffEvidence(storageEnv, completed, "FILE_UPLOAD_COMPLETED");
     return c.json({
       ok: true,
-      attachment: { id: completed.attachment_id, filename: completed.filename, mime_type: completed.mime_type, size_bytes: completed.size_bytes, storage: "R2", status: completed.status, handoff_state: completed.openai_file_id ? "HANDED_OFF" : "PENDING", reference: completed.attachment_id },
-      gate: { protocol: "CCS/1.0", state: "UPLOADED", direct_execution_bypass: false },
+      attachment: { id: completed.attachment_id, filename: completed.filename, mime_type: completed.mime_type, size_bytes: completed.size_bytes, storage: "R2", status: completed.status, handoff_state: completed.openai_file_id ? completed.status : "PENDING", reference: completed.attachment_id },
+      gate: fileHandoffGateStatus(),
     }, 201, { "Cache-Control": "no-store" });
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : "UPLOAD_COMPLETE_FAILED";
@@ -472,8 +478,23 @@ root.post("/api/chat/attachments/:id/handoff", async (c) => {
     if (!parseR2AttachmentReference(row.data_base64)) {
       return c.json({ ok: true, attachment: { id: row.id, filename: row.filename, size_bytes: row.size_bytes }, handoff: { state: "LEGACY_SMALL_FILE", path: "existing_chat_model_path" } }, 200, { "Cache-Control": "no-store" });
     }
+    if (fileHandoffGateStatus().ok !== true) return c.json({ ok: false, code: "CCS_GATE_BLOCKED" }, 409);
     const resolved = await resolveR2ReferenceToOpenAIFile(c.env as unknown as ChatAttachmentStorageEnv, row.data_base64);
-    return c.json({ ok: true, attachment: { id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes }, handoff: { state: "HANDED_OFF", reference: row.id, storage: "R2", direct_execution_bypass: false, provider_file_ready: Boolean(resolved?.file_id) } }, 200, { "Cache-Control": "no-store" });
+    if (!resolved?.file_id) return c.json({ ok: false, code: "ATTACHMENT_HANDOFF_NOT_READY" }, 409);
+    await recordR2FileHandoffEvidence(c.env as unknown as ChatAttachmentStorageEnv, resolved.manifest, "PROVIDER_FILE_READY");
+    return c.json({
+      ok: true,
+      attachment: { id: row.id, filename: row.filename, mime_type: row.mime_type, size_bytes: row.size_bytes },
+      handoff: {
+        state: resolved.manifest.status,
+        reference: row.id,
+        storage: "R2",
+        direct_execution_bypass: false,
+        provider_file_ready: true,
+        agent_read_verified: resolved.manifest.status === "HANDED_OFF",
+        next_step: resolved.manifest.status === "HANDED_OFF" ? "Already read by a successful model turn" : "Send a prompt in WAVE Chat with this attachment selected to verify agent read",
+      },
+    }, 200, { "Cache-Control": "no-store" });
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : "ATTACHMENT_HANDOFF_FAILED";
     const code = message.split(":")[0];
@@ -670,6 +691,10 @@ export default {
     return root.fetch(request, env, ctx as never);
   },
   scheduled(_controller: unknown, env: WorkflowBindings, ctx: { waitUntil(promise: Promise<unknown>): void }) {
-    ctx.waitUntil(engine.tick(env).then(() => undefined));
+    const storageEnv = env as unknown as ChatAttachmentStorageEnv;
+    ctx.waitUntil(Promise.all([
+      engine.tick(env).then(() => undefined),
+      cleanExpiredR2Attachments(storageEnv).then(() => undefined).catch(() => undefined),
+    ]).then(() => undefined));
   },
 };
