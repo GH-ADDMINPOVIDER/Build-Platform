@@ -494,7 +494,12 @@ export async function cleanExpiredR2Attachments(env: ChatAttachmentStorageEnv, m
       const manifest = await object.text().then(value => JSON.parse(value) as R2AttachmentManifest).catch(() => null);
       if (!manifest || manifest.version !== 1 || !isSafeUploadHandle(String(manifest.handle ?? ""))) continue;
       if (manifest.expires_at > Date.now() && manifest.status !== "EXPIRED" && manifest.status !== "ABORTED") continue;
-      if (manifest.status === "UPLOADING") {
+      if (
+        manifest.r2_upload_id &&
+        !["UPLOADED", "PROVIDER_FILE_READY", "HANDED_OFF"].includes(manifest.status)
+      ) {
+        // Expiry normalization can change UPLOADING to EXPIRED before cleanup;
+        // still abort the underlying multipart session when it has not completed.
         await bucket.resumeMultipartUpload(manifest.key, manifest.r2_upload_id).abort().catch(() => undefined);
       }
       await bucket.delete(manifest.key).catch(() => undefined);
