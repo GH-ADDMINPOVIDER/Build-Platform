@@ -107,7 +107,10 @@ async function appendOneLine(
     clip(sourceSurface, 60) || "plugin-harness",
     clip(idempotencyKey, 220),
   ).run();
-  return sequence;
+  const saved = await env.DB.prepare(
+    `SELECT sequence_no FROM chat_messages WHERE conversation_id = ? AND idempotency_key = ? LIMIT 1`,
+  ).bind(ONE_LINE_ID, idempotencyKey).first<{ sequence_no: number }>();
+  return saved?.sequence_no ? Number(saved.sequence_no) : null;
 }
 
 type TurnStartState = "SAVED" | "UNAVAILABLE" | "FAILED" | "NOT_APPLICABLE";
@@ -270,7 +273,7 @@ async function finishTurnWithReceipt(
       resultState = resultSequence ? "SAVED" : "RESULT_NOT_CONFIRMED";
       if (!resultSequence) failureCode = "ASSISTANT_TURN_NOT_CONFIRMED";
     } catch {
-      resultState = "RESULT_NOT_SAVED";
+      resultState = "RESULT_NOT_CONFIRMED";
       failureCode = "PERSISTENCE_WRITE_FAILED";
       console.warn("OGENIC_1LSS_RESULT_WRITE_FAILED", {
         route: pathname,
@@ -284,7 +287,8 @@ async function finishTurnWithReceipt(
   if (prepared.state === "SAVED" && resultState === "SAVED") overall = "SAVED";
   else if (prepared.state === "SAVED" && resultState === "FAILURE_RECORDED") overall = "SAVED_WITH_FAILURE";
   else if (prepared.state === "FAILED" && resultState === "FAILURE_RECORDED") overall = "USER_TURN_NOT_CONFIRMED";
-  else if (prepared.state === "SAVED") overall = "USER_TURN_ONLY";
+  else if (prepared.state === "SAVED" && resultState === "RESULT_NOT_CONFIRMED") overall = "USER_TURN_ONLY";
+  else if (prepared.state === "SAVED") overall = "PARTIAL";
   else if (resultState === "SAVED") overall = "SAVED_LATE";
   else if (prepared.state === "UNAVAILABLE" || resultState === "D1_UNAVAILABLE") overall = "UNAVAILABLE";
   else if (prepared.state === "FAILED" || resultState === "RESULT_NOT_SAVED" || resultState === "FAILURE_NOT_RECORDED") overall = "FAILED";
@@ -390,15 +394,20 @@ async function stampFunctionTurn(request: Request, response: Response, env: Bind
   const suppliedRequestKey = clip(request.headers.get("idempotency-key"), 180) || clip(body.idempotency_key, 180);
   const requestKey = suppliedRequestKey || (runId ? `agent_session:${runId}` : `plugin_${crypto.randomUUID()}`);
 
-  if (prompt) await appendOneLine(env, "user", prompt, sourceSurface, `${requestKey}:user`, null, runId);
+  if (prompt) {
+    const userSequence = await appendOneLine(env, "user", prompt, sourceSurface, `${requestKey}:user`, null, runId);
+    if (!userSequence) throw new Error("USER_TURN_NOT_CONFIRMED");
+  }
   for (const call of result.function_calls ?? []) {
     const name = clip(call.name, 100) || "unknown";
     const state = clip(call.state, 100) || "RESULT";
     const callId = clip(call.call_id, 120) || crypto.randomUUID();
-    await appendOneLine(env, "system", `[TOOL ${name}] ${state}`, sourceSurface, `${requestKey}:tool:${callId}`, null, runId);
+    const toolSequence = await appendOneLine(env, "system", `[TOOL ${name}] ${state}`, sourceSurface, `${requestKey}:tool:${callId}`, null, runId);
+    if (!toolSequence) throw new Error("TOOL_EVENT_NOT_CONFIRMED");
   }
   if (text) {
-    await appendOneLine(env, "assistant", text, sourceSurface, `${requestKey}:assistant`, clip(result.model, 100) || null, runId);
+    const assistantSequence = await appendOneLine(env, "assistant", text, sourceSurface, `${requestKey}:assistant`, clip(result.model, 100) || null, runId);
+    if (!assistantSequence) throw new Error("ASSISTANT_TURN_NOT_CONFIRMED");
   }
 }
 
