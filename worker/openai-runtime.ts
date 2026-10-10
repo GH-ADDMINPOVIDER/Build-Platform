@@ -1,6 +1,7 @@
 import incentives from "../config/provider-incentives.staging.json";
 import { readIncentiveSnapshot } from "./provider-incentives";
 import { readCanonicalD1Context } from "./d1-context";
+import { isR2AttachmentReference, resolveR2ReferenceToOpenAIFile, type ChatAttachmentStorageEnv } from "./chat-attachment-storage";
 import type { Adapter, AdapterContext, AdapterResult, Json, WorkflowBindings } from "./workflow-engine";
 
 type OpenAIMode = "fast" | "balanced" | "power" | "api" | "codex";
@@ -143,7 +144,16 @@ async function responsesInputFor(env: WorkflowBindings, input: Json, operation: 
 
   const content: Array<Record<string, unknown>> = [{ type: "input_text", text: promptFor(input, operation) }];
   for (const attachment of await attachmentRows(env, input)) {
-    if (attachment.mime_type.startsWith("image/")) {
+    const storedReference = isR2AttachmentReference(attachment.data_base64)
+      ? await resolveR2ReferenceToOpenAIFile(env as unknown as ChatAttachmentStorageEnv, attachment.data_base64)
+      : null;
+    if (storedReference?.file_id) {
+      if (attachment.mime_type.startsWith("image/")) {
+        content.push({ type: "input_image", detail: "auto", file_id: storedReference.file_id });
+      } else {
+        content.push({ type: "input_file", filename: attachment.filename, file_id: storedReference.file_id });
+      }
+    } else if (attachment.mime_type.startsWith("image/")) {
       content.push({
         type: "input_image",
         detail: "auto",
