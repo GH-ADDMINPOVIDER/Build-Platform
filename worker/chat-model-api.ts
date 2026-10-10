@@ -2,7 +2,14 @@ import { Hono } from "hono";
 import { hasOwnerSession, type AuthBindings } from "./app-auth";
 import { readIncentiveSnapshot } from "./provider-incentives";
 import { readCanonicalD1Context, recordChatUsage } from "./d1-context";
-import { isR2AttachmentReference, resolveR2ReferenceToOpenAIFile, type ChatAttachmentStorageEnv } from "./chat-attachment-storage";
+import {
+  isR2AttachmentReference,
+  markR2ReferenceHandedOff,
+  recordR2FileHandoffEvidence,
+  resolveR2ReferenceToOpenAIFile,
+  type ChatAttachmentStorageEnv,
+  type R2AttachmentManifest,
+} from "./chat-attachment-storage";
 
 type D1Result<T = Record<string, unknown>> = { results?: T[] };
 type D1Prepared = {
@@ -306,6 +313,7 @@ export function createChatModelApi() {
       }, 429);
     }
 
+    const r2AttachmentsForThisTurn: Array<{ attachment_id: string; stored_value: string; manifest: R2AttachmentManifest }> = [];
     const content: Array<Record<string, unknown>> = [{
       type: "input_text",
       text: `You are Ammonite, OGENIC AI, the owner's continuous copilot.\n\n1LSS SESSION INVARIANT:\n- D1 conversation id "owner-main" is ONE canonical ordered life line. Web, OGENIC App, ChatGPT Dev harness, ChatGPT App harness, Live Assist, and approved agents are doors into that same line when they persist here.\n- source_surface is metadata only. Never create a second conversational truth for another surface.\n- sequence_no is the authoritative turn order. Prefer it over timestamps when deciding what happened latest.\n- The timeline below is chronological evidence. Do not replace it with a project's latest deployment, commit, runtime, or status unless the owner explicitly asks for project/system status.\n- Temporal references such as "ล่าสุด", "เมื่อกี้", "ก่อนหน้านี้", "last time", "earlier", and "previously" refer first to the newest relevant persisted interaction in this 1LSS line.\n- Distinguish "last interaction/conversation" from "latest project state/status". If wording could mean either, prefer the conversation timeline unless the owner names a project/system/status.\n- Never claim a surface was synchronized unless that turn exists in this D1 line or verified runtime evidence says so.\n- Never expose secrets or tokens in chat. Never guess a verified state.\n- Reply in the user's language and natural tone.\n\nCANONICAL 1LSS OWNER-MAIN (oldest to newest):\n${history || "No prior persisted messages."}\n\nCANONICAL D1 READ-ONLY CONTEXT + LIVE RUNTIME EVIDENCE:\n${d1Context.text}\n\nCURRENT OWNER MESSAGE [source=${sourceSurface}]:\n${prompt || "วิเคราะห์ไฟล์ที่แนบมา"}`,
@@ -321,6 +329,7 @@ export function createChatModelApi() {
           ? await resolveR2ReferenceToOpenAIFile(c.env as unknown as ChatAttachmentStorageEnv, row.data_base64)
           : null;
         if (storedReference?.file_id) {
+          r2AttachmentsForThisTurn.push({ attachment_id: id, stored_value: row.data_base64, manifest: storedReference.manifest });
           if (row.mime_type.startsWith("image/")) {
             content.push({ type: "input_image", detail: "auto", file_id: storedReference.file_id });
           } else {
@@ -390,6 +399,22 @@ export function createChatModelApi() {
     const text = outputText(result);
     if (!text) return c.json({ ok: false, code: "OPENAI_EMPTY_OUTPUT", user_sequence_no: userSequence }, 502);
 
+    let fileHandoffState = r2AttachmentsForThisTurn.length ? "EVIDENCE_PENDING" : "NOT_APPLICABLE";
+    if (r2AttachmentsForThisTurn.length) {
+      try {
+        for (const item of r2AttachmentsForThisTurn) {
+          await recordR2FileHandoffEvidence(c.env as unknown as ChatAttachmentStorageEnv, item.manifest, "FILE_HANDOFF_COMPLETED");
+          const handedOff = await markR2ReferenceHandedOff(c.env as unknown as ChatAttachmentStorageEnv, item.stored_value);
+          if (!handedOff || handedOff.status !== "HANDED_OFF") throw new Error("HANDOFF_STATE_NOT_PERSISTED");
+        }
+        fileHandoffState = "HANDED_OFF";
+      } catch {
+        // The model has already returned a real response. Keep that response,
+        // but never claim the card/1LSS state persisted when it did not.
+        fileHandoffState = "EVIDENCE_PENDING";
+      }
+    }
+
     const usageTokens = Number(result.usage?.total_tokens ?? 0);
     await recordChatUsage(db, {
       conversationId: CONVERSATION_ID,
@@ -424,6 +449,8 @@ export function createChatModelApi() {
       sequence_no: persistedAssistant?.sequence_no ?? assistantCandidate,
       source_surface: persistedAssistant?.source_surface ?? sourceSurface,
       model: persistedAssistant?.model ?? model,
+      file_handoff_state: fileHandoffState,
+      verified_attachment_count: fileHandoffState === "HANDED_OFF" ? r2AttachmentsForThisTurn.length : 0,
       reasoning_effort: model === "gpt-4.1-mini" ? "n/a" : effort,
       token_boost: boost,
       max_output_tokens: requestBody.max_output_tokens,
