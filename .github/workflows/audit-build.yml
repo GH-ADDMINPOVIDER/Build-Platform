@@ -26,18 +26,47 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p dist
-          zip -r dist/ogenic-phase-vi.zip \
-            .codex-plugin \
-            skills/ogenic-phase-vi \
-            assets/toolkit-manifest.json \
-            config \
-            database \
-            worker \
-            src \
-            index.html package.json tsconfig.json vite.config.ts wrangler.jsonc \
-            README.md PRIVACY.md TERMS.md \
-            -x "**/__pycache__/**" "*.pyc"
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+
+          root = Path.cwd()
+          output = root / "dist" / "ogenic-phase-vi.zip"
+          roots = [
+              ".codex-plugin",
+              "skills/ogenic-phase-vi",
+              "assets/toolkit-manifest.json",
+              "config",
+              "database",
+              "worker",
+              "src",
+              "index.html",
+              "package.json",
+              "tsconfig.json",
+              "vite.config.ts",
+              "wrangler.jsonc",
+              "README.md",
+              "PRIVACY.md",
+              "TERMS.md",
+          ]
+
+          output.parent.mkdir(parents=True, exist_ok=True)
+          with ZipFile(output, "w", compression=ZIP_DEFLATED) as bundle:
+              for item in roots:
+                  source = root / item
+                  if not source.exists():
+                      raise SystemExit(f"Required bundle input missing: {item}")
+                  paths = [source] if source.is_file() else sorted(p for p in source.rglob("*") if p.is_file())
+                  for path in paths:
+                      if "__pycache__" in path.parts or path.suffix == ".pyc":
+                          continue
+                      bundle.write(path, path.relative_to(root).as_posix())
+
+          with ZipFile(output, "r") as bundle:
+              if not bundle.namelist():
+                  raise SystemExit("Toolkit bundle is empty")
+          print(f"Built {output.name} ({output.stat().st_size} bytes)")
+          PY
 
       - name: Upload OGENIC Phase VI toolkit
         uses: actions/upload-artifact@v4
