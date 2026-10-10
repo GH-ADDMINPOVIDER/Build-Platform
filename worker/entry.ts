@@ -364,7 +364,7 @@ root.get("/api/chat/attachments/status", async (c) => {
 });
 
 root.post("/api/chat/attachments/multipart", async (c) => {
-  const body = await c.req.json<{ filename?: unknown; mime_type?: unknown; size_bytes?: unknown }>().catch(() => ({}));
+  const body = await c.req.json<{ filename?: unknown; mime_type?: unknown; size_bytes?: unknown }>().catch((): { filename?: unknown; mime_type?: unknown; size_bytes?: unknown } => ({}));
   const filename = cleanAttachmentName(body.filename);
   const mime = normalizeAttachmentMime(body.mime_type);
   const size = Number(body.size_bytes);
@@ -421,8 +421,8 @@ root.put("/api/chat/attachments/multipart/:handle/parts/:partNumber", async (c) 
 
 root.post("/api/chat/attachments/multipart/:handle/complete", async (c) => {
   const handle = c.req.param("handle");
-  const body = await c.req.json<{ parts?: unknown }>().catch(() => ({}));
-  const parts: R2UploadedPartLike[] = Array.isArray(body.parts) ? body.parts.map((item) => {
+  const body = await c.req.json<{ parts?: unknown }>().catch((): { parts?: unknown } => ({}));
+  const parts: R2UploadedPartLike[] = Array.isArray(body.parts) ? body.parts.map((item: unknown) => {
     const part = item && typeof item === "object" ? item as Record<string, unknown> : {};
     return { partNumber: Number(part.part_number ?? part.partNumber), etag: String(part.etag ?? "") };
   }) : [];
