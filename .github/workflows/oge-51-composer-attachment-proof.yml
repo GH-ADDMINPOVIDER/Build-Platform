@@ -37,14 +37,8 @@ jobs:
       - name: Install dependencies
         run: npm install --package-lock-only && npm ci
 
-      - name: Existing draft persistence regression
-        run: node --test tests/composer-draft.test.mjs
-
-      - name: Attachment reliability contract
-        run: node --test tests/composer-attachment-reliability.test.mjs
-
-      - name: Large-file storage, multipart, and handoff safety contract
-        run: node --test tests/chat-attachment-storage.test.mjs
+      - name: Full repository regression suite (includes composer and R2 attachment contracts)
+        run: npm run test
 
       - name: Typecheck
         run: npm run typecheck
