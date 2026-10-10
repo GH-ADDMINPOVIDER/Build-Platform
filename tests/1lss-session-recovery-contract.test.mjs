@@ -21,6 +21,12 @@ test("1LSS session recovery keeps owner-main as the only canonical line", () => 
   assert.match(ui, /Load older 1LSS/);
   assert.match(ui, /RECENT DOORS/);
   assert.match(ui, /session_ref: viewportSessionRef/);
+  assert.match(ui, /type MemoryPersistenceReceipt/);
+  assert.match(ui, /function memoryPersistenceNotice/);
+  assert.match(ui, /X-OGENIC-1LSS-PERSISTENCE/);
+  assert.match(ui, /1LSS SAVED/);
+  assert.match(ui, /1LSS UNAVAILABLE/);
+  assert.match(ui, /NOT CONFIRMED/);
 });
 
 test("stored session URLs are sanitized before persistence", () => {
