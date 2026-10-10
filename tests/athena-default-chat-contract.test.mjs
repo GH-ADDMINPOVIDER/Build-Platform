@@ -12,7 +12,10 @@ test("default WAVE text chat routes through ATHENA while attachments keep the ex
   assert.match(entry, /attachment_ids/);
   assert.match(entry, /attachments\.length === 0/);
   assert.match(entry, /const response = await chatModelApi\.fetch\(canonicalRequest/);
-  assert.match(entry, /return await finishTurnWithReceipt\(stampRequest, response, env, preparedTurn\)/);
+  assert.match(entry, /return await dispatchAndFinishTurn\(/);
+  assert.match(entry, /async function dispatchAndFinishTurn/);
+  assert.match(entry, /return finishTurnWithReceipt\(request, response, env, prepared\)/);
+  assert.match(entry, /UNHANDLED_CHAT_HANDLER_ERROR/);
   assert.match(entry, /prepareTurnBeforeExecution\(request, env, pathname\)/);
   assert.match(entry, /memory_persistence: receipt/);
   assert.match(entry, /X-OGENIC-1LSS-PERSISTENCE/);
