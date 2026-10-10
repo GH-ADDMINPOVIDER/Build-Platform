@@ -1,3 +1,5 @@
+import { publicCcsStatus } from "./capability-card-stone";
+
 /**
  * WAVE large-file storage bridge.
  *
@@ -104,14 +106,37 @@ function requiredBucket(env: ChatAttachmentStorageEnv): R2BucketLike {
   return env.CHAT_UPLOADS;
 }
 
+export function fileHandoffGateStatus() {
+  const ccs = publicCcsStatus();
+  const ready = ccs.protocol === "CCS/1.0" && ccs.fail_closed === true && ccs.direct_execution_bypass === false;
+  return {
+    ok: ready,
+    protocol: ccs.protocol,
+    stone_code: ccs.stone_code,
+    fail_closed: ccs.fail_closed === true,
+    direct_execution_bypass: ccs.direct_execution_bypass === true,
+    state: ready ? "READY" : "BLOCKED",
+    code: ready ? null : "CCS_GATE_POLICY_UNSAFE",
+  };
+}
+
+export function assertFileHandoffGate() {
+  const gate = fileHandoffGateStatus();
+  if (!gate.ok) throw new Error(`CCS_GATE_BLOCKED:${gate.code || "POLICY_UNSAFE"}`);
+  return gate;
+}
+
 export function chatAttachmentStorageStatus(env: ChatAttachmentStorageEnv) {
   const storageReady = Boolean(env.CHAT_UPLOADS);
   const modelReady = Boolean(String(env.OPENAI_API_KEY ?? "").trim());
+  const cardGate = fileHandoffGateStatus();
+  const gateState = !cardGate.ok ? "BLOCKED" : storageReady ? (modelReady ? "READY" : "CONFIGURATION_REQUIRED") : "CONFIGURATION_REQUIRED";
   return {
     ok: true,
     protocol: "WAVE_FILE_HANDOFF_V1",
     card: "EXISTING_MCP_STATUS_GATE",
-    gate_state: storageReady ? (modelReady ? "READY" : "CONFIGURATION_REQUIRED") : "CONFIGURATION_REQUIRED",
+    gate_state: gateState,
+    ccs_gate: cardGate,
     storage: { provider: "cloudflare_r2", state: storageReady ? "BOUND" : "CONFIGURATION_REQUIRED", code: storageReady ? null : "R2_BUCKET_NOT_BOUND" },
     agent_handoff: { provider: "openai_file_reference", state: modelReady ? "BOUND" : "CONFIGURATION_REQUIRED", code: modelReady ? null : "OPENAI_API_KEY_NOT_BOUND" },
     owner_scope: "owner-main",
@@ -154,6 +179,7 @@ export async function beginR2AttachmentUpload(
   env: ChatAttachmentStorageEnv,
   input: { filename: string; mime_type: string; size_bytes: number; idempotency_key: string },
 ): Promise<R2AttachmentManifest> {
+  assertFileHandoffGate();
   const bucket = requiredBucket(env);
   const filename = input.filename.trim().replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 180);
   const mime = input.mime_type.trim().toLowerCase().slice(0, 120);
@@ -205,6 +231,7 @@ export async function uploadR2AttachmentPart(
   partNumber: number,
   bytes: ArrayBuffer,
 ): Promise<R2UploadedPartLike> {
+  assertFileHandoffGate();
   if (manifest.status !== "UPLOADING") throw new Error("UPLOAD_SESSION_NOT_OPEN");
   if (!Number.isInteger(partNumber) || partNumber < 1 || partNumber > manifest.total_parts) throw new Error("INVALID_PART_NUMBER");
   if (manifest.expires_at <= Date.now()) throw new Error("UPLOAD_SESSION_EXPIRED");
@@ -219,6 +246,7 @@ export async function completeR2AttachmentUpload(
   manifest: R2AttachmentManifest,
   parts: R2UploadedPartLike[],
 ): Promise<R2AttachmentManifest> {
+  assertFileHandoffGate();
   const bucket = requiredBucket(env);
   if (manifest.status === "UPLOADED" || manifest.status === "PROVIDER_FILE_READY" || manifest.status === "HANDED_OFF") return manifest;
   if (manifest.status !== "UPLOADING") throw new Error("UPLOAD_SESSION_NOT_OPEN");
@@ -277,6 +305,7 @@ export async function ensureR2AttachmentOpenAIFile(
     throw new Error(`${inputBlocker}:${manifest.mime_type.startsWith("image/") ? "image exceeds the conservative 20 MiB model input limit" : "file exceeds the conservative 48 MiB model input limit"}; stored object requires chunked extraction`);
   }
   if (manifest.openai_file_id) return manifest;
+  assertFileHandoffGate();
   const apiKey = String(env.OPENAI_API_KEY ?? "").trim();
   if (!apiKey) throw new Error("CONFIGURATION_REQUIRED:OPENAI_API_KEY");
   if (manifest.status !== "UPLOADED" && manifest.status !== "PROVIDER_FILE_READY" && manifest.status !== "HANDED_OFF") throw new Error("ATTACHMENT_NOT_UPLOADED");
@@ -349,6 +378,8 @@ export async function resolveR2ReferenceToOpenAIFile(
   storedValue: string,
 ): Promise<{ file_id: string; manifest: R2AttachmentManifest } | null> {
   if (!isR2AttachmentReference(storedValue)) return null;
+  assertFileHandoffGate();
+  assertFileHandoffGate();
   const handle = parseR2AttachmentReference(storedValue);
   if (!handle) throw new Error("ATTACHMENT_REFERENCE_INVALID");
   const manifest = await loadR2AttachmentManifest(env, handle);
