@@ -193,7 +193,7 @@ export default function McpConfigCenter() {
       </div>)}
       {!(fileHandoff?.latest_attachments || []).length && <div className="wnEmpty">No recent file references in owner-main. Select a file in WAVE Chat; large files use the same authenticated MCP gate.</div>}
       <div className="wnPolicy">
-        Large-file uploads stay CONFIGURATION_REQUIRED until an R2 bucket is bound. R2 storage up to 1 GiB is separate from direct model input (48 MiB total; 20 MiB per image). Larger files are retained but marked for chunked extraction; the card never claims the agent read them until a successful model turn is recorded in 1LSS.
+        Large-file uploads stay CONFIGURATION_REQUIRED until an R2 bucket is bound. R2 storage up to 1 GiB is separate from direct model input (48 MB total; 20 MB per image). Larger files are retained but marked for chunked extraction; the card never claims the agent read them until a successful model turn is recorded in 1LSS.
       </div>
     </div>
 
