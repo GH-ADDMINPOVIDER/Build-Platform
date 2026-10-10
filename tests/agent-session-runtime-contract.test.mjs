@@ -28,7 +28,9 @@ test("Agent AI uses real OpenAI Agent Sessions and preserves canonical 1LSS stam
   assert.match(entry, /pathname === "\/api\/chat\/agent"/);
   assert.match(entry, /pathname === "\/api\/chat\/functions"/);
   assert.match(entry, /prepareTurnBeforeExecution\(request, env, pathname\)/);
-  assert.match(entry, /return await finishTurnWithReceipt\(stampRequest, response, env, preparedTurn\)/);
+  assert.match(entry, /return await dispatchAndFinishTurn\(/);
+  assert.match(entry, /return finishTurnWithReceipt\(request, response, env, prepared\)/);
+  assert.match(entry, /UNHANDLED_CHAT_HANDLER_ERROR/);
   assert.match(entry, /await stampFunctionTurn\(request\.clone\(\), response, env\)/);
   assert.match(entry, /memory_persistence: receipt/);
   assert.match(entry, /X-OGENIC-1LSS-PERSISTENCE/);
