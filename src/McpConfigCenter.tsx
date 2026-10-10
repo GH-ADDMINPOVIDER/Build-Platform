@@ -24,10 +24,35 @@ type Discovery = {
   tools?: Tool[];
 };
 
+type FileHandoffAttachment = {
+  id: string;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  status: string;
+  can_handoff: boolean;
+  created_at?: number;
+};
+type FileHandoffStatus = {
+  ok?: boolean;
+  protocol?: string;
+  gate_state?: string;
+  storage?: { provider?: string; state?: string; code?: string | null };
+  agent_handoff?: { provider?: string; state?: string; code?: string | null };
+  owner_scope?: string;
+  session_line?: string;
+  max_file_bytes?: number;
+  max_file_bytes_label?: string;
+  part_size_bytes_label?: string;
+  direct_execution_bypass?: boolean;
+  latest_attachments?: FileHandoffAttachment[];
+  code?: string;
+};
+
 const stateTone = (value?: string) => {
   const state = String(value || "CONFIGURATION_REQUIRED").toUpperCase();
-  if (state === "LIVE" || state === "CONFIGURED") return "is-live";
-  if (state === "DEGRADED" || state === "SIMULATED") return "is-warn";
+  if (state === "LIVE" || state === "CONFIGURED" || state === "READY" || state === "UPLOADED" || state === "HANDED_OFF" || state === "LEGACY_SMALL_FILE" || state === "BOUND") return "is-live";
+  if (state === "DEGRADED" || state === "SIMULATED" || state === "UPLOADING" || state === "BLOCKED" || state === "FAILED") return "is-warn";
   if (state === "OFFLINE") return "is-offline";
   return "is-config";
 };
@@ -39,18 +64,26 @@ export default function McpConfigCenter() {
   const [secretRef, setSecretRef] = useState("");
   const [label, setLabel] = useState("");
   const [discovery, setDiscovery] = useState<Discovery | null>(null);
+  const [fileHandoff, setFileHandoff] = useState<FileHandoffStatus | null>(null);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setError("");
-    const response = await fetch("/api/mcp-config/state", { credentials: "same-origin", cache: "no-store" });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok || !body?.ok) {
-      setError(body?.code || `HTTP_${response.status}`);
-      return;
+    try {
+      const [response, fileResponse] = await Promise.all([
+        fetch("/api/mcp-config/state", { credentials: "same-origin", cache: "no-store" }),
+        fetch("/api/chat/attachments/status", { credentials: "same-origin", cache: "no-store" }),
+      ]);
+      const body = await response.json().catch(() => ({}));
+      const fileBody = await fileResponse.json().catch(() => ({}));
+      if (!response.ok || !body?.ok) setError(body?.code || `HTTP_${response.status}`);
+      else setBindings(Array.isArray(body.bindings) ? body.bindings : []);
+      setFileHandoff(fileBody?.ok ? fileBody as FileHandoffStatus : { ok: false, gate_state: "CONFIGURATION_REQUIRED", code: fileBody?.code || `HTTP_${fileResponse.status}` });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "MCP state read failed");
+      setFileHandoff({ ok: false, gate_state: "OFFLINE", code: "FILE_HANDOFF_STATUS_UNAVAILABLE" });
     }
-    setBindings(Array.isArray(body.bindings) ? body.bindings : []);
   }, []);
 
   useEffect(() => { void load(); }, [load]);
@@ -62,6 +95,21 @@ export default function McpConfigCenter() {
       const body = await response.json().catch(() => ({}));
       setDiscovery(body as Discovery);
       if (!response.ok && body?.state !== "CONFIGURATION_REQUIRED") setError(body?.code || `HTTP_${response.status}`);
+    } finally { setBusy(""); }
+  }
+
+  async function handoffFile(id: string) {
+    setBusy(`handoff:${id}`); setError("");
+    try {
+      const response = await fetch(`/api/chat/attachments/${encodeURIComponent(id)}/handoff`, {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ via: "EXISTING_MCP_STATUS_GATE" }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body?.ok) throw new Error(body?.code || `HTTP_${response.status}`);
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "File handoff failed");
     } finally { setBusy(""); }
   }
 
@@ -108,6 +156,35 @@ export default function McpConfigCenter() {
     </div>
     <p className="wnBody">WAVE stores only safe endpoint metadata and server-side secret references. Never paste a token, password, cookie, private key, or SSH key here.</p>
     {error && <div className="wnError">{error}</div>}
+
+    <div className="wnRows" aria-label="Existing MCP file handoff gate">
+      <div className="wnRow">
+        <div>
+          <strong>File handoff · existing MCP Status gate</strong>
+          <span>{fileHandoff?.storage?.provider || "Cloudflare R2"} · 8 MiB multipart · owner-main / 1LSS · direct execution bypass disabled</span>
+          {fileHandoff?.storage?.code && <span>{fileHandoff.storage.code}</span>}
+          {fileHandoff?.agent_handoff?.code && <span>{fileHandoff.agent_handoff.code}</span>}
+        </div>
+        <div className="wnActionRow">
+          <span className={`wnState ${stateTone(fileHandoff?.gate_state)}`}>{String(fileHandoff?.gate_state || "NOT_MEASURED").toUpperCase()}</span>
+          <button onClick={() => void load()} disabled={Boolean(busy)}>Refresh gate</button>
+        </div>
+      </div>
+      {(fileHandoff?.latest_attachments || []).map((attachment) => <div className="wnRow" key={attachment.id}>
+        <div>
+          <strong title={attachment.filename}>{attachment.filename}</strong>
+          <span>{attachment.mime_type} · {(attachment.size_bytes / (1024 * 1024)).toFixed(1)} MiB · {attachment.id}</span>
+        </div>
+        <div className="wnActionRow">
+          <span className={`wnState ${stateTone(attachment.status)}`}>{String(attachment.status).toUpperCase()}</span>
+          {attachment.can_handoff && attachment.status !== "HANDED_OFF" && <button disabled={Boolean(busy)} onClick={() => void handoffFile(attachment.id)}>{busy === `handoff:${attachment.id}` ? "Passing…" : "Pass through gate"}</button>}
+        </div>
+      </div>)}
+      {!(fileHandoff?.latest_attachments || []).length && <div className="wnEmpty">No recent file references in owner-main. Select a file in WAVE Chat; large files use the same authenticated MCP gate.</div>}
+      <div className="wnPolicy">
+        Large-file uploads stay CONFIGURATION_REQUIRED until an R2 bucket is bound. Files remain in R2; the card only passes a validated reference to the existing agent path.
+      </div>
+    </div>
 
     <div className="wnActionRow">
       <button onClick={() => void discover("simulated")} disabled={Boolean(busy)}>{busy === "discover:simulated" ? "Checking…" : "Safe simulated discovery"}</button>
