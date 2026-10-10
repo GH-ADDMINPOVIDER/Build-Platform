@@ -1,4 +1,5 @@
 import base from "./entry";
+import { hasOwnerSession } from "./app-auth";
 import { createConnectorAppApi, type ConnectorAppBindings } from "./connector-app-api";
 import { createProviderConnectApi } from "./provider-connect-api";
 import { createPublicHookApi, type ConnectorBindings } from "./connector-runtime";
@@ -100,6 +101,213 @@ async function appendOneLine(
     clip(idempotencyKey, 220),
   ).run();
   return sequence;
+}
+
+type TurnStartState = "SAVED" | "UNAVAILABLE" | "FAILED" | "NOT_APPLICABLE";
+type PreparedTurn = {
+  request: Request;
+  requestKey: string | null;
+  sourceSurface: string | null;
+  state: TurnStartState;
+  userSequence: number | null;
+  failureCode?: string;
+};
+
+const CONTINUITY_PATHS = new Set([
+  "/api/chat", "/api/chat/api", "/api/1lss/chat", "/api/chat/model",
+  "/api/chat/athena", "/api/chat/agent", "/api/chat/functions",
+]);
+const CONTINUITY_SURFACES = new Set([
+  "ogenic-web", "ogenic-app", "chatgpt-dev", "chatgpt-app", "live-assist",
+  "manus", "external-harness", "plugin-harness", "openai-agent", "codex",
+  "claude", "deepseek", "gemini", "line", "perplexity", "unknown",
+]);
+
+function defaultContinuitySurface(pathname: string) {
+  if (pathname === "/api/chat/api") return "chatgpt-dev";
+  if (pathname === "/api/1lss/chat") return "external-harness";
+  return "ogenic-web";
+}
+
+/**
+ * Log an authenticated owner request to the existing 1LSS line BEFORE calling
+ * any model/agent. If the provider then errors, the user's request still exists
+ * in history. No new database/schema and no provider call are introduced here.
+ */
+async function prepareTurnBeforeExecution(
+  request: Request,
+  env: Bindings,
+  pathname: string,
+): Promise<PreparedTurn> {
+  const passThrough = (state: TurnStartState, failureCode?: string): PreparedTurn => ({
+    request,
+    requestKey: null,
+    sourceSurface: null,
+    state,
+    userSequence: null,
+    failureCode,
+  });
+  if (request.method !== "POST" || !CONTINUITY_PATHS.has(pathname)) {
+    return passThrough("NOT_APPLICABLE");
+  }
+  if (!(await hasOwnerSession(request, env))) {
+    return passThrough("NOT_APPLICABLE", "OWNER_AUTH_REQUIRED");
+  }
+  const body = await request.clone().json().catch(() => null) as Record<string, unknown> | null;
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return passThrough("NOT_APPLICABLE", "JSON_BODY_REQUIRED");
+  }
+  const prompt = clip(body.prompt, 7000);
+  const attachmentCount = Array.isArray(body.attachment_ids)
+    ? body.attachment_ids.filter(Boolean).length
+    : 0;
+  if (!prompt && attachmentCount === 0) {
+    return passThrough("NOT_APPLICABLE", "NO_USER_TURN_CONTENT");
+  }
+
+  const headers = new Headers(request.headers);
+  const requestKey = clip(headers.get("idempotency-key") || body.idempotency_key || ("1lss_" + crypto.randomUUID()), 180);
+  const requestedSurface = clip(body.source_surface || headers.get("x-ogenic-surface"), 60).toLowerCase();
+  const sourceSurface = CONTINUITY_SURFACES.has(requestedSurface)
+    ? requestedSurface
+    : defaultContinuitySurface(pathname);
+  headers.set("idempotency-key", requestKey);
+  headers.set("x-ogenic-surface", sourceSurface);
+  headers.delete("content-length");
+  const forwarded = new Request(request.url, {
+    method: request.method,
+    headers,
+    body: JSON.stringify({ ...body, source_surface: sourceSurface }),
+    redirect: request.redirect,
+  });
+
+  if (!env.DB) {
+    console.warn("OGENIC_1LSS_PREWRITE_UNAVAILABLE", {
+      route: pathname, source_surface: sourceSurface, failure_code: "D1_BINDING_UNAVAILABLE",
+    });
+    return {
+      request: forwarded, requestKey, sourceSurface, state: "UNAVAILABLE",
+      userSequence: null, failureCode: "D1_BINDING_UNAVAILABLE",
+    };
+  }
+
+  try {
+    const userText = prompt || "[attachment-only turn; count=" + attachmentCount + "]";
+    const sequence = await appendOneLine(env, "user", userText, sourceSurface, requestKey + ":user", null, null);
+    if (!sequence) throw new Error("USER_TURN_NOT_CONFIRMED");
+    return {
+      request: forwarded, requestKey, sourceSurface, state: "SAVED",
+      userSequence: sequence,
+    };
+  } catch {
+    console.warn("OGENIC_1LSS_PREWRITE_FAILED", {
+      route: pathname, source_surface: sourceSurface, failure_code: "PERSISTENCE_WRITE_FAILED",
+    });
+    return {
+      request: forwarded, requestKey, sourceSurface, state: "FAILED",
+      userSequence: null, failureCode: "PERSISTENCE_WRITE_FAILED",
+    };
+  }
+}
+
+async function finishTurnWithReceipt(
+  request: Request,
+  response: Response,
+  env: Bindings,
+  prepared: PreparedTurn,
+) {
+  const pathname = new URL(request.url).pathname;
+  let result: Record<string, unknown> | null = null;
+  if ((response.headers.get("content-type") || "").includes("application/json")) {
+    result = await response.clone().json().catch(() => null) as Record<string, unknown> | null;
+  }
+  let resultState = "NOT_SAVED";
+  let resultSequence: number | null = null;
+  let failureCode: string | undefined;
+
+  if (prepared.state === "NOT_APPLICABLE") {
+    resultState = prepared.failureCode || "NOT_APPLICABLE";
+  } else if (!env.DB) {
+    resultState = "D1_UNAVAILABLE";
+    failureCode = "D1_BINDING_UNAVAILABLE";
+  } else if (!response.ok || result?.ok !== true) {
+    const code = clip(result?.code || result?.error_code || "", 100)
+      .replace(/[^A-Za-z0-9_.-]/g, "_") || ("HTTP_" + response.status);
+    try {
+      resultSequence = await appendOneLine(
+        env,
+        "system",
+        "[TURN_FAILURE] route=" + pathname + " http=" + response.status + " code=" + code,
+        prepared.sourceSurface || "unknown",
+        (prepared.requestKey || "turn") + ":failure",
+        null,
+        null,
+      );
+      resultState = resultSequence ? "FAILURE_RECORDED" : "FAILURE_NOT_RECORDED";
+      if (!resultSequence) failureCode = "FAILURE_EVENT_NOT_CONFIRMED";
+    } catch {
+      resultState = "FAILURE_NOT_RECORDED";
+      failureCode = "PERSISTENCE_WRITE_FAILED";
+    }
+  } else {
+    try {
+      await stampFunctionTurn(request.clone(), response, env);
+      const storedAssistant = await env.DB.prepare(
+        "SELECT sequence_no FROM chat_messages WHERE conversation_id = ? AND idempotency_key IN (?, ?) LIMIT 1",
+      ).bind(
+        ONE_LINE_ID,
+        (prepared.requestKey || "") + ":assistant",
+        (prepared.requestKey || "") + ":assistant:0",
+      ).first<{ sequence_no: number }>();
+      resultSequence = storedAssistant?.sequence_no == null ? null : Number(storedAssistant.sequence_no);
+      resultState = resultSequence ? "SAVED" : "RESULT_NOT_CONFIRMED";
+      if (!resultSequence) failureCode = "ASSISTANT_TURN_NOT_CONFIRMED";
+    } catch {
+      resultState = "RESULT_NOT_SAVED";
+      failureCode = "PERSISTENCE_WRITE_FAILED";
+      console.warn("OGENIC_1LSS_RESULT_WRITE_FAILED", {
+        route: pathname,
+        source_surface: prepared.sourceSurface,
+        failure_code: failureCode,
+      });
+    }
+  }
+
+  let overall = "NOT_APPLICABLE";
+  if (prepared.state === "SAVED" && resultState === "SAVED") overall = "SAVED";
+  else if (prepared.state === "SAVED" && resultState === "FAILURE_RECORDED") overall = "SAVED_WITH_FAILURE";
+  else if (prepared.state === "SAVED") overall = "USER_TURN_ONLY";
+  else if (resultState === "SAVED") overall = "SAVED_LATE";
+  else if (prepared.state === "UNAVAILABLE" || resultState === "D1_UNAVAILABLE") overall = "UNAVAILABLE";
+  else if (prepared.state === "FAILED" || resultState === "RESULT_NOT_SAVED" || resultState === "FAILURE_NOT_RECORDED") overall = "FAILED";
+  else overall = resultState;
+
+  const receipt = {
+    status: overall,
+    conversation_id: ONE_LINE_ID,
+    session_line: "1LSS_OWNER_MAIN",
+    route: pathname,
+    source_surface: prepared.sourceSurface,
+    user_turn: prepared.state,
+    user_sequence_no: prepared.userSequence,
+    result_turn: resultState,
+    result_sequence_no: resultSequence,
+    http_status: response.status,
+    failure_code: failureCode || prepared.failureCode,
+  };
+
+  const headers = new Headers(response.headers);
+  headers.set("X-OGENIC-1LSS-PERSISTENCE", overall);
+  headers.set("Cache-Control", "no-store");
+  if (!((headers.get("content-type") || "").includes("application/json")) || !result || Array.isArray(result)) {
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+  }
+  headers.set("content-type", "application/json; charset=utf-8");
+  return new Response(JSON.stringify({ ...result, memory_persistence: receipt }), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 type CachedAgentRow = {
@@ -260,8 +468,11 @@ async function withFreshAgentHandoffEvidence(response: Response) {
 }
 
 export default {
-  async fetch(request: Request, env: Bindings, ctx: unknown) {
+  async fetch(incomingRequest: Request, env: Bindings, ctx: unknown) {
+    let request = incomingRequest;
     const pathname = new URL(request.url).pathname;
+    const preparedTurn = await prepareTurnBeforeExecution(request, env, pathname);
+    request = preparedTurn.request;
     if (pathname === "/api/provider-connect" || pathname.startsWith("/api/provider-connect/")) {
       return providerConnectApi.fetch(request, env, ctx as never);
     }
@@ -294,8 +505,7 @@ export default {
     if (pathname === "/api/chat/athena") {
       const stampRequest = request.clone();
       const response = await athenaChatApi.fetch(request, env, ctx as never);
-      await stampFunctionTurn(stampRequest, response, env).catch(() => undefined);
-      return response;
+      return await finishTurnWithReceipt(stampRequest, response, env, preparedTurn);
     }
     if (
       pathname === "/api/chat/model" ||
@@ -318,10 +528,11 @@ export default {
         const stampRequest = canonicalRequest.clone();
         const athenaRequest = await athenaChatRequest(canonicalRequest);
         const response = await athenaChatApi.fetch(athenaRequest, env, ctx as never);
-        await stampFunctionTurn(stampRequest, response, env).catch(() => undefined);
-        return response;
+        return await finishTurnWithReceipt(stampRequest, response, env, preparedTurn);
       }
-      return chatModelApi.fetch(canonicalRequest, env, ctx as never);
+      const stampRequest = request.clone();
+      const response = await chatModelApi.fetch(canonicalRequest, env, ctx as never);
+      return await finishTurnWithReceipt(stampRequest, response, env, preparedTurn);
     }
     if (pathname === "/api/manus/status" || pathname === "/api/manus/task") {
       return manusApi.fetch(request, env, ctx as never);
@@ -332,21 +543,18 @@ export default {
         const athenaRequest = await athenaChatRequest(request);
         const athenaResponse = await athenaChatApi.fetch(athenaRequest, env, ctx as never);
         const response = await withFreshAgentHandoffEvidence(athenaResponse);
-        await stampFunctionTurn(stampRequest, response, env).catch(() => undefined);
-        return response;
+        return await finishTurnWithReceipt(stampRequest, response, env, preparedTurn);
       }
-      const cached = await cachedAgentReplay(request, env);
-      if (cached) return cached;
       const stampRequest = request.clone();
+      const cached = await cachedAgentReplay(request, env);
+      if (cached) return await finishTurnWithReceipt(stampRequest, cached, env, preparedTurn);
       const response = await connectorApi.fetch(request, env, ctx as never);
-      await stampFunctionTurn(stampRequest, response, env).catch(() => undefined);
-      return response;
+      return await finishTurnWithReceipt(stampRequest, response, env, preparedTurn);
     }
     if (pathname === "/api/chat/functions") {
       const stampRequest = request.clone();
       const response = await connectorApi.fetch(request, env, ctx as never);
-      await stampFunctionTurn(stampRequest, response, env).catch(() => undefined);
-      return response;
+      return await finishTurnWithReceipt(stampRequest, response, env, preparedTurn);
     }
     if (
       pathname === "/api/connectors" ||
