@@ -16,6 +16,19 @@ test("OGE-54 persists provider session metadata in existing chat_session_refs on
   assert.doesNotMatch(connector, /CREATE TABLE|ALTER TABLE|DROP TABLE/);
 });
 
+test("a failed canonical session-ref read never creates a replacement Agent session", () => {
+  assert.match(connector, /type StoredAgentSessionLookup/);
+  assert.match(connector, /AGENT_SESSION_REFERENCE_READ_FAILED/);
+  assert.match(connector, /No new provider session was created/);
+  assert.match(connector, /AGENT_SESSION_REFERENCE_NOT_CONFIRMED/);
+  assert.match(connector, /SESSION_REFERENCE_WRITE_OR_VERIFY_FAILED/);
+  const lookup = connector.slice(
+    connector.indexOf("async function latestStoredAgentSession"),
+    connector.indexOf("async function rememberAgentSession"),
+  );
+  assert.doesNotMatch(lookup, /\\.catch\\(\\(\\) => null\\)/);
+});
+
 test("ordinary follow-up reuses the saved Agents session events API", () => {
   assert.match(connector, /latestStoredAgentSession/);
   assert.match(connector, /GET/);
