@@ -14,7 +14,7 @@ test("default WAVE text chat routes through ATHENA while attachments keep the ex
   assert.match(entry, /chatModelApi\.fetch\(canonicalRequest/);
   assert.match(entry, /const failedOutput = typeof result\?\.text === "string"/);
   assert.match(entry, /SAVED_WITH_FAILURE/);
-  assert.match(entry, /suppliedRequestKey \\|\\| pathname !==/);
+  assert.match(entry, /suppliedRequestKey \|\| pathname !==/);
   assert.match(entry, /return await dispatchAndFinishTurn\(/);
   assert.match(entry, /async function dispatchAndFinishTurn/);
   assert.match(entry, /return finishTurnWithReceipt\(request, response, env, prepared\)/);
