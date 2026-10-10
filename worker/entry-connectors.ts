@@ -341,9 +341,7 @@ async function finishTurnWithReceipt(
                ELSE last_sequence
              END,
              last_seen_at = ?
-             WHERE conversation_id = ?
-               AND source_surface = 'openai-agent'
-               AND session_ref = ?`,
+             WHERE conversation_id = ? AND source_surface = 'openai-agent' AND session_ref = ?`,
           ).bind(
             resultSequence,
             resultSequence,
@@ -354,9 +352,7 @@ async function finishTurnWithReceipt(
           ).run();
           const range = await env.DB.prepare(
             `SELECT last_sequence FROM chat_session_refs
-             WHERE conversation_id = ?
-               AND source_surface = 'openai-agent'
-               AND session_ref = ?
+             WHERE conversation_id = ? AND source_surface = 'openai-agent' AND session_ref = ?
              LIMIT 1`,
           ).bind(ONE_LINE_ID, agentSessionId).first<{ last_sequence?: number }>();
           rangeConfirmed = Number(range?.last_sequence ?? 0) >= resultSequence;
