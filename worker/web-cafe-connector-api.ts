@@ -203,9 +203,18 @@ async function probeGithubRepo() {
   const url = "https://api.github.com/repos/Ogenicchocolate21debug/ogenic-chocolate";
   try {
     const { response } = await requestSource(url, "application/vnd.github+json");
-    const payload = response.ok ? await response.json() as Record<string, unknown> : null;
+    let payload: Record<string, unknown> | null = null;
+    if (response.ok) {
+      const bounded = await readBounded(response);
+      try {
+        payload = JSON.parse(bounded.text) as Record<string, unknown>;
+      } catch {
+        payload = null;
+      }
+    } else if (response.body) {
+      await response.body.cancel().catch(() => undefined);
+    }
     if (!response.ok || !payload) {
-      if (response.body) await response.body.cancel().catch(() => undefined);
       return {
         id: "candybaked_source_repo",
         url: "https://github.com/Ogenicchocolate21debug/ogenic-chocolate",
@@ -281,7 +290,7 @@ export function createWebCafeConnectorApi() {
 
   api.get("/api/web-cafe/read", async (c) => {
     const sourceId = c.req.query("source") as SourceId | undefined;
-    if (!sourceId || !(sourceId in SOURCES)) {
+    if (!sourceId || !Object.hasOwn(SOURCES, sourceId)) {
       return c.json({
         ok: false,
         code: "SOURCE_NOT_ALLOWED",
