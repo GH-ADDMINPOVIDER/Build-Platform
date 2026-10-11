@@ -63,6 +63,28 @@
         "high-frequency runtime queue",
         "canonical execution state"
       ]
+    },
+    {
+      "id": "candybaked_web",
+      "placement": "read_only_business_website_and_source_reference",
+      "routing_mode": "owner_explicit_read_only",
+      "critical_path": false,
+      "current_evidence": "Read-only evidence collected 2026-10-12: GitHub repository Ogenicchocolate21debug/ogenic-chocolate is public with default branch main; README_DEPLOY_TH.txt describes the Cloudflare Pages project ogenic-chocolate and lists ogenic-chocolate.pages.dev plus ogenicchocolate.com as targets. The user-facing Candy subdomain is candybaked.ogenicchocolate.com. The connected Vercel account exposes candybaked-factory with one READY deployment on a vercel.app alias, but CandyBaked.ogenicchocolate.com was not found as a Vercel project domain. Treat Vercel as secondary until independently reconciled. Live site content was not fetched by the research browser in this session.",
+      "canonical_source": "Google Drive + canonical Google Docs for Candy A1-A6; this connector does not replace or query those sources.",
+      "use_for": [
+        "owner-only live HTTP status checks for the allowlisted public websites",
+        "owner-only read of sanitized public website text and image/link references",
+        "read of approved public deployment README files from the existing repository",
+        "secondary Vercel deployment inspection through the existing authenticated Vercel connector"
+      ],
+      "do_not_use_for": [
+        "canonical product or media data",
+        "write access to the Candy repository or site",
+        "Cloudflare configuration changes or deployments",
+        "Vercel production promotion",
+        "credential or secret retrieval",
+        "automatic routing of write or deploy actions"
+      ]
     }
   ]
 }
