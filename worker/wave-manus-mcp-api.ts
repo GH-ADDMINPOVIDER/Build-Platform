@@ -647,8 +647,13 @@ async function handleMcp(request: Request, env: BridgeBindings) {
     return jsonRpc(message.id, result, protocolVersion);
   }
   if (message.method === "tools/call") {
-    const result = await callTool(env, params.name, params.arguments);
-    return jsonRpc(message.id, result, protocolVersion);
+    try {
+      const result = await callTool(env, params.name, params.arguments);
+      return jsonRpc(message.id, result, protocolVersion);
+    } catch {
+      // Keep database/network internals and any secret-bearing upstream errors out of MCP responses.
+      return jsonRpcError(message.id, -32603, "Internal error while executing WAVE MCP tool");
+    }
   }
   if (message.method === "resources/list") {
     return jsonRpc(message.id, isModern ? { resources: [], ttlMs: 30000, cacheScope: "private" } : { resources: [] }, protocolVersion);
