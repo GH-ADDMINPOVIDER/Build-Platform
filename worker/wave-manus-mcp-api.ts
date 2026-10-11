@@ -151,7 +151,7 @@ function parseDataUrl(value: unknown) {
 
 function normalizeIntake(input: IntakeInput, transport: "n8n" | "mcp") {
   const sourceText = clean(input.source, 20).toLowerCase();
-  const source = (["wave", "discord", "n8n", "manus"].includes(sourceText) ? sourceText : transport) as IntakeSource;
+  const source = (["wave", "discord", "n8n", "manus"].includes(sourceText) ? sourceText : transport === "mcp" ? "manus" : "n8n") as IntakeSource;
   const kindText = clean(input.kind, 20).toLowerCase();
   if (!["url", "image", "file"].includes(kindText)) return { error: "INVALID_KIND" as const };
   const kind = kindText as IntakeKind;
@@ -238,6 +238,9 @@ async function addIntakeItem(env: BridgeBindings, input: IntakeInput, transport:
     ).bind(value.attachment_ref, "owner-main").first<{ id: string; mime_type: string; size_bytes: number }>();
     if (!existingAttachment) return { ok: false, code: "ATTACHMENT_NOT_FOUND_OR_EXPIRED" };
     value.mime_type = existingAttachment.mime_type;
+    if (value.kind === "image" && !existingAttachment.mime_type.startsWith("image/")) {
+      return { ok: false, code: "IMAGE_MIME_REQUIRED" };
+    }
   }
   const fingerprint = JSON.stringify({
     source: value.source, kind: value.kind, title: value.title, url: value.url,
@@ -530,8 +533,14 @@ async function handleMcp(request: Request, env: BridgeBindings) {
   const parsed = await parseRequest(request);
   if ("error" in parsed) return Response.json({ ok: false, code: parsed.error }, { status: parsed.error === "INVALID_JSON" ? 400 : 413 });
   const message = parsed.value;
-  if (message.jsonrpc !== "2.0" || typeof message.method !== "string") return jsonRpcError(message.id, -32600, "Invalid JSON-RPC request", 400);
-  const requestedProtocol = clean(message.params?.protocolVersion, 40);
+  if (!message || typeof message !== "object" || Array.isArray(message) ||
+      message.jsonrpc !== "2.0" || typeof message.method !== "string") {
+    return jsonRpcError(message && typeof message === "object" ? message.id : undefined, -32600, "Invalid JSON-RPC request", 400);
+  }
+  const requestedProtocol = clean(
+    request.headers.get("MCP-Protocol-Version") || message.params?.protocolVersion,
+    40,
+  );
   const protocolVersion = MCP_PROTOCOLS.includes(requestedProtocol) ? requestedProtocol : MCP_PROTOCOLS[0];
 
   if (message.method === "notifications/initialized" || message.method === "notifications/cancelled") {
@@ -566,7 +575,11 @@ async function handleN8n(request: Request, env: BridgeBindings) {
   if (!safeEqual(bearer(request), expected)) return Response.json({ ok: false, code: "UNAUTHORIZED" }, { status: 401, headers: { "Cache-Control": "no-store", "WWW-Authenticate": "Bearer" } });
   const parsed = await parseRequest(request);
   if ("error" in parsed) return Response.json({ ok: false, code: parsed.error }, { status: parsed.error === "INVALID_JSON" ? 400 : 413 });
-  const body = parsed.value as Record<string, unknown>;
+  const bodyValue = parsed.value;
+  if (!bodyValue || typeof bodyValue !== "object" || Array.isArray(bodyValue)) {
+    return Response.json({ ok: false, code: "INVALID_JSON_OBJECT" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+  const body = bodyValue as Record<string, unknown>;
   const item = body.item && typeof body.item === "object" && !Array.isArray(body.item)
     ? body.item as IntakeInput : body as IntakeInput;
   const idempotencyKey = clean(request.headers.get("idempotency-key"), 180);
