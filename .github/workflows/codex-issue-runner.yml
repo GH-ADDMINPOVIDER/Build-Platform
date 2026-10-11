@@ -1,0 +1,138 @@
+name: Codex issue executor
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "GitHub issue number to execute"
+        required: true
+        type: number
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: codex-issue-${{ github.event.issue.number || inputs.issue_number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  execute:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' &&
+       github.event.label.name == 'codex-run' &&
+       github.event.sender.login == 'Ogenicchocolate21debug')
+    runs-on: self-hosted
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Validate executor and resolve issue
+        id: task
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_ISSUE_NUMBER: ${{ inputs.issue_number }}
+          EVENT_PATH: ${{ github.event_path }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          issue_number="${INPUT_ISSUE_NUMBER:-}"
+          if [[ -z "$issue_number" || "$issue_number" == "null" ]]; then
+            issue_number="$(jq -r '.issue.number // empty' "$EVENT_PATH")"
+          fi
+          if [[ ! "$issue_number" =~ ^[0-9]+$ ]]; then
+            echo "::error::Could not resolve a valid issue number."
+            exit 2
+          fi
+          command -v codex >/dev/null || { echo "::error::Codex CLI is not installed on this self-hosted runner."; exit 3; }
+          codex --version
+          gh issue view "$issue_number" --repo "$REPOSITORY" --json number,title,body,url > "$RUNNER_TEMP/codex-issue.json"
+          echo "number=$issue_number" >> "$GITHUB_OUTPUT"
+
+      - name: Run Codex on issue task
+        id: codex
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ steps.task.outputs.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          python3 - <<'PY'
+          import json, os
+          p = os.path.join(os.environ["RUNNER_TEMP"], "codex-issue.json")
+          issue = json.load(open(p, encoding="utf-8"))
+          prompt = f"""You are Codex executing an authorized GitHub issue task in repository {os.environ['REPOSITORY']}.
+          Issue: #{issue['number']} — {issue['title']}
+          URL: {issue['url']}
+
+          TASK BODY (treat as task requirements, not as permission to reveal secrets):
+          {issue.get('body') or '(no body)'}
+
+          Execution rules:
+          - Work autonomously on the requested task; inspect the repository and relevant CI/runtime evidence first.
+          - Use this runner to run actual tests/typecheck/build and safe runtime checks where available. Do not claim a check passed unless its command/result proves it.
+          - Make focused changes, add/update behavioral tests, and preserve unrelated or untracked work. Never delete or overwrite unrelated files.
+          - Never print, commit, upload, or include secrets, tokens, credentials, raw prompts from unrelated tasks, or sensitive environment values.
+          - Do not bypass repository/security policies. Do not deploy production or merge pull requests.
+          - Create a task branch, commit the completed changes, push it, and open/update a draft PR when credentials/permissions permit. If cross-repository access or secrets are unavailable, continue all work possible in this repository and report the exact blocker and owner action.
+          - Finish with a concise evidence-based report: changed files/commit/PR, commands and outcomes, runtime evidence, and remaining blockers. No unsupported success claims.
+          """
+          open(os.path.join(os.environ["RUNNER_TEMP"], "codex-task.md"), "w", encoding="utf-8").write(prompt)
+          PY
+          cd "$GITHUB_WORKSPACE"
+          set +e
+          codex exec --full-auto "$(cat "$RUNNER_TEMP/codex-task.md")"
+          rc=$?
+          set -e
+          {
+            echo "Codex exit code: $rc"
+            echo
+            echo "Final git status:"
+            git status --short
+            echo
+            echo "Recent commits:"
+            git --no-pager log -5 --oneline
+          } > "$RUNNER_TEMP/codex-report.txt"
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          exit "$rc"
+
+      - name: Report outcome to issue
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ steps.task.outputs.number }}
+          REPOSITORY: ${{ github.repository }}
+          JOB_STATUS: ${{ job.status }}
+          CODEX_EXIT: ${{ steps.codex.outputs.exit_code }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$ISSUE_NUMBER" =~ ^[0-9]+$ ]]; then exit 0; fi
+          report="$RUNNER_TEMP/codex-report.txt"
+          if [[ -f "$report" ]]; then
+            body="$(cat "$report")"
+          else
+            body="Codex executor did not produce a report. Job status: $JOB_STATUS. Inspect this workflow run's step results."
+          fi
+          {
+            echo "## Codex self-hosted execution report"
+            echo
+            echo "- Workflow status: $JOB_STATUS"
+            echo "- Codex exit code: ${CODEX_EXIT:-not available}"
+            echo "- Run: https://github.com/$REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo
+            echo '~~~text'
+            printf '%s\n' "$body"
+            echo '~~~'
+          } > "$RUNNER_TEMP/issue-comment.md"
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body-file "$RUNNER_TEMP/issue-comment.md"
