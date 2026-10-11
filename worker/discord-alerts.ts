@@ -55,6 +55,19 @@ function clip(value: unknown, max = 300) {
   return String(value ?? "").replace(/[\r\n\t]+/g, " ").trim().slice(0, max);
 }
 
+function safeCode(value: unknown) {
+  const code = clip(value, 120);
+  return /^[a-zA-Z0-9_.:-]{1,120}$/.test(code) ? code : "UNKNOWN";
+}
+
+function safeRoute(pathname: string) {
+  return pathname
+    .replace(/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/gi, ":id")
+    .replace(/\/[0-9]{5,}(?=\/|$)/g, "/:id")
+    .replace(/\/[A-Za-z0-9_-]{28,}(?=\/|$)/g, "/:id")
+    .slice(0, 180);
+}
+
 function postAlert(env: DiscordAlertBindings, event: AlertEvent) {
   const webhook = safeWebhook(webhookFor(env, event.kind));
   if (!webhook) return Promise.resolve();
