@@ -473,6 +473,7 @@ async function callTool(env: BridgeBindings, nameInput: unknown, argsInput: unkn
   const args = argsInput && typeof argsInput === "object" && !Array.isArray(argsInput)
     ? argsInput as Record<string, unknown> : {};
   if (name === "wave_bridge_status") {
+    await cleanupExpired(env);
     const result = {
       ok: true,
       service: "WAVE_REMOTE_MCP",
@@ -571,7 +572,8 @@ async function handleN8n(request: Request, env: BridgeBindings) {
   const idempotencyKey = clean(request.headers.get("idempotency-key"), 180);
   if (idempotencyKey && !item.event_id) item.event_id = idempotencyKey;
   const result = await addIntakeItem(env, item, "n8n");
-  return Response.json(result, { status: result.ok ? 202 : result.code === "CONFIGURATION_REQUIRED" ? 503 : 400, headers: { "Cache-Control": "no-store" } });
+  const resultCode = "code" in result ? String(result.code) : "";
+  return Response.json(result, { status: result.ok ? 202 : resultCode === "CONFIGURATION_REQUIRED" ? 503 : 400, headers: { "Cache-Control": "no-store" } });
 }
 
 export function createWaveManusMcpApi() {
@@ -585,6 +587,7 @@ export function createWaveManusMcpApi() {
         if (!(await hasOwnerOrOpsAccess(request, env as never))) {
           return Response.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, { status: 401, headers: { "Cache-Control": "no-store" } });
         }
+        await cleanupExpired(env);
         return Response.json({
           ok: true,
           service: "WAVE_REMOTE_MCP",
