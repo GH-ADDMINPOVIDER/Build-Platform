@@ -127,6 +127,25 @@ async function readBounded(response: Response) {
   return { text: new TextDecoder().decode(combined), truncated };
 }
 
+function allowedRedirectTarget(originalUrl: string, finalUrl: string) {
+  try {
+    const original = new URL(originalUrl);
+    const final = new URL(finalUrl);
+    if (final.protocol !== "https:" || final.username || final.password) return false;
+    if (final.hostname === original.hostname) return true;
+    const websiteSource = original.hostname === "ogenicchocolate.com" ||
+      original.hostname.endsWith(".ogenicchocolate.com");
+    if (websiteSource) {
+      return final.hostname === "ogenicchocolate.com" ||
+        final.hostname.endsWith(".ogenicchocolate.com") ||
+        final.hostname === "ogenic-chocolate.pages.dev";
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 async function requestSource(url: string, accept: string) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -138,6 +157,10 @@ async function requestSource(url: string, accept: string) {
       cache: "no-store",
       signal: controller.signal,
     });
+    if (!allowedRedirectTarget(url, response.url || url)) {
+      if (response.body) await response.body.cancel().catch(() => undefined);
+      throw new Error("SOURCE_REDIRECT_BLOCKED");
+    }
     const safeUrlValue = scrubUrl(response.url) ?? url;
     return { response, finalUrl: safeUrlValue };
   } finally {
