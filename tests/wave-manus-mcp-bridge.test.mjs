@@ -106,3 +106,12 @@ test("MCP reports protocol mismatch separately from an unsupported requested ver
   assert.match(bridge, /data: \{ supported: MCP_PROTOCOLS, requested: requested \|\| null \}/);
   assert.match(bridge, /code: -32020|HeaderMismatch:/);
 });
+
+test("Manus connects Cloudflare MCP and WAVE MCP as separate servers; n8n remains the intake producer", () => {
+  const docs = read("docs/integrations/WAVE_REMOTE_MCP_DATA_STONE.md");
+  assert.match(docs, /https:\/\/mcp\.cloudflare\.com\/mcp/);
+  assert.match(docs, /two custom MCP servers in Manus/);
+  assert.match(docs, /WAVE_MANUS_MCP_TOKEN/);
+  assert.match(docs, /WAVE_N8N_HOOK_TOKEN/);
+  assert.match(docs, /does not need a second control plane or a new memory database/);
+});
