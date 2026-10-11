@@ -3,6 +3,7 @@ import type { ConnectorBindings } from "./connector-runtime";
 
 type BridgeBindings = ConnectorBindings & {
   WAVE_MANUS_MCP_TOKEN?: string;
+  WAVE_MCP_ALLOWED_ORIGINS?: string;
   WAVE_N8N_HOOK_TOKEN?: string;
   OGENIC_RUNTIME?: string;
   OGENIC_PHASE?: string;
@@ -66,7 +67,8 @@ const ALLOWED_MIME = new Set([
   "image/png", "image/jpeg", "image/webp", "image/gif",
   "application/pdf", "text/plain", "text/markdown", "text/csv", "application/json",
 ]);
-const MCP_PROTOCOLS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
+const MCP_PROTOCOLS = ["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
+const MODERN_MCP = "2026-07-28";
 const enc = new TextEncoder();
 const clean = (value: unknown, max = 240) => String(value ?? "").trim().replace(/[\u0000-\u001f\u007f]/g, "").slice(0, max);
 
@@ -89,8 +91,21 @@ async function sha256(value: string) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function jsonRpc(id: JsonRpcId | undefined, result: unknown, protocolVersion = MCP_PROTOCOLS[0]) {
-  return Response.json({ jsonrpc: "2.0", id: id ?? null, result }, {
+function jsonRpc(id: JsonRpcId | undefined, result: unknown, protocolVersion = "2025-11-25") {
+  let responseResult = result;
+  if (protocolVersion === MODERN_MCP && result && typeof result === "object" && !Array.isArray(result)) {
+    const existing = result as Record<string, unknown>;
+    const existingMeta = existing._meta && typeof existing._meta === "object" ? existing._meta as Record<string, unknown> : {};
+    responseResult = {
+      ...existing,
+      resultType: existing.resultType || "complete",
+      _meta: {
+        ...existingMeta,
+        "io.modelcontextprotocol/serverInfo": { name: "ogenic-wave-remote-mcp", version: "0.2.0" },
+      },
+    };
+  }
+  return Response.json({ jsonrpc: "2.0", id: id ?? null, result: responseResult }, {
     status: 200,
     headers: { "Cache-Control": "no-store", "MCP-Protocol-Version": protocolVersion },
   });
@@ -521,11 +536,32 @@ async function parseRequest(request: Request) {
   }
 }
 
+function originAllowed(request: Request, env: BridgeBindings) {
+  const suppliedOrigin = request.headers.get("origin");
+  if (!suppliedOrigin) return true;
+  try {
+    const origin = new URL(suppliedOrigin).origin;
+    const requestOrigin = new URL(request.url).origin;
+    const allowed = new Set([
+      requestOrigin,
+      ...clean(env.WAVE_MCP_ALLOWED_ORIGINS, 1200).split(",").map((item) => item.trim()).filter(Boolean),
+    ]);
+    return allowed.has(origin);
+  } catch {
+    return false;
+  }
+}
+
+function mcpHeaderMismatch(id: JsonRpcId | undefined, message: string) {
+  return jsonRpcError(id, -32020, "HeaderMismatch: " + message, 400);
+}
+
 async function handleMcp(request: Request, env: BridgeBindings) {
   if (request.method === "GET") {
     return new Response("MCP GET/SSE is not enabled; use Streamable HTTP POST.", { status: 405, headers: { Allow: "POST", "Cache-Control": "no-store" } });
   }
   if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: { Allow: "POST" } });
+  if (!originAllowed(request, env)) return Response.json({ ok: false, code: "ORIGIN_DENIED" }, { status: 403, headers: { "Cache-Control": "no-store" } });
   const expected = clean(env.WAVE_MANUS_MCP_TOKEN, 4000);
   if (!expected) return Response.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "WAVE_MANUS_MCP_TOKEN" }, { status: 503, headers: { "Cache-Control": "no-store" } });
   if (!safeEqual(bearer(request), expected)) return Response.json({ ok: false, code: "UNAUTHORIZED" }, { status: 401, headers: { "Cache-Control": "no-store", "WWW-Authenticate": "Bearer" } });
@@ -537,35 +573,86 @@ async function handleMcp(request: Request, env: BridgeBindings) {
       message.jsonrpc !== "2.0" || typeof message.method !== "string") {
     return jsonRpcError(message && typeof message === "object" ? message.id : undefined, -32600, "Invalid JSON-RPC request", 400);
   }
-  const requestedProtocol = clean(
-    request.headers.get("MCP-Protocol-Version") || message.params?.protocolVersion,
-    40,
-  );
-  const protocolVersion = MCP_PROTOCOLS.includes(requestedProtocol) ? requestedProtocol : MCP_PROTOCOLS[0];
 
+  const params = message.params && typeof message.params === "object" && !Array.isArray(message.params)
+    ? message.params as Record<string, unknown> : {};
+  const meta = params._meta && typeof params._meta === "object" && !Array.isArray(params._meta)
+    ? params._meta as Record<string, unknown> : {};
+  const headerProtocol = clean(request.headers.get("MCP-Protocol-Version"), 40);
+  const bodyProtocol = clean(meta["io.modelcontextprotocol/protocolVersion"], 40);
+  const methodHeader = clean(request.headers.get("Mcp-Method"), 100);
+  const nameHeader = clean(request.headers.get("Mcp-Name"), 500);
+
+  // Current stateless MCP clients probe this RPC before issuing tools/list.
+  if (message.method === "server/discover") {
+    if (methodHeader && methodHeader !== message.method) return mcpHeaderMismatch(message.id, "Mcp-Method does not match body method");
+    return jsonRpc(message.id, {
+      supportedVersions: MCP_PROTOCOLS,
+      capabilities: { tools: { listChanged: false } },
+      instructions: "WAVE is the authenticated tool gateway for ATHENA / White Diamond. Use wave_intake_add for temporary links/images, wave_intake_read to confirm actual media bytes, and wave_intake_ack after processing. Temporary Data Stone records and owned media expire after five minutes. Yellow Stone remains the only side-effect authority.",
+      ttlMs: 30000,
+      cacheScope: "private",
+    }, MODERN_MCP);
+  }
+
+  let protocolVersion = "2025-03-26";
+  const isModern = headerProtocol === MODERN_MCP || bodyProtocol === MODERN_MCP;
+  if (isModern) {
+    if (headerProtocol !== MODERN_MCP || bodyProtocol !== MODERN_MCP) {
+      return mcpHeaderMismatch(message.id, "MCP-Protocol-Version must match _meta.io.modelcontextprotocol/protocolVersion");
+    }
+    if (methodHeader !== message.method) return mcpHeaderMismatch(message.id, "Mcp-Method does not match body method");
+    if (message.method === "tools/call") {
+      const toolName = clean(params.name, 100);
+      if (!toolName || nameHeader !== toolName) return mcpHeaderMismatch(message.id, "Mcp-Name does not match params.name");
+    }
+    protocolVersion = MODERN_MCP;
+  } else {
+    if (headerProtocol && !MCP_PROTOCOLS.includes(headerProtocol)) {
+      return jsonRpcError(message.id, -32022, "Unsupported protocol version; supported: " + MCP_PROTOCOLS.join(", "), 400);
+    }
+    const legacyRequested = clean(params.protocolVersion || headerProtocol, 40);
+    if (message.method === "initialize") {
+      // A legacy initialize handshake must negotiate a pre-2026 version.
+      protocolVersion = legacyRequested && MCP_PROTOCOLS.includes(legacyRequested) && legacyRequested !== MODERN_MCP
+        ? legacyRequested : "2025-11-25";
+    } else {
+      protocolVersion = headerProtocol && headerProtocol !== MODERN_MCP ? headerProtocol : "2025-03-26";
+    }
+  }
+
+  if (message.method === "initialize") {
+    if (isModern) return jsonRpcError(message.id, -32601, "initialize was removed in MCP 2026-07-28", 404);
+    return jsonRpc(message.id, {
+      protocolVersion,
+      capabilities: { tools: { listChanged: false } },
+      serverInfo: { name: "ogenic-wave-remote-mcp", version: "0.2.0" },
+      instructions: "WAVE is the authenticated tool gateway for ATHENA / White Diamond. Use wave_intake_add for temporary links/images, wave_intake_read to confirm actual media bytes, and wave_intake_ack after processing. Temporary Data Stone records and owned media expire after five minutes. Yellow Stone remains the only side-effect authority.",
+    }, protocolVersion);
+  }
   if (message.method === "notifications/initialized" || message.method === "notifications/cancelled") {
     if (message.id !== undefined) return jsonRpcError(message.id, -32600, "Notification must not contain an id");
     return new Response(null, { status: 202, headers: { "Cache-Control": "no-store" } });
   }
-  if (message.method === "initialize") {
-    return jsonRpc(message.id, {
-      protocolVersion,
-      capabilities: { tools: { listChanged: false } },
-      serverInfo: { name: "ogenic-wave-remote-mcp", version: "0.1.0" },
-      instructions: "WAVE is the authenticated tool gateway for ATHENA / White Diamond. Use wave_intake_add for temporary links/images, wave_intake_read to confirm actual media bytes, and wave_intake_ack after processing. Temporary Data Stone records and owned media expire after five minutes. Yellow Stone remains the only side-effect authority.",
-    }, protocolVersion);
-  }
   if (message.method === "ping") return jsonRpc(message.id, {}, protocolVersion);
-  if (message.method === "tools/list") return jsonRpc(message.id, { tools: MCP_TOOLS }, protocolVersion);
+  if (message.method === "tools/list") {
+    const result = isModern
+      ? { tools: MCP_TOOLS, ttlMs: 30000, cacheScope: "private" }
+      : { tools: MCP_TOOLS };
+    return jsonRpc(message.id, result, protocolVersion);
+  }
   if (message.method === "tools/call") {
-    const params = message.params ?? {};
     const result = await callTool(env, params.name, params.arguments);
     return jsonRpc(message.id, result, protocolVersion);
   }
-  if (message.method === "resources/list") return jsonRpc(message.id, { resources: [] }, protocolVersion);
-  if (message.method === "prompts/list") return jsonRpc(message.id, { prompts: [] }, protocolVersion);
+  if (message.method === "resources/list") {
+    return jsonRpc(message.id, isModern ? { resources: [], ttlMs: 30000, cacheScope: "private" } : { resources: [] }, protocolVersion);
+  }
+  if (message.method === "prompts/list") {
+    return jsonRpc(message.id, isModern ? { prompts: [], ttlMs: 30000, cacheScope: "private" } : { prompts: [] }, protocolVersion);
+  }
   if (message.id === undefined) return new Response(null, { status: 202, headers: { "Cache-Control": "no-store" } });
-  return jsonRpcError(message.id, -32601, "Method not found");
+  return jsonRpcError(message.id, -32601, "Method not found", 404);
 }
 
 async function handleN8n(request: Request, env: BridgeBindings) {
