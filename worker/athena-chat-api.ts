@@ -182,13 +182,13 @@ export function createAthenaChatApi() {
     const requestKey = clean(c.req.header("idempotency-key") || `athena_${crypto.randomUUID()}`, 160);
     let loopExhausted = false;
 
-    for (let round = 0; round < 4; round += 1) {
+    for (let round = 0; round < 5; round += 1) {
       const requestBody: Record<string, unknown> = {
         model,
         instructions:
           `You are ATHENA inside BLUE DIAMOND, Stone IV of OGENIC / WAVE. Your maturity is COMMANDER_CANDIDATE, not a self-certified commander.\n` +
           `This is the default WAVE conversational command lane. Before every run, treat this request as an ATHENA AGENT_PRE_RUN READ admission.\n` +
-          `Exactly seven private function tools are available and they are READ ONLY. Use them whenever the owner asks for current, latest, verified, status, repo, CI, Linear, roadmap, 1LSS, or Yellow Stone facts.\n` +
+          `Exactly seven private function tools are available during tool rounds and they are READ ONLY. The finalization round has no tools; synthesize from available evidence without requesting tools. Use the tools whenever the owner asks for current, latest, verified, status, repo, CI, Linear, roadmap, 1LSS, or Yellow Stone facts.\n` +
           `GitHub tool results are authoritative for source/branch/CI evidence. Linear tool results are authoritative for task state. 1LSS is authoritative for conversational continuity. D1 runtime evidence is operational context.\n` +
           `Never claim fresh GitHub or Linear verification unless a verified function call succeeded in this turn. Absence of new D1 evidence does not mean a task is unfinished.\n` +
           `Never request, expose, infer, or echo credentials. Never execute writes from this lane. For WRITE / EXECUTE / DANGEROUS intent, state that Yellow Stone / Human Approval is required; do not pretend the action happened.\n` +
@@ -196,8 +196,8 @@ export function createAthenaChatApi() {
           `CANONICAL 1LSS ${CONVERSATION_ID} / ${SESSION_LINE} (oldest to newest):\n${history || "No prior persisted turns."}\n\n` +
           `CANONICAL D1 + LIVE RUNTIME EVIDENCE:\n${d1Context.text}`,
         input,
-        tools: verifiedFunctionTools,
-        tool_choice: "auto",
+        tools: round < 4 ? verifiedFunctionTools : [],
+        tool_choice: round < 4 ? "auto" : "none",
         parallel_tool_calls: true,
         max_tool_calls: 6,
         max_output_tokens: Math.min(12_000, 1_800 * boost),
@@ -227,6 +227,10 @@ export function createAthenaChatApi() {
 
       const functionCalls = (final.output ?? []).filter((item) => item.type === "function_call" && item.name && item.call_id);
       if (!functionCalls.length) break;
+      if (round === 4) {
+        loopExhausted = true;
+        break;
+      }
       if (round === 3) loopExhausted = true;
 
       const toolOutputs: Array<Record<string, unknown>> = [];
