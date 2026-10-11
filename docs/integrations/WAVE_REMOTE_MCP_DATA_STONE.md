@@ -51,6 +51,18 @@ The existing n8n workflow can POST a normalized JSON item to /hooks/n8n/data-sto
 
 Payload fields: source (wave, discord, n8n, or manus), kind (url, image, or file), optional title, note, url, attachment_ref, mime_type, and optional data_url (data:<mime>;base64,...). For actual image bytes, n8n must transfer the binary as data_url or send an existing WAVE att_... reference. The Worker does not fetch remote URLs, to avoid SSRF and signed-link leakage.
 
+## WAVE Chat auto-intake
+
+The existing authenticated WAVE Chat path now calls the intake helper after the user's request is confirmed in the canonical 1LSS prewrite and before the model/agent is dispatched:
+
+- Up to four existing `att_...` attachment references are registered in Data Stone.
+- Up to eight pasted HTTPS links are registered as URL references.
+- The caller's idempotency key supplies a stable per-turn prefix so retries do not create duplicate inbox items.
+- The helper records only compact metadata/reference and does not copy the raw chat prompt, URL query values, or media bytes into logs. Intake failures are logged as sanitized error codes and do not break the main chat turn.
+- Image bytes are read through MCP only when the referenced WAVE attachment still exists and passes MIME/byte-count checks. A URL by itself remains `URL_REFERENCE_ONLY`.
+
+This makes ordinary WAVE Chat submissions feed the temporary inbox automatically. n8n can independently push Discord/photo events through its authenticated ingress endpoint below.
+
 ## Temporary storage and limits
 
 - Metadata uses the existing connector_events and connector_hook_dedup tables.
