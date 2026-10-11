@@ -1,4 +1,5 @@
 import base from "./entry-connectors";
+import { createWebCafeConnectorApi } from "./web-cafe-connector-api";
 import {
   createCapabilityResolverApi,
   type CapabilityResolverBindings,
@@ -31,8 +32,8 @@ import { hasOwnerOrOpsAccess } from "./app-auth";
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { planAthenaCommand } from "./athena-command-planner";
 import { createDiscordApi } from "./discord-api";
-import { createWebCafeConnectorApi } from "./web-cafe-connector-api";
 
+const webCafeConnectorApi = createWebCafeConnectorApi();
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
 const selfHostApi = createOpenAISelfHostApi();
@@ -60,7 +61,6 @@ const capabilityCardStoneApi = createCapabilityCardStoneApi();
 // CCS facade route proof trigger
 const n8nMigrationApi = createN8nMigrationApi();
 const discordApi = createDiscordApi();
-const webCafeConnectorApi = createWebCafeConnectorApi();
 
 const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
@@ -222,9 +222,6 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
 export default {
   async fetch(request: Request, env: Bindings, ctx: unknown) {
     const pathname = new URL(request.url).pathname;
-    if (pathname.startsWith("/api/web-cafe/")) {
-      return webCafeConnectorApi.fetch(request, env as never, ctx as never);
-    }
     if (pathname.startsWith("/api/discord/")) {
       return discordApi.fetch(request, env as never, ctx as never);
     }
@@ -260,6 +257,9 @@ export default {
     }
     if (pathname === "/api/moli/status") {
       return moliBrowserApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/web-cafe/")) {
+      return webCafeConnectorApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/knowledge-refinery/")) {
       return knowledgeRefineryApi.fetch(request, env as never, ctx as never);
