@@ -168,9 +168,13 @@ async function prepareTurnBeforeExecution(
     return passThrough("NOT_APPLICABLE", "JSON_BODY_REQUIRED");
   }
   const prompt = clip(body.prompt, 7000);
-  const attachmentCount = Array.isArray(body.attachment_ids)
-    ? body.attachment_ids.filter(Boolean).length
-    : 0;
+  const attachmentIds = Array.isArray(body.attachment_ids)
+    ? body.attachment_ids
+      .map((value) => typeof value === "string" ? clip(value, 256) : "")
+      .filter(Boolean)
+      .slice(0, 4)
+    : [];
+  const attachmentCount = attachmentIds.length;
   if (!prompt && attachmentCount === 0) {
     return passThrough("NOT_APPLICABLE", "NO_USER_TURN_CONTENT");
   }
@@ -210,6 +214,25 @@ async function prepareTurnBeforeExecution(
     const userText = prompt || "[attachment-only turn; count=" + attachmentCount + "]";
     const sequence = await appendOneLine(env, "user", userText, sourceSurface, requestKey + ":user", null, null);
     if (!sequence) throw new Error("USER_TURN_NOT_CONFIRMED");
+
+    // Before model dispatch, put pasted HTTPS links and already-uploaded files
+    // into the short-lived Data Stone inbox. Intake failure is logged without
+    // storing source URLs or blocking the owner's main chat turn.
+    const dataStone = await ingestWaveChatTurn(env, {
+      prompt,
+      attachment_ids: attachmentIds,
+      idempotency_key: requestKey,
+      source_surface: sourceSurface,
+    }).catch(() => ({ ok: false, accepted: 0, failure_codes: ["INTAKE_HANDLER_FAILED"] }));
+    if (!dataStone.ok) {
+      console.warn("WAVE_DATA_STONE_AUTO_INTAKE_FAILED", {
+        route: pathname,
+        source_surface: sourceSurface,
+        accepted: dataStone.accepted,
+        failure_codes: dataStone.failure_codes.slice(0, 10),
+      });
+    }
+
     return {
       request: forwarded, requestKey, sourceSurface, state: "SAVED",
       userSequence: sequence,
