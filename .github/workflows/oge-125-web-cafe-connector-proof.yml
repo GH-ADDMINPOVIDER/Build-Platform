@@ -32,7 +32,7 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --package-lock-only && npm ci
 
       - name: Run focused read-only connector contract tests
         run: node --test tests/web-cafe-connector.test.mjs tests/oge-72-resource-placement.test.mjs
