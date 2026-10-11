@@ -59,7 +59,7 @@ function postAlert(env: DiscordAlertBindings, event: AlertEvent) {
   const webhook = safeWebhook(webhookFor(env, event.kind));
   if (!webhook) return Promise.resolve();
 
-  const dedupeKey = `${event.kind}:${event.route}:${event.code}:${event.incidentId}`;
+  const dedupeKey = `${event.kind}:${event.route}:${event.code}`;
   const now = Date.now();
   for (const [key, at] of recent) if (now - at >= DEDUPE_WINDOW_MS) recent.delete(key);
   if (recent.has(dedupeKey)) return Promise.resolve();
@@ -129,11 +129,11 @@ export function observeDiscordResponse(
   response: Response,
   context?: AlertContext,
 ) {
-  const route = new URL(request.url).pathname;
+  const route = safeRoute(new URL(request.url).pathname);
   const bodyPromise = response.clone().json().catch(() => ({} as Record<string, unknown>));
   const task = bodyPromise.then((raw) => {
     const body = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
-    const code = clip(body.code ?? body.error ?? body.error_code ?? "UNKNOWN", 120);
+    const code = safeCode(body.code ?? body.error_code ?? "UNKNOWN");
     const run = body.run && typeof body.run === "object" ? body.run as Record<string, unknown> : {};
     const failedRun = ["failed", "blocked"].includes(String(run.status ?? body.status ?? "").toLowerCase());
     const workflowFailure = failedRun || code.includes("WORKFLOW") || code === "CHAT_RUN_FAILED" || code === "ADAPTER_EXCEPTION";
@@ -151,7 +151,7 @@ export function observeDiscordResponse(
       const now = Date.now();
       const previous = activeIncidents.get(key);
       if (!previous || now - previous.at >= DEDUPE_WINDOW_MS) {
-        const incidentId = clip(request.headers.get("x-request-id") || request.headers.get("idempotency-key") || key, 120);
+        const incidentId = crypto.randomUUID();
         activeIncidents.set(key, { key, kind, at: now, code });
         schedule(env, event(kind, route, response.status, code, incidentId), context);
       }
@@ -162,7 +162,7 @@ export function observeDiscordResponse(
     for (const [key, incident] of activeIncidents) {
       if (!key.startsWith(`${incident.kind}:${route}:`)) continue;
       activeIncidents.delete(key);
-      const incidentId = clip(request.headers.get("x-request-id") || key, 120);
+      const incidentId = crypto.randomUUID();
       schedule(env, event("RECOVERY", route, response.status, `RECOVERED:${incident.code}`, incidentId), context);
     }
   });
