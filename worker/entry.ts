@@ -11,13 +11,14 @@ import {
 } from "./workflow-engine";
 import { createCodexPatchAdapter, createOpenAIGenerateAdapter } from "./openai-runtime";
 import { createAuthApi, hasOwnerSession } from "./app-auth";
+import { observeDiscordResponse, type DiscordAlertBindings } from "./discord-alerts";
 import { createAppApi, type AppBindings } from "./app-api";
 import policyConfig from "../config/workflow-engine.staging.json";
 import linearCodexDraftPr from "../workflows/linear-codex-draft-pr.v1.json";
 import openaiChat from "../workflows/openai-chat.v1.json";
 import smokeWorkflow from "../workflows/workflow-engine-smoke.v1.json";
 
-type RootBindings = WorkflowBindings & AppBindings & { OPENAI_API_KEY?: string };
+type RootBindings = WorkflowBindings & AppBindings & DiscordAlertBindings & { OPENAI_API_KEY?: string };
 type RootEnv = { Bindings: RootBindings };
 type OpenAIRuntimeBindings = RootBindings;
 
@@ -409,8 +410,10 @@ root.route("/", incentiveApi);
 root.route("/", legacyApp);
 
 export default {
-  fetch(request: Request, env: RootBindings, ctx: unknown) {
-    return root.fetch(request, env, ctx as never);
+  async fetch(request: Request, env: RootBindings, ctx: unknown) {
+    const response = await root.fetch(request, env, ctx as never);
+    observeDiscordResponse(env, request, response, ctx as { waitUntil?: (promise: Promise<unknown>) => void });
+    return response;
   },
   scheduled(_controller: unknown, env: WorkflowBindings, ctx: { waitUntil(promise: Promise<unknown>): void }) {
     ctx.waitUntil(engine.tick(env).then(() => undefined));
