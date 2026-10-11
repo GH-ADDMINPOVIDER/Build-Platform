@@ -43,8 +43,12 @@ test("all outbound requests are HTTPS GETs with bounded body, timeout, and no cr
   assert.match(api, /MAX_READ_BYTES = 140_000/);
   assert.match(api, /const bounded = await readBounded\(response\)/);
   assert.match(api, /Object\.hasOwn\(SOURCES, sourceId\)/);
-  assert.match(api, /redirect: "follow"/);
+  assert.match(api, /redirect: "manual"/);
   assert.match(api, /allowedRedirectTarget/);
+  assert.match(api, /redirect: "manual"/);
+  assert.match(api, /response\.headers\.get\("location"\)/);
+  assert.match(api, /hop >= 5/);
+  assert.match(api, /SOURCE_REDIRECT_BLOCKED/);
   assert.match(api, /final\.protocol !== "https:"/);
   assert.match(api, /final\.hostname === "ogenic-chocolate\.pages\.dev"/);
   assert.doesNotMatch(api, /headers:\s*\{\s*Authorization:/);
