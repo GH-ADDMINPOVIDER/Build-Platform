@@ -563,6 +563,18 @@ function mcpHeaderMismatch(id: JsonRpcId | undefined, message: string) {
   return jsonRpcError(id, -32020, "HeaderMismatch: " + message, 400);
 }
 
+function unsupportedProtocolVersion(id: JsonRpcId | undefined, requested: string) {
+  return Response.json({
+    jsonrpc: "2.0",
+    id: id ?? null,
+    error: {
+      code: -32022,
+      message: "Unsupported protocol version",
+      data: { supported: MCP_PROTOCOLS, requested: requested || null },
+    },
+  }, { status: 400, headers: { "Cache-Control": "no-store" } });
+}
+
 async function handleMcp(request: Request, env: BridgeBindings) {
   if (request.method === "GET") {
     return new Response("MCP GET/SSE is not enabled; use Streamable HTTP POST.", { status: 405, headers: { Allow: "POST", "Cache-Control": "no-store" } });
@@ -594,8 +606,11 @@ async function handleMcp(request: Request, env: BridgeBindings) {
   const isModern = headerProtocol === MODERN_MCP || bodyProtocol === MODERN_MCP ||
     Boolean(methodHeader || bodyProtocol);
   if (isModern) {
-    if (headerProtocol !== MODERN_MCP || bodyProtocol !== MODERN_MCP) {
+    if (!headerProtocol || !bodyProtocol || headerProtocol !== bodyProtocol) {
       return mcpHeaderMismatch(message.id, "MCP-Protocol-Version must match _meta.io.modelcontextprotocol/protocolVersion");
+    }
+    if (!MCP_PROTOCOLS.includes(headerProtocol) || headerProtocol !== MODERN_MCP) {
+      return unsupportedProtocolVersion(message.id, headerProtocol);
     }
     if (methodHeader !== message.method) return mcpHeaderMismatch(message.id, "Mcp-Method does not match body method");
     if (message.method === "tools/call") {
@@ -614,7 +629,7 @@ async function handleMcp(request: Request, env: BridgeBindings) {
     }
   } else {
     if (headerProtocol && !MCP_PROTOCOLS.includes(headerProtocol)) {
-      return jsonRpcError(message.id, -32022, "Unsupported protocol version; supported: " + MCP_PROTOCOLS.join(", "), 400);
+      return unsupportedProtocolVersion(message.id, headerProtocol);
     }
     const legacyRequested = clean(params.protocolVersion || headerProtocol, 40);
     if (message.method === "initialize") {
