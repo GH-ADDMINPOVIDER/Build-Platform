@@ -20,6 +20,15 @@ Configure these as Worker secrets outside Git, not in wrangler.jsonc, D1, chat, 
 
 Use distinct high-entropy values. Never reuse OGENIC_OPS_KEY, Discord credentials, or provider API keys. The existing DB binding is reused; no new D1 table or memory database is introduced. The connector health probe accepts the existing N8N_SELFHOST_BASE_URL binding as well as N8N_BASE_URL, so the known staging variable-name mismatch no longer suppresses the configured host. A live API probe still requires N8N_API_KEY on the WAVE Worker.
 
+## Manus as the MCP middleman: connect two servers separately
+
+Do not turn WAVE into a proxy for all Cloudflare account operations. Add two custom MCP servers in Manus:
+
+1. **Cloudflare tools:** `https://mcp.cloudflare.com/mcp`. Use the official Cloudflare authorization flow in Manus and grant only the scope required for the task. This is the Cloudflare-owned server, separate from WAVE code; never copy its credential into WAVE, n8n, GitHub, or chat.
+2. **OGENIC WAVE tools:** the approved HTTPS WAVE **staging Worker** URL ending in `/mcp`, authenticated with `WAVE_MANUS_MCP_TOKEN`. Do not use the public custom domain unless the owner explicitly approves that deployment target.
+
+Manus can then use Cloudflare's native MCP tools and WAVE's task-specific Data Stone tools in the same agent session. n8n is the event producer and posts to `/hooks/n8n/data-stone`; it does not need a second control plane or a new memory database. Verify each MCP server's own connection test in Manus; a WAVE status response alone does not prove the separate Cloudflare MCP server is connected.
+
 ## Manus MCP client setup
 
 After the staging Worker has been approved and deployed, configure Manus to connect to the full URL ending in /mcp with bearer authentication using WAVE_MANUS_MCP_TOKEN. The bridge supports the current stateless MCP revision 2026-07-28 discovery/protocol headers and retains a legacy initialize handshake for older clients. Browser-origin requests are denied unless same-origin or explicitly listed in WAVE_MCP_ALLOWED_ORIGINS. The server advertises:
