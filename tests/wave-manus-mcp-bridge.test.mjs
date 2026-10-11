@@ -88,3 +88,13 @@ test("current stateless MCP revision validates discovery and mirrored protocol/m
   assert.match(bridge, /WAVE_MCP_ALLOWED_ORIGINS/);
 });
 
+
+test("n8n health adapter honors the actual staging binding and reports a live probe instead of config guesses", () => {
+  const runtime = read("worker/connector-runtime.ts");
+  const bridge = read("worker/wave-manus-mcp-api.ts");
+  assert.match(runtime, /N8N_SELFHOST_BASE_URL\?: string/);
+  assert.match(runtime, /safeBaseUrl\(env\.N8N_BASE_URL \|\| env\.N8N_SELFHOST_BASE_URL\)/);
+  assert.match(bridge, /const n8n = await inspectN8n\(env\)/);
+  assert.match(bridge, /n8n_live_probe/);
+  assert.match(bridge, /N8N_BASE_URL \|\| env\.N8N_SELFHOST_BASE_URL/);
+});
