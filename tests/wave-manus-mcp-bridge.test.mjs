@@ -98,3 +98,11 @@ test("n8n health adapter honors the actual staging binding and reports a live pr
   assert.match(bridge, /n8n_live_probe/);
   assert.match(bridge, /N8N_BASE_URL \|\| env\.N8N_SELFHOST_BASE_URL/);
 });
+
+test("MCP reports protocol mismatch separately from an unsupported requested version", () => {
+  const bridge = read("worker/wave-manus-mcp-api.ts");
+  assert.match(bridge, /function unsupportedProtocolVersion/);
+  assert.match(bridge, /code: -32022/);
+  assert.match(bridge, /data: \{ supported: MCP_PROTOCOLS, requested: requested \|\| null \}/);
+  assert.match(bridge, /code: -32020|HeaderMismatch:/);
+});
