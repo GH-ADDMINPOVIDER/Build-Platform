@@ -1,0 +1,52 @@
+name: OGE-125 Web + Cafe Read-only Connector Proof
+
+on:
+  pull_request:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - "worker/web-cafe-connector-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "config/external-resource-placement.json"
+      - "config/external-resource-capabilities.json"
+      - "tests/web-cafe-connector.test.mjs"
+      - "tests/oge-72-resource-placement.test.mjs"
+      - "docs/integrations/CANDY_BAKED_READONLY_CONNECTOR.md"
+      - ".github/workflows/oge-125-web-cafe-connector-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    name: Web/cafe connector contract, typecheck and build
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run focused read-only connector contract tests
+        run: node --test tests/web-cafe-connector.test.mjs tests/oge-72-resource-placement.test.mjs
+
+      - name: Run full tests, typecheck and build
+        run: npm run check
+
+      - name: Confirm staging-only and non-mutating scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "Ogenicchocolate21debug/Build-Platform"
+          git diff --exit-code "origin/phase-vi-provider-incentive-metering...HEAD" -- database/migrations
+          grep -q '"primary_runtime": "cloudflare"' config/external-resource-capabilities.json
+          grep -q 'hasOwnerOrOpsAccess' worker/web-cafe-connector-api.ts
+          grep -q 'method: "GET"' worker/web-cafe-connector-api.ts
+          echo "OGE125_READ_ONLY_STAGING_NO_DEPLOY_PASS"
