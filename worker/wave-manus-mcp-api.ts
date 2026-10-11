@@ -1,5 +1,5 @@
 import { hasOwnerOrOpsAccess } from "./app-auth";
-import type { ConnectorBindings } from "./connector-runtime";
+import { inspectN8n, type ConnectorBindings } from "./connector-runtime";
 
 type BridgeBindings = ConnectorBindings & {
   WAVE_MANUS_MCP_TOKEN?: string;
@@ -492,6 +492,7 @@ async function callTool(env: BridgeBindings, nameInput: unknown, argsInput: unkn
     ? argsInput as Record<string, unknown> : {};
   if (name === "wave_bridge_status") {
     await cleanupExpired(env);
+    const n8n = await inspectN8n(env);
     const result = {
       ok: true,
       service: "WAVE_REMOTE_MCP",
@@ -499,11 +500,17 @@ async function callTool(env: BridgeBindings, nameInput: unknown, argsInput: unkn
       git_sha: clean(env.OGENIC_GIT_SHA, 80) || "sha binding unavailable",
       mcp_token_configured: Boolean(clean(env.WAVE_MANUS_MCP_TOKEN, 4000)),
       n8n_hook_token_configured: Boolean(clean(env.WAVE_N8N_HOOK_TOKEN, 4000)),
-      n8n_api_configured: Boolean(clean(env.N8N_BASE_URL, 500) && clean(env.N8N_API_KEY, 4000)),
+      n8n_api_configured: Boolean(clean(env.N8N_BASE_URL || env.N8N_SELFHOST_BASE_URL, 500) && clean(env.N8N_API_KEY, 4000)),
+      n8n_live_probe: {
+        state: n8n.state,
+        route_mode: n8n.route_mode,
+        summary: n8n.summary,
+        last_error: n8n.last_error ?? null,
+        checked_at: n8n.checked_at,
+      },
       d1_available: Boolean(env.DB),
       data_stone_ttl_seconds: 300,
       media_storage: "existing D1 chat_attachments only; up to 4 MB; no new database or migration",
-      live_n8n_reachability: "NOT_VERIFIED_BY_THIS_TOOL",
     };
     return toolResult(result);
   }
@@ -693,7 +700,7 @@ export function createWaveManusMcpApi() {
           n8n_ingress_endpoint: "/hooks/n8n/data-stone",
           mcp_token_configured: Boolean(clean(env.WAVE_MANUS_MCP_TOKEN, 4000)),
           n8n_hook_token_configured: Boolean(clean(env.WAVE_N8N_HOOK_TOKEN, 4000)),
-          n8n_api_configured: Boolean(clean(env.N8N_BASE_URL, 500) && clean(env.N8N_API_KEY, 4000)),
+          n8n_api_configured: Boolean(clean(env.N8N_BASE_URL || env.N8N_SELFHOST_BASE_URL, 500) && clean(env.N8N_API_KEY, 4000)),
           d1_available: Boolean(env.DB),
           data_stone_ttl_seconds: 300,
           media_storage: "reference-only unless n8n sends allowed data_url <= 4 MB",
