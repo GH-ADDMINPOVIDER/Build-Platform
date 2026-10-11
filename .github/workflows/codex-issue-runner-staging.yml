@@ -55,12 +55,19 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          # Pass the existing repository secret to Codex; do not create, print, or persist a new key.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ISSUE_NUMBER: ${{ steps.task.outputs.number }}
           TASK_BRANCH: ${{ steps.task.outputs.branch }}
           REPOSITORY: ${{ github.repository }}
           SOURCE_BRANCH: phase-vi-provider-incentive-metering
         run: |
           set -euo pipefail
+          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+            printf '%s\\n' 'Codex auth preflight failed: repository secret OPENAI_API_KEY is not configured for this staging workflow.' > "$RUNNER_TEMP/codex-summary.txt"
+            echo "exit_code=86" >> "$GITHUB_OUTPUT"
+            exit 86
+          fi
           python3 - <<'PY'
           import json, os
           issue = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "codex-issue.json"), encoding="utf-8"))
