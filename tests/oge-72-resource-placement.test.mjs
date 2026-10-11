@@ -49,7 +49,7 @@ test("OGE-72 provider registry matches placement roles", () => {
 });
 
 
-test("OGE-125 registers Candy Baked as read-only without promoting Vercel or replacing canonical Drive/Docs", () => {
+test("OGE-124 registers Candy Baked as read-only without promoting Vercel or replacing canonical Drive/Docs", () => {
   const resource = placement.resources.find((item) => item.id === "candybaked_web");
   const capability = JSON.parse(readFileSync("config/external-resource-capabilities.json", "utf8")).resources.candybaked_web;
   assert.ok(resource);
