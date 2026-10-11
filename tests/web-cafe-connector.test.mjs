@@ -22,7 +22,7 @@ test("the source map is fixed to the known Candy/OGENIC sites and approved publi
   assert.match(api, /https:\/\/ogenicchocolate\.com\//);
   assert.match(api, /Ogenicchocolate21debug\/ogenic-chocolate\/main\/README_DEPLOY_TH\.txt/);
   assert.match(api, /Ogenicchocolate21debug\/ogenic-chocolate\/main\/README_MOBILE_TH\.txt/);
-  assert.match(api, /sourceId in SOURCES/);
+  assert.match(api, /Object\.hasOwn\(SOURCES, sourceId\)/);
   assert.match(api, /SOURCE_NOT_ALLOWED/);
   assert.doesNotMatch(api, /c\.req\.query\("url"\)|c\.req\.param\("url"\)/);
   assert.doesNotMatch(api, /OGENIC_DELIVERY_APP_SECRET_MAP/);
