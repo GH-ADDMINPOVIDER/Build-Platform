@@ -334,6 +334,83 @@ async function addIntakeItem(env: BridgeBindings, input: IntakeInput, transport:
   }
 }
 
+export async function ingestWaveChatTurn(
+  env: BridgeBindings,
+  input: { prompt: string; attachment_ids: string[]; idempotency_key: string; source_surface?: string },
+) {
+  if (!env.DB) return { ok: false, accepted: 0, failure_codes: ["D1_UNAVAILABLE"] as string[] };
+  const sourceSurface = clean(input.source_surface, 60) || "ogenic-web";
+  const eventPrefix = (await sha256(clean(input.idempotency_key, 180) || (sourceSurface + ":" + input.prompt))).slice(0, 32);
+  const failureCodes: string[] = [];
+  let accepted = 0;
+
+  const attachmentIds = [...new Set(input.attachment_ids
+    .map((value) => clean(value, 256))
+    .filter((value) => /^att_[A-Za-z0-9_-]{8,180}$/.test(value)))].slice(0, 4);
+
+  for (const attachmentId of attachmentIds) {
+    try {
+      const row = await env.DB.prepare(
+        "SELECT id, filename, mime_type, size_bytes FROM chat_attachments WHERE id = ? AND conversation_id = ?",
+      ).bind(attachmentId, "owner-main").first<{ id: string; filename: string; mime_type: string; size_bytes: number }>();
+      if (!row) {
+        failureCodes.push("ATTACHMENT_NOT_FOUND_OR_EXPIRED");
+        continue;
+      }
+      const kind: IntakeKind = row.mime_type.startsWith("image/") ? "image" : "file";
+      const result = await addIntakeItem(env, {
+        event_id: eventPrefix + ":att:" + attachmentId,
+        source: "wave",
+        kind,
+        title: row.filename || (kind === "image" ? "WAVE Chat image" : "WAVE Chat file"),
+        note: "Captured automatically from WAVE Chat.",
+        attachment_ref: attachmentId,
+        mime_type: row.mime_type,
+      }, "mcp");
+      if (result.ok) accepted += 1;
+      else failureCodes.push("code" in result ? String(result.code) : "INTAKE_FAILED");
+    } catch {
+      failureCodes.push("ATTACHMENT_INTAKE_FAILED");
+    }
+  }
+
+  const links = [...new Set(
+    (input.prompt.match(/https:\/\/[^\s<>"']+/gi) ?? [])
+      .map((value) => value.replace(/[),.;!?]+$/g, ""))
+      .filter(Boolean),
+  )].slice(0, 8);
+
+  for (let index = 0; index < links.length; index += 1) {
+    try {
+      const url = links[index];
+      let title = "WAVE Chat link";
+      try { title = new URL(url).hostname.slice(0, 160) || title; } catch { /* normalizeIntake returns a safe error */ }
+      const urlHash = (await sha256(url)).slice(0, 12);
+      const result = await addIntakeItem(env, {
+        event_id: eventPrefix + ":url:" + index + ":" + urlHash,
+        source: "wave",
+        kind: "url",
+        title,
+        note: "Captured automatically from WAVE Chat.",
+        url,
+      }, "mcp");
+      if (result.ok) accepted += 1;
+      else failureCodes.push("code" in result ? String(result.code) : "INTAKE_FAILED");
+    } catch {
+      failureCodes.push("URL_INTAKE_FAILED");
+    }
+  }
+
+  const failures = [...new Set(failureCodes)].slice(0, 20);
+  return {
+    ok: failures.length === 0,
+    source_surface: sourceSurface,
+    accepted,
+    failure_codes: failures,
+    data_stone_ttl_seconds: 300,
+  };
+}
+
 async function listIntake(env: BridgeBindings, limitInput: unknown) {
   if (!env.DB) return { ok: false, code: "CONFIGURATION_REQUIRED", missing: "existing D1 DB binding" };
   const now = Date.now();
