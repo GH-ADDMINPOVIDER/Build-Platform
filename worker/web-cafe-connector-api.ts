@@ -149,25 +149,52 @@ function allowedRedirectTarget(originalUrl: string, finalUrl: string) {
 async function requestSource(url: string, accept: string) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  let currentUrl = url;
   try {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { Accept: accept, "User-Agent": "OGENIC-WAVE-WebCafe-ReadOnly-Connector/1.0" },
-      redirect: "follow",
-      cache: "no-store",
-      signal: controller.signal,
-    });
-    if (!allowedRedirectTarget(url, response.url || url)) {
-      if (response.body) await response.body.cancel().catch(() => undefined);
-      throw new Error("SOURCE_REDIRECT_BLOCKED");
+    // Redirects are handled one hop at a time: validate each destination before
+    // making the next request so a fixed public source cannot bounce us to an
+    // unapproved hostname or internal IP.
+    for (let hop = 0; hop <= 5; hop += 1) {
+      const response = await fetch(currentUrl, {
+        method: "GET",
+        headers: { Accept: accept, "User-Agent": "OGENIC-WAVE-WebCafe-ReadOnly-Connector/1.0" },
+        redirect: "manual",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
+      const isRedirect = [301, 302, 303, 307, 308].includes(response.status);
+      if (isRedirect) {
+        const location = response.headers.get("location");
+        if (response.body) await response.body.cancel().catch(() => undefined);
+        if (!location) throw new Error("SOURCE_REDIRECT_LOCATION_MISSING");
+        if (hop >= 5) throw new Error("SOURCE_REDIRECT_LIMIT_EXCEEDED");
+
+        let nextUrl: URL;
+        try {
+          nextUrl = new URL(location, currentUrl);
+        } catch {
+          throw new Error("SOURCE_REDIRECT_LOCATION_INVALID");
+        }
+        if (!allowedRedirectTarget(url, nextUrl.toString())) {
+          throw new Error("SOURCE_REDIRECT_BLOCKED");
+        }
+        currentUrl = nextUrl.toString();
+        continue;
+      }
+
+      const finalUrl = scrubUrl(currentUrl);
+      if (!finalUrl || !allowedRedirectTarget(url, finalUrl)) {
+        if (response.body) await response.body.cancel().catch(() => undefined);
+        throw new Error("SOURCE_REDIRECT_BLOCKED");
+      }
+      return { response, finalUrl };
     }
-    const safeUrlValue = scrubUrl(response.url) ?? url;
-    return { response, finalUrl: safeUrlValue };
+    throw new Error("SOURCE_REDIRECT_LIMIT_EXCEEDED");
   } finally {
     clearTimeout(timer);
   }
 }
-
 async function probeSource(source: (typeof SOURCES)[SourceId]) {
   try {
     const { response, finalUrl } = await requestSource(source.url, source.kind === "html" ? "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1" : "text/plain,*/*;q=0.1");
