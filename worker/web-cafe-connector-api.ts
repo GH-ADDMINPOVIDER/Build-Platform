@@ -57,8 +57,8 @@ function scrubUrl(raw: string) {
 function sourceUrls(html: string, base: string, tag: "href" | "src", max: number) {
   const values = new Set<string>();
   const escaped = tag === "href" ? "href" : "src";
-  const regex = new RegExp("<(?:a|area)[^>]*" + escaped + "=[\\"']([^\\"']+)[\\"']", "gi");
-  const srcRegex = new RegExp("<(?:img|source|video|link)[^>]*" + escaped + "=[\\"']([^\\"']+)[\\"']", "gi");
+  const regex = new RegExp(String.raw`<(?:a|area)[^>]*${escaped}=["']([^"']+)["']`, "gi");
+  const srcRegex = new RegExp(String.raw`<(?:img|source|video|link)[^>]*${escaped}=["']([^"']+)["']`, "gi");
   const pattern = tag === "href" ? regex : srcRegex;
   for (const match of html.matchAll(pattern)) {
     const raw = match[1]?.trim() ?? "";
