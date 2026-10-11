@@ -39,8 +39,11 @@ test("ATHENA reuses exactly the OGE-32 verified private tool registry and never 
 
 test("ATHENA has bounded tool rounds, canonical 1LSS context, and fail-closed execution authority", async () => {
   const api = await read("worker/athena-chat-api.ts");
-  assert.match(api, /for \(let round = 0; round < 4/);
+  assert.match(api, /for \(let round = 0; round < 5/);
   assert.match(api, /type: "function_call_output"/);
+  assert.match(api, /tools: round < 4 \? verifiedFunctionTools : \[\]/);
+  assert.match(api, /tool_choice: round < 4 \? "auto" : "none"/);
+  assert.match(api, /if \(round === 4\) \{[\s\S]*?loopExhausted = true;[\s\S]*?break;/);
   assert.match(api, /CONVERSATION_ID = "owner-main"/);
   assert.match(api, /SESSION_LINE = "1LSS_OWNER_MAIN"/);
   assert.match(api, /ATHENA_ACTOR_ID = "athena-command"/);
