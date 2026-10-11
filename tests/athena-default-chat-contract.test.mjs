@@ -29,7 +29,7 @@ test("ATHENA reuses exactly the OGE-32 verified private tool registry and never 
   const verified = await read("worker/verified-function-tools.ts");
   assert.match(api, /verifiedFunctionTools/);
   assert.match(api, /executeVerifiedTool/);
-  assert.match(api, /tools: verifiedFunctionTools/);
+  assert.match(api, /tools: round < 4 \? verifiedFunctionTools : \[\]/);
   assert.match(api, /exact_private_tool_count: verifiedFunctionTools\.length/);
   assert.equal((verified.match(/type: "function", name:/g) ?? []).length, 7);
   assert.doesNotMatch(api, /type: "web_search"/);
