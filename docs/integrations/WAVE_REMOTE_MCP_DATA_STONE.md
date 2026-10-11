@@ -16,12 +16,13 @@ Configure these as Worker secrets outside Git, not in wrangler.jsonc, D1, chat, 
 
 - WAVE_MANUS_MCP_TOKEN: bearer token for the Manus MCP client.
 - WAVE_N8N_HOOK_TOKEN: separate bearer token for the n8n push hook.
+- WAVE_MCP_ALLOWED_ORIGINS: optional comma-separated origins for browser clients; server-to-server Manus calls should normally omit Origin. The endpoint also allows its own origin.
 
 Use distinct high-entropy values. Never reuse OGENIC_OPS_KEY, Discord credentials, or provider API keys. The existing DB binding is reused; no new D1 table or memory database is introduced.
 
 ## Manus MCP client setup
 
-After the staging Worker has been approved and deployed, configure Manus to connect to the full URL ending in /mcp with bearer authentication using WAVE_MANUS_MCP_TOKEN. The server advertises:
+After the staging Worker has been approved and deployed, configure Manus to connect to the full URL ending in /mcp with bearer authentication using WAVE_MANUS_MCP_TOKEN. The bridge supports the current stateless MCP revision 2026-07-28 discovery/protocol headers and retains a legacy initialize handshake for older clients. Browser-origin requests are denied unless same-origin or explicitly listed in WAVE_MCP_ALLOWED_ORIGINS. The server advertises:
 
 - wave_bridge_status
 - wave_intake_add
