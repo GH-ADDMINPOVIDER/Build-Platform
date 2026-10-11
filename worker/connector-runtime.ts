@@ -15,6 +15,7 @@ export type ConnectorBindings = {
   LINEAR_API_KEY?: string;
   N8N_API_KEY?: string;
   N8N_BASE_URL?: string;
+  N8N_SELFHOST_BASE_URL?: string;
   LINE_CHANNEL_ACCESS_TOKEN?: string;
   LINE_SECRET_CHANNEL?: string;
   LINE_ID_USE?: string;
@@ -139,11 +140,11 @@ async function fetchJson(url: string, init: RequestInit = {}, timeoutMs = 7000) 
 }
 
 export async function inspectN8n(env: ConnectorBindings): Promise<ConnectorStatus> {
-  const base = safeBaseUrl(env.N8N_BASE_URL);
+  const base = safeBaseUrl(env.N8N_BASE_URL || env.N8N_SELFHOST_BASE_URL);
   const key = clean(env.N8N_API_KEY, 4000);
   if (!base || !key) return {
     id: "n8n", label: "n8n", kind: "automation", state: "CONFIGURATION_REQUIRED", route_mode: "DISABLED",
-    summary: !base ? "Missing N8N_BASE_URL" : "Missing N8N_API_KEY", checked_at: nowIso(),
+    summary: !base ? "Missing N8N_BASE_URL/N8N_SELFHOST_BASE_URL" : "Missing N8N_API_KEY", checked_at: nowIso(),
   };
   const headers = { Accept: "application/json", "X-N8N-API-KEY": key };
   try {
