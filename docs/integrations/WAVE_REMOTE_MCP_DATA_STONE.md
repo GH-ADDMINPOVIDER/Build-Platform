@@ -1,0 +1,56 @@
+# WAVE Remote MCP + n8n Data Stone bridge (staging)
+
+This is a staging-only code contract for connecting Manus as an MCP client to WAVE and letting n8n push URL/image/file intake records into ATHENA / White Diamond.
+
+## Endpoints after an approved staging deploy
+
+- POST /mcp — MCP Streamable HTTP JSON-RPC endpoint for Manus.
+- POST /hooks/n8n/data-stone — bearer-authenticated ingress for n8n normalized intake events.
+- GET /api/wave-bridge/status — owner/ops-only readiness report. It exposes booleans/status only, never secrets.
+
+The public base URL must be the authorized WAVE staging Worker origin. Do not point Manus at the production/custom domain unless a staging deployment explicitly authorizes that target.
+
+## Required server-side bindings
+
+Configure these as Worker secrets outside Git, not in wrangler.jsonc, D1, chat, issues, logs, or this file:
+
+- WAVE_MANUS_MCP_TOKEN: bearer token for the Manus MCP client.
+- WAVE_N8N_HOOK_TOKEN: separate bearer token for the n8n push hook.
+
+Use distinct high-entropy values. Never reuse OGENIC_OPS_KEY, Discord credentials, or provider API keys. The existing DB binding is reused; no new D1 table or memory database is introduced.
+
+## Manus MCP client setup
+
+After the staging Worker has been approved and deployed, configure Manus to connect to the full URL ending in /mcp with bearer authentication using WAVE_MANUS_MCP_TOKEN. The server advertises:
+
+- wave_bridge_status
+- wave_intake_add
+- wave_intake_list
+- wave_intake_read
+- wave_intake_ack
+
+wave_intake_read returns actual MCP image/file content only when bytes were stored in an existing WAVE attachment row. URL-only entries return MEDIA_BYTES_NOT_STORED; the tool never equates a URL or filename with a successful image read.
+
+## n8n workflow contract
+
+The existing n8n workflow can POST a normalized JSON item to /hooks/n8n/data-stone with:
+
+- Authorization: Bearer <WAVE_N8N_HOOK_TOKEN>
+- Idempotency-Key: <stable-source-event-id> (recommended)
+- Content-Type: application/json
+
+Payload fields: source (wave, discord, n8n, or manus), kind (url, image, or file), optional title, note, url, attachment_ref, mime_type, and optional data_url (data:<mime>;base64,...). For actual image bytes, n8n must transfer the binary as data_url or send an existing WAVE att_... reference. The Worker does not fetch remote URLs, to avoid SSRF and signed-link leakage.
+
+## Temporary storage and limits
+
+- Metadata uses the existing connector_events and connector_hook_dedup tables.
+- Actual base64 media, if sent, uses the existing chat_attachments table with canonical conversation owner-main.
+- Per-item TTL is five minutes. Expired items are excluded immediately and byte rows owned by Data Stone are physically removed on the next bridge cleanup pass.
+- Maximum incoming media is 4 MB. Larger files report a storage/size error; no R2 availability is inferred.
+- URL-only or existing-attachment-reference intake does not claim the bytes were fetched or read. Existing WAVE attachments are not deleted early by Data Stone because their lifecycle is owned by the original upload path.
+
+## Verification gates
+
+Automated tests should prove Worker routing (including run_worker_first for /mcp), separate bearer gates, MCP initialize/tools/call, idempotency, signed URL rejection, actual image-byte read and integrity check, five-minute expiry/cleanup, and fail-closed size/mime checks.
+
+Live integration is NOT complete until the tokens are provisioned server-side, the n8n workflow is configured to call the ingress, the Manus MCP connection is added, and a staging execution shows one image's bytes returned by wave_intake_read. Do not deploy, activate n8n, change production, change D1 schema, or touch Candy as part of this PR.
