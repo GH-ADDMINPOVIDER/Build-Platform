@@ -83,7 +83,7 @@ test("current stateless MCP revision validates discovery and mirrored protocol/m
   assert.match(bridge, /io\.modelcontextprotocol\/protocolVersion/);
   assert.match(bridge, /Mcp-Method/);
   assert.match(bridge, /Mcp-Name/);
-  assert.match(bridge, /resultType: "complete"/);
+  assert.match(bridge, /resultType: existing\.resultType \|\| "complete"/);
   assert.match(bridge, /originAllowed\(request, env\)/);
   assert.match(bridge, /WAVE_MCP_ALLOWED_ORIGINS/);
 });
