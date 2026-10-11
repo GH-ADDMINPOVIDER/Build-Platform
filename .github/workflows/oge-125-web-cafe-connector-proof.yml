@@ -1,4 +1,4 @@
-name: OGE-125 Web + Cafe Read-only Connector Proof
+name: OGE-124 Web + Cafe Read-only Connector Proof
 
 on:
   pull_request:
