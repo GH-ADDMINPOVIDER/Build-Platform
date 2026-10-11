@@ -115,3 +115,17 @@ test("Manus connects Cloudflare MCP and WAVE MCP as separate servers; n8n remain
   assert.match(docs, /WAVE_N8N_HOOK_TOKEN/);
   assert.match(docs, /does not need a second control plane or a new memory database/);
 });
+
+test("WAVE Chat auto-intakes pasted links and uploaded attachment IDs before AI dispatch", () => {
+  const entry = read("worker/entry-connectors.ts");
+  const bridge = read("worker/wave-manus-mcp-api.ts");
+  assert.match(entry, /import \{ ingestWaveChatTurn \} from "\.\/wave-manus-mcp-api"/);
+  assert.match(entry, /await ingestWaveChatTurn\(env,/);
+  assert.match(entry, /WAVE_DATA_STONE_AUTO_INTAKE_FAILED/);
+  assert.match(entry, /appendOneLine\(env, "user"[\s\S]{0,500}await ingestWaveChatTurn/);
+  assert.match(bridge, /export async function ingestWaveChatTurn/);
+  assert.match(bridge, /eventPrefix \+ ":att:" \+ attachmentId/);
+  assert.match(bridge, /eventPrefix \+ ":url:" \+ index/);
+  assert.match(bridge, /Captured automatically from WAVE Chat/);
+  assert.match(bridge, /source: "wave"/);
+});
