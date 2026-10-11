@@ -75,3 +75,16 @@ test("URL intake is HTTPS-only and rejects credential-bearing or signed media UR
   assert.match(bridge, /INVALID_BASE64/);
   assert.match(bridge, /UNSUPPORTED_MEDIA_TYPE/);
 });
+
+test("current stateless MCP revision validates discovery and mirrored protocol/method/name headers", () => {
+  const bridge = read("worker/wave-manus-mcp-api.ts");
+  assert.match(bridge, /MODERN_MCP = "2026-07-28"/);
+  assert.match(bridge, /message\.method === "server\/discover"/);
+  assert.match(bridge, /io\.modelcontextprotocol\/protocolVersion/);
+  assert.match(bridge, /Mcp-Method/);
+  assert.match(bridge, /Mcp-Name/);
+  assert.match(bridge, /resultType: "complete"/);
+  assert.match(bridge, /originAllowed\(request, env\)/);
+  assert.match(bridge, /WAVE_MCP_ALLOWED_ORIGINS/);
+});
+
