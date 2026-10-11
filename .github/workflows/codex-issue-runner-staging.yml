@@ -88,7 +88,7 @@ jobs:
           open(os.path.join(os.environ["RUNNER_TEMP"], "codex-task.md"), "w", encoding="utf-8").write(prompt)
           PY
           set +e
-          codex exec --sandbox workspace-write --ask-for-approval never - < "$RUNNER_TEMP/codex-task.md" 2>&1 | tee "$RUNNER_TEMP/codex-output.log"
+          codex exec --sandbox workspace-write - < "$RUNNER_TEMP/codex-task.md" 2>&1 | tee "$RUNNER_TEMP/codex-output.log"
           rc=${PIPESTATUS[0]}
           set -e
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
