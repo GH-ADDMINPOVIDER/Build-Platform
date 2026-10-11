@@ -28,7 +28,8 @@
       "/api/*",
       "/workflows/*",
       "/runs/*",
-      "/hooks/*"
+      "/hooks/*",
+      "/mcp"
     ]
   },
   "vars": {
