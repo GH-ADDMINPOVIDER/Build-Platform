@@ -583,20 +583,9 @@ async function handleMcp(request: Request, env: BridgeBindings) {
   const methodHeader = clean(request.headers.get("Mcp-Method"), 100);
   const nameHeader = clean(request.headers.get("Mcp-Name"), 500);
 
-  // Current stateless MCP clients probe this RPC before issuing tools/list.
-  if (message.method === "server/discover") {
-    if (methodHeader && methodHeader !== message.method) return mcpHeaderMismatch(message.id, "Mcp-Method does not match body method");
-    return jsonRpc(message.id, {
-      supportedVersions: MCP_PROTOCOLS,
-      capabilities: { tools: { listChanged: false } },
-      instructions: "WAVE is the authenticated tool gateway for ATHENA / White Diamond. Use wave_intake_add for temporary links/images, wave_intake_read to confirm actual media bytes, and wave_intake_ack after processing. Temporary Data Stone records and owned media expire after five minutes. Yellow Stone remains the only side-effect authority.",
-      ttlMs: 30000,
-      cacheScope: "private",
-    }, MODERN_MCP);
-  }
-
   let protocolVersion = "2025-03-26";
-  const isModern = headerProtocol === MODERN_MCP || bodyProtocol === MODERN_MCP;
+  const isModern = headerProtocol === MODERN_MCP || bodyProtocol === MODERN_MCP ||
+    Boolean(methodHeader || bodyProtocol);
   if (isModern) {
     if (headerProtocol !== MODERN_MCP || bodyProtocol !== MODERN_MCP) {
       return mcpHeaderMismatch(message.id, "MCP-Protocol-Version must match _meta.io.modelcontextprotocol/protocolVersion");
@@ -607,6 +596,15 @@ async function handleMcp(request: Request, env: BridgeBindings) {
       if (!toolName || nameHeader !== toolName) return mcpHeaderMismatch(message.id, "Mcp-Name does not match params.name");
     }
     protocolVersion = MODERN_MCP;
+    if (message.method === "server/discover") {
+      return jsonRpc(message.id, {
+        supportedVersions: MCP_PROTOCOLS,
+        capabilities: { tools: { listChanged: false } },
+        instructions: "WAVE is the authenticated tool gateway for ATHENA / White Diamond. Use wave_intake_add for temporary links/images, wave_intake_read to confirm actual media bytes, and wave_intake_ack after processing. Temporary Data Stone records and owned media expire after five minutes. Yellow Stone remains the only side-effect authority.",
+        ttlMs: 30000,
+        cacheScope: "private",
+      }, MODERN_MCP);
+    }
   } else {
     if (headerProtocol && !MCP_PROTOCOLS.includes(headerProtocol)) {
       return jsonRpcError(message.id, -32022, "Unsupported protocol version; supported: " + MCP_PROTOCOLS.join(", "), 400);
