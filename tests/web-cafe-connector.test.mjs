@@ -8,7 +8,7 @@ const entry = read("worker/entry-yellow-stone.ts");
 const placement = JSON.parse(read("config/external-resource-placement.json"));
 const capabilities = JSON.parse(read("config/external-resource-capabilities.json"));
 
-test("OGE-125 mounts the owner-gated connector in the existing WAVE staging Worker", () => {
+test("OGE-124 mounts the owner-gated connector in the existing WAVE staging Worker", () => {
   assert.match(entry, /createWebCafeConnectorApi/);
   assert.match(entry, /pathname\.startsWith\("\/api\/web-cafe\/"\)/);
   assert.match(api, /api\.use\("\/api\/web-cafe\/\*"/);
