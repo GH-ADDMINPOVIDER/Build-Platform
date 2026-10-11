@@ -15,6 +15,9 @@ test("Discord incident alerts are colored, redacted, and scoped to Discord webho
   assert.match(alerts, /allowed_mentions: \{ parse: \[\] \}/);
   assert.match(alerts, /never forwards prompts, request bodies, cookies, or credentials/i);
   assert.match(alerts, /DEDUPE_WINDOW_MS = 5 \* 60 \* 1000/);
+  assert.match(alerts, /function safeRoute/);
+  assert.match(alerts, /function safeCode/);
+  assert.doesNotMatch(alerts, /idempotency-key/);
   assert.match(alerts, /DISCORD_WORKFLOW_WEBHOOK_URL/);
   assert.match(alerts, /DISCORD_RUNTIME_WEBHOOK_URL/);
   assert.match(alerts, /DISCORD_STATUS_WEBHOOK_URL/);
