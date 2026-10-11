@@ -18,7 +18,7 @@ Configure these as Worker secrets outside Git, not in wrangler.jsonc, D1, chat, 
 - WAVE_N8N_HOOK_TOKEN: separate bearer token for the n8n push hook.
 - WAVE_MCP_ALLOWED_ORIGINS: optional comma-separated origins for browser clients; server-to-server Manus calls should normally omit Origin. The endpoint also allows its own origin.
 
-Use distinct high-entropy values. Never reuse OGENIC_OPS_KEY, Discord credentials, or provider API keys. The existing DB binding is reused; no new D1 table or memory database is introduced.
+Use distinct high-entropy values. Never reuse OGENIC_OPS_KEY, Discord credentials, or provider API keys. The existing DB binding is reused; no new D1 table or memory database is introduced. The connector health probe accepts the existing N8N_SELFHOST_BASE_URL binding as well as N8N_BASE_URL, so the known staging variable-name mismatch no longer suppresses the configured host. A live API probe still requires N8N_API_KEY on the WAVE Worker.
 
 ## Manus MCP client setup
 
@@ -46,7 +46,7 @@ Payload fields: source (wave, discord, n8n, or manus), kind (url, image, or file
 
 - Metadata uses the existing connector_events and connector_hook_dedup tables.
 - Actual base64 media, if sent, uses the existing chat_attachments table with canonical conversation owner-main.
-- Per-item TTL is five minutes. Expired items are excluded immediately and byte rows owned by Data Stone are physically removed on the next bridge cleanup pass.
+- Per-item TTL is five minutes. Expired items are excluded immediately; byte rows owned by Data Stone are physically removed on the next bridge cleanup pass. This repo change does not install a background cron, so it does not claim byte deletion at the exact expiry second while the Worker is idle.
 - Maximum incoming media is 4 MB. Larger files report a storage/size error; no R2 availability is inferred.
 - URL-only or existing-attachment-reference intake does not claim the bytes were fetched or read. Existing WAVE attachments are not deleted early by Data Stone because their lifecycle is owned by the original upload path.
 
