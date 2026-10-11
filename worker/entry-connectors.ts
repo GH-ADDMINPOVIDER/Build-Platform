@@ -1,5 +1,6 @@
 import base from "./entry";
 import { hasOwnerSession } from "./app-auth";
+import { observeDiscordResponse, type DiscordAlertBindings } from "./discord-alerts";
 import { createConnectorAppApi, type ConnectorAppBindings } from "./connector-app-api";
 import { createProviderConnectApi } from "./provider-connect-api";
 import { createPublicHookApi, type ConnectorBindings } from "./connector-runtime";
@@ -13,7 +14,7 @@ import { createInlineToolsApi, type InlineToolBindings } from "./inline-tools-ap
 import { createLiveDoorApi, type LiveDoorBindings } from "./live-door-api";
 import { createSessionRecoveryApi, type SessionRecoveryBindings } from "./session-recovery-api";
 
-type Bindings = ConnectorAppBindings & ConnectorBindings & AthenaChatBindings & LiveAssistBindings & BrowserSessionBindings & UnifiedChatBindings & InlineToolBindings & LiveDoorBindings & SessionRecoveryBindings & { MANUS_API_KEY?: string };
+type Bindings = ConnectorAppBindings & ConnectorBindings & AthenaChatBindings & LiveAssistBindings & BrowserSessionBindings & UnifiedChatBindings & InlineToolBindings & LiveDoorBindings & SessionRecoveryBindings & DiscordAlertBindings & { MANUS_API_KEY?: string };
 
 const connectorApi = createConnectorAppApi();
 const providerConnectApi = createProviderConnectApi();
@@ -593,8 +594,7 @@ async function withFreshAgentHandoffEvidence(response: Response) {
   });
 }
 
-export default {
-  async fetch(incomingRequest: Request, env: Bindings, ctx: unknown) {
+async function dispatchIncomingRequest(incomingRequest: Request, env: Bindings, ctx: unknown) {
     let request = incomingRequest;
     const pathname = new URL(request.url).pathname;
     const preparedTurn = await prepareTurnBeforeExecution(request, env, pathname);
@@ -710,6 +710,13 @@ export default {
       return publicHooks.fetch(request, env, ctx as never);
     }
     return base.fetch(request, env as never, ctx);
+}
+
+export default {
+  async fetch(incomingRequest: Request, env: Bindings, ctx: unknown) {
+    const response = await dispatchIncomingRequest(incomingRequest, env, ctx);
+    observeDiscordResponse(env, incomingRequest, response, ctx as { waitUntil?: (promise: Promise<unknown>) => void });
+    return response;
   },
   scheduled(controller: unknown, env: Bindings, ctx: { waitUntil(promise: Promise<unknown>): void }) {
     return base.scheduled(controller, env as never, ctx);
