@@ -12,6 +12,7 @@ import { createUnifiedChatApi, type UnifiedChatBindings } from "./unified-chat-a
 import { createInlineToolsApi, type InlineToolBindings } from "./inline-tools-api";
 import { createLiveDoorApi, type LiveDoorBindings } from "./live-door-api";
 import { createSessionRecoveryApi, type SessionRecoveryBindings } from "./session-recovery-api";
+import { ingestWaveChatTurn } from "./wave-manus-mcp-api";
 
 type Bindings = ConnectorAppBindings & ConnectorBindings & AthenaChatBindings & LiveAssistBindings & BrowserSessionBindings & UnifiedChatBindings & InlineToolBindings & LiveDoorBindings & SessionRecoveryBindings & { MANUS_API_KEY?: string };
 
