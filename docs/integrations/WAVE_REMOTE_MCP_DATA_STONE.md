@@ -43,7 +43,7 @@ No tool writes data, changes a binding, starts a provider session, triggers a wo
 - **Configured/reference present** is not equivalent to authenticated.
 - A registry's declared capability list is not proof of the provider's real scopes/permissions.
 - A D1 `COUNT(*)` returning successfully proves that the query ran and reports a count; it does not prove that the data is semantically correct.
-- `chat_session_refs` are stored provider/session references. They do **not** prove the remote session is currently active or resumable.
+- Values returned from `chat_session_refs` are stored references to provider sessions. They do **not** prove the remote session is currently active or resumable.
 - `LIVE_READ_VERIFIED` means the fixed count queries succeeded, not that the entire OGENIC system passed end-to-end.
 
 ## Connect Claude
