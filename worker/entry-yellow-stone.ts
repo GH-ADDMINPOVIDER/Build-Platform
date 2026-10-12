@@ -7,6 +7,7 @@ import { createCapabilityExecutionApi } from "./capability-execution-api";
 import { createOpenAISelfHostApi } from "./openai-selfhost-api";
 import { createCodexLeftArmApi } from "./codex-left-arm-api";
 import { createMcpConfigApi } from "./mcp-config-api";
+import { handleWaveManusMcp } from "./wave-manus-mcp-api";
 import { createWhiteDiamondApi } from "./white-diamond-api";
 import { createBlueDiamondApi } from "./blue-diamond-api";
 import { createVioletStoneApi } from "./violet-stone-api";
@@ -220,7 +221,10 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
 export default {
   async fetch(request: Request, env: Bindings, ctx: unknown) {
     const pathname = new URL(request.url).pathname;
-    if (pathname.startsWith("/api/discord/")) {
+    if (pathname === "/mcp") {
+      return handleWaveManusMcp(request, env as never);
+    }
+    if (pathname.startsWith("/api/discord/"))
       return discordApi.fetch(request, env as never, ctx as never);
     }
     if (pathname === "/api/capabilities/resolve") {
