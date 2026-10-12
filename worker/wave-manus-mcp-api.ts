@@ -48,6 +48,7 @@ const TOOLS = [
     description: "Run fixed COUNT(*) read-only probes against the existing canonical D1 tables. Reports each table as READ_OK, EMPTY, QUERY_ERROR, or D1_UNBOUND. Does not read message bodies or modify schema/data.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    securitySchemes: [{ type: "oauth2", scopes: ["ogenic:read"] }],
   },
   {
     name: "oge_athena_permissions",
@@ -55,6 +56,7 @@ const TOOLS = [
     description: "List Blue Diamond actor identities, declared capabilities, runtime configuration states, credential-reference presence, and the canonical Yellow Stone execution-authority boundary. Declared capability is not proof of provider-side authorization.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    securitySchemes: [{ type: "oauth2", scopes: ["ogenic:read"] }],
   },
   {
     name: "oge_1lss_sessions",
@@ -66,6 +68,7 @@ const TOOLS = [
       additionalProperties: false,
     },
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    securitySchemes: [{ type: "oauth2", scopes: ["ogenic:read","ogenic:sessions:read"] }],
   },
   {
     name: "oge_integration_bindings",
@@ -73,6 +76,7 @@ const TOOLS = [
     description: "List sanitized staging provider_bindings for MCP, including configured status and whether a server-side credential reference exists. Never returns the reference value, token, or full endpoint URL.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    securitySchemes: [{ type: "oauth2", scopes: ["ogenic:read"] }],
   },
 ];
 
