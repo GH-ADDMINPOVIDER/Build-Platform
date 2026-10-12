@@ -8,6 +8,7 @@ import { createOpenAISelfHostApi } from "./openai-selfhost-api";
 import { createCodexLeftArmApi } from "./codex-left-arm-api";
 import { createMcpConfigApi } from "./mcp-config-api";
 import { handleWaveManusMcp } from "./wave-manus-mcp-api";
+import { handleWaveOAuth, isWaveOAuthPath } from "./wave-mcp-oauth";
 import { createWhiteDiamondApi } from "./white-diamond-api";
 import { createBlueDiamondApi } from "./blue-diamond-api";
 import { createVioletStoneApi } from "./violet-stone-api";
@@ -223,6 +224,9 @@ export default {
     const pathname = new URL(request.url).pathname;
     if (pathname === "/mcp") {
       return handleWaveManusMcp(request, env as never);
+    }
+    if (isWaveOAuthPath(pathname)) {
+      return handleWaveOAuth(request, env as never);
     }
     if (pathname.startsWith("/api/discord/")) {
       return discordApi.fetch(request, env as never, ctx as never);
