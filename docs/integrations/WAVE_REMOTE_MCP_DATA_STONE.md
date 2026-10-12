@@ -43,7 +43,7 @@ No provider token, ChatGPT account token, Claude credential, browser cookie, or 
 
 Migration `0016_oge_athena_oauth.sql` adds only OAuth state for registered public clients, short-lived authorization-code hashes, and hashed access/refresh tokens, including expiry and revocation markers. It does not create a second memory database or replace `owner-main`.
 
-The migration is present in this feature branch for review only. It has **not** been applied to Cloudflare D1 and must not be auto-applied by a package build or deploy. A staging migration run is a separate explicit owner-approved step.
+The migration is present in this feature branch for review only. It has not been applied to Cloudflare D1 and must not be auto-applied by a package build or deploy. A staging migration run is a separate explicit owner-approved step.
 
 ## Connect to ChatGPT
 
