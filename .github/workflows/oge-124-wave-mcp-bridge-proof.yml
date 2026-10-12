@@ -2,13 +2,21 @@ name: OGE-124 WAVE Remote MCP Bridge Proof
 
 on:
   pull_request:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [phase-vi-provider-incentive-metering, feature/oge-athena-mcp-plugin]
     paths:
       - "worker/wave-manus-mcp-api.ts"
+      - "worker/wave-mcp-oauth.ts"
+      - "worker/agent-identity.ts"
+      - "worker/agent-relay-tools.ts"
+      - "worker/agent-collision-simulator.ts"
+      - "database/migrations/0016_oge_athena_oauth.sql"
       - "worker/connector-runtime.ts"
       - "wrangler.jsonc"
       - "tests/wave-manus-mcp-bridge.test.mjs"
       - "docs/integrations/WAVE_REMOTE_MCP_DATA_STONE.md"
+      - "docs/integrations/OGENIC_AGENT_RELAY_EXISTING_ARCHITECTURE.md"
+      - "plugins/oge-athena/skills/athena/SKILL.md"
+      - "tests/oge-agent-relay-collision-contract.test.mjs"
       - ".github/workflows/oge-124-wave-mcp-bridge-proof.yml"
   workflow_dispatch:
 
@@ -33,7 +41,7 @@ jobs:
         run: npm install --package-lock-only && npm ci
 
       - name: Run WAVE Remote MCP bridge contracts
-        run: node --test tests/wave-manus-mcp-bridge.test.mjs
+        run: node --test tests/wave-manus-mcp-bridge.test.mjs tests/oge-agent-relay-collision-contract.test.mjs
 
       - name: Run full repository tests, typecheck, and build
         run: npm run check
