@@ -30,12 +30,14 @@ jobs:
           zip -r dist/ogenic-phase-vi.zip \
             .codex-plugin \
             skills/ogenic-phase-vi \
+            plugins/oge-athena \
             assets/toolkit-manifest.json \
             config \
             database \
             worker \
             src \
             index.html package.json tsconfig.json vite.config.ts wrangler.jsonc \
+            docs/integrations/WAVE_REMOTE_MCP_DATA_STONE.md \
             README.md PRIVACY.md TERMS.md \
             -x "**/__pycache__/**" "*.pyc"
 
