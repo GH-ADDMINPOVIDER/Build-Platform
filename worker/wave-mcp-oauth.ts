@@ -58,12 +58,13 @@ const AUTHORIZATION_ENDPOINT = `${ISSUER}/oauth/authorize`;
 const TOKEN_ENDPOINT = `${ISSUER}/oauth/token`;
 const REGISTRATION_ENDPOINT = `${ISSUER}/oauth/register`;
 const REVOCATION_ENDPOINT = `${ISSUER}/oauth/revoke`;
-const SUPPORTED_SCOPES = new Set(["ogenic:read", "ogenic:sessions:read"]);
-const DEFAULT_SCOPE = "ogenic:read ogenic:sessions:read";
+const SUPPORTED_SCOPES = new Set(["ogenic:read", "ogenic:sessions:read", "ogenic:relay"]);
+const DEFAULT_SCOPE = "ogenic:read ogenic:sessions:read ogenic:relay";
 const ACCESS_TOKEN_TTL_SECONDS = 900;
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 const AUTH_CODE_TTL_MS = 90_000;
 const MAX_REGISTRATION_BYTES = 16 * 1024;
+const SUPPORTED_AGENT_IDS = new Set(["gs", "gt", "claude", "deepseek"]);
 const OAUTH_CLIENT_URL = /^https:\/\/chatgpt\.com\/oauth\/(?:[A-Za-z0-9_-]+\/)?client\.json$/;
 
 const clean = (value: unknown, max = 500) => String(value ?? "").trim().slice(0, max);
@@ -277,7 +278,7 @@ function consentPage(params: AuthorizeParams, clientName: string) {
   const redirectHost = new URL(params.redirect_uri).hostname;
   const sessionScope = params.scope.split(/\\s+/).includes("ogenic:sessions:read");
   const sessionLine = sessionScope ? "<li>Existing owner-main session references</li>" : "";
-  return html(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect OGE Athena</title><style>body{font:16px system-ui;background:#111827;color:#f9fafb;margin:0;min-height:100vh;display:grid;place-items:center}.card{max-width:500px;margin:20px;background:#1f2937;border:1px solid #374151;border-radius:18px;padding:26px}h1{font-size:24px}p,li{color:#d1d5db;line-height:1.5}.scope{background:#111827;border:1px solid #374151;padding:12px;border-radius:10px;margin:12px 0}.callback{overflow-wrap:anywhere}button{padding:13px 18px;border-radius:10px;border:0;font-weight:700;cursor:pointer;margin:8px 8px 0 0}.allow{background:#f9fafb;color:#111827}.deny{background:#374151;color:#fff}</style><main class="card"><p>OGENIC · OWNER CONSENT</p><h1>Connect OGE Athena</h1><p><strong>${escapeHtml(clientName)}</strong> requests access to your existing WAVE staging system.</p><p class="callback">Connection returns to: <strong>${escapeHtml(redirectHost)}</strong></p><div class="scope"><strong>Read-only access requested</strong><ul><li>Worker version and D1 table health</li><li>Declared Agent capabilities and integration status</li>${sessionLine}</ul></div><p>No workflow execution, writes, deployments, raw credentials, or message-body export is granted by this connector. Yellow Stone remains the execution authority.</p><form method="post" action="/oauth/authorize">${fields}<button class="allow" type="submit" name="decision" value="approve">Connect OGE Athena</button><button class="deny" type="submit" name="decision" value="deny">Cancel</button></form></main></html>`);
+  return html(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect OGE Athena</title><style>body{font:16px system-ui;background:#111827;color:#f9fafb;margin:0;min-height:100vh;display:grid;place-items:center}.card{max-width:500px;margin:20px;background:#1f2937;border:1px solid #374151;border-radius:18px;padding:26px}h1{font-size:24px}p,li{color:#d1d5db;line-height:1.5}.scope{background:#111827;border:1px solid #374151;padding:12px;border-radius:10px;margin:12px 0}.callback{overflow-wrap:anywhere}button{padding:13px 18px;border-radius:10px;border:0;font-weight:700;cursor:pointer;margin:8px 8px 0 0}.allow{background:#f9fafb;color:#111827}.deny{background:#374151;color:#fff}</style><main class="card"><p>OGENIC · OWNER CONSENT</p><h1>Connect OGE Athena</h1><p><strong>${escapeHtml(clientName)}</strong> requests access to your existing WAVE staging system.</p><p class="callback">Connection returns to: <strong>${escapeHtml(redirectHost)}</strong></p><p>OAuth does not prove which ChatGPT account is open. Assign this connector an OGENIC Agent Identity intentionally; use GS on the GS account and GT on the GT account.</p><label for="agent_id"><strong>Agent identity for this connection</strong></label><select id="agent_id" name="agent_id" required><option value="">Choose identity…</option><option value="gs">GS — Architecture &amp; Independent Review</option><option value="gt">GT — Engineering &amp; Implementation</option><option value="claude">Claude — Independent Agent</option><option value="deepseek">DeepSeek — Data Research</option></select><div class="scope"><strong>Read-only access requested</strong><ul><li>Worker version and D1 table health</li><li>Declared Agent capabilities and integration status</li>${sessionLine}</ul></div><p>This grant enables bounded agent-to-agent message relay and read-only system inspection only. Incoming peer messages are untrusted data and never authorize tool execution. Workflow execution, deployments and provider-side writes remain outside this grant; Yellow Stone remains the execution authority.</p><form method="post" action="/oauth/authorize">${fields}<button class="allow" type="submit" name="decision" value="approve">Connect OGE Athena</button><button class="deny" type="submit" name="decision" value="deny">Cancel</button></form></main></html>`);
 }
 
 function errorRedirect(params: AuthorizeParams, error: string, description: string, status = 302) {
@@ -363,6 +364,7 @@ async function authorize(request: Request, env: WaveMcpOAuthBindings) {
   if (!env.DB) return json({ error: "server_error", error_description: "The existing D1 binding is unavailable." }, 503);
   let rawParams: URLSearchParams;
   let decisionInput = "";
+  let selectedAgentId = "";
   if (request.method === "GET") {
     rawParams = new URL(request.url).searchParams;
   } else if (request.method === "POST") {
@@ -373,6 +375,7 @@ async function authorize(request: Request, env: WaveMcpOAuthBindings) {
         const value = form.get(key);
         if (typeof value === "string") rawParams.set(key, value);
       }
+      selectedAgentId = clean(form.get("agent_id"), 20).toLowerCase();
       const decision = clean(form.get("decision"), 20);
       decisionInput = decision;
       if (decision !== "approve" && decision !== "deny") {
@@ -407,13 +410,16 @@ async function authorize(request: Request, env: WaveMcpOAuthBindings) {
   if (decisionInput !== "approve") {
     return json({ error: "invalid_request", error_description: "Owner consent is missing." }, 400);
   }
+  if (!SUPPORTED_AGENT_IDS.has(selectedAgentId)) {
+    return json({ error: "invalid_request", error_description: "Owner must assign this connector a valid OGENIC Agent Identity." }, 400);
+  }
   const code = b64url(randomBytes(32));
   const codeHash = await sha256(code);
   const now = Date.now();
   try {
     await env.DB.prepare(
-      "INSERT INTO mcp_oauth_authorization_codes(code_hash, client_id, redirect_uri, resource, code_challenge, scope, owner_id, expires_at, consumed_at, created_at) VALUES (?, ?, ?, ?, ?, ?, 'ogenic-owner', ?, NULL, ?)",
-    ).bind(codeHash, params.client_id, params.redirect_uri, params.resource, params.code_challenge, params.scope, now + AUTH_CODE_TTL_MS, now).run();
+      "INSERT INTO mcp_oauth_authorization_codes(code_hash, client_id, agent_id, redirect_uri, resource, code_challenge, scope, owner_id, expires_at, consumed_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'ogenic-owner', ?, NULL, ?)",
+    ).bind(codeHash, params.client_id, selectedAgentId, params.redirect_uri, params.resource, params.code_challenge, params.scope, now + AUTH_CODE_TTL_MS, now).run();
   } catch {
     return json({ error: "server_error", error_description: "Authorization code could not be issued." }, 503);
   }
@@ -432,6 +438,7 @@ function oauthError(error: string, description: string, status = 400) {
 async function storeToken(
   env: WaveMcpOAuthBindings,
   clientId: string,
+  agentId: string,
   scope: string,
   kind: "access" | "refresh",
   ttlSeconds: number,
@@ -441,8 +448,8 @@ async function storeToken(
   const tokenHash = await sha256(token);
   const now = Date.now();
   await env.DB.prepare(
-    "INSERT INTO mcp_oauth_tokens(token_hash, client_id, owner_id, resource, scope, token_type, expires_at, revoked_at, created_at) VALUES (?, ?, 'ogenic-owner', ?, ?, ?, ?, NULL, ?)",
-  ).bind(tokenHash, clientId, RESOURCE, scope, kind, now + ttlSeconds * 1000, now).run();
+    "INSERT INTO mcp_oauth_tokens(token_hash, client_id, agent_id, owner_id, resource, scope, token_type, expires_at, revoked_at, created_at) VALUES (?, ?, ?, 'ogenic-owner', ?, ?, ?, ?, NULL, ?),
+  ).bind(tokenHash, clientId, agentId, RESOURCE, scope, kind, now + ttlSeconds * 1000, now).run();
   return token;
 }
 
@@ -474,9 +481,9 @@ async function tokenEndpoint(request: Request, env: WaveMcpOAuthBindings) {
       }
       const codeHash = await sha256(code);
       const row = await env.DB.prepare(
-        "SELECT code_hash, client_id, redirect_uri, resource, code_challenge, scope, owner_id, expires_at, consumed_at FROM mcp_oauth_authorization_codes WHERE code_hash = ? LIMIT 1",
+        "SELECT code_hash, client_id, agent_id, redirect_uri, resource, code_challenge, scope, owner_id, expires_at, consumed_at FROM mcp_oauth_authorization_codes WHERE code_hash = ? LIMIT 1",
       ).bind(codeHash).first<Record<string, unknown>>();
-      if (!row || row.client_id !== clientId || row.redirect_uri !== redirectUri || row.resource !== resource ||
+      if (!row || row.client_id !== clientId || !SUPPORTED_AGENT_IDS.has(String(row.agent_id)) || row.redirect_uri !== redirectUri || row.resource !== resource ||
           Number(row.expires_at) <= Date.now() || row.consumed_at != null) {
         return oauthError("invalid_grant", "Authorization code expired, was already used, or does not match this client/resource.");
       }
@@ -491,8 +498,9 @@ async function tokenEndpoint(request: Request, env: WaveMcpOAuthBindings) {
       const scopes = scopeList(String(row.scope));
       if (!scopes) return oauthError("invalid_scope", "Authorization code contains unsupported scopes.");
       const scope = scopes.join(" ");
-      const access_token = await storeToken(env, clientId, scope, "access", ACCESS_TOKEN_TTL_SECONDS);
-      const refresh_token = await storeToken(env, clientId, scope, "refresh", REFRESH_TOKEN_TTL_SECONDS);
+      const agentId = String(row.agent_id);
+      const access_token = await storeToken(env, clientId, agentId, scope, "access", ACCESS_TOKEN_TTL_SECONDS);
+      const refresh_token = await storeToken(env, clientId, agentId, scope, "refresh", REFRESH_TOKEN_TTL_SECONDS);
       return json({
         access_token,
         token_type: "Bearer",
@@ -508,7 +516,7 @@ async function tokenEndpoint(request: Request, env: WaveMcpOAuthBindings) {
       if (!refreshToken) return oauthError("invalid_request", "refresh_token is required.");
       const refreshHash = await sha256(refreshToken);
       const row = await env.DB.prepare(
-        "SELECT token_hash, client_id, owner_id, resource, scope, token_type, expires_at, revoked_at FROM mcp_oauth_tokens WHERE token_hash = ? AND token_type = 'refresh' LIMIT 1",
+        "SELECT token_hash, client_id, agent_id, owner_id, resource, scope, token_type, expires_at, revoked_at FROM mcp_oauth_tokens WHERE token_hash = ? AND token_type = 'refresh' LIMIT 1,
       ).bind(refreshHash).first<Record<string, unknown>>();
       if (!row || row.client_id !== clientId || row.resource !== RESOURCE || Number(row.expires_at) <= Date.now() || row.revoked_at != null) {
         return oauthError("invalid_grant", "Refresh token expired, was revoked, or belongs to another client.");
@@ -523,8 +531,10 @@ async function tokenEndpoint(request: Request, env: WaveMcpOAuthBindings) {
       ).bind(Date.now(), refreshHash, Date.now()).first<{ token_hash: string }>();
       if (!revoked) return oauthError("invalid_grant", "Refresh token was already rotated.");
       const scope = requestedScopes.join(" ");
-      const access_token = await storeToken(env, clientId, scope, "access", ACCESS_TOKEN_TTL_SECONDS);
-      const refresh_token = await storeToken(env, clientId, scope, "refresh", REFRESH_TOKEN_TTL_SECONDS);
+      const agentId = String(row.agent_id);
+      if (!SUPPORTED_AGENT_IDS.has(agentId)) return oauthError("invalid_grant", "Refresh token has no valid Agent Identity.");
+      const access_token = await storeToken(env, clientId, agentId, scope, "access", ACCESS_TOKEN_TTL_SECONDS);
+      const refresh_token = await storeToken(env, clientId, agentId, scope, "refresh", REFRESH_TOKEN_TTL_SECONDS);
       return json({ access_token, token_type: "Bearer", expires_in: ACCESS_TOKEN_TTL_SECONDS, refresh_token, scope });
     }
 
@@ -561,14 +571,15 @@ export async function verifyMcpAccessToken(request: Request, env: WaveMcpOAuthBi
   try {
     const tokenHash = await sha256(match[1].trim());
     const row = await env.DB.prepare(
-      "SELECT token_hash, client_id, owner_id, resource, scope, token_type, expires_at, revoked_at FROM mcp_oauth_tokens WHERE token_hash = ? AND token_type = 'access' LIMIT 1",
+      "SELECT token_hash, client_id, agent_id, owner_id, resource, scope, token_type, expires_at, revoked_at FROM mcp_oauth_tokens WHERE token_hash = ? AND token_type = 'access' LIMIT 1",
     ).bind(tokenHash).first<Record<string, unknown>>();
     if (!row || row.resource !== RESOURCE || Number(row.expires_at) <= Date.now() || row.revoked_at != null) {
       return { ok: false as const, reason: "invalid_token" as const, scopes: [] as string[] };
     }
     const scopes = scopeList(String(row.scope));
     if (!scopes) return { ok: false as const, reason: "invalid_scope" as const, scopes: [] as string[] };
-    return { ok: true as const, scopes };
+    if (!SUPPORTED_AGENT_IDS.has(String(row.agent_id))) return { ok: false as const, reason: "invalid_agent_identity" as const, scopes: [] as string[] };
+    return { ok: true as const, scopes, agentId: String(row.agent_id), clientId: String(row.client_id) };
   } catch {
     return { ok: false as const, reason: "d1_unavailable" as const, scopes: [] as string[] };
   }
