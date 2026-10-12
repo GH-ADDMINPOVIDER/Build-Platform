@@ -119,7 +119,7 @@ test("portable plugin declares owner OAuth and contains no credential values", a
   assert.equal(pluginManifest.name, "oge-athena");
   assert.equal(mcpManifest.mcpServers["oge-athena"].type, "streamable-http");
   assert.equal(mcpManifest.mcpServers["oge-athena"].url, "https://wave.ogenicchocolate.com/mcp");
-  assert.equal(mcpManifest.mcpServers["oge-athena"].extensions["com.openai"].auth.type, "oauth2");
+  assert.deepEqual(Object.keys(mcpManifest.mcpServers["oge-athena"]).sort(), ["type", "url"]);
   assert.doesNotMatch(plugin + mcp, /(?:sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{12,}|OGENIC_OPS_KEY\s*[:=])/);
   assert.match(skill, /evidence-first/i);
   assert.ok(skill.includes("YELLOW_STONE_ONLY") || skill.includes("Yellow Stone"));
@@ -130,6 +130,7 @@ test("setup docs distinguish source implementation from actual deployment proof"
   assert.ok(docs.includes("feature branch only"));
   assert.ok(docs.includes("OGENIC WAVE authorization page"));
   assert.ok(docs.includes("OAuth"));
+  assert.ok(docs.includes(".well-known/oauth-protected-resource/mcp"));
   assert.ok(docs.includes("has not been applied"));
   assert.ok(docs.includes("not proof"));
 });
