@@ -29,8 +29,8 @@ type JsonRpc = {
   params?: Record<string, unknown>;
 };
 
-const MCP_VERSION = "2025-06-18";
-const ACCEPTED_VERSIONS = new Set([MCP_VERSION, "2025-03-26", "2024-11-05"]);
+const MCP_VERSION = "2025-11-25";
+const ACCEPTED_VERSIONS = new Set([MCP_VERSION, "2025-06-18", "2025-03-26", "2024-11-05"]);
 const MAX_BODY_BYTES = 64 * 1024;
 const CONVERSATION_ID = "owner-main";
 const SESSION_LINE = "1LSS_OWNER_MAIN";
