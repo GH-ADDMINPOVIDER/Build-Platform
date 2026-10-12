@@ -131,7 +131,7 @@ function allowedRedirectUri(value: unknown): string | null {
     const url = new URL(raw);
     if (url.protocol !== "https:" || url.username || url.password || url.hash) return null;
     if (url.hostname.toLowerCase() === "wave.ogenicchocolate.com") return null;
-    return url.toString();
+    return raw;
   } catch {
     return null;
   }
