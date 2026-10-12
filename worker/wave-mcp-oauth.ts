@@ -370,11 +370,7 @@ async function authorize(request: Request, env: WaveMcpOAuthBindings) {
       }
       const decision = clean(form.get("decision"), 20);
       decisionInput = decision;
-      if (decision === "deny") {
-        const params = readAuthorizeParams(rawParams);
-        return params ? errorRedirect(params, "access_denied", "Owner cancelled the connection.") : json({ error: "invalid_request" }, 400);
-      }
-      if (decision !== "approve") {
+      if (decision !== "approve" && decision !== "deny") {
         return json({ error: "invalid_request", error_description: "A clear owner consent decision is required." }, 400);
       }
     } else {
@@ -393,6 +389,9 @@ async function authorize(request: Request, env: WaveMcpOAuthBindings) {
   }
   if (!client.grant_types.includes("authorization_code") || !client.response_types.includes("code")) {
     return json({ error: "unauthorized_client" }, 400);
+  }
+  if (request.method === "POST" && decisionInput === "deny") {
+    return errorRedirect(params, "access_denied", "Owner cancelled the connection.");
   }
 
   if (!(await hasOwnerSession(request, env))) return loginPage();
