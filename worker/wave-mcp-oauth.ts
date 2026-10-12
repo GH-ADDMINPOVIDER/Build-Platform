@@ -233,7 +233,6 @@ async function resolveClient(env: WaveMcpOAuthBindings, clientId: string): Promi
 function scopeList(scope: string): string[] | null {
   const scopes = [...new Set(scope.split(/\s+/).filter(Boolean))];
   if (!scopes.length || scopes.some((item) => !SUPPORTED_SCOPES.has(item))) return null;
-  if (!scopes.includes("ogenic:read")) return null;
   return scopes.sort();
 }
 
