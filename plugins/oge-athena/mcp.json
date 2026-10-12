@@ -7,8 +7,11 @@
       "extensions": {
         "com.openai": {
           "auth": {
-            "type": "api_key",
-            "headerScheme": "bearer"
+            "type": "oauth2",
+            "scopes": [
+              "ogenic:read",
+              "ogenic:sessions:read"
+            ]
           }
         }
       }
