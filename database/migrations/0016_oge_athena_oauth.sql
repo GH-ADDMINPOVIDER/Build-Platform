@@ -119,10 +119,10 @@ CREATE TABLE IF NOT EXISTS agent_simulation_runs (
   participant_a TEXT NOT NULL CHECK (participant_a IN ('gs', 'gt', 'claude', 'deepseek')),
   participant_b TEXT NOT NULL CHECK (participant_b IN ('gs', 'gt', 'claude', 'deepseek')),
   status TEXT NOT NULL CHECK (status IN ('PLANNED', 'RUNNING', 'COMPLETED', 'ABORTED')),
-  CHECK (participant_a <> participant_b),
   plan_json TEXT NOT NULL,
   created_at INTEGER NOT NULL,
-  finished_at INTEGER
+  finished_at INTEGER,
+  CHECK (participant_a <> participant_b)
 );
 
 CREATE TABLE IF NOT EXISTS agent_simulation_events (
