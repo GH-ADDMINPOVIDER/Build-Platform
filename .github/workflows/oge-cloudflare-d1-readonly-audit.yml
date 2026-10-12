@@ -1,0 +1,87 @@
+name: OGENIC Cloudflare D1 Read-only Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ogenic-cloudflare-readonly-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG }}
+      EXPECTED_WORKER: ogenic-phase-vi-staging
+      EXPECTED_DATABASE: ogenic-phase-vi-staging
+      EXPECTED_DATABASE_ID: b4ac3a33-df80-47cf-8e75-7574e025b87b
+    steps:
+      - uses: actions/checkout@v4
+      - name: Discover existing Infisical project
+        id: discovery
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+      - name: Load existing Cloudflare credentials using OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.discovery.outputs.project_slug }}
+          env-slug: ${{ steps.discovery.outputs.secret_env_slug }}
+          secret-path: ${{ steps.discovery.outputs.secret_path }}
+      - name: Audit Cloudflare API metadata (GET only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "::error::BLOCKED: Cloudflare credentials unavailable from existing Infisical binding"
+            exit 1
+          fi
+          echo "::add-mask::${CLOUDFLARE_API_TOKEN}"
+          echo "::add-mask::${CLOUDFLARE_ACCOUNT_ID}"
+          python - <<'PY'
+          import json, os, urllib.request, urllib.error
+          account = os.environ["CLOUDFLARE_ACCOUNT_ID"]
+          token = os.environ["CLOUDFLARE_API_TOKEN"]
+          root = "https://api.cloudflare.com/client/v4"
+          def get(path):
+              req = urllib.request.Request(root + path, headers={"Authorization": "Bearer " + token, "Accept": "application/json"}, method="GET")
+              try:
+                  with urllib.request.urlopen(req, timeout=15) as response:
+                      data = json.load(response)
+                  return data if isinstance(data, dict) else {}
+              except urllib.error.HTTPError as exc:
+                  return {"success": False, "http_status": exc.code}
+              except Exception:
+                  return {"success": False, "http_status": "NETWORK_ERROR"}
+          checks = {}
+          db = get(f"/accounts/{account}/d1/database")
+          entries = db.get("result", [])
+          if isinstance(entries, dict): entries = entries.get("databases", [])
+          if not isinstance(entries, list): entries = []
+          found = [x for x in entries if isinstance(x, dict) and x.get("name") == os.environ["EXPECTED_DATABASE"]]
+          checks["d1_list_access"] = "VERIFIED" if db.get("success") is True else "BLOCKED"
+          checks["d1_name_found"] = bool(found)
+          checks["d1_id_matches_source"] = bool(found and found[0].get("uuid") == os.environ["EXPECTED_DATABASE_ID"])
+          workers = get(f"/accounts/{account}/workers/scripts")
+          scripts = workers.get("result", [])
+          if not isinstance(scripts, list): scripts = []
+          checks["worker_list_access"] = "VERIFIED" if workers.get("success") is True else "BLOCKED"
+          checks["worker_name_found"] = any(isinstance(x, dict) and x.get("id") == os.environ["EXPECTED_WORKER"] for x in scripts)
+          checks["runtime_deployment_sha"] = "UNVERIFIED"
+          checks["deployed_d1_binding"] = "UNVERIFIED"
+          checks["schema_and_row_counts"] = "UNVERIFIED_NOT_QUERIED"
+          checks["note"] = "Only GET metadata requests; no SQL, migration, deployment or writes."
+          print(json.dumps(checks, indent=2))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write("### OGENIC Cloudflare read-only audit\n\n")
+              for k,v in checks.items(): f.write(f"- **{k}**: `{v}`\n")
+          if checks["d1_list_access"] != "VERIFIED" or checks["worker_list_access"] != "VERIFIED":
+              raise SystemExit("Cloudflare metadata access BLOCKED; no write fallback attempted")
+          PY
