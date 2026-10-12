@@ -1,16 +1,17 @@
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
+import { verifyMcpAccessToken, type WaveMcpOAuthBindings } from "./wave-mcp-oauth";
 
 type D1Result<T = Record<string, unknown>> = { results?: T[] };
 type D1Prepared = {
   bind: (...values: unknown[]) => D1Prepared;
   all: <T = Record<string, unknown>>() => Promise<D1Result<T>>;
   first: <T = Record<string, unknown>>() => Promise<T | null>;
+  run: () => Promise<unknown>;
 };
 type D1 = { prepare: (query: string) => D1Prepared };
 
-export type WaveManusMcpBindings = BlueDiamondRegistryEnv & {
+export type WaveManusMcpBindings = BlueDiamondRegistryEnv & WaveMcpOAuthBindings & {
   DB?: D1;
-  OGENIC_MCP_READ_TOKEN?: string;
   OGENIC_GIT_SHA?: string;
   OGENIC_GITHUB_BRANCH?: string;
   OGENIC_BUILD_UUID?: string;
@@ -39,6 +40,7 @@ const TOOLS = [
     description: "Return a compact, read-only snapshot of Worker provenance, D1 table query health, Athena/Blue Diamond declared capabilities, staging integration binding state, and stored owner-main 1LSS session references. It never executes tools or returns credential values.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    securitySchemes: [{ type: "oauth2", scopes: ["ogenic:read"] }],
   },
   {
     name: "oge_d1_health",
@@ -368,12 +370,19 @@ async function callTool(name: string, args: Record<string, unknown>, env: WaveMa
   }
 }
 
-async function authorized(request: Request, env: WaveManusMcpBindings) {
-  const expected = clean(env.OGENIC_MCP_READ_TOKEN, 1000);
-  if (!expected) return "NOT_CONFIGURED" as const;
-  const match = /^Bearer\s+(.+)$/i.exec(request.headers.get("authorization") ?? "");
-  if (!match || !(await safeEqual(match[1].trim(), expected))) return "DENIED" as const;
-  return "OK" as const;
+const RESOURCE_METADATA_URL = "https://wave.ogenicchocolate.com/.well-known/oauth-protected-resource/mcp";
+
+function authChallenge(id: string | number | null, requiredScopes: string[], protocolVersion: string, reason: string) {
+  const scopeText = requiredScopes.join(" ");
+  const message = reason === "d1_unavailable"
+    ? "OGE Athena cannot verify the token because D1 is unavailable. Retry after runtime recovery."
+    : "Sign in to your OGENIC WAVE owner account to connect OGE Athena.";
+  const challenge = `Bearer resource_metadata="${RESOURCE_METADATA_URL}", error="invalid_token", error_description="${message.replace(/["\\\\]/g, "")}", scope="${scopeText}"`;
+  return rpcResult(id, {
+    content: [{ type: "text", text: JSON.stringify({ ok: false, code: reason === "d1_unavailable" ? "AUTH_STORE_UNAVAILABLE" : "OAUTH_AUTHORIZATION_REQUIRED", required_scopes: requiredScopes }) }],
+    isError: true,
+    _meta: { "mcp/www_authenticate": [challenge] },
+  }, protocolVersion);
 }
 
 export async function handleWaveManusMcp(request: Request, env: WaveManusMcpBindings): Promise<Response> {
@@ -394,18 +403,6 @@ export async function handleWaveManusMcp(request: Request, env: WaveManusMcpBind
     });
   }
   if (request.method !== "POST") return json({ ok: false, code: "METHOD_NOT_ALLOWED" }, 405, { Allow: "POST, OPTIONS" });
-
-  const auth = await authorized(request, env);
-  if (auth === "NOT_CONFIGURED") {
-    return json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "OGENIC_MCP_READ_TOKEN" }, 503, {
-      "WWW-Authenticate": 'Bearer realm="OGE Athena MCP"',
-    });
-  }
-  if (auth !== "OK") {
-    return json({ ok: false, code: "REAUTH_REQUIRED" }, 401, {
-      "WWW-Authenticate": 'Bearer realm="OGE Athena MCP"',
-    });
-  }
 
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > MAX_BODY_BYTES) return json({ ok: false, code: "REQUEST_TOO_LARGE" }, 413);
@@ -453,6 +450,22 @@ export async function handleWaveManusMcp(request: Request, env: WaveManusMcpBind
   if (body.method === "tools/call") {
     if (typeof params.name !== "string") return rpcError(id, -32602, "Tool name is required", protocolVersion);
     const name = params.name;
+    const requiredScopes = name === "oge_1lss_sessions"
+      ? ["ogenic:read", "ogenic:sessions:read"]
+      : ["ogenic:read"];
+    const auth = await verifyMcpAccessToken(request, env);
+    if (!auth.ok) return authChallenge(id, requiredScopes, protocolVersion, auth.reason);
+    if (!requiredScopes.every((scope) => auth.scopes.includes(scope))) {
+      return rpcResult(id, {
+        content: [{ type: "text", text: JSON.stringify({ ok: false, code: "INSUFFICIENT_SCOPE", required_scopes: requiredScopes }) }],
+        isError: true,
+        _meta: {
+          "mcp/www_authenticate": [
+            `Bearer resource_metadata="${RESOURCE_METADATA_URL}", error="insufficient_scope", error_description="Reconnect OGE Athena and grant the requested read scope.", scope="${requiredScopes.join(" ")}"`,
+          ],
+        },
+      }, protocolVersion);
+    }
     const args = params.arguments && typeof params.arguments === "object" && !Array.isArray(params.arguments)
       ? params.arguments as Record<string, unknown>
       : {};
