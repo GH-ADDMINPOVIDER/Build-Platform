@@ -1,5 +1,7 @@
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { verifyMcpAccessToken, type WaveMcpOAuthBindings } from "./wave-mcp-oauth";
+import { AGENT_RELAY_TOOLS, AGENT_RELAY_TOOL_NAMES, callAgentRelayTool, type AgentRelayBindings } from "./agent-relay-tools";
+import { AGENT_COLLISION_TOOLS, AGENT_COLLISION_TOOL_NAMES, callAgentCollisionTool, type CollisionSimulatorBindings } from "./agent-collision-simulator";
 
 type D1Result<T = Record<string, unknown>> = { results?: T[] };
 type D1Prepared = {
@@ -34,6 +36,8 @@ const CONVERSATION_ID = "owner-main";
 const SESSION_LINE = "1LSS_OWNER_MAIN";
 
 const TOOLS = [
+  ...AGENT_RELAY_TOOLS,
+  ...AGENT_COLLISION_TOOLS,
   {
     name: "oge_athena_snapshot",
     title: "OGE Athena — read-only system snapshot",
@@ -357,7 +361,9 @@ async function snapshot(env: WaveManusMcpBindings) {
   };
 }
 
-async function callTool(name: string, args: Record<string, unknown>, env: WaveManusMcpBindings) {
+async function callTool(name: string, args: Record<string, unknown>, env: WaveManusMcpBindings, agentId?: string) {
+  if (AGENT_RELAY_TOOL_NAMES.has(name)) return callAgentRelayTool(name, args, env as AgentRelayBindings, agentId);
+  if (AGENT_COLLISION_TOOL_NAMES.has(name)) return callAgentCollisionTool(name, args, env as CollisionSimulatorBindings, agentId);
   switch (name) {
     case "oge_athena_snapshot":
       return snapshot(env);
@@ -456,7 +462,11 @@ export async function handleWaveManusMcp(request: Request, env: WaveManusMcpBind
     const name = params.name;
     const requiredScopes = name === "oge_1lss_sessions"
       ? ["ogenic:read", "ogenic:sessions:read"]
-      : ["ogenic:read"];
+      : AGENT_RELAY_TOOL_NAMES.has(name)
+        ? ["ogenic:relay"]
+        : AGENT_COLLISION_TOOL_NAMES.has(name)
+          ? ["ogenic:simulate"]
+          : ["ogenic:read"];
     const auth = await verifyMcpAccessToken(request, env);
     if (!auth.ok) return authChallenge(id, requiredScopes, protocolVersion, auth.reason);
     if (!requiredScopes.every((scope) => auth.scopes.includes(scope))) {
@@ -474,10 +484,11 @@ export async function handleWaveManusMcp(request: Request, env: WaveManusMcpBind
       ? params.arguments as Record<string, unknown>
       : {};
     try {
-      const value = await callTool(name, args, env);
+      const value = await callTool(name, args, env, auth.agentId);
       return rpcResult(id, toolText(value), protocolVersion);
     } catch (error) {
-      const code = error instanceof Error && error.message === "UNKNOWN_TOOL" ? "UNKNOWN_TOOL" : "TOOL_EXECUTION_FAILED";
+      const knownErrors = new Set(["UNKNOWN_TOOL", "D1_UNBOUND", "AGENT_IDENTITY_NOT_BOUND", "RECIPIENT_AGENT_INVALID", "SELF_MESSAGE_NOT_ALLOWED", "MESSAGE_CONTENT_REQUIRED", "MESSAGE_TOO_LARGE", "SECRET_LIKE_CONTENT_REJECTED", "IDEMPOTENCY_KEY_REQUIRED", "IDEMPOTENCY_CONFLICT", "THREAD_ID_INVALID", "CORRELATION_ID_INVALID", "THREAD_NOT_FOUND_OR_FORBIDDEN", "THREAD_PARTICIPANT_MISMATCH", "CORRELATION_ID_MISMATCH", "CORRELATION_ID_REQUIRES_EXISTING_THREAD", "MESSAGE_ID_INVALID", "MESSAGE_NOT_FOUND", "MESSAGE_ACK_FORBIDDEN", "MESSAGE_ACK_STATE_CONFLICT", "SCENARIO_TYPE_INVALID", "PEER_AGENT_INVALID", "BASE_REVISION_REQUIRED", "SECRET_LIKE_SEED_REJECTED", "SIMULATION_ID_INVALID", "SIMULATION_NOT_FOUND", "SIMULATION_PARTICIPANT_FORBIDDEN", "SIMULATION_ALREADY_TERMINAL_USE_REPLAY", "REPORT_SUMMARY_REQUIRED", "DETECTED_FAULT_BOOLEAN_REQUIRED", "PROPOSED_RESOLUTION_REQUIRED", "SIMULATION_FIELD_TOO_LARGE", "EVIDENCE_REFERENCE_INVALID", "AGENT_REPORT_ALREADY_SUBMITTED_START_NEW_RUN_TO_REVISE", "SIMULATION_NOT_COMPLETE"]);
+      const code = error instanceof Error && knownErrors.has(error.message) ? error.message : error instanceof Error && error.message === "UNKNOWN_TOOL" ? "UNKNOWN_TOOL" : "TOOL_EXECUTION_FAILED";
       return rpcResult(id, toolText({ ok: false, code }, true), protocolVersion);
     }
   }
