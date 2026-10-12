@@ -293,7 +293,7 @@ function readAuthorizeParams(source: URLSearchParams): AuthorizeParams | null {
     state: clean(source.get("state"), 500),
     code_challenge: clean(source.get("code_challenge"), 160),
     code_challenge_method: clean(source.get("code_challenge_method"), 20),
-    resource: clean(source.get("resource"), 1800) || RESOURCE,
+    resource: clean(source.get("resource"), 1800),
   };
   if (
     params.response_type !== "code" ||
@@ -357,6 +357,7 @@ async function dcr(request: Request, env: WaveMcpOAuthBindings) {
 async function authorize(request: Request, env: WaveMcpOAuthBindings) {
   if (!env.DB) return json({ error: "server_error", error_description: "The existing D1 binding is unavailable." }, 503);
   let rawParams: URLSearchParams;
+  let decisionInput = "";
   if (request.method === "GET") {
     rawParams = new URL(request.url).searchParams;
   } else if (request.method === "POST") {
@@ -368,6 +369,7 @@ async function authorize(request: Request, env: WaveMcpOAuthBindings) {
         if (typeof value === "string") rawParams.set(key, value);
       }
       const decision = clean(form.get("decision"), 20);
+      decisionInput = decision;
       if (decision === "deny") {
         const params = readAuthorizeParams(rawParams);
         return params ? errorRedirect(params, "access_denied", "Owner cancelled the connection.") : json({ error: "invalid_request" }, 400);
@@ -398,8 +400,7 @@ async function authorize(request: Request, env: WaveMcpOAuthBindings) {
   if (request.method === "GET") return consentPage(params, client.client_name);
   if (!params.scope) return json({ error: "invalid_scope" }, 400);
 
-  const decisionForm = await request.clone().formData().catch(() => null);
-  if (!decisionForm || clean(decisionForm.get("decision"), 20) !== "approve") {
+  if (decisionInput !== "approve") {
     return json({ error: "invalid_request", error_description: "Owner consent is missing." }, 400);
   }
   const code = b64url(randomBytes(32));
@@ -451,7 +452,7 @@ async function tokenEndpoint(request: Request, env: WaveMcpOAuthBindings) {
 
   const grant = clean(form.get("grant_type"), 80);
   const clientId = clean(form.get("client_id"), 1800);
-  const resource = clean(form.get("resource"), 1800) || RESOURCE;
+  const resource = clean(form.get("resource"), 1800);
   if (!clientId || resource !== RESOURCE) return oauthError("invalid_request", "client_id and the registered resource are required.");
   if (form.get("client_secret") || form.get("client_assertion")) return oauthError("invalid_client", "This public-client server accepts only token_endpoint_auth_method=none.");
 
