@@ -428,7 +428,7 @@ async function storeToken(
   env: WaveMcpOAuthBindings,
   clientId: string,
   scope: string,
-  tokenType: "access" | "refresh",
+  kind: "access" | "refresh",
   ttlSeconds: number,
 ) {
   if (!env.DB) throw new Error("D1_UNBOUND");
@@ -437,7 +437,7 @@ async function storeToken(
   const now = Date.now();
   await env.DB.prepare(
     "INSERT INTO mcp_oauth_tokens(token_hash, client_id, owner_id, resource, scope, token_type, expires_at, revoked_at, created_at) VALUES (?, ?, 'ogenic-owner', ?, ?, ?, ?, NULL, ?)",
-  ).bind(tokenHash, clientId, RESOURCE, scope, tokenType, now + ttlSeconds * 1000, now).run();
+  ).bind(tokenHash, clientId, RESOURCE, scope, kind, now + ttlSeconds * 1000, now).run();
   return token;
 }
 
