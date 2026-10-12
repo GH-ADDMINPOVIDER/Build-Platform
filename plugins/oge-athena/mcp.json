@@ -3,18 +3,7 @@
   "mcpServers": {
     "oge-athena": {
       "type": "streamable-http",
-      "url": "https://wave.ogenicchocolate.com/mcp",
-      "extensions": {
-        "com.openai": {
-          "auth": {
-            "type": "oauth2",
-            "scopes": [
-              "ogenic:read",
-              "ogenic:sessions:read"
-            ]
-          }
-        }
-      }
+      "url": "https://wave.ogenicchocolate.com/mcp"
     }
   }
 }
