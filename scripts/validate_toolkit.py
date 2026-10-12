@@ -36,6 +36,12 @@ NON_SECRET_TOKEN_KEYS = {
     "completion_tokens",
     "total_tokens",
     "max_output_tokens",
+    # OAuth protocol metadata fields describe endpoints/methods, not credential values.
+    "token_endpoint",
+    "token_type",
+    "token_endpoint_auth_method",
+    "token_endpoint_auth_methods_supported",
+    "token_endpoint_auth_methods",
 }
 
 SECRET_PLACEHOLDERS = {
