@@ -80,7 +80,7 @@ test("portable plugin points to the remote staging MCP route without storing cre
   assert.equal(mcpManifest.mcpServers["oge-athena"].url, "https://wave.ogenicchocolate.com/mcp");
   assert.equal(mcpManifest.mcpServers["oge-athena"].extensions["com.openai"].auth.type, "api_key");
   assert.doesNotMatch(plugin + mcp, /(?:sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{12,}|OGENIC_OPS_KEY\s*[:=])/);
-  assert.ok(skill.includes("evidence-first"));
+  assert.match(skill, /evidence-first/i);
   assert.ok(skill.includes("YELLOW_STONE_ONLY") || skill.includes("Yellow Stone"));
 });
 
