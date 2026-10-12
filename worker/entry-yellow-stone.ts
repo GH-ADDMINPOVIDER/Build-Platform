@@ -224,7 +224,7 @@ export default {
     if (pathname === "/mcp") {
       return handleWaveManusMcp(request, env as never);
     }
-    if (pathname.startsWith("/api/discord/"))
+    if (pathname.startsWith("/api/discord/")) {
       return discordApi.fetch(request, env as never, ctx as never);
     }
     if (pathname === "/api/capabilities/resolve") {
