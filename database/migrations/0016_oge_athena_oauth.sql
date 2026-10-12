@@ -116,7 +116,10 @@ CREATE TABLE IF NOT EXISTS agent_simulation_runs (
   seed TEXT NOT NULL,
   base_revision TEXT NOT NULL,
   created_by TEXT NOT NULL CHECK (created_by IN ('gs', 'gt', 'claude', 'deepseek')),
+  participant_a TEXT NOT NULL CHECK (participant_a IN ('gs', 'gt', 'claude', 'deepseek')),
+  participant_b TEXT NOT NULL CHECK (participant_b IN ('gs', 'gt', 'claude', 'deepseek')),
   status TEXT NOT NULL CHECK (status IN ('PLANNED', 'RUNNING', 'COMPLETED', 'ABORTED')),
+  CHECK (participant_a <> participant_b),
   plan_json TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   finished_at INTEGER
@@ -130,8 +133,10 @@ CREATE TABLE IF NOT EXISTS agent_simulation_events (
   actor_agent_id TEXT,
   fault_label TEXT,
   metadata_json TEXT NOT NULL,
+  idempotency_key_hash TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL,
   UNIQUE (simulation_id, sequence_no),
+  UNIQUE (simulation_id, actor_agent_id, idempotency_key_hash),
   FOREIGN KEY (simulation_id) REFERENCES agent_simulation_runs(simulation_id) ON DELETE CASCADE
 );
 
