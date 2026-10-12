@@ -2,33 +2,17 @@
 
 Portable plugin package for the OGENIC WAVE read-only Athena MCP bridge.
 
-## What it exposes
+Connect through the normal OAuth owner-login flow at `https://wave.ogenicchocolate.com/mcp`; do not paste an API token into the plugin manifest.
 
-- Worker SHA/version provenance
-- D1 per-table query health and row counts
-- Blue Diamond's declared actor capabilities and policy boundary
-- sanitized staging provider bindings
-- stored `owner-main / 1LSS_OWNER_MAIN` session references
+The server exposes only:
+- `oge_athena_snapshot`
+- `oge_d1_health`
+- `oge_athena_permissions`
+- `oge_1lss_sessions`
+- `oge_integration_bindings`
 
-It does not expose write/execute tools and never returns provider secrets.
+The OAuth authorization page reuses the existing WAVE owner sign-in. Access tokens are short-lived; refresh tokens rotate. D1 stores only hashes of authorization codes and tokens. No provider credential is revealed. The connector remains read-only, and Yellow Stone is still the sole execution authority.
 
-## Prerequisites
+**Not yet live:** OAuth source is on a feature branch; the additive migration `0016_oge_athena_oauth.sql` has not been applied and the Worker has not been deployed. Do not attempt to connect until the staging proof and approved staging rollout are complete.
 
-The endpoint is not usable until the MCP route is merged, deployed to the staging Worker, and a separate `OGENIC_MCP_READ_TOKEN` secret has been provisioned through the existing staging secret manager. This package contains no token.
-
-Endpoint: `https://wave.ogenicchocolate.com/mcp`
-
-## Claude
-
-Add a remote custom connector at the endpoint URL. Configure a fixed request header:
-
-- Header: `Authorization`
-- Value: `Bearer <OGENIC_MCP_READ_TOKEN>`
-
-Only enable the read-only tools you need.
-
-## ChatGPT / Codex
-
-`mcp.json` declares the portable Agent Plugin MCP configuration. Hosts that support this manifest's API-key/bearer authentication can prompt for the token during connection setup. OpenAI's direct ChatGPT **Add custom MCP server** UI currently documents OAuth, no-auth, and mixed auth, but not a fixed API-key input. Connecting through that UI requires a separate OAuth server; this package does not pretend that OAuth is already configured.
-
-See [the integration guide](../../docs/integrations/WAVE_REMOTE_MCP_DATA_STONE.md) for exact semantics, security boundaries, and proof requirements.
+See [the setup and rollout guide](../../docs/integrations/WAVE_REMOTE_MCP_DATA_STONE.md) for the full OAuth sequence and proof requirements.
