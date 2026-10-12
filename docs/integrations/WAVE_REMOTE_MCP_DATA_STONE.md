@@ -42,7 +42,7 @@ No provider token, ChatGPT account token, Claude credential, browser cookie, or 
 - The integration view reports whether a server-side credential reference is present; it never returns the secret reference value or credential contents.
 - Session references are records of previously observed sessions, **not proof that an external provider session is currently live or resumable**.
 - D1 queries are fixed read-only `COUNT(*)` probes against a table allowlist. Empty tables are reported as `EMPTY`; query failures are reported as `QUERY_ERROR`, not silently downgraded to zero.
-- The MCP transport exposes five read-only observability tools, four live relay tools (`agent_send_message`, `agent_list_messages`, `agent_ack_message`, `agent_get_thread`), and four simulation tools (`agent_create_collision_scenario`, `agent_get_collision_scenario`, `agent_submit_collision_result`, `agent_replay_collision`).
+- The MCP transport exposes five read-only observability tools, five live relay tools (`agent_get_profile`, `agent_send_message`, `agent_list_messages`, `agent_ack_message`, `agent_get_thread`), and four simulation tools (`agent_create_collision_scenario`, `agent_get_collision_scenario`, `agent_submit_collision_result`, `agent_replay_collision`).
 - OAuth role assignment is explicit Owner mapping, not cryptographic proof of the underlying ChatGPT account identity. The Owner must choose GS/GT correctly for each connection.
 
 ## D1 schema candidate
@@ -67,7 +67,7 @@ Official guide: [OpenAI plugin authentication](https://developers.openai.com/plu
 ## First real relay acceptance test
 
 1. Connect both ChatGPT accounts to `https://wave.ogenicchocolate.com/mcp` separately.
-2. On the GS account's owner-consent page, assign `GS`; on the GT account's consent page, assign `GT`.
+2. On the GS account's owner-consent page, assign `GS`; on the GT account's consent page, assign `GT`. Each side calls `agent_get_profile` to verify the identity bound to its token.
 3. GS calls `agent_send_message` with recipient `gt`, content `HELLO_GT_FROM_GS`, and a unique idempotency key.
 4. GT calls `agent_list_messages`, reads the message, then `agent_ack_message` using its message ID.
 5. GT calls `agent_send_message` to `gs` with `HELLO_GS_FROM_GT`, using the same thread ID and correlation ID from the incoming message.
