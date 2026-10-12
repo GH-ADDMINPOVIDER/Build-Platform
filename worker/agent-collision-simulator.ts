@@ -41,7 +41,7 @@ const CONVERSATION_ID = "owner-main";
 const SCENARIOS = new Set<ScenarioType>([
   "STALE_CONTEXT", "DUPLICATE_DELIVERY", "OUT_OF_ORDER", "SESSION_DRIFT", "DELEGATION_LOOP", "IDENTITY_SPOOF",
 ]);
-const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/;
+const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._:_-]{0,119}$/;
 const SECRET_LIKE = /(?:sk-(?:proj-)?[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9_]{16,}|Bearer\s+[A-Za-z0-9._~+/=-]{16,}|(?:api[_-]?key|access[_-]?token|refresh[_-]?token|password|passwd|secret|cookie)\s*[:=]\s*\S{8,}|whsec_[A-Za-z0-9_-]{12,}|-----BEGIN (?:RSA |OPENSSH |EC |)PRIVATE KEY-----)/i;
 const clean = (value: unknown, max = 180) => String(value ?? "").trim().slice(0, max);
 
