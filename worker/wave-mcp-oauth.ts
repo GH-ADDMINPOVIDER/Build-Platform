@@ -119,9 +119,10 @@ function html(body: string, status = 200) {
 }
 
 function escapeHtml(value: unknown) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+  const entities: Record<string, string> = {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-  })[char] ?? char);
+  };
+  return String(value ?? "").replace(/[&<>"']/g, (char) => entities[char] ?? char);
 }
 
 function allowedRedirectUri(value: unknown): string | null {
