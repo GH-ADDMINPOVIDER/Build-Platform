@@ -158,6 +158,7 @@ async function sendMessage(args: Record<string, unknown>, env: AgentRelayBinding
   }
 
   let thread: AgentThreadRow;
+  let createdThread = false;
   if (suppliedThreadId) {
     const found = await findThread(db, suppliedThreadId);
     if (!found) return fail("THREAD_NOT_FOUND_OR_FORBIDDEN");
@@ -182,6 +183,7 @@ async function sendMessage(args: Record<string, unknown>, env: AgentRelayBinding
     await db.prepare(
       "INSERT INTO agent_threads(thread_id, conversation_id, correlation_id, participant_a, participant_b, created_by, created_at, last_message_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     ).bind(thread.thread_id, thread.conversation_id, thread.correlation_id, thread.participant_a, thread.participant_b, thread.created_by, thread.created_at, thread.last_message_at, thread.expires_at).run();
+    createdThread = true;
   }
 
   const now = Date.now();
@@ -208,6 +210,9 @@ async function sendMessage(args: Record<string, unknown>, env: AgentRelayBinding
     ).bind(row.id, row.conversation_id, row.thread_id, row.sender_agent_id, row.recipient_agent_id, row.content, row.content_sha256, row.correlation_id, row.idempotency_key_hash, row.created_at, row.expires_at).run();
   } catch {
     const replay = await findByIdempotency(db, actor, idempotencyHash);
+    if (createdThread) {
+      await db.prepare("DELETE FROM agent_threads WHERE thread_id = ? AND NOT EXISTS (SELECT 1 FROM agent_messages WHERE thread_id = ?)").bind(thread.thread_id, thread.thread_id).run().catch(() => undefined);
+    }
     if (!replay || replay.recipient_agent_id !== recipient || replay.content_sha256 !== contentHash) return fail("MESSAGE_WRITE_FAILED");
     return { ok: true, idempotent_replay: true, message: rowSummary(replay), source_of_truth: "D1_AGENT_MESSAGE_LEDGER" };
   }
