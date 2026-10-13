@@ -37,7 +37,7 @@ test('Codex repairs and checks the host bubblewrap/AppArmor sandbox before bound
   assert.match(workflow, /bubblewrap apparmor-profiles apparmor-utils/);
   assert.match(workflow, /bwrap-userns-restrict/);
   assert.match(workflow, /apparmor_parser -r/);
-  assert.match(workflow, /codex sandbox linux -- \/bin\/pwd/);
+  assert.match(workflow, /codex sandbox \/bin\/pwd/);
   assert.match(workflow, /codex exec --sandbox workspace-write/);
   assert.doesNotMatch(workflow, /use_legacy_landlock/);
   assert.doesNotMatch(workflow, /--sandbox danger-full-access/);

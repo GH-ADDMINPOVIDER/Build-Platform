@@ -182,7 +182,7 @@ jobs:
             run_admin apparmor_parser -r "$profile_target"
           fi
           set +e
-          codex sandbox linux -- /bin/pwd 2>&1 | tee "$RUNNER_TEMP/codex-sandbox-preflight.log"
+          codex sandbox /bin/pwd 2>&1 | tee "$RUNNER_TEMP/codex-sandbox-preflight.log"
           rc=${PIPESTATUS[0]}
           set -e
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
@@ -427,7 +427,7 @@ jobs:
           fi
           sudo -n apparmor_parser -r "$profile_target"
           set +e
-          codex sandbox linux -- /bin/pwd 2>&1 | tee "$RUNNER_TEMP/codex-sandbox-preflight.log"
+          codex sandbox /bin/pwd 2>&1 | tee "$RUNNER_TEMP/codex-sandbox-preflight.log"
           rc=${PIPESTATUS[0]}
           set -e
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
