@@ -4,6 +4,9 @@ import { readFile } from "node:fs/promises";
 
 const catalog = JSON.parse(await readFile(new URL("../docs/research/OGENIC_DISCOVERY_CATALOG.json", import.meta.url), "utf8"));
 const taxonomy = JSON.parse(await readFile(new URL("../config/pstack-task-taxonomy.json", import.meta.url), "utf8"));
+const brief = await readFile(new URL("../docs/research/OGENIC_DISCOVERY_INTAKE.md", import.meta.url), "utf8");
+const circuitSource = await readFile(new URL("../docs/research/OGENIC_2A_CIRCUIT.mmd", import.meta.url), "utf8");
+const circuitSvg = await readFile(new URL("../docs/research/OGENIC_2A_CIRCUIT.svg", import.meta.url), "utf8");
 
 test("discovery catalog stays source-only and reuses canonical OGENIC memory", () => {
   assert.equal(catalog.schema_version, "OGENIC_DISCOVERY_CATALOG_V1");
@@ -86,5 +89,41 @@ test("the same source can be found by both agents without creating duplicate rec
   for (const item of catalog.items) {
     assert.ok(allowedDedupStates.has(item.deduplication_state));
     assert.ok(Array.isArray(item.existing_oge_links), "link related OGE work instead of opening duplicates");
+  }
+});
+
+test("the consolidated brief keeps the repository list names-only and carries WAVE delivery evidence", () => {
+  for (const slug of [
+    "engasnm111/lnwjud",
+    "nashsu/llm_wiki",
+    "qufei1993/skills-hub",
+    "jokim1/karpathy-skills",
+    "mattpocock/skills",
+    "affaan-m/everything-claude-code",
+    "thedotmack/claude-mem"
+  ]) assert.ok(brief.includes(slug), `missing repository name: ${slug}`);
+
+  for (const required of [
+    "Native iOS build/App Store release",
+    "NOT_VERIFIED",
+    "US$99 per year",
+    "OGE-123",
+    "owner-main / 1LSS_OWNER_MAIN",
+    "Pstack: 9,16,20,28,30,34,35,44",
+    "HELLO_GT_FROM_GS",
+    "runner_id=0",
+    "Check-in / Check-out",
+    "Yellow Stone"
+  ]) assert.ok(brief.includes(required), `missing consolidated requirement: ${required}`);
+});
+
+test("the consolidated circuit includes a Mermaid source and explicit verification boundaries", () => {
+  assert.match(circuitSource, /^flowchart TB/m);
+  for (const status of ["BLOCKED", "NOT VERIFIED", "Owner approval", "1LSS"]) {
+    assert.ok(circuitSource.includes(status), `Mermaid diagram missing ${status}`);
+  }
+  assert.match(circuitSvg, /<svg[\s\S]*<\/svg>/);
+  for (const status of ["BLOCKED", "NOT VERIFIED", "OWNER APPROVAL", "1LSS"]) {
+    assert.ok(circuitSvg.includes(status), `SVG diagram missing ${status}`);
   }
 });

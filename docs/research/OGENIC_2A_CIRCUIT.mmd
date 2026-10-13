@@ -1,0 +1,24 @@
+flowchart TB
+  OWNER["Owner / iPhone\nWeb links · repos · screenshots · clips"] --> WAVE["WAVE single interface\nDashboard + Command Center + AI Operations"]
+  WAVE --> WEB["Web/PWA path\nExisting /chat entry\nUsable path; not App Store proof"]
+  WAVE --> INTAKE["Source intake\nDiscord path proposed; listener NOT VERIFIED"]
+  INTAKE --> NORMALIZE["Capture exact URL + source evidence\nUnknown source => SOURCE_URL_REQUIRED"]
+  NORMALIZE --> DEDUP["Canonicalize + deduplicate\nOne record for GT + GS"]
+  DEDUP --> PSTACK["Pinned P-Stack 51 taxonomy\nRecord only skills actually used"]
+  PSTACK --> REVIEW["GS read-only architecture/security review\nGT source audit on isolated branch"]
+  REVIEW --> GATE{"Yellow authority + Owner approval\nfor consequential actions"}
+  GATE -->|Hold| HOLD["HOLD / BLOCKED\nNo install · no secret change · no D1 · no deploy"]
+  GATE -->|Approved bounded change| CHANGE["Existing Build-Platform\nFeature branch · staging-first"]
+  CHANGE --> PROOF["Source + tests + runtime evidence\nExact SHA · honest statuses"]
+  PROOF --> CHECKOUT["Check-out / recovery\nExisting owner-main / 1LSS_OWNER_MAIN"]
+  WEB --> APP["WAVE Owner target modules\nDashboard · AI Control · Cross-App\nCircuit Diagrams · ATHENA · Approval\nGS↔GT Relay · Alerts"]
+  APP --> IOS["Native iOS / App Store path\nNOT VERIFIED: archive, signing, TestFlight, App Store Connect"]
+  WAVE --> RELAY["GS ↔ GT Agent Relay\nBLOCKED: no live message ID/correlation proof"]
+  RELAY --> GATE
+  CHECKOUT --> CLOSURE["When an OGE closes:\nREADME + Mermaid + SVG + CI/Ruby evidence"]
+  classDef verified fill:#fff,stroke:#444,color:#111;
+  classDef unknown fill:#f0f0f0,stroke:#666,color:#111;
+  classDef blocked fill:#dedede,stroke:#222,color:#111;
+  class WEB,DEDUP,PSTACK,REVIEW,PROOF verified;
+  class INTAKE,IOS unknown;
+  class HOLD,RELAY blocked;

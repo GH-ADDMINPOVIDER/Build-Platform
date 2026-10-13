@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="1340" viewBox="0 0 1180 1340" role="img" aria-labelledby="title desc">
+  <title id="title">OGENIC WAVE 2a Consolidated Circuit</title>
+  <desc id="desc">A source-only consolidated diagram for WAVE, web discovery intake, P-Stack triage, GS/GT review, Owner and Yellow approval, iOS release readiness, Relay status, and check-in/check-out. It is not evidence that unverified runtimes are connected.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#333"/></marker>
+    <style>
+      .bg{fill:#fff}.box{fill:#fff;stroke:#333;stroke-width:2;rx:14}.gray{fill:#f1f1f1;stroke:#555;stroke-width:2;rx:14}.dark{fill:#dedede;stroke:#222;stroke-width:2;rx:14}
+      .title{font:700 28px sans-serif;fill:#111}.sub{font:15px sans-serif;fill:#555}.h{font:700 17px sans-serif;fill:#111}.b{font:14px sans-serif;fill:#222}.s{font:12px sans-serif;fill:#555}
+      .arrow{fill:none;stroke:#333;stroke-width:2.2;marker-end:url(#arrow)}.line{fill:none;stroke:#777;stroke-width:2}
+    </style>
+  </defs>
+  <rect width="1180" height="1340" class="bg"/>
+  <text x="590" y="40" class="title" text-anchor="middle">OGENIC WAVE · 2a CONSOLIDATED CIRCUIT</text>
+  <text x="590" y="66" class="sub" text-anchor="middle">SOURCE/DOC PROPOSAL · CURRENT LIVE RELAY & NATIVE iOS RELEASE NOT VERIFIED · 2026-10-13</text>
+
+  <rect x="290" y="100" width="600" height="82" class="box"/>
+  <text x="590" y="130" class="h" text-anchor="middle">OWNER / iPHONE INPUT</text>
+  <text x="590" y="153" class="b" text-anchor="middle">Web links · GitHub repos · screenshots · clips · Command Center</text>
+  <path d="M590 182 V218" class="arrow"/>
+
+  <rect x="290" y="226" width="600" height="86" class="box"/>
+  <text x="590" y="258" class="h" text-anchor="middle">WAVE — ONE INTERFACE / EXISTING CONTROL PLANE</text>
+  <text x="590" y="282" class="b" text-anchor="middle">Dashboard + Command Center + AI Operations + Mobile access</text>
+  <text x="590" y="300" class="s" text-anchor="middle">Existing web entry: wave.ogenicchocolate.com/chat</text>
+
+  <path d="M590 312 V340 H205 V367" class="arrow"/>
+  <path d="M590 340 V367" class="arrow"/>
+  <path d="M590 340 H975 V367" class="arrow"/>
+
+  <rect x="28" y="376" width="354" height="330" class="box"/>
+  <text x="205" y="408" class="h" text-anchor="middle">A · WEB DISCOVERY → KNOWLEDGE</text>
+  <text x="50" y="442" class="b">1. Capture exact source URL + date</text>
+  <text x="50" y="466" class="b">2. Canonicalize & deduplicate GT/GS</text>
+  <text x="50" y="490" class="b">3. Check README + LICENSE</text>
+  <text x="50" y="514" class="b">4. Map to pinned P-Stack (51)</text>
+  <text x="50" y="538" class="b">5. Link existing OGE; no duplicate repo</text>
+  <rect x="48" y="565" width="314" height="58" class="gray"/>
+  <text x="205" y="588" class="h" text-anchor="middle">DISCORD INGESTION</text>
+  <text x="205" y="608" class="s" text-anchor="middle">NOT VERIFIED — protocol only, no live listener</text>
+  <text x="50" y="654" class="s">Repo names only in the consolidated brief.</text>
+  <text x="50" y="675" class="s">Unknown screenshot sources remain HOLD.</text>
+
+  <rect x="413" y="376" width="354" height="330" class="box"/>
+  <text x="590" y="408" class="h" text-anchor="middle">B · WAVE OWNER EXPERIENCE</text>
+  <text x="435" y="442" class="b">Target modules:</text>
+  <text x="435" y="466" class="b">• Live Dashboard / AI Agent Control</text>
+  <text x="435" y="490" class="b">• Cross-App Actions / OGE Diagrams</text>
+  <text x="435" y="514" class="b">• ATHENA Knowledge / Owner Approval</text>
+  <text x="435" y="538" class="b">• GS ↔ GT Relay / Alerts & Monitoring</text>
+  <rect x="433" y="565" width="314" height="58" class="box"/>
+  <text x="590" y="588" class="h" text-anchor="middle">WEB / PWA FIRST</text>
+  <text x="590" y="608" class="s" text-anchor="middle">Safari → Add to Home Screen; same backend</text>
+  <text x="435" y="654" class="b">Native iOS/App Store: NOT VERIFIED</text>
+  <text x="435" y="675" class="s">No confirmed archive, signing or TestFlight receipt</text>
+
+  <rect x="798" y="376" width="354" height="330" class="dark"/>
+  <text x="975" y="408" class="h" text-anchor="middle">C · GS ↔ GT AGENT RELAY</text>
+  <text x="820" y="442" class="b">Required live path:</text>
+  <text x="820" y="466" class="b">OAuth identity → send → read → reply</text>
+  <text x="820" y="490" class="b">→ ACK with Message/Correlation IDs</text>
+  <rect x="818" y="515" width="314" height="60" class="dark"/>
+  <text x="975" y="540" class="h" text-anchor="middle">BLOCKED</text>
+  <text x="975" y="560" class="s" text-anchor="middle">No real cross-account delivery receipt</text>
+  <text x="820" y="608" class="b">Source/Bridge CI ≠ Runtime E2E PASS</text>
+  <text x="820" y="635" class="s">Migration 0016 and deployed /mcp: not verified</text>
+  <text x="820" y="660" class="s">A received message is not execution authority</text>
+
+  <path d="M205 706 V740 H590 V765" class="arrow"/>
+  <path d="M590 706 V765" class="arrow"/>
+  <path d="M975 706 V740 H590" class="arrow"/>
+
+  <rect x="175" y="773" width="830" height="115" class="gray"/>
+  <text x="590" y="805" class="h" text-anchor="middle">YELLOW STONE + OWNER APPROVAL GATE</text>
+  <text x="590" y="831" class="b" text-anchor="middle">Messages and research findings do not authorize execution.</text>
+  <text x="590" y="854" class="b" text-anchor="middle">No auto-install · no secret change · no D1 migration · no paid call · no deploy</text>
+  <text x="590" y="875" class="s" text-anchor="middle">Only an explicitly approved, bounded change can pass to implementation.</text>
+  <path d="M590 888 V923" class="arrow"/>
+
+  <rect x="175" y="931" width="830" height="110" class="box"/>
+  <text x="590" y="963" class="h" text-anchor="middle">CHECK-IN / CHECK-OUT → EXISTING ATHENA / 1LSS</text>
+  <text x="590" y="989" class="b" text-anchor="middle">OGE/task · GT/GS identity · branch + exact SHA · actual P-Stack IDs</text>
+  <text x="590" y="1013" class="b" text-anchor="middle">Changed paths · test/CI/runtime receipts · risks · next owner · restorable session pointer</text>
+  <text x="590" y="1030" class="s" text-anchor="middle">Canonical path: owner-main / 1LSS_OWNER_MAIN — no duplicate memory database</text>
+  <path d="M590 1041 V1074" class="arrow"/>
+
+  <rect x="175" y="1082" width="830" height="113" class="box"/>
+  <text x="590" y="1114" class="h" text-anchor="middle">OGE CLOSURE EVIDENCE — ONLY WHEN CLOSING AN OGE</text>
+  <text x="590" y="1140" class="b" text-anchor="middle">README (RESULT / CHANGED / TESTS / EVIDENCE / RESIDUAL RISK)</text>
+  <text x="590" y="1164" class="b" text-anchor="middle">Mermaid source + rendered closure.svg (or truthful screenshot)</text>
+  <text x="590" y="1184" class="s" text-anchor="middle">Exact P-Stack IDs + SHA-matched CI/deploy evidence + Ruby verdict when required</text>
+
+  <rect x="175" y="1220" width="830" height="74" class="gray"/>
+  <text x="590" y="1245" class="h" text-anchor="middle">EVIDENCE KEY</text>
+  <text x="590" y="1267" class="b" text-anchor="middle">SOURCE_VERIFIED ≠ RUNTIME_VERIFIED · UNVERIFIED stays open · BLOCKED is not PASS</text>
+  <text x="590" y="1286" class="s" text-anchor="middle">Current PR #24 CI Run #214: failed before steps (runner_id=0; steps=[]), root cause unconfirmed.</text>
+</svg>
