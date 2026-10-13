@@ -98,13 +98,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          version_output="$(codex --version 2>&1)" || {
+            echo "exit_code=88" >> "$GITHUB_OUTPUT"
+            printf '%s\\n' "$version_output" > "$RUNNER_TEMP/codex-summary.txt"
+            exit 88
+          }
+          echo "Codex CLI: $version_output"
           set +e
-          codex --enable use_legacy_landlock sandbox linux /bin/pwd 2>&1 | tee "$RUNNER_TEMP/codex-sandbox-preflight.log"
+          codex --enable use_legacy_landlock sandbox linux -- /bin/pwd 2>&1 | tee "$RUNNER_TEMP/codex-sandbox-preflight.log"
           rc=${PIPESTATUS[0]}
           set -e
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
           if [[ "$rc" != "0" ]]; then
-            printf '%s\\n' 'Codex sandbox preflight failed; task execution stopped before running repository commands.' > "$RUNNER_TEMP/codex-summary.txt"
+            {
+              echo "Codex sandbox preflight failed; task execution stopped."
+              echo "Codex CLI: $version_output"
+              echo "Sandbox output (last 30 lines):"
+              tail -n 30 "$RUNNER_TEMP/codex-sandbox-preflight.log" || true
+            } > "$RUNNER_TEMP/codex-summary.txt"
             exit 87
           fi
           echo "CODEX_LEGACY_LANDLOCK_SANDBOX_OK"

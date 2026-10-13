@@ -31,9 +31,10 @@ test('the invocation stays isolated and the workflow does not merge or deploy', 
 
 test('Codex sandbox has a startup probe and Landlock fallback without disabling the workspace-write sandbox', () => {
   assert.match(workflow, /id: sandbox_preflight/);
-  assert.match(workflow, /codex --enable use_legacy_landlock sandbox linux \/bin\/pwd/);
+  assert.match(workflow, /codex --enable use_legacy_landlock sandbox linux -- \/bin\/pwd/);
   assert.match(workflow, /codex --enable use_legacy_landlock exec --sandbox workspace-write/);
   assert.doesNotMatch(workflow, /--sandbox danger-full-access/);
+  assert.match(workflow, /tail -n 30 "\\$RUNNER_TEMP\/codex-sandbox-preflight\\.log"/);
 });
 
 test('Codex task is pinned to the trigger SHA and does not receive the GitHub write token', () => {
