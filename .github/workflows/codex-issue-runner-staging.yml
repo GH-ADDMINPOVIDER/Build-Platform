@@ -1,0 +1,37 @@
+name: Codex issue executor — staging only
+
+# Registration on the default branch makes GitHub's manual dispatch visible.
+# The executable workflow is reviewed and maintained on the staging branch.
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Open bounded task issue number
+        required: true
+        type: string
+      source_sha:
+        description: Exact current staging SHA
+        required: true
+        type: string
+      task_sha256:
+        description: SHA256 of reviewed issue snapshot
+        required: true
+        type: string
+      confirm_bounded_task:
+        description: Authorize one bounded Codex call and draft PR only
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  default-branch-guard:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse execution on default branch
+        run: |
+          echo "::error::Staging-only Codex execution. Select phase-vi-provider-incentive-metering after its workflow has been reviewed and merged."
+          exit 1
