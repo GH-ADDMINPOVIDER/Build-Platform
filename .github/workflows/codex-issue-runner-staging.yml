@@ -144,9 +144,42 @@ jobs:
           echo "exit_code=0" >> "$GITHUB_OUTPUT"
           echo "OGENIC_CODEX_OPENAI_BINDING_PRESENT"
 
+      - name: Verify OpenAI API key account without logging identity
+        id: openai_account
+        if: steps.openai_preflight.outputs.exit_code == '0'
+        shell: bash
+        env:
+          EXPECTED_OPENAI_EMAIL: ${{ vars.CODEX_EXPECTED_OPENAI_EMAIL }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const expected = process.env.EXPECTED_OPENAI_EMAIL?.trim().toLowerCase();
+          const key = process.env.OPENAI_API_KEY;
+          if (!expected || !key) {
+            console.error('OPENAI_ACCOUNT_VERIFICATION_NOT_CONFIGURED');
+            process.exit(89);
+          }
+          try {
+            const response = await fetch('https://api.openai.com/v1/me', {
+              headers: { authorization: `Bearer ${key}` },
+              signal: AbortSignal.timeout(10000),
+            });
+            if (!response.ok) throw new Error('ACCOUNT_API_UNAVAILABLE');
+            const user = await response.json();
+            if (typeof user.email !== 'string' || user.email.trim().toLowerCase() !== expected) {
+              console.error('OPENAI_ACCOUNT_MISMATCH');
+              process.exit(89);
+            }
+            console.log('OPENAI_ACCOUNT_MATCH');
+          } catch {
+            console.error('OPENAI_ACCOUNT_VERIFICATION_UNAVAILABLE');
+            process.exit(89);
+          }
+          NODE
+
       - name: Verify existing runner sandbox without host changes
         id: sandbox_preflight
-        if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success' && steps.openai_preflight.outputs.exit_code == '0'
+        if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success' && steps.openai_preflight.outputs.exit_code == '0' && steps.openai_account.outcome == 'success'
         shell: bash
         run: |
           set -euo pipefail
