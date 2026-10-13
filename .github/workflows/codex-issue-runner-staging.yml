@@ -100,7 +100,7 @@ jobs:
           set -euo pipefail
           version_output="$(codex --version 2>&1)" || {
             echo "exit_code=88" >> "$GITHUB_OUTPUT"
-            printf '%s\\n' "$version_output" > "$RUNNER_TEMP/codex-summary.txt"
+            echo "$version_output" > "$RUNNER_TEMP/codex-summary.txt"
             exit 88
           }
           echo "Codex CLI: $version_output"
