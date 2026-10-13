@@ -59,6 +59,7 @@ jobs:
           echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Verify shared Codex entry contract
+        id: contract
         shell: bash
         run: node --test tests/codex-shared-entry-workflow.test.mjs
 
@@ -79,7 +80,7 @@ jobs:
 
       - name: Verify Codex binding without printing the key
         id: openai_preflight
-        if: always() && steps.task.outputs.number != ''
+        if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success'
         shell: bash
         run: |
           set -euo pipefail
@@ -92,9 +93,9 @@ jobs:
           echo "exit_code=0" >> "$GITHUB_OUTPUT"
           echo "OGENIC_CODEX_OPENAI_BINDING_PRESENT"
 
-      - name: Verify Codex sandbox using legacy Landlock backend
+      - name: Repair and verify bubblewrap sandbox on existing WAVE runner
         id: sandbox_preflight
-        if: always() && steps.task.outputs.number != '' && steps.openai_preflight.outputs.exit_code == '0'
+        if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success' && steps.openai_preflight.outputs.exit_code == '0'
         shell: bash
         run: |
           set -euo pipefail
@@ -104,21 +105,45 @@ jobs:
             exit 88
           }
           echo "Codex CLI: $version_output"
+          if ! command -v bwrap >/dev/null 2>&1 || ! command -v apparmor_parser >/dev/null 2>&1 || ! test -f /usr/share/apparmor/extra-profiles/bwrap-userns-restrict; then
+            if ! sudo -n true >/dev/null 2>&1; then
+              echo "exit_code=89" >> "$GITHUB_OUTPUT"
+              {
+                echo "RUNNER_HOST_ADMIN_REQUIRED"
+                echo "wave-runner-01 needs sudo access to install bubblewrap/AppArmor profile prerequisites."
+                echo "No repository, secret, deployment, or runner service was changed by this step."
+              } > "$RUNNER_TEMP/codex-summary.txt"
+              exit 89
+            fi
+            timeout 180s sudo -n apt-get update
+            timeout 180s sudo -n apt-get install -y bubblewrap apparmor-profiles apparmor-utils
+          fi
+          profile_source="/usr/share/apparmor/extra-profiles/bwrap-userns-restrict"
+          profile_target="/etc/apparmor.d/bwrap-userns-restrict"
+          if [[ ! -f "$profile_source" ]]; then
+            echo "exit_code=90" >> "$GITHUB_OUTPUT"
+            echo "APPARMOR_BWRAP_PROFILE_PACKAGE_MISSING" > "$RUNNER_TEMP/codex-summary.txt"
+            exit 90
+          fi
+          if [[ ! -f "$profile_target" ]] || ! cmp -s "$profile_source" "$profile_target"; then
+            sudo -n install -m 0644 "$profile_source" "$profile_target"
+          fi
+          sudo -n apparmor_parser -r "$profile_target"
           set +e
-          codex --enable use_legacy_landlock sandbox linux -- /bin/pwd 2>&1 | tee "$RUNNER_TEMP/codex-sandbox-preflight.log"
+          codex sandbox linux -- /bin/pwd 2>&1 | tee "$RUNNER_TEMP/codex-sandbox-preflight.log"
           rc=${PIPESTATUS[0]}
           set -e
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
           if [[ "$rc" != "0" ]]; then
             {
-              echo "Codex sandbox preflight failed; task execution stopped."
+              echo "Codex bubblewrap sandbox preflight failed; task execution stopped."
               echo "Codex CLI: $version_output"
               echo "Sandbox output (last 30 lines):"
               tail -n 30 "$RUNNER_TEMP/codex-sandbox-preflight.log" || true
             } > "$RUNNER_TEMP/codex-summary.txt"
             exit 87
           fi
-          echo "CODEX_LEGACY_LANDLOCK_SANDBOX_OK"
+          echo "CODEX_BWRAP_APPARMOR_SANDBOX_OK"
 
       - name: Run Codex in bounded workspace-write sandbox
         id: codex
@@ -164,7 +189,7 @@ jobs:
           open(os.path.join(os.environ["RUNNER_TEMP"], "codex-task.md"), "w", encoding="utf-8").write(prompt)
           PY
           set +e
-          codex --enable use_legacy_landlock exec --sandbox workspace-write - < "$RUNNER_TEMP/codex-task.md" 2>&1 | tee "$RUNNER_TEMP/codex-output.log"
+          codex exec --sandbox workspace-write - < "$RUNNER_TEMP/codex-task.md" 2>&1 | tee "$RUNNER_TEMP/codex-output.log"
           rc=${PIPESTATUS[0]}
           set -e
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"

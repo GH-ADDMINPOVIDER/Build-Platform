@@ -12,6 +12,8 @@ test('shared Codex runner uses the existing staging-only entry path', () => {
 });
 
 test('Codex gets one existing Infisical secret and never overrides it with an empty GitHub secret', () => {
+  assert.match(workflow, /id: contract/);
+  assert.match(workflow, /steps\.contract\.outcome == 'success'/);
   assert.match(workflow, /id-token: write/);
   assert.match(workflow, /uses: Infisical\/secrets-action@v1\.0\.17/);
   assert.match(workflow, /secret-name: OPENAI_API_KEY/);
@@ -29,11 +31,17 @@ test('the invocation stays isolated and the workflow does not merge or deploy', 
 });
 
 
-test('Codex sandbox has a startup probe and Landlock fallback without disabling the workspace-write sandbox', () => {
+test('Codex repairs and checks the host bubblewrap/AppArmor sandbox before bounded execution', () => {
   assert.match(workflow, /id: sandbox_preflight/);
-  assert.match(workflow, /codex --enable use_legacy_landlock sandbox linux -- \/bin\/pwd/);
-  assert.match(workflow, /codex --enable use_legacy_landlock exec --sandbox workspace-write/);
+  assert.match(workflow, /Repair and verify bubblewrap sandbox on existing WAVE runner/);
+  assert.match(workflow, /bubblewrap apparmor-profiles apparmor-utils/);
+  assert.match(workflow, /bwrap-userns-restrict/);
+  assert.match(workflow, /apparmor_parser -r/);
+  assert.match(workflow, /codex sandbox linux -- \/bin\/pwd/);
+  assert.match(workflow, /codex exec --sandbox workspace-write/);
+  assert.doesNotMatch(workflow, /use_legacy_landlock/);
   assert.doesNotMatch(workflow, /--sandbox danger-full-access/);
+  assert.match(workflow, /RUNNER_HOST_ADMIN_REQUIRED/);
   assert.match(workflow, /tail -n 30 "\$RUNNER_TEMP\/codex-sandbox-preflight\.log"/);
 });
 
