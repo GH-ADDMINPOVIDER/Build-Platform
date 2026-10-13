@@ -69,3 +69,14 @@ test('successful preflight cannot substitute for an actual Codex exit when publi
   assert.match(publish, /if \[\[ "\$\{CODEX_EXIT:-1\}" != "0" \]\]/);
   assert.doesNotMatch(publish, /steps\.(sandbox_preflight|openai_preflight)\.outputs/);
 });
+
+test('Codex stops before sandbox unless the existing key belongs to the configured OpenAI account', () => {
+  const account = workflow.split('      - name: Verify OpenAI API key account')[1]?.split('      - name: Verify existing runner sandbox')[0] || '';
+  assert.match(account, /vars.CODEX_EXPECTED_OPENAI_EMAIL/);
+  assert.match(account, /https:\/\/api\.openai\.com\/v1\/me/);
+  assert.match(account, /OPENAI_ACCOUNT_MATCH/);
+  assert.match(account, /OPENAI_ACCOUNT_MISMATCH/);
+  assert.match(workflow, /steps\.openai_account\.outcome == 'success'/);
+  assert.ok(workflow.indexOf('OPENAI_ACCOUNT_MATCH') < workflow.indexOf('codex sandbox /bin/pwd'));
+  assert.doesNotMatch(account, /console\.(log|error)\([^\n]*(user\.email|OPENAI_API_KEY|\$\{key\})/);
+});
