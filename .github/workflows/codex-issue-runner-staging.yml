@@ -149,13 +149,14 @@ jobs:
         if: steps.openai_preflight.outputs.exit_code == '0'
         shell: bash
         env:
-          EXPECTED_OPENAI_EMAIL: ${{ vars.CODEX_EXPECTED_OPENAI_EMAIL }}
+          EXPECTED_OPENAI_EMAIL_SHA256: ${{ vars.CODEX_EXPECTED_OPENAI_EMAIL_SHA256 }}
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
-          const expected = process.env.EXPECTED_OPENAI_EMAIL?.trim().toLowerCase();
+          const { createHash } = await import('node:crypto');
+          const expected = process.env.EXPECTED_OPENAI_EMAIL_SHA256?.trim().toLowerCase();
           const key = process.env.OPENAI_API_KEY;
-          if (!expected || !key) {
+          if (!/^[a-f0-9]{64}$/.test(expected || '') || !key) {
             console.error('OPENAI_ACCOUNT_VERIFICATION_NOT_CONFIGURED');
             process.exit(89);
           }
@@ -166,7 +167,9 @@ jobs:
             });
             if (!response.ok) throw new Error('ACCOUNT_API_UNAVAILABLE');
             const user = await response.json();
-            if (typeof user.email !== 'string' || user.email.trim().toLowerCase() !== expected) {
+            const actual = typeof user.email === 'string'
+              ? createHash('sha256').update(user.email.trim().toLowerCase()).digest('hex') : '';
+            if (actual !== expected) {
               console.error('OPENAI_ACCOUNT_MISMATCH');
               process.exit(89);
             }
