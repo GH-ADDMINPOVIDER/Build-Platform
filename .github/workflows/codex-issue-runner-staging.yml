@@ -110,30 +110,65 @@ jobs:
             exit 88
           }
           echo "Codex CLI: $version_output"
-          if ! command -v bwrap >/dev/null 2>&1 || ! command -v apparmor_parser >/dev/null 2>&1 || ! test -f /usr/share/apparmor/extra-profiles/bwrap-userns-restrict; then
-            if ! sudo -n true >/dev/null 2>&1; then
-              echo "exit_code=89" >> "$GITHUB_OUTPUT"
-              {
-                echo "RUNNER_HOST_ADMIN_REQUIRED"
-                echo "wave-runner-01 needs sudo access to install bubblewrap/AppArmor profile prerequisites."
-                echo "No repository, secret, deployment, or runner service was changed by this step."
-              } > "$RUNNER_TEMP/codex-summary.txt"
-              exit 89
-            fi
-            timeout 180s sudo -n apt-get update
-            timeout 180s sudo -n apt-get install -y bubblewrap apparmor-profiles apparmor-utils
-          fi
           profile_source="/usr/share/apparmor/extra-profiles/bwrap-userns-restrict"
           profile_target="/etc/apparmor.d/bwrap-userns-restrict"
-          if [[ ! -f "$profile_source" ]]; then
+          sudo_available=0
+          sudo_n_success=0
+          if command -v sudo >/dev/null 2>&1; then sudo_available=1; fi
+          if [[ "$EUID" -eq 0 ]]; then
+            sudo_n_success=1
+          elif [[ "$sudo_available" == "1" ]] && sudo -n true >/dev/null 2>&1; then
+            sudo_n_success=1
+          fi
+          bwrap_present=0; command -v bwrap >/dev/null 2>&1 && bwrap_present=1
+          parser_present=0; command -v apparmor_parser >/dev/null 2>&1 && parser_present=1
+          source_present=0; [[ -f "$profile_source" ]] && source_present=1
+          target_present=0; [[ -f "$profile_target" ]] && target_present=1
+          profile_loaded=0
+          if [[ -r /sys/kernel/security/apparmor/profiles ]] && grep -Fq 'bwrap-userns-restrict' /sys/kernel/security/apparmor/profiles; then profile_loaded=1; fi
+          target_matches=0
+          if [[ "$source_present" == "1" && "$target_present" == "1" ]] && cmp -s "$profile_source" "$profile_target"; then target_matches=1; fi
+          need_packages=0
+          if [[ "$bwrap_present" != "1" || "$parser_present" != "1" || ("$profile_loaded" != "1" && "$source_present" != "1") ]]; then need_packages=1; fi
+          need_admin=0
+          if [[ "$need_packages" == "1" || "$profile_loaded" != "1" || "$target_matches" != "1" ]]; then need_admin=1; fi
+          if [[ "$need_admin" == "1" && "$sudo_n_success" != "1" ]]; then
+            echo "exit_code=89" >> "$GITHUB_OUTPUT"
+            {
+              echo "RUNNER_HOST_ADMIN_REQUIRED"
+              echo "uid=$EUID"
+              echo "sudo_available=$sudo_available"
+              echo "sudo_noninteractive=$sudo_n_success"
+              echo "bwrap_present=$bwrap_present"
+              echo "apparmor_parser_present=$parser_present"
+              echo "profile_source_present=$source_present"
+              echo "profile_target_present=$target_present"
+              echo "profile_loaded=$profile_loaded"
+              echo "profile_target_matches_source=$target_matches"
+              echo "No repository, secret, deployment, or runner service was changed."
+            } > "$RUNNER_TEMP/codex-summary.txt"
+            exit 89
+          fi
+          run_admin() { if [[ "$EUID" -eq 0 ]]; then "$@"; else sudo -n "$@"; fi; }
+          if [[ "$need_packages" == "1" ]]; then
+            timeout 180s run_admin apt-get update
+            timeout 180s run_admin apt-get install -y bubblewrap apparmor-profiles apparmor-utils
+            bwrap_present=0; command -v bwrap >/dev/null 2>&1 && bwrap_present=1
+            parser_present=0; command -v apparmor_parser >/dev/null 2>&1 && parser_present=1
+            source_present=0; [[ -f "$profile_source" ]] && source_present=1
+          fi
+          if [[ "$bwrap_present" != "1" || "$parser_present" != "1" || "$source_present" != "1" ]]; then
             echo "exit_code=90" >> "$GITHUB_OUTPUT"
             echo "APPARMOR_BWRAP_PROFILE_PACKAGE_MISSING" > "$RUNNER_TEMP/codex-summary.txt"
             exit 90
           fi
           if [[ ! -f "$profile_target" ]] || ! cmp -s "$profile_source" "$profile_target"; then
-            sudo -n install -m 0644 "$profile_source" "$profile_target"
+            run_admin install -m 0644 "$profile_source" "$profile_target"
+            target_matches=0
           fi
-          sudo -n apparmor_parser -r "$profile_target"
+          if [[ "$profile_loaded" != "1" || "$target_matches" != "1" ]]; then
+            run_admin apparmor_parser -r "$profile_target"
+          fi
           set +e
           codex sandbox linux -- /bin/pwd 2>&1 | tee "$RUNNER_TEMP/codex-sandbox-preflight.log"
           rc=${PIPESTATUS[0]}

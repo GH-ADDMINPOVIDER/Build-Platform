@@ -42,6 +42,9 @@ test('Codex repairs and checks the host bubblewrap/AppArmor sandbox before bound
   assert.doesNotMatch(workflow, /use_legacy_landlock/);
   assert.doesNotMatch(workflow, /--sandbox danger-full-access/);
   assert.match(workflow, /RUNNER_HOST_ADMIN_REQUIRED/);
+  assert.match(workflow, /sudo_noninteractive=\$sudo_n_success/);
+  assert.match(workflow, /if \[\[ "\$EUID" -eq 0 \]\]/);
+  assert.match(workflow, /profile_loaded=\$profile_loaded/);
   assert.match(workflow, /tail -n 30 "\$RUNNER_TEMP\/codex-sandbox-preflight\.log"/);
 });
 
