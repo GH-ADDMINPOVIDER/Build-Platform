@@ -145,11 +145,15 @@ The current diagram pair is a **consolidated proposal/evidence map for PR #24**,
 | PR #24 CI | `BLOCKED / INCONCLUSIVE` | Run #214 failed in 3 seconds, `runner_id=0`, `steps=[]`; execution never reached a test step |
 | Merge/Deploy/Secrets/D1 mutation | `NOT PERFORMED` | Explicitly outside this change's authority |
 
-### PR #24 Run #214
+### PR #24 CI — current snapshot
 
-[Validate and Bundle OGENIC Phase VI — Run #214](https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38422593560) failed in approximately three seconds with no steps and runner ID 0. The available evidence indicates failure before validation commands began, but it does not establish the platform root cause. It is not valid to label the new test file as failed based on this run.
+- [Run #214](https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38422593560) — failed in approximately three seconds, `runner_id=0`, `steps=[]`.
+- [Run #215](https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38425335411) — same result on current commit `8873e57c5a067fe8b9851cc257fd6a963d409331`: failure within seconds, `runner_id=0`, `steps=[]`; the log artifact was unavailable (`BlobNotFound`).
+- The Vercel Git integration also attempted a preview for this branch, then canceled it. Its deployment record links to Vercel's verified-commits configuration. This was an automatic preview side effect of the Git integration, not a manual production deployment; no Worker deploy was issued by this work.
 
-**Next required independent check:** use GS's Codex Work or another isolated local environment to run the exact PR SHA and capture actual command exit codes/logs. Review the current Runner/CI startup issue separately. Do not push fixes from GS into GT's branch; send evidence to GT.
+The available evidence points to failure before validation commands began, but does not establish a definitive root cause. It is not valid to label the new test file as failed based on these runs.
+
+**Next required independent check:** use GS's Codex Work or another isolated local environment to run the exact current PR SHA and capture actual command exit codes/logs. Review Runner/CI startup and Vercel verified-commit configuration separately. Do not push fixes from GS into GT's branch; send evidence to GT.
 
 ## Evidence boundaries
 
