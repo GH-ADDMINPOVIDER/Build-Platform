@@ -449,7 +449,7 @@ async function storeToken(
   const tokenHash = await sha256(token);
   const now = Date.now();
   await env.DB.prepare(
-    "INSERT INTO mcp_oauth_tokens(token_hash, client_id, agent_id, owner_id, resource, scope, token_type, expires_at, revoked_at, created_at) VALUES (?, ?, ?, 'ogenic-owner', ?, ?, ?, ?, NULL, ?),
+    "INSERT INTO mcp_oauth_tokens(token_hash, client_id, agent_id, owner_id, resource, scope, token_type, expires_at, revoked_at, created_at) VALUES (?, ?, ?, 'ogenic-owner', ?, ?, ?, ?, NULL, ?)" ,
   ).bind(tokenHash, clientId, agentId, RESOURCE, scope, kind, now + ttlSeconds * 1000, now).run();
   return token;
 }
@@ -517,7 +517,7 @@ async function tokenEndpoint(request: Request, env: WaveMcpOAuthBindings) {
       if (!refreshToken) return oauthError("invalid_request", "refresh_token is required.");
       const refreshHash = await sha256(refreshToken);
       const row = await env.DB.prepare(
-        "SELECT token_hash, client_id, agent_id, owner_id, resource, scope, token_type, expires_at, revoked_at FROM mcp_oauth_tokens WHERE token_hash = ? AND token_type = 'refresh' LIMIT 1,
+        "SELECT token_hash, client_id, agent_id, owner_id, resource, scope, token_type, expires_at, revoked_at FROM mcp_oauth_tokens WHERE token_hash = ? AND token_type = 'refresh' LIMIT 1" ,
       ).bind(refreshHash).first<Record<string, unknown>>();
       if (!row || row.client_id !== clientId || row.resource !== RESOURCE || Number(row.expires_at) <= Date.now() || row.revoked_at != null) {
         return oauthError("invalid_grant", "Refresh token expired, was revoked, or belongs to another client.");
