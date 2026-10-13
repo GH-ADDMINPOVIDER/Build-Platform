@@ -53,3 +53,15 @@ test('Codex task is pinned to the trigger SHA and does not receive the GitHub wr
   assert.match(workflow, /gh auth setup-git/);
   assert.match(workflow, /CODEX_EXIT_ZERO_WITH_NO_DIFF/);
 });
+
+
+test('hosted ephemeral fallback is restricted to the self-host sandbox/admin blocker and reuses Infisical', () => {
+  assert.ok(workflow.includes('execute-hosted-fallback'));
+  assert.ok(workflow.includes("needs.execute.outputs.sandbox_exit_code"));
+  assert.ok(workflow.includes('runs-on: ubuntu-latest'));
+  assert.ok(workflow.includes('uses: Infisical/secrets-action@v1.0.17'));
+  assert.ok(workflow.includes('codex exec --sandbox workspace-write'));
+  assert.ok(workflow.includes('No merge, production deployment, migration, secret change, or D1 schema change'));
+  assert.doesNotMatch(workflow, /gh pr merge/);
+  assert.doesNotMatch(workflow, /wrangler deploy/);
+});
