@@ -1,0 +1,18 @@
+{
+  "base_sha": "96e0f7ae8bf5de0fb970db2dccc8f7f81d625a10",
+  "branch": "codex/oge-25-38466079874",
+  "status": "LOCAL_TESTED_ACTIVATION_BLOCKED",
+  "runtime_verified": false,
+  "committed": false,
+  "files_sha256": {
+    ".github/workflows/codex-issue-runner-staging.yml": "d62791bc2b4b8a85a80dea92a0045d934128622cdc252034757cf1c92ffdd304",
+    "scripts/codex-request.mjs": "b8fe808f0dc8d2a514cfc04fe4ac7eea3a06ab60d58757c80a8bbe9177a530f5",
+    "tests/codex-request.test.mjs": "f8d976af853b82b5412e0bb4b8d2d7195b507a8973959d29309e6e0a168983d6",
+    "tests/codex-shared-entry-workflow.test.mjs": "0185987cbeae6810083cfb38440af9d3dee190c8d32f9b524efc3040c9818e0a",
+    "docs/integrations/CODEX_SHARED_ENTRY.md": "ad945d11675401877c9df17315298e026c79d4e3811e4c4ffb1dc2c124467014",
+    "docs/evidence/codex-shared-entry-25/README.md": "991ed309ea2810a11ec0ed6d58aedf5bc5ca7cf06f59b06ead22133c22b59084",
+    "docs/evidence/codex-shared-entry-25/circuit.mmd": "c4276399c2c90744d7a4f11917e16936738d432f529c4108fbd13f84d56ebce2",
+    "docs/evidence/codex-shared-entry-25/circuit.svg": "2d429ebbf10d320a7313a349eb6befa5c443359204f511f10b3aaea93ad7364a",
+    "docs/evidence/codex-shared-entry-25/skill-read-receipt.json": "39b584d99a40dca34d5b57c160deca24c8e85cfc03561ca7337255b33e6c9d8a"
+  }
+}

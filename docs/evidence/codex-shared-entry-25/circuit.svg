@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="960" viewBox="0 0 1000 960" role="img" aria-labelledby="title desc">
+<title id="title">Proposed shared Codex entry, source only</title>
+<desc id="desc">Deterministic rendering of circuit.mmd. Activation blocked and runtime not verified. Every validation failure stops admission.</desc>
+<metadata>circuit.mmd sha256: c4276399c2c90744d7a4f11917e16936738d432f529c4108fbd13f84d56ebce2</metadata>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10Z" fill="#333"/></marker></defs>
+<rect width="1000" height="960" fill="white"/>
+<text x="500" y="40" text-anchor="middle" font-family="sans-serif" font-size="24">Shared Codex entry: proposed source circuit</text>
+<text x="500" y="70" text-anchor="middle" font-family="sans-serif" font-size="16">Activation BLOCKED / runtime NOT VERIFIED / no main changes</text>
+<path d="M500 166 V196" stroke="#333" fill="none" marker-end="url(#arrow)"/>
+<path d="M500 256 V286" stroke="#333" fill="none" marker-end="url(#arrow)"/>
+<path d="M500 346 V376" stroke="#333" fill="none" marker-end="url(#arrow)"/>
+<path d="M500 436 V466" stroke="#333" fill="none" marker-end="url(#arrow)"/>
+<path d="M500 526 V556" stroke="#333" fill="none" marker-end="url(#arrow)"/>
+<path d="M500 616 V646" stroke="#333" fill="none" marker-end="url(#arrow)"/>
+<path d="M500 706 V736" stroke="#333" fill="none" marker-end="url(#arrow)"/>
+<path d="M500 796 V826" stroke="#333" fill="none" marker-end="url(#arrow)"/>
+<rect x="70" y="110" width="860" height="56" rx="6" fill="#f4f4f4" stroke="#333"/>
+<text x="500" y="144" text-anchor="middle" font-family="sans-serif" font-size="17">Reviewed issue + source SHA + task digest + confirmation</text>
+<rect x="70" y="200" width="860" height="56" rx="6" fill="#f4f4f4" stroke="#333"/>
+<text x="500" y="234" text-anchor="middle" font-family="sans-serif" font-size="17">GitHub user ID allowlist + live write permission</text>
+<rect x="70" y="290" width="860" height="56" rx="6" fill="#f4f4f4" stroke="#333"/>
+<text x="500" y="324" text-anchor="middle" font-family="sans-serif" font-size="17">Exact staging ref and SHA + bounded issue snapshot</text>
+<rect x="70" y="380" width="860" height="56" rx="6" fill="#f4f4f4" stroke="#333"/>
+<text x="500" y="414" text-anchor="middle" font-family="sans-serif" font-size="17">Atomic request ref: duplicate or uncertain means STOP</text>
+<rect x="70" y="470" width="860" height="56" rx="6" fill="#f4f4f4" stroke="#333"/>
+<text x="500" y="504" text-anchor="middle" font-family="sans-serif" font-size="17">Check-in receipt / owner-main pointer / context unavailable</text>
+<rect x="70" y="560" width="860" height="56" rx="6" fill="#f4f4f4" stroke="#333"/>
+<text x="500" y="594" text-anchor="middle" font-family="sans-serif" font-size="17">Existing binding + read-only sandbox preflight / failure STOP</text>
+<rect x="70" y="650" width="860" height="56" rx="6" fill="#f4f4f4" stroke="#333"/>
+<text x="500" y="684" text-anchor="middle" font-family="sans-serif" font-size="17">One Codex call / isolated branch / 45-minute timeout</text>
+<rect x="70" y="740" width="860" height="56" rx="6" fill="#f4f4f4" stroke="#333"/>
+<text x="500" y="774" text-anchor="middle" font-family="sans-serif" font-size="17">Actual exit + source recheck / draft PR only</text>
+<rect x="70" y="830" width="860" height="56" rx="6" fill="#f4f4f4" stroke="#333"/>
+<text x="500" y="864" text-anchor="middle" font-family="sans-serif" font-size="17">Check-out / Ruby pending / no Green retention or deployment</text>
+<text x="500" y="935" text-anchor="middle" font-family="sans-serif" font-size="14">2a-CODEX-GT-GS-SHARED-ENTRY / GitHub #25 / no OGE closure claimed</text>
+</svg>

@@ -1,0 +1,18 @@
+flowchart TD
+  A["Reviewed issue + source SHA + task digest + confirmation"]
+  B["GitHub user ID allowlist + live write permission"]
+  C["Exact staging ref and SHA + bounded issue snapshot"]
+  D["Atomic request ref: duplicate or uncertain means STOP"]
+  E["Check-in receipt / owner-main pointer / context unavailable"]
+  F["Existing binding + read-only sandbox preflight / failure STOP"]
+  G["One Codex call / isolated branch / 45-minute timeout"]
+  H["Actual exit + source recheck / draft PR only"]
+  I["Check-out / Ruby pending / no Green retention or deployment"]
+  A --> B
+  B --> C
+  C --> D
+  D --> E
+  E --> F
+  F --> G
+  G --> H
+  H --> I
