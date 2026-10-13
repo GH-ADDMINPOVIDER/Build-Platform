@@ -18,7 +18,7 @@ jobs:
   prove:
     if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/oge-25-38466079874' && github.base_ref == 'phase-vi-provider-incentive-metering'
     runs-on: [self-hosted, Linux, X64, wave]
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,3 +39,10 @@ jobs:
           codex --version
           codex sandbox /bin/pwd
           echo CODEX_BWRAP_APPARMOR_SANDBOX_OK
+      - name: Install dependencies and run full tests, typecheck, build
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund
+          npm run check
+          python3 scripts/validate_toolkit.py
