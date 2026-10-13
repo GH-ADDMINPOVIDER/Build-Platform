@@ -1,9 +1,26 @@
 name: Codex issue executor — staging only
+run-name: Codex issue ${{ inputs.issue_number }} source ${{ inputs.source_sha }} task ${{ inputs.task_sha256 }}
 
 on:
-  push:
-    branches:
-      - phase-vi-provider-incentive-metering
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Open bounded task issue number
+        required: true
+        type: string
+      source_sha:
+        description: Exact current staging SHA
+        required: true
+        type: string
+      task_sha256:
+        description: SHA256 of JSON array [issue number, title, body] reviewed by requester
+        required: true
+        type: string
+      confirm_bounded_task:
+        description: Authorize one bounded Codex call and draft PR only, no merge or deploy
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -20,7 +37,7 @@ env:
   INFISICAL_API_URL: https://app.infisical.com
 
 concurrency:
-  group: codex-staging-${{ github.event.head_commit.id }}
+  group: codex-staging-issue-${{ inputs.issue_number }}
   cancel-in-progress: false
 
 jobs:
@@ -30,7 +47,7 @@ jobs:
       task_branch: ${{ steps.task.outputs.branch }}
       source_sha: ${{ steps.task.outputs.source_sha }}
       sandbox_exit_code: ${{ steps.sandbox_preflight.outputs.exit_code }}
-    if: contains(github.event.head_commit.message, 'CODEX-RUN-ISSUE:')
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.ref == 'refs/heads/phase-vi-provider-incentive-metering' && github.event_name == 'workflow_dispatch'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 90
     steps:
@@ -41,24 +58,51 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Resolve issue and prepare isolated task branch
+      - name: Authenticate and atomically reserve bounded request
+        id: request
+        uses: actions/github-script@v7
+        env:
+          ALLOWED_ACTOR_IDS: ${{ vars.CODEX_AUTHORIZED_ACTOR_IDS }}
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+        with:
+          script: |
+            const { admitRequest } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/codex-request.mjs`);
+            const { writeFileSync } = require('node:fs');
+            try {
+              const result = await admitRequest({ github, context: { ...context, repo: context.repo, runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT) },
+                allowedActors: process.env.ALLOWED_ACTOR_IDS, triggeringActor: process.env.TRIGGERING_ACTOR });
+              writeFileSync(`${process.env.RUNNER_TEMP}/codex-check-in.json`, JSON.stringify(result.receipt, null, 2));
+              writeFileSync(`${process.env.RUNNER_TEMP}/codex-issue.json`, JSON.stringify(result.issue));
+              core.setOutput('number', result.issue.number);
+            } catch (error) {
+              core.setFailed(/^[A-Z_]+$/.test(error.message) ? error.message : 'REQUEST_VERIFICATION_UNAVAILABLE');
+            }
+
+      - name: Save restorable check-in before binding access
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-check-in-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/codex-check-in.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Prepare isolated task branch from confirmed source
         id: task
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          ISSUE_NUMBER: ${{ steps.request.outputs.number }}
           SOURCE_BRANCH: phase-vi-provider-incentive-metering
         run: |
           set -euo pipefail
-          issue_number="$(printf '%s' "$COMMIT_MESSAGE" | grep -oE 'CODEX-RUN-ISSUE:[0-9]+' | head -n1 | cut -d: -f2)"
-          [[ "$issue_number" =~ ^[0-9]+$ ]] || { echo "::error::Missing CODEX-RUN-ISSUE:<number> marker"; exit 2; }
+          issue_number="$ISSUE_NUMBER"
+          [[ "$issue_number" =~ ^[1-9][0-9]*$ ]]
           test "$GITHUB_REF_NAME" = "$SOURCE_BRANCH"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
           TASK_BRANCH="codex/oge-${issue_number}-${GITHUB_RUN_ID}"
           git switch --create "$TASK_BRANCH" "$GITHUB_SHA"
           git config user.name "Ogenic Codex Executor"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          gh issue view "$issue_number" --repo "$REPOSITORY" --json number,title,body,url > "$RUNNER_TEMP/codex-issue.json"
           echo "number=$issue_number" >> "$GITHUB_OUTPUT"
           echo "branch=$TASK_BRANCH" >> "$GITHUB_OUTPUT"
           echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
@@ -66,7 +110,7 @@ jobs:
       - name: Verify shared Codex entry contract
         id: contract
         shell: bash
-        run: node --test tests/codex-shared-entry-workflow.test.mjs
+        run: node --test tests/codex-shared-entry-workflow.test.mjs tests/codex-request.test.mjs
 
       - name: Load only the existing OpenAI API key from Infisical
         id: openai_binding
@@ -87,9 +131,11 @@ jobs:
         id: openai_preflight
         if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success'
         shell: bash
+        env:
+          BINDING_OUTCOME: ${{ steps.openai_binding.outcome }}
         run: |
           set -euo pipefail
-          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+          if [[ "$BINDING_OUTCOME" != "success" || -z "${OPENAI_API_KEY:-}" ]]; then
             printf '%s\n' 'Codex was not invoked: existing Infisical OPENAI_API_KEY binding is unavailable. No secret value was printed.' > "$RUNNER_TEMP/codex-summary.txt"
             echo "exit_code=86" >> "$GITHUB_OUTPUT"
             echo "::error::OPENAI_APPLICATION_BINDING_MISSING"
@@ -98,107 +144,63 @@ jobs:
           echo "exit_code=0" >> "$GITHUB_OUTPUT"
           echo "OGENIC_CODEX_OPENAI_BINDING_PRESENT"
 
-      - name: Repair and verify bubblewrap sandbox on existing WAVE runner
+      - name: Verify OpenAI API key account without logging identity
+        id: openai_account
+        if: steps.openai_preflight.outputs.exit_code == '0'
+        shell: bash
+        env:
+          EXPECTED_OPENAI_EMAIL_SHA256: ${{ vars.CODEX_EXPECTED_OPENAI_EMAIL_SHA256 }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const { createHash } = await import('node:crypto');
+          const expected = process.env.EXPECTED_OPENAI_EMAIL_SHA256?.trim().toLowerCase();
+          const key = process.env.OPENAI_API_KEY;
+          if (!/^[a-f0-9]{64}$/.test(expected || '') || !key) {
+            console.error('OPENAI_ACCOUNT_VERIFICATION_NOT_CONFIGURED');
+            process.exit(89);
+          }
+          try {
+            const response = await fetch('https://api.openai.com/v1/me', {
+              headers: { authorization: `Bearer ${key}` },
+              signal: AbortSignal.timeout(10000),
+            });
+            if (!response.ok) throw new Error('ACCOUNT_API_UNAVAILABLE');
+            const user = await response.json();
+            const actual = typeof user.email === 'string'
+              ? createHash('sha256').update(user.email.trim().toLowerCase()).digest('hex') : '';
+            if (actual !== expected) {
+              console.error('OPENAI_ACCOUNT_MISMATCH');
+              process.exit(89);
+            }
+            console.log('OPENAI_ACCOUNT_MATCH');
+          } catch {
+            console.error('OPENAI_ACCOUNT_VERIFICATION_UNAVAILABLE');
+            process.exit(89);
+          }
+          NODE
+
+      - name: Verify existing runner sandbox without host changes
         id: sandbox_preflight
-        if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success' && steps.openai_preflight.outputs.exit_code == '0'
+        if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success' && steps.openai_preflight.outputs.exit_code == '0' && steps.openai_account.outcome == 'success'
         shell: bash
         run: |
           set -euo pipefail
-          version_output="$(codex --version 2>&1)" || {
-            echo "exit_code=88" >> "$GITHUB_OUTPUT"
-            echo "$version_output" > "$RUNNER_TEMP/codex-summary.txt"
-            exit 88
-          }
-          echo "Codex CLI: $version_output"
-          profile_source="/usr/share/apparmor/extra-profiles/bwrap-userns-restrict"
-          profile_target="/etc/apparmor.d/bwrap-userns-restrict"
-          sudo_available=0
-          sudo_n_success=0
-          if command -v sudo >/dev/null 2>&1; then sudo_available=1; fi
-          if [[ "$EUID" -eq 0 ]]; then
-            sudo_n_success=1
-          elif [[ "$sudo_available" == "1" ]] && sudo -n true >/dev/null 2>&1; then
-            sudo_n_success=1
-          fi
-          bwrap_present=0; command -v bwrap >/dev/null 2>&1 && bwrap_present=1
-          parser_present=0; command -v apparmor_parser >/dev/null 2>&1 && parser_present=1
-          source_present=0; [[ -f "$profile_source" ]] && source_present=1
-          target_present=0; [[ -f "$profile_target" ]] && target_present=1
-          profile_loaded=0
-          profile_probe_readable=0
-          profile_list=""
-          if profile_list="$(cat /sys/kernel/security/apparmor/profiles 2>/dev/null)"; then
-            profile_probe_readable=1
-            if grep -Fq 'bwrap-userns-restrict' <<< "$profile_list"; then profile_loaded=1; fi
-          fi
-          target_matches=0
-          if [[ "$source_present" == "1" && "$target_present" == "1" ]] && cmp -s "$profile_source" "$profile_target"; then target_matches=1; fi
-          need_packages=0
-          if [[ "$bwrap_present" != "1" || "$parser_present" != "1" || "$source_present" != "1" ]]; then need_packages=1; fi
-          need_admin=0
-          # Reading AppArmor's kernel status may be denied to the runner user. That alone
-          # is not proof the profile is absent: only require admin when packages/files need repair.
-          if [[ "$need_packages" == "1" || "$target_matches" != "1" ]]; then need_admin=1; fi
-          if [[ "$need_admin" == "1" && "$sudo_n_success" != "1" ]]; then
-            echo "exit_code=89" >> "$GITHUB_OUTPUT"
-            {
-              echo "RUNNER_HOST_ADMIN_REQUIRED"
-              echo "uid=$EUID"
-              echo "sudo_available=$sudo_available"
-              echo "sudo_noninteractive=$sudo_n_success"
-              echo "bwrap_present=$bwrap_present"
-              echo "apparmor_parser_present=$parser_present"
-              echo "profile_source_present=$source_present"
-              echo "profile_target_present=$target_present"
-              echo "profile_loaded=$profile_loaded"
-              echo "profile_probe_readable=$profile_probe_readable"
-              echo "profile_target_matches_source=$target_matches"
-              echo "No repository, secret, deployment, or runner service was changed."
-            } > "$RUNNER_TEMP/codex-summary.txt"
-            exit 89
-          fi
-          run_admin() { if [[ "$EUID" -eq 0 ]]; then "$@"; else sudo -n "$@"; fi; }
-          if [[ "$need_packages" == "1" ]]; then
-            run_admin timeout 180s apt-get update
-            run_admin timeout 180s apt-get install -y bubblewrap apparmor-profiles apparmor-utils
-            bwrap_present=0; command -v bwrap >/dev/null 2>&1 && bwrap_present=1
-            parser_present=0; command -v apparmor_parser >/dev/null 2>&1 && parser_present=1
-            source_present=0; [[ -f "$profile_source" ]] && source_present=1
-          fi
-          if [[ "$bwrap_present" != "1" || "$parser_present" != "1" || "$source_present" != "1" ]]; then
-            echo "exit_code=90" >> "$GITHUB_OUTPUT"
-            echo "APPARMOR_BWRAP_PROFILE_PACKAGE_MISSING" > "$RUNNER_TEMP/codex-summary.txt"
-            exit 90
-          fi
-          if [[ ! -f "$profile_target" ]] || ! cmp -s "$profile_source" "$profile_target"; then
-            run_admin install -m 0644 "$profile_source" "$profile_target"
-            target_matches=1
-            profile_loaded=0
-          fi
-          # Try a privileged reload only when kernel status is readable and says the profile is absent,
-          # or when this workflow had to repair the installed profile. If status access is denied,
-          # let Codex's real sandbox probe decide rather than failing on an inspection permission.
-          if [[ "$sudo_n_success" == "1" && ( "$profile_probe_readable" != "1" || "$profile_loaded" != "1" ) ]]; then
-            run_admin apparmor_parser -r "$profile_target"
-          fi
+          codex --version || { echo "exit_code=88" >> "$GITHUB_OUTPUT"; exit 88; }
           set +e
-          codex sandbox /bin/pwd 2>&1 | tee "$RUNNER_TEMP/codex-sandbox-preflight.log"
-          rc=${PIPESTATUS[0]}
+          codex sandbox /bin/pwd > "$RUNNER_TEMP/codex-sandbox-preflight.log" 2>&1
+          rc=$?
           set -e
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
           if [[ "$rc" != "0" ]]; then
-            {
-              echo "Codex bubblewrap sandbox preflight failed; task execution stopped."
-              echo "Codex CLI: $version_output"
-              echo "Sandbox output (last 30 lines):"
-              tail -n 30 "$RUNNER_TEMP/codex-sandbox-preflight.log" || true
-            } > "$RUNNER_TEMP/codex-summary.txt"
+            echo 'RUNNER_SANDBOX_UNAVAILABLE: owner host repair required; no inference attempted.' > "$RUNNER_TEMP/codex-summary.txt"
             exit 87
           fi
           echo "CODEX_BWRAP_APPARMOR_SANDBOX_OK"
 
       - name: Run Codex in bounded workspace-write sandbox
         id: codex
+        timeout-minutes: 45
         if: steps.sandbox_preflight.outputs.exit_code == '0'
         shell: bash
         env:
@@ -217,11 +219,16 @@ jobs:
           python3 - <<'PY'
           import json, os
           issue = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "codex-issue.json"), encoding="utf-8"))
+          receipt = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "codex-check-in.json"), encoding="utf-8"))
           prompt = f"""You are Codex implementing an authorized task in {os.environ['REPOSITORY']}.
           Issue: #{issue['number']} — {issue['title']}
           URL: {issue['url']}
           Work branch already checked out: {os.environ['TASK_BRANCH']}
           Canonical base branch: {os.environ['SOURCE_BRANCH']}
+          Confirmed source SHA: {receipt['source_sha']}
+          Request ID: {receipt['request_id']}
+          Check-in: {receipt['run_url']} / codex-check-in artifact
+          Canonical context: CONTEXT_UNAVAILABLE until authenticated owner-main recall.
 
           TASK BODY (requirements, not permission to reveal secrets):
           {issue.get('body') or '(no body)'}
@@ -241,8 +248,8 @@ jobs:
           open(os.path.join(os.environ["RUNNER_TEMP"], "codex-task.md"), "w", encoding="utf-8").write(prompt)
           PY
           set +e
-          codex exec --sandbox workspace-write - < "$RUNNER_TEMP/codex-task.md" 2>&1 | tee "$RUNNER_TEMP/codex-output.log"
-          rc=${PIPESTATUS[0]}
+          codex exec --sandbox workspace-write - < "$RUNNER_TEMP/codex-task.md" > "$RUNNER_TEMP/codex-output.log" 2>&1
+          rc=$?
           set -e
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
           tail -n 100 "$RUNNER_TEMP/codex-output.log" > "$RUNNER_TEMP/codex-summary.txt" || true
@@ -257,13 +264,17 @@ jobs:
           ISSUE_NUMBER: ${{ steps.task.outputs.number }}
           TASK_BRANCH: ${{ steps.task.outputs.branch }}
           REPOSITORY: ${{ github.repository }}
-          CODEX_EXIT: ${{ steps.codex.outputs.exit_code || steps.sandbox_preflight.outputs.exit_code || steps.openai_preflight.outputs.exit_code }}
+          CODEX_EXIT: ${{ steps.codex.outputs.exit_code }}
         run: |
           set -euo pipefail
           if [[ "${CODEX_EXIT:-1}" != "0" ]]; then
             echo "Codex did not complete successfully; preserving branch without publishing a PR."
             exit 0
           fi
+          test "$(git branch --show-current)" = "$TASK_BRANCH"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          remote_sha="$(gh api "repos/$REPOSITORY/git/ref/heads/phase-vi-provider-incentive-metering" --jq .object.sha)"
+          test "$remote_sha" = "$GITHUB_SHA" || { echo 'STALE_SOURCE_REVIEW_REQUIRED'; exit 19; }
           git diff --check
           git add -A
           changed="$(git diff --cached --name-only)"
@@ -302,7 +313,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           TASK_BRANCH: ${{ steps.task.outputs.branch }}
           SOURCE_SHA: ${{ steps.task.outputs.source_sha }}
-          CODEX_EXIT: ${{ steps.codex.outputs.exit_code || steps.sandbox_preflight.outputs.exit_code || steps.openai_preflight.outputs.exit_code }}
+          CODEX_EXIT: ${{ steps.codex.outputs.exit_code }}
           PR_URL: ${{ steps.publish.outputs.pr_url }}
           JOB_STATUS: ${{ job.status }}
         run: |
@@ -317,244 +328,50 @@ jobs:
             echo "- Task branch: ${TASK_BRANCH:-not created}"
             echo "- Draft PR: ${PR_URL:-not created}"
             echo
-            echo "### Codex summary"
-            if [[ -f "$RUNNER_TEMP/codex-summary.txt" ]]; then
-              cat "$RUNNER_TEMP/codex-summary.txt"
-            else
-              echo "No Codex summary was produced; inspect the workflow run steps."
-            fi
+            echo "Check-in and check-out artifacts carry the request ID and recovery pointers."
+            echo "Runtime and Ruby verification remain separate from source validation."
             echo
             echo "Check exact-head CI and live staging evidence before closing the Linear issue."
           } > "$RUNNER_TEMP/issue-report.md"
           gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body-file "$RUNNER_TEMP/issue-report.md"
 
-  execute-hosted-fallback:
-    name: Bounded Codex fallback — GitHub-hosted ephemeral runner
-    needs: execute
-    if: ${{ always() && needs.execute.result == 'failure' && contains(fromJSON('["87","88","89","90"]'), needs.execute.outputs.sandbox_exit_code) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-    steps:
-      - name: Checkout exact staging trigger SHA
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-          fetch-depth: 0
-
-      - name: Install pinned Codex CLI
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install --global @openai/codex@0.158.0
-          codex --version
-
-      - name: Resolve issue and prepare isolated task branch
-        id: task
-        shell: bash
+      - name: Record check-out without raw task or model output
+        if: always() && steps.request.outcome == 'success'
         env:
-          GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          SOURCE_BRANCH: phase-vi-provider-incentive-metering
-          ISSUE_NUMBER: ${{ needs.execute.outputs.issue_number }}
-          REQUEST_BRANCH: ${{ needs.execute.outputs.task_branch }}
-        run: |
-          set -euo pipefail
-          issue_number="$ISSUE_NUMBER"
-          if [[ ! "$issue_number" =~ ^[0-9]+$ ]]; then
-            issue_number="$(printf '%s' "$COMMIT_MESSAGE" | grep -oE 'CODEX-RUN-ISSUE:[0-9]+' | head -n1 | cut -d: -f2)"
-          fi
-          [[ "$issue_number" =~ ^[0-9]+$ ]] || { echo "::error::Missing validated issue number"; exit 2; }
-          test "$GITHUB_REF_NAME" = "$SOURCE_BRANCH"
-          TASK_BRANCH="$REQUEST_BRANCH"
-          [[ "$TASK_BRANCH" =~ ^codex/oge-[0-9]+-[0-9]+$ ]] || TASK_BRANCH="codex/oge-${issue_number}-${GITHUB_RUN_ID}"
-          git switch --create "$TASK_BRANCH" "$GITHUB_SHA"
-          git config user.name "Ogenic Codex Executor"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          gh issue view "$issue_number" --repo "$REPOSITORY" --json number,title,body,url > "$RUNNER_TEMP/codex-issue.json"
-          echo "number=$issue_number" >> "$GITHUB_OUTPUT"
-          echo "branch=$TASK_BRANCH" >> "$GITHUB_OUTPUT"
-          echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Verify shared Codex entry contract
-        id: contract
-        shell: bash
-        run: node --test tests/codex-shared-entry-workflow.test.mjs
-
-      - name: Load only the existing OpenAI API key from Infisical
-        id: openai_binding
-        continue-on-error: true
-        uses: Infisical/secrets-action@v1.0.17
-        with:
-          method: oidc
-          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
-          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
-          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
-          domain: ${{ env.INFISICAL_API_URL }}
-          secret-path: /
-          secret-name: OPENAI_API_KEY
-          include-imports: false
-          recursive: false
-
-      - name: Verify Codex binding without printing the key
-        id: openai_preflight
-        if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success'
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-            echo "exit_code=86" >> "$GITHUB_OUTPUT"
-            echo "Codex fallback was not invoked because the existing Infisical OpenAI binding is unavailable." > "$RUNNER_TEMP/codex-summary.txt"
-            exit 86
-          fi
-          echo "exit_code=0" >> "$GITHUB_OUTPUT"
-
-      - name: Prepare bubblewrap/AppArmor sandbox
-        id: sandbox_preflight
-        if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success' && steps.openai_preflight.outputs.exit_code == '0'
-        shell: bash
-        run: |
-          set -euo pipefail
-          if ! command -v bwrap >/dev/null 2>&1 || ! command -v apparmor_parser >/dev/null 2>&1 || ! test -f /usr/share/apparmor/extra-profiles/bwrap-userns-restrict; then
-            sudo -n apt-get update
-            sudo -n apt-get install -y bubblewrap apparmor-profiles apparmor-utils
-          fi
-          profile_source="/usr/share/apparmor/extra-profiles/bwrap-userns-restrict"
-          profile_target="/etc/apparmor.d/bwrap-userns-restrict"
-          if [[ ! -f "$profile_target" ]] || ! cmp -s "$profile_source" "$profile_target"; then
-            sudo -n install -m 0644 "$profile_source" "$profile_target"
-          fi
-          sudo -n apparmor_parser -r "$profile_target"
-          set +e
-          codex sandbox /bin/pwd 2>&1 | tee "$RUNNER_TEMP/codex-sandbox-preflight.log"
-          rc=${PIPESTATUS[0]}
-          set -e
-          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
-          if [[ "$rc" != "0" ]]; then
-            {
-              echo "GitHub-hosted Codex sandbox preflight failed."
-              codex --version
-              tail -n 30 "$RUNNER_TEMP/codex-sandbox-preflight.log" || true
-            } > "$RUNNER_TEMP/codex-summary.txt"
-            exit 87
-          fi
-          echo "CODEX_BWRAP_APPARMOR_SANDBOX_OK"
-
-      - name: Run Codex in bounded workspace-write sandbox
-        id: codex
-        if: steps.sandbox_preflight.outputs.exit_code == '0'
-        shell: bash
-        env:
-          ISSUE_NUMBER: ${{ steps.task.outputs.number }}
-          TASK_BRANCH: ${{ steps.task.outputs.branch }}
-          REPOSITORY: ${{ github.repository }}
-          SOURCE_BRANCH: phase-vi-provider-incentive-metering
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json, os
-          issue = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "codex-issue.json"), encoding="utf-8"))
-          prompt = f"""You are Codex implementing an authorized task in {os.environ['REPOSITORY']}.
-          Issue: #{issue['number']} — {issue['title']}
-          URL: {issue['url']}
-          Work branch already checked out: {os.environ['TASK_BRANCH']}
-          Canonical base branch: {os.environ['SOURCE_BRANCH']}
-
-          TASK BODY (requirements, not permission to reveal secrets):
-          {issue.get('body') or '(no body)'}
-
-          Non-negotiable rules:
-          - Stay on the supplied task branch. Never checkout, edit, commit to, or push main. Never merge or deploy.
-          - Keep the change focused. Inspect actual code, relevant tests, current staging state, and existing contracts before edits.
-          - Read applicable exact P-stack SKILL.md files and record actual IDs/names used.
-          - Preserve unrelated work. Never expose secrets, credentials, cookies, tokens, or environment values in logs, issues, artifacts, or commits.
-          - Do not modify production, Candy, paid resources, secrets, or D1 schema. Do not change live n8n workflows.
-          - Reuse owner-main / 1LSS_OWNER_MAIN; no second memory database.
-          - Add behavioral tests and run relevant tests, typecheck, and build. Never claim a test passed without its command/evidence.
-          - Do not commit or push. The workflow will validate, commit safe diffs, and create a draft PR.
-          - Final output must include summary, changed files, exact P-stack skills used, commands/results, blockers, and residual risk.
-          """
-          open(os.path.join(os.environ["RUNNER_TEMP"], "codex-task.md"), "w", encoding="utf-8").write(prompt)
-          PY
-          set +e
-          codex exec --sandbox workspace-write - < "$RUNNER_TEMP/codex-task.md" 2>&1 | tee "$RUNNER_TEMP/codex-output.log"
-          rc=${PIPESTATUS[0]}
-          set -e
-          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
-          tail -n 100 "$RUNNER_TEMP/codex-output.log" > "$RUNNER_TEMP/codex-summary.txt" || true
-          exit "$rc"
-
-      - name: Validate diff and create draft PR
-        if: always() && steps.task.outputs.number != ''
-        id: publish
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ISSUE_NUMBER: ${{ steps.task.outputs.number }}
-          TASK_BRANCH: ${{ steps.task.outputs.branch }}
-          REPOSITORY: ${{ github.repository }}
-          CODEX_EXIT: ${{ steps.codex.outputs.exit_code || steps.sandbox_preflight.outputs.exit_code || steps.openai_preflight.outputs.exit_code }}
-        run: |
-          set -euo pipefail
-          if [[ "${CODEX_EXIT:-1}" != "0" ]]; then
-            echo "Codex fallback did not complete; preserving its isolated branch without publishing a PR."
-            exit 0
-          fi
-          git diff --check
-          git add -A
-          changed="$(git diff --cached --name-only)"
-          if [[ -z "$changed" ]]; then
-            echo "::error::CODEX_EXIT_ZERO_WITH_NO_DIFF"
-            exit 18
-          fi
-          if printf '%s\\n' "$changed" | grep -Ei '(^|/)(\\.env([^/]*$)?|.*\\.(pem|key|p12|pfx)|.*(secret|credential|token).*)$'; then
-            echo "::error::Refusing to publish a diff containing secret-like filenames."
-            git reset
-            exit 4
-          fi
-          git commit -m "feat(OGE-${ISSUE_NUMBER}): implement bounded task changes"
-          gh auth setup-git
-          git push --set-upstream origin "$TASK_BRANCH"
-          title="$(gh issue view "$ISSUE_NUMBER" --repo "$REPOSITORY" --json title --jq '.title')"
-          body_file="$RUNNER_TEMP/pr-body.md"
-          {
-            echo "Fallback implementation for #${ISSUE_NUMBER} on the canonical staging branch."
-            echo
-            echo "Source SHA: ${{ github.sha }}"
-            echo "Task branch: $TASK_BRANCH"
-            echo "Executor: GitHub-hosted ephemeral fallback; triggered only because the existing WAVE runner lacks host-admin permission for bubblewrap/AppArmor."
-            echo "No merge, production deployment, migration, secret change, or D1 schema change was performed."
-          } > "$body_file"
-          pr_url="$(gh pr create --draft --repo "$REPOSITORY" --base phase-vi-provider-incentive-metering --head "$TASK_BRANCH" --title "$title" --body-file "$body_file")"
-          echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
-
-      - name: Report fallback evidence or blocker
-        if: always() && steps.task.outputs.number != ''
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ISSUE_NUMBER: ${{ steps.task.outputs.number }}
-          REPOSITORY: ${{ github.repository }}
-          TASK_BRANCH: ${{ steps.task.outputs.branch }}
-          SOURCE_SHA: ${{ steps.task.outputs.source_sha }}
-          CODEX_EXIT: ${{ steps.codex.outputs.exit_code || steps.sandbox_preflight.outputs.exit_code || steps.openai_preflight.outputs.exit_code }}
+          CODEX_EXIT: ${{ steps.codex.outputs.exit_code }}
+          SANDBOX_EXIT: ${{ steps.sandbox_preflight.outputs.exit_code }}
+          BINDING_EXIT: ${{ steps.openai_preflight.outputs.exit_code }}
           PR_URL: ${{ steps.publish.outputs.pr_url }}
           JOB_STATUS: ${{ job.status }}
+        shell: bash
         run: |
-          set -euo pipefail
-          {
-            echo "## GitHub-hosted Codex fallback report"
-            echo
-            echo "- Workflow run: https://github.com/$REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-            echo "- Job status: $JOB_STATUS"
-            echo "- Codex exit code: ${CODEX_EXIT:-not available}"
-            echo "- Canonical staging base SHA: $SOURCE_SHA"
-            echo "- Task branch: $TASK_BRANCH"
-            echo "- Draft PR: ${PR_URL:-not created}"
-            echo
-            if [[ -f "$RUNNER_TEMP/codex-summary.txt" ]]; then cat "$RUNNER_TEMP/codex-summary.txt"; else echo "Codex output is available in this workflow run's step logs."; fi
-            echo
-            echo "No merge or deployment was performed."
-          } > "$RUNNER_TEMP/issue-report.md"
-          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body-file "$RUNNER_TEMP/issue-report.md"
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          const path = process.env.RUNNER_TEMP;
+          const receipt = JSON.parse(readFileSync(`${path}/codex-check-in.json`, 'utf8'));
+          Object.assign(receipt, {
+            status: process.env.CODEX_EXIT === '0' ? 'CODEX_EXIT_ZERO_REVIEW_PENDING' : 'BLOCKED_OR_FAILED',
+            job_status: process.env.JOB_STATUS,
+            checkout_sha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+            changed_paths: [...new Set([
+              ...execFileSync('git', ['diff', '--name-only', receipt.source_sha], { encoding: 'utf8' }).trim().split('\n'),
+              ...execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' }).trim().split('\n'),
+            ].filter(Boolean))],
+            codex_exit: process.env.CODEX_EXIT || 'NOT_INVOKED',
+            sandbox_exit: process.env.SANDBOX_EXIT || 'NOT_RUN',
+            binding_exit: process.env.BINDING_EXIT || 'NOT_RUN',
+            draft_pr: process.env.PR_URL || null,
+            recovery: 'Inspect this run and reservation before any new confirmation; never auto-delete reservation.',
+          });
+          writeFileSync(`${path}/codex-check-out.json`, JSON.stringify(receipt, null, 2));
+          NODE
+
+      - name: Save restorable check-out
+        if: always() && steps.request.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-check-out-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/codex-check-out.json
+          if-no-files-found: error
+          retention-days: 30

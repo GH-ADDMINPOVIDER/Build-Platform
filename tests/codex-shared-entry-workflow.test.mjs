@@ -4,11 +4,17 @@ import { readFile } from 'node:fs/promises';
 
 const workflow = await readFile(new URL('../.github/workflows/codex-issue-runner-staging.yml', import.meta.url), 'utf8');
 
-test('shared Codex runner uses the existing staging-only entry path', () => {
-  assert.match(workflow, /branches:\s*\n\s*- phase-vi-provider-incentive-metering/);
-  assert.match(workflow, /CODEX-RUN-ISSUE:\[0-9\]\+/);
-  assert.match(workflow, /TASK_BRANCH="codex\/oge-\$\{issue_number\}-\$\{GITHUB_RUN_ID\}"/);
-  assert.match(workflow, /CODEX_EXIT: \$\{\{ steps\.codex\.outputs\.exit_code \|\| steps\.sandbox_preflight\.outputs\.exit_code \|\| steps\.openai_preflight\.outputs\.exit_code \}\}/);
+test('shared entry requires dispatch on exact staging ref and authenticates before binding', () => {
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /^  (push|issue_comment|pull_request_target):/m);
+  assert.match(workflow, /github.ref == 'refs\/heads\/phase-vi-provider-incentive-metering'/);
+  assert.match(workflow, /confirm_bounded_task:/);
+  assert.match(workflow, /vars.CODEX_AUTHORIZED_ACTOR_IDS/);
+  assert.match(workflow, /admitRequest/);
+  assert.ok(workflow.indexOf('admitRequest') < workflow.indexOf('uses: Infisical/'));
+  assert.match(workflow, /codex-check-in-/);
+  assert.match(workflow, /codex-check-out-/);
+  assert.match(workflow, /cancel-in-progress: false/);
 });
 
 test('Codex gets one existing Infisical secret and never overrides it with an empty GitHub secret', () => {
@@ -31,25 +37,12 @@ test('the invocation stays isolated and the workflow does not merge or deploy', 
 });
 
 
-test('Codex repairs and checks the host bubblewrap/AppArmor sandbox before bounded execution', () => {
-  assert.match(workflow, /id: sandbox_preflight/);
-  assert.match(workflow, /Repair and verify bubblewrap sandbox on existing WAVE runner/);
-  assert.match(workflow, /bubblewrap apparmor-profiles apparmor-utils/);
-  assert.match(workflow, /bwrap-userns-restrict/);
-  assert.match(workflow, /apparmor_parser -r/);
+test('sandbox failure stops without host mutation or automatic paid retry', () => {
   assert.match(workflow, /codex sandbox \/bin\/pwd/);
   assert.match(workflow, /codex exec --sandbox workspace-write/);
-  assert.doesNotMatch(workflow, /use_legacy_landlock/);
-  assert.doesNotMatch(workflow, /--sandbox danger-full-access/);
-  assert.match(workflow, /RUNNER_HOST_ADMIN_REQUIRED/);
-  assert.match(workflow, /sudo_noninteractive=\$sudo_n_success/);
-  assert.match(workflow, /if \[\[ "\$EUID" -eq 0 \]\]/);
-  assert.match(workflow, /profile_loaded=\$profile_loaded/);
-  assert.match(workflow, /profile_probe_readable=\$profile_probe_readable/);
-  assert.match(workflow, /Reading AppArmor's kernel status may be denied/);
-  assert.match(workflow, /need_packages" == "1" \|\| "\$target_matches" != "1/);
-  assert.match(workflow, /let Codex's real sandbox probe decide/);
-  assert.match(workflow, /tail -n 30 "\$RUNNER_TEMP\/codex-sandbox-preflight\.log"/);
+  assert.match(workflow, /RUNNER_SANDBOX_UNAVAILABLE/);
+  assert.match(workflow, /timeout-minutes: 45/);
+  assert.doesNotMatch(workflow, /sudo|apt-get|apparmor_parser|execute-hosted-fallback|danger-full-access/);
 });
 
 test('Codex task is pinned to the trigger SHA and does not receive the GitHub write token', () => {
@@ -62,13 +55,29 @@ test('Codex task is pinned to the trigger SHA and does not receive the GitHub wr
 });
 
 
-test('hosted ephemeral fallback is restricted to the self-host sandbox/admin blocker and reuses Infisical', () => {
-  assert.ok(workflow.includes('execute-hosted-fallback'));
-  assert.ok(workflow.includes("needs.execute.outputs.sandbox_exit_code"));
-  assert.ok(workflow.includes('runs-on: ubuntu-latest'));
-  assert.ok(workflow.includes('uses: Infisical/secrets-action@v1.0.17'));
-  assert.ok(workflow.includes('codex exec --sandbox workspace-write'));
-  assert.ok(workflow.includes('No merge, production deployment, migration, secret change, or D1 schema change'));
-  assert.doesNotMatch(workflow, /gh pr merge/);
-  assert.doesNotMatch(workflow, /wrangler deploy/);
+test('only confirmed issue snapshot reaches Codex and no deploy command exists', () => {
+  assert.doesNotMatch(workflow, /gh issue view.*--json number,title,body/);
+  assert.match(workflow, /codex-issue.json/);
+  assert.match(workflow, /STALE_SOURCE_REVIEW_REQUIRED/);
+  assert.doesNotMatch(workflow, /wrangler|npm run deploy|gh workflow run|repository_dispatch|git push.*main/);
+  assert.match(workflow, /canonical_context|Runtime and Ruby verification remain separate/);
+});
+
+test('successful preflight cannot substitute for an actual Codex exit when publishing', () => {
+  const publish = workflow.split('      - name: Validate diff and create draft PR')[1].split('      - name: Report evidence')[0];
+  assert.match(publish, /CODEX_EXIT: \$\{\{ steps\.codex\.outputs\.exit_code \}\}/);
+  assert.match(publish, /if \[\[ "\$\{CODEX_EXIT:-1\}" != "0" \]\]/);
+  assert.doesNotMatch(publish, /steps\.(sandbox_preflight|openai_preflight)\.outputs/);
+});
+
+test('Codex stops before sandbox unless the existing key belongs to the configured OpenAI account', () => {
+  const account = workflow.split('      - name: Verify OpenAI API key account')[1]?.split('      - name: Verify existing runner sandbox')[0] || '';
+  assert.match(account, /vars.CODEX_EXPECTED_OPENAI_EMAIL_SHA256/);
+  assert.match(account, /https:\/\/api\.openai\.com\/v1\/me/);
+  assert.match(account, /createHash\('sha256'\)/);
+  assert.match(account, /OPENAI_ACCOUNT_MATCH/);
+  assert.match(account, /OPENAI_ACCOUNT_MISMATCH/);
+  assert.match(workflow, /steps\.openai_account\.outcome == 'success'/);
+  assert.ok(workflow.indexOf('OPENAI_ACCOUNT_MATCH') < workflow.indexOf('codex sandbox /bin/pwd'));
+  assert.doesNotMatch(account, /console\.(log|error)\([^\n]*(user\.email|OPENAI_API_KEY|\$\{key\})/);
 });

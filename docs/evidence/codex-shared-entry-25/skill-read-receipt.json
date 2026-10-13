@@ -1,0 +1,38 @@
+{
+  "session": "codex/oge-25-38466079874",
+  "source_sha": "96e0f7ae8bf5de0fb970db2dccc8f7f81d625a10",
+  "skills_actually_read_and_applied": [
+    {
+      "number": 24,
+      "id": "principle-fix-root-causes",
+      "source_path": ".agents/skills/principle-fix-root-causes/SKILL.md",
+      "sha256": "ba4cd38da1dcc8fe5432feb64457cba95594736a9b21b2ebf8f8c52aee068707"
+    },
+    {
+      "number": 28,
+      "id": "principle-make-operations-idempotent",
+      "source_path": ".agents/skills/principle-make-operations-idempotent/SKILL.md",
+      "sha256": "540738217c3da7bf513b9886924ad6a2bc77e58be867f5bd2e1831c74bf2ce70"
+    },
+    {
+      "number": 34,
+      "id": "principle-prove-it-works",
+      "source_path": ".agents/skills/principle-prove-it-works/SKILL.md",
+      "sha256": "ec79a15025bac8d33d62011c54f3b612733fd2a024e623b531b3637aa75070e2"
+    },
+    {
+      "number": 39,
+      "id": "principle-test-behavior-not-implementation",
+      "source_path": ".agents/skills/principle-test-behavior-not-implementation/SKILL.md",
+      "sha256": "87e40efe4e486f7ea639d2ed1fc0abe6c93b8fd0e89a81218086909d2470a52e"
+    },
+    {
+      "number": 50,
+      "id": "unslop",
+      "source_path": ".agents/skills/unslop/SKILL.md",
+      "sha256": "195411d320b5b328f9f642baf59757ed19aaf0931c0838740e0aca273d538dc1"
+    }
+  ],
+  "runtime_verified": false,
+  "ruby": "PENDING"
+}
