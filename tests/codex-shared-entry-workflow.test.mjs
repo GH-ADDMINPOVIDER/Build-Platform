@@ -8,7 +8,7 @@ test('shared Codex runner uses the existing staging-only entry path', () => {
   assert.match(workflow, /branches:\s*\n\s*- phase-vi-provider-incentive-metering/);
   assert.match(workflow, /CODEX-RUN-ISSUE:\[0-9\]\+/);
   assert.match(workflow, /TASK_BRANCH="codex\/oge-\$\{issue_number\}-\$\{GITHUB_RUN_ID\}"/);
-  assert.match(workflow, /CODEX_EXIT: \$\{\{ steps\.codex\.outputs\.exit_code \|\| steps\.openai_preflight\.outputs\.exit_code \}\}/);
+  assert.match(workflow, /CODEX_EXIT: \$\{\{ steps\.codex\.outputs\.exit_code \|\| steps\.sandbox_preflight\.outputs\.exit_code \|\| steps\.openai_preflight\.outputs\.exit_code \}\}/);
 });
 
 test('Codex gets one existing Infisical secret and never overrides it with an empty GitHub secret', () => {
