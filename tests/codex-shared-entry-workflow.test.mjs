@@ -27,3 +27,20 @@ test('the invocation stays isolated and the workflow does not merge or deploy', 
   assert.doesNotMatch(workflow, /gh pr merge/);
   assert.doesNotMatch(workflow, /wrangler deploy/);
 });
+
+
+test('Codex sandbox has a startup probe and Landlock fallback without disabling the workspace-write sandbox', () => {
+  assert.match(workflow, /id: sandbox_preflight/);
+  assert.match(workflow, /codex --enable use_legacy_landlock sandbox linux \/bin\/pwd/);
+  assert.match(workflow, /codex --enable use_legacy_landlock exec --sandbox workspace-write/);
+  assert.doesNotMatch(workflow, /--sandbox danger-full-access/);
+});
+
+test('Codex task is pinned to the trigger SHA and does not receive the GitHub write token', () => {
+  assert.match(workflow, /persist-credentials: false/);
+  assert.match(workflow, /git switch --create "\$TASK_BRANCH" "\$GITHUB_SHA"/);
+  const codexStep = workflow.split('      - name: Run Codex in bounded workspace-write sandbox')[1]?.split('      - name: Validate diff and create draft PR')[0] || '';
+  assert.doesNotMatch(codexStep, /^\s+GH_TOKEN:/m);
+  assert.match(workflow, /gh auth setup-git/);
+  assert.match(workflow, /CODEX_EXIT_ZERO_WITH_NO_DIFF/);
+});
