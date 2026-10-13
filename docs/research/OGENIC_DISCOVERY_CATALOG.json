@@ -1,0 +1,496 @@
+{
+  "schema_version": "OGENIC_DISCOVERY_CATALOG_V1",
+  "state": "SOURCE_ONLY_NOT_RUNTIME_INTEGRATED",
+  "reviewed_on": "2026-10-13",
+  "canonical_repo": "Ogenicchocolate21debug/Build-Platform",
+  "canonical_memory": "owner-main / 1LSS_OWNER_MAIN",
+  "purpose": "Deduplicated, source-backed triage of public projects discovered by Owner, GS, or GT. This file is an index of research decisions, not an installer, runtime registry, or second memory database.",
+  "invariants": {
+    "new_github_repository_created": false,
+    "new_memory_database_created": false,
+    "automatic_install_or_code_execution": false,
+    "automatic_provider_dispatch": false,
+    "runtime_integration_verified": false,
+    "yellow_stone_is_sole_side_effect_authority": true,
+    "owner_approval_required_before_consequential_change": true
+  },
+  "deduplication": {
+    "shared_marker": "2a",
+    "rule": "Use one record per canonical upstream repository or source. Merge GT/GS discoveries into the same record and append discovered_by; do not clone the record for each account.",
+    "key_order": [
+      "GitHub repository ID when verified",
+      "canonical owner/repository after following redirects",
+      "canonical source URL for non-repository sources",
+      "pending:<stable-local-slug> only while the exact source is unidentified"
+    ],
+    "similarity_rule": "Different repositories that solve similar problems remain distinct records but must reference the same OGE/feature family to prevent duplicate implementations.",
+    "record_is_not_runtime_proof": true
+  },
+  "pstack_review": {
+    "taxonomy_path": "config/pstack-task-taxonomy.json",
+    "catalog_path": "config/pstack-full-catalog.json",
+    "pinned_source_commit": "3a604672c46cd8187d2b19980eae0a34f9f91138",
+    "upstream_reference_commit": "ccb5507cec1546dc88135c1139c811e6c59115ba",
+    "selected_skill_refs": [
+      {
+        "number": 9,
+        "id": "figure-it-out"
+      },
+      {
+        "number": 11,
+        "id": "interrogate"
+      },
+      {
+        "number": 17,
+        "id": "principle-attack-the-premise"
+      },
+      {
+        "number": 20,
+        "id": "principle-encode-lessons-in-structure"
+      },
+      {
+        "number": 28,
+        "id": "principle-make-operations-idempotent"
+      },
+      {
+        "number": 30,
+        "id": "principle-minimize-reader-load"
+      },
+      {
+        "number": 34,
+        "id": "principle-prove-it-works"
+      },
+      {
+        "number": 35,
+        "id": "principle-redesign-from-first-principles"
+      },
+      {
+        "number": 44,
+        "id": "show-me-your-work"
+      },
+      {
+        "number": 51,
+        "id": "why"
+      }
+    ],
+    "note": "Numbers resolve only through the pinned catalog/taxonomy. Record only the skills actually read and used for a task; catalog presence does not mean an agent has read all 51 skills."
+  },
+  "existing_oge_map": [
+    {
+      "issue": "OGE-127",
+      "purpose": "GS × GT shared architecture/experiment inbox; existing idea record, not automatic execution authority."
+    },
+    {
+      "issue": "OGE-124",
+      "purpose": "Existing WAVE read-only web/source connector work; do not create a parallel connector."
+    },
+    {
+      "issue": "OGE-110",
+      "purpose": "Portable P-Stack source intake."
+    },
+    {
+      "issue": "OGE-111",
+      "purpose": "P-Stack task router/brain index and 1LSS learning receipts."
+    },
+    {
+      "issue": "OGE-112",
+      "purpose": "P-Stack taxonomy, numbered evidence, OGE closure circuit proof."
+    },
+    {
+      "issue": "OGE-123",
+      "purpose": "Mandatory agent check-in/check-out and restorable P-Stack handoff."
+    },
+    {
+      "issue": "OGE-88",
+      "purpose": "One truthful GitHub visual proof for each OGE closure."
+    }
+  ],
+  "items": [
+    {
+      "canonical_id": "github:engasnm111/lnwjud",
+      "source_type": "github_repo",
+      "canonical_url": "https://github.com/engasnm111/lnwjud",
+      "display_name": "lnwjud — local AI-agent runtime & MCP gateway",
+      "discovered_by": [
+        "GT",
+        "GS"
+      ],
+      "deduplication_state": "ALREADY_SHARED_AUDIT",
+      "source_state": "README_AND_ARCHITECTURE_REVIEWED",
+      "license": {
+        "value": "MIT",
+        "state": "VERIFIED_FROM_REPOSITORY_METADATA_AND_LICENSE",
+        "evidence_url": "https://github.com/engasnm111/lnwjud/blob/main/LICENSE"
+      },
+      "categories": [
+        "AGENT_RUNTIME",
+        "MCP_SECURITY",
+        "MULTI_AGENT"
+      ],
+      "pstack_task_categories": [
+        "ARCHITECTURE",
+        "MULTI_AGENT",
+        "RESEARCH",
+        "VERIFY"
+      ],
+      "existing_oge_links": [
+        "OGE-127",
+        "OGE-123",
+        "OGE-124"
+      ],
+      "disposition": "PATTERN_ONLY_ALREADY_REVIEWED",
+      "useful_patterns": [
+        "Session ownership",
+        "Durable task/checkpoint recovery",
+        "MCP identity and audit trail"
+      ],
+      "do_not_duplicate": [
+        "New MCP gateway",
+        "New memory database",
+        "Existing ATHENA/1LSS control plane"
+      ],
+      "runtime_installed": false,
+      "runtime_verified": false
+    },
+    {
+      "canonical_id": "github:nashsu/llm_wiki",
+      "source_type": "github_repo",
+      "canonical_url": "https://github.com/nashsu/llm_wiki",
+      "display_name": "LLM Wiki",
+      "discovered_by": [
+        "GT",
+        "GS"
+      ],
+      "deduplication_state": "MERGED_FROM_SHARED_DISCOVERY",
+      "source_state": "README_AND_LICENSE_TEXT_REVIEWED",
+      "license": {
+        "value": "GPL-3.0 text in LICENSE; GitHub repository API reports NOASSERTION",
+        "state": "METADATA_CONFLICT_REVIEW_REQUIRED",
+        "evidence_url": "https://github.com/nashsu/llm_wiki/blob/main/LICENSE"
+      },
+      "categories": [
+        "MEMORY_KNOWLEDGE",
+        "DOCUMENTATION",
+        "WEB_INGEST"
+      ],
+      "pstack_task_categories": [
+        "MEMORY",
+        "DOCUMENTATION",
+        "RESEARCH"
+      ],
+      "existing_oge_links": [
+        "OGE-124",
+        "OGE-127",
+        "OGE-110",
+        "OGE-111"
+      ],
+      "disposition": "PATTERN_STUDY_ONLY_NO_CODE_COPY",
+      "useful_patterns": [
+        "Source-linked wiki pages",
+        "Incremental ingest and source watch",
+        "Multimodal document/web capture and provenance"
+      ],
+      "do_not_duplicate": [
+        "ATHENA/1LSS as canonical memory",
+        "Second persistent memory database"
+      ],
+      "license_action": "Resolve license compatibility before copying or adapting code; concepts may be documented separately from code reuse.",
+      "runtime_installed": false,
+      "runtime_verified": false
+    },
+    {
+      "canonical_id": "github:qufei1993/skills-hub",
+      "source_type": "github_repo",
+      "canonical_url": "https://github.com/qufei1993/skills-hub",
+      "display_name": "Skills Hub",
+      "discovered_by": [
+        "GT",
+        "GS"
+      ],
+      "deduplication_state": "MERGED_FROM_SHARED_DISCOVERY",
+      "source_state": "README_AND_LICENSE_REVIEWED",
+      "license": {
+        "value": "MIT",
+        "state": "VERIFIED_FROM_LICENSE_FILE",
+        "evidence_url": "https://github.com/qufei1993/skills-hub/blob/main/LICENSE"
+      },
+      "categories": [
+        "SKILL_REGISTRY",
+        "CROSS_TOOL_SYNC"
+      ],
+      "pstack_task_categories": [
+        "DOCUMENTATION",
+        "MULTI_AGENT",
+        "AUTOMATION"
+      ],
+      "existing_oge_links": [
+        "OGE-109",
+        "OGE-110",
+        "OGE-111",
+        "OGE-112"
+      ],
+      "disposition": "PATTERN_ONLY_REUSE_EXISTING_PSTACK",
+      "useful_patterns": [
+        "Skill inventory and tags",
+        "Cross-tool sync status",
+        "Batch management without re-creating each skill"
+      ],
+      "do_not_duplicate": [
+        "Existing pinned P-Stack 51-skill catalog",
+        "New skill repository unless Owner explicitly requests a separate product"
+      ],
+      "runtime_installed": false,
+      "runtime_verified": false
+    },
+    {
+      "canonical_id": "github:jokim1/karpathy-skills",
+      "source_type": "github_repo",
+      "canonical_url": "https://github.com/jokim1/karpathy-skills",
+      "display_name": "Karpathy Skills",
+      "discovered_by": [
+        "GT",
+        "GS"
+      ],
+      "deduplication_state": "MERGED_FROM_SHARED_DISCOVERY",
+      "source_state": "README_AND_LICENSE_REVIEWED",
+      "license": {
+        "value": "MIT",
+        "state": "VERIFIED_FROM_LICENSE_FILE",
+        "evidence_url": "https://github.com/jokim1/karpathy-skills/blob/main/LICENSE"
+      },
+      "categories": [
+        "CODING_WORKFLOW",
+        "DIFF_REVIEW",
+        "REPO_KNOWLEDGE"
+      ],
+      "pstack_task_categories": [
+        "BUILD",
+        "REVIEW",
+        "VERIFY",
+        "MEMORY"
+      ],
+      "existing_oge_links": [
+        "OGE-88",
+        "OGE-111",
+        "OGE-112",
+        "OGE-123"
+      ],
+      "disposition": "PATTERN_ONLY_SELECTIVE",
+      "useful_patterns": [
+        "Diff review before committing",
+        "Evidence-gated refactoring",
+        "Repository wiki consulted before edits"
+      ],
+      "do_not_duplicate": [
+        "Existing P-Stack selection/index",
+        "OGE closure visual gate"
+      ],
+      "runtime_installed": false,
+      "runtime_verified": false
+    },
+    {
+      "canonical_id": "github:mattpocock/skills",
+      "source_type": "github_repo",
+      "canonical_url": "https://github.com/mattpocock/skills",
+      "display_name": "Matt Pocock — Skills for Real Engineers",
+      "discovered_by": [
+        "GT",
+        "GS"
+      ],
+      "deduplication_state": "MERGED_FROM_SHARED_DISCOVERY",
+      "source_state": "README_SCOPE_AND_LICENSE_REVIEWED",
+      "license": {
+        "value": "MIT",
+        "state": "VERIFIED_FROM_LICENSE_FILE",
+        "evidence_url": "https://github.com/mattpocock/skills/blob/main/LICENSE"
+      },
+      "categories": [
+        "ENGINEERING_SKILLS",
+        "TASK_CLARIFICATION"
+      ],
+      "pstack_task_categories": [
+        "BUILD",
+        "REVIEW",
+        "RESEARCH",
+        "DOCUMENTATION"
+      ],
+      "existing_oge_links": [
+        "OGE-109",
+        "OGE-110",
+        "OGE-111",
+        "OGE-112"
+      ],
+      "disposition": "PATTERN_ONLY_SELECTIVE",
+      "useful_patterns": [
+        "Clarify requirements before implementation",
+        "Small composable skills",
+        "Keep controls compatible with existing agent harnesses"
+      ],
+      "do_not_duplicate": [
+        "Bulk-importing skills without checking the pinned P-Stack inventory"
+      ],
+      "runtime_installed": false,
+      "runtime_verified": false
+    },
+    {
+      "canonical_id": "github:affaan-m/everything-claude-code",
+      "source_type": "github_repo",
+      "canonical_url": "https://github.com/affaan-m/everything-claude-code",
+      "display_name": "Everything Claude Code (ECC)",
+      "discovered_by": [
+        "GT",
+        "GS"
+      ],
+      "deduplication_state": "CANONICAL_REDIRECT_UNRESOLVED",
+      "source_state": "SOURCE_IDENTITY_AND_LICENSE_NOT_VERIFIED",
+      "license": {
+        "value": null,
+        "state": "UNVERIFIED",
+        "evidence_url": null
+      },
+      "categories": [
+        "AGENT_WORKFLOWS",
+        "HOOKS",
+        "SKILLS"
+      ],
+      "pstack_task_categories": [
+        "MULTI_AGENT",
+        "AUTOMATION",
+        "REVIEW"
+      ],
+      "existing_oge_links": [
+        "OGE-109",
+        "OGE-110",
+        "OGE-111",
+        "OGE-123"
+      ],
+      "disposition": "HOLD_UNTIL_CANONICAL_REPO_AND_LICENSE_VERIFIED",
+      "useful_patterns": [
+        "Potential agent workflow/hook patterns to inspect after canonical source is resolved"
+      ],
+      "do_not_duplicate": [
+        "P-Stack workflows and existing OGENIC lifecycle hooks"
+      ],
+      "source_note": "The requested GitHub URL returned a permanent redirect in the API and the redirected repository details could not be independently read in this audit.",
+      "runtime_installed": false,
+      "runtime_verified": false
+    },
+    {
+      "canonical_id": "github:thedotmack/claude-mem",
+      "source_type": "github_repo",
+      "canonical_url": "https://github.com/thedotmack/claude-mem",
+      "display_name": "Claude-Mem",
+      "discovered_by": [
+        "GT",
+        "GS"
+      ],
+      "deduplication_state": "MERGED_FROM_SHARED_DISCOVERY",
+      "source_state": "README_AND_LICENSE_REVIEWED",
+      "license": {
+        "value": "Apache-2.0",
+        "state": "VERIFIED_FROM_REPOSITORY_METADATA_AND_LICENSE",
+        "evidence_url": "https://github.com/thedotmack/claude-mem/blob/main/LICENSE"
+      },
+      "categories": [
+        "SESSION_CONTEXT",
+        "MEMORY_COMPRESSION"
+      ],
+      "pstack_task_categories": [
+        "MEMORY",
+        "MULTI_AGENT"
+      ],
+      "existing_oge_links": [
+        "OGE-101",
+        "OGE-107",
+        "OGE-108",
+        "OGE-111",
+        "OGE-123"
+      ],
+      "disposition": "PATTERN_ONLY_NO_NEW_MEMORY_STORE",
+      "useful_patterns": [
+        "Compress observations before retrieval",
+        "Retrieve relevant past context instead of injecting the entire transcript"
+      ],
+      "do_not_duplicate": [
+        "Canonical ATHENA/1LSS memory database or control plane"
+      ],
+      "runtime_installed": false,
+      "runtime_verified": false
+    },
+    {
+      "canonical_id": "pending:location-scout-source",
+      "source_type": "social_reference",
+      "canonical_url": null,
+      "display_name": "Location Scout — map-to-background art tool",
+      "discovered_by": [
+        "Owner",
+        "GT"
+      ],
+      "deduplication_state": "SOURCE_URL_REQUIRED",
+      "source_state": "IDENTITY_AND_LICENSE_NOT_VERIFIED",
+      "license": {
+        "value": null,
+        "state": "NOT_APPLICABLE_UNTIL_SOURCE_IDENTIFIED",
+        "evidence_url": null
+      },
+      "categories": [
+        "MEDIA_CREATIVE",
+        "MAP_TO_ART"
+      ],
+      "pstack_task_categories": [
+        "RESEARCH",
+        "UI_UX"
+      ],
+      "existing_oge_links": [
+        "OGE-127"
+      ],
+      "disposition": "HOLD_FOR_OFFICIAL_URL",
+      "useful_patterns": [
+        "Possible image/illustration workflow, pending exact source identification"
+      ],
+      "do_not_duplicate": [
+        "No integration until the actual site/repository and terms are verified"
+      ],
+      "runtime_installed": false,
+      "runtime_verified": false
+    },
+    {
+      "canonical_id": "pending:voice-clone-presentation-source",
+      "source_type": "social_image",
+      "canonical_url": null,
+      "display_name": "Voice cloning / presentation deck visual in trending-repos image",
+      "discovered_by": [
+        "Owner",
+        "GT"
+      ],
+      "deduplication_state": "SOURCE_URL_REQUIRED",
+      "source_state": "REPOSITORY_IDENTITY_NOT_VISIBLE_IN_SCREENSHOT",
+      "license": {
+        "value": null,
+        "state": "NOT_APPLICABLE_UNTIL_SOURCE_IDENTIFIED",
+        "evidence_url": null
+      },
+      "categories": [
+        "MEDIA_CREATIVE",
+        "VOICE",
+        "PRESENTATION"
+      ],
+      "pstack_task_categories": [
+        "RESEARCH",
+        "UI_UX"
+      ],
+      "existing_oge_links": [
+        "OGE-127"
+      ],
+      "disposition": "HOLD_FOR_EXACT_REPOSITORY_URL",
+      "useful_patterns": [
+        "Potential sound/presentation abilities might fit media work, but the promotional image alone does not identify the project"
+      ],
+      "do_not_duplicate": [
+        "Do not guess the repository from an illustration"
+      ],
+      "runtime_installed": false,
+      "runtime_verified": false
+    }
+  ]
+}

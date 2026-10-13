@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="1220" viewBox="0 0 960 1220" role="img" aria-labelledby="title desc">
+  <title id="title">OGENIC 2a Discovery Intake Flow</title>
+  <desc id="desc">A proposal for capturing public web and repository discoveries, deduplicating GS and GT findings, reviewing P-Stack categories and licenses, requiring Owner and Yellow approval, and returning a restorable handoff to canonical 1LSS. This is not a live integration proof.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#222"/></marker>
+    <style>
+      .title { font: 700 28px sans-serif; fill: #111; }
+      .subtitle { font: 15px sans-serif; fill: #555; }
+      .box { fill: #fff; stroke: #333; stroke-width: 2; rx: 14; }
+      .heading { font: 700 18px sans-serif; fill: #111; }
+      .body { font: 15px sans-serif; fill: #222; }
+      .small { font: 13px sans-serif; fill: #555; }
+      .edge { stroke: #222; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .gate { fill: #f3f3f3; stroke: #222; stroke-width: 2; }
+    </style>
+  </defs>
+  <rect width="960" height="1220" fill="#fff"/>
+  <text x="480" y="46" text-anchor="middle" class="title">OGENIC · 2a Discovery Intake</text>
+  <text x="480" y="72" text-anchor="middle" class="subtitle">SOURCE-ONLY DESIGN · NOT RUNTIME-INTEGRATED · 2026-10-13</text>
+  <rect x="130" y="105" width="700" height="88" class="box"/>
+  <text x="480" y="137" text-anchor="middle" class="heading">1 · Owner shares a link, repo, screenshot or document</text>
+  <text x="480" y="163" text-anchor="middle" class="body">Authorized intake location only; Discord channel listener is not verified as connected</text>
+  <path d="M480 193 V224" class="edge"/>
+  <rect x="130" y="232" width="700" height="90" class="box"/>
+  <text x="480" y="263" text-anchor="middle" class="heading">2 · Capture source evidence</text>
+  <text x="480" y="289" text-anchor="middle" class="body">Exact URL · source identity · README · LICENSE · observed date</text>
+  <text x="480" y="309" text-anchor="middle" class="small">If the URL is not visible, mark SOURCE_URL_REQUIRED; never guess</text>
+  <path d="M480 322 V352" class="edge"/>
+  <rect x="130" y="360" width="700" height="104" class="box"/>
+  <text x="480" y="391" text-anchor="middle" class="heading">3 · Canonicalize + deduplicate GS/GT</text>
+  <text x="480" y="417" text-anchor="middle" class="body">Verified repository ID / owner-repo / canonical URL</text>
+  <text x="480" y="440" text-anchor="middle" class="body">One record per source; merge discovered_by = GT + GS</text>
+  <path d="M480 464 V494" class="edge"/>
+  <rect x="130" y="502" width="700" height="105" class="box"/>
+  <text x="480" y="533" text-anchor="middle" class="heading">4 · Violet maps task to pinned P-Stack taxonomy</text>
+  <text x="480" y="559" text-anchor="middle" class="body">Record actual Pstack numbers + skill IDs; identify existing OGE overlap</text>
+  <text x="480" y="582" text-anchor="middle" class="small">Do not bulk-load all 51 skills or create a parallel registry</text>
+  <path d="M480 607 V637" class="edge"/>
+  <rect x="68" y="645" width="398" height="112" class="box"/>
+  <text x="267" y="677" text-anchor="middle" class="heading">5A · GS independent review</text>
+  <text x="267" y="703" text-anchor="middle" class="body">Architecture · security · existing overlap</text>
+  <text x="267" y="728" text-anchor="middle" class="small">Read-only; separate review path</text>
+  <rect x="494" y="645" width="398" height="112" class="box"/>
+  <text x="693" y="677" text-anchor="middle" class="heading">5B · GT source audit</text>
+  <text x="693" y="703" text-anchor="middle" class="body">Code / license / tests / integration fit</text>
+  <text x="693" y="728" text-anchor="middle" class="small">Feature branch; no shared writes</text>
+  <path d="M267 757 V780 H480 V805" class="edge"/>
+  <path d="M693 757 V780 H480" class="edge"/>
+  <rect x="130" y="813" width="700" height="96" class="gate" rx="14"/>
+  <text x="480" y="844" text-anchor="middle" class="heading">6 · Owner + Yellow authority gate</text>
+  <text x="480" y="870" text-anchor="middle" class="body">Discovery or peer message never authorizes execution</text>
+  <text x="480" y="891" text-anchor="middle" class="small">No auto-install · no secrets · no D1 migration · no paid call · no deploy</text>
+  <path d="M480 909 V936" class="edge"/>
+  <path d="M480 936 H250 V963" class="edge"/>
+  <path d="M480 936 H710 V963" class="edge"/>
+  <rect x="54" y="971" width="392" height="98" class="box"/>
+  <text x="250" y="1002" text-anchor="middle" class="heading">Reference / Hold / Duplicate</text>
+  <text x="250" y="1028" text-anchor="middle" class="body">Record the reason; request URL/license if missing</text>
+  <text x="250" y="1050" text-anchor="middle" class="small">No installation or code reuse</text>
+  <rect x="514" y="971" width="392" height="98" class="box"/>
+  <text x="710" y="1002" text-anchor="middle" class="heading">Approved bounded adaptation</text>
+  <text x="710" y="1028" text-anchor="middle" class="body">Existing Build-Platform · staging feature branch</text>
+  <text x="710" y="1050" text-anchor="middle" class="small">Only after explicit approval and license review</text>
+  <path d="M250 1069 V1090 H480" class="edge"/>
+  <path d="M710 1069 V1090 H480" class="edge"/>
+  <path d="M480 1090 V1095" class="edge"/>
+  <rect x="130" y="1098" width="700" height="82" class="box"/>
+  <text x="480" y="1127" text-anchor="middle" class="heading">7 · Check-out + recover through existing 1LSS</text>
+  <text x="480" y="1152" text-anchor="middle" class="body">Task/SHA · actual P-Stack IDs · CI/evidence · risk · next step</text>
+  <text x="480" y="1172" text-anchor="middle" class="small">OGE closure uses existing closure.svg + README + Ruby proof contract</text>
+</svg>
