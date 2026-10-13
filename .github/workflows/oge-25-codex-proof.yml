@@ -1,0 +1,40 @@
+name: OGE-25 shared Codex contract proof on WAVE
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - '.github/workflows/codex-issue-runner-staging.yml'
+      - '.github/workflows/oge-25-codex-proof.yml'
+      - 'scripts/codex-request.mjs'
+      - 'tests/codex-request.test.mjs'
+      - 'tests/codex-shared-entry-workflow.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/oge-25-38466079874' && github.base_ref == 'phase-vi-provider-incentive-metering'
+    runs-on: [self-hosted, Linux, X64, wave]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify exact PR HEAD and shared entry contracts
+        shell: bash
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
+          node --test tests/codex-request.test.mjs tests/codex-shared-entry-workflow.test.mjs
+      - name: Probe installed Codex sandbox without inference or secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          codex --version
+          codex sandbox /bin/pwd
+          echo CODEX_BWRAP_APPARMOR_SANDBOX_OK
