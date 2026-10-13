@@ -9,6 +9,15 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+  INFISICAL_ENV_SLUG: staging
+  INFISICAL_API_URL: https://app.infisical.com
 
 concurrency:
   group: codex-staging-${{ github.event.head_commit.id }}
@@ -50,13 +59,46 @@ jobs:
           echo "branch=$TASK_BRANCH" >> "$GITHUB_OUTPUT"
           echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+      - name: Verify shared Codex entry contract
+        shell: bash
+        run: node --test tests/codex-shared-entry-workflow.test.mjs
+
+      - name: Load only the existing OpenAI API key from Infisical
+        id: openai_binding
+        continue-on-error: true
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          domain: ${{ env.INFISICAL_API_URL }}
+          secret-path: /
+          secret-name: OPENAI_API_KEY
+          include-imports: false
+          recursive: false
+
+      - name: Verify Codex binding without printing the key
+        id: openai_preflight
+        if: always() && steps.task.outputs.number != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+            printf '%s\n' 'Codex was not invoked: existing Infisical OPENAI_API_KEY binding is unavailable. No secret value was printed.' > "$RUNNER_TEMP/codex-summary.txt"
+            echo "exit_code=86" >> "$GITHUB_OUTPUT"
+            echo "::error::OPENAI_APPLICATION_BINDING_MISSING"
+            exit 86
+          fi
+          echo "exit_code=0" >> "$GITHUB_OUTPUT"
+          echo "OGENIC_CODEX_OPENAI_BINDING_PRESENT"
+
       - name: Run Codex in bounded workspace-write sandbox
         id: codex
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          # Pass the existing repository secret to Codex; do not create, print, or persist a new key.
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # OPENAI_API_KEY is injected by the preceding single-secret Infisical action.
           ISSUE_NUMBER: ${{ steps.task.outputs.number }}
           TASK_BRANCH: ${{ steps.task.outputs.branch }}
           REPOSITORY: ${{ github.repository }}
@@ -64,7 +106,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-            printf '%s\\n' 'Codex auth preflight failed: repository secret OPENAI_API_KEY is not configured for this staging workflow.' > "$RUNNER_TEMP/codex-summary.txt"
+            printf '%s\\n' 'Codex auth preflight failed: existing Infisical OPENAI_API_KEY binding is unavailable.' > "$RUNNER_TEMP/codex-summary.txt"
             echo "exit_code=86" >> "$GITHUB_OUTPUT"
             exit 86
           fi
@@ -111,7 +153,7 @@ jobs:
           ISSUE_NUMBER: ${{ steps.task.outputs.number }}
           TASK_BRANCH: ${{ steps.task.outputs.branch }}
           REPOSITORY: ${{ github.repository }}
-          CODEX_EXIT: ${{ steps.codex.outputs.exit_code }}
+          CODEX_EXIT: ${{ steps.codex.outputs.exit_code || steps.openai_preflight.outputs.exit_code }}
         run: |
           set -euo pipefail
           if [[ "${CODEX_EXIT:-1}" != "0" ]]; then
@@ -155,7 +197,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           TASK_BRANCH: ${{ steps.task.outputs.branch }}
           SOURCE_SHA: ${{ steps.task.outputs.source_sha }}
-          CODEX_EXIT: ${{ steps.codex.outputs.exit_code }}
+          CODEX_EXIT: ${{ steps.codex.outputs.exit_code || steps.openai_preflight.outputs.exit_code }}
           PR_URL: ${{ steps.publish.outputs.pr_url }}
           JOB_STATUS: ${{ job.status }}
         run: |
