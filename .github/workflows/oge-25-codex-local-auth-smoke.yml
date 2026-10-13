@@ -1,0 +1,65 @@
+name: OGE-25 local Codex auth smoke on WAVE
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: ['.github/workflows/oge-25-codex-local-auth-smoke.yml']
+permissions:
+  contents: read
+jobs:
+  smoke:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, Linux, X64, wave]
+    timeout-minutes: 10
+    steps:
+      - name: Verify local Codex sign-in identity without printing tokens
+        shell: bash
+        env:
+          EXPECTED_OPENAI_EMAIL_SHA256: ${{ vars.CODEX_EXPECTED_OPENAI_EMAIL_SHA256 }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          import { createHash } from 'node:crypto';
+          const expected = process.env.EXPECTED_OPENAI_EMAIL_SHA256?.trim().toLowerCase();
+          const path = join(process.env.CODEX_HOME || join(process.env.HOME, '.codex'), 'auth.json');
+          if (!/^[a-f0-9]{64}$/.test(expected || '')) {
+            console.error('CODEX_LOCAL_ACCOUNT_GATE_UNCONFIGURED');
+            process.exit(89);
+          }
+          try {
+            const auth = JSON.parse(readFileSync(path, 'utf8'));
+            const jwt = auth.tokens?.id_token;
+            if (typeof jwt !== 'string' || jwt.split('.').length !== 3) {
+              throw new Error('NO_ID_TOKEN');
+            }
+            const claims = JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString('utf8'));
+            const email = typeof claims.email === 'string' ? claims.email.trim().toLowerCase() : '';
+            const actual = email ? createHash('sha256').update(email).digest('hex') : '';
+            if (!actual) {
+              console.error('CODEX_LOCAL_ACCOUNT_UNVERIFIABLE');
+              process.exit(89);
+            }
+            if (actual !== expected) {
+              console.error('CODEX_LOCAL_ACCOUNT_MISMATCH');
+              process.exit(89);
+            }
+            console.log('CODEX_LOCAL_ACCOUNT_MATCH');
+          } catch {
+            console.error('CODEX_LOCAL_ACCOUNT_UNVERIFIABLE');
+            process.exit(89);
+          }
+          NODE
+      - name: Probe local Codex auth with read-only inference
+        shell: bash
+        run: |
+          set -euo pipefail
+          codex sandbox /bin/pwd > "$RUNNER_TEMP/oge-25-local-sandbox.log" 2>&1
+          echo CODEX_BWRAP_APPARMOR_SANDBOX_OK
+          printf '%s\n' 'Reply with exactly: OGE25_LOCAL_CODEX_OK. Do not read or change files.' |
+            timeout 120s env -u OPENAI_API_KEY -u CODEX_API_KEY codex exec --sandbox read-only - > "$RUNNER_TEMP/oge-25-local-codex.log" 2>&1
+          if ! grep -q 'OGE25_LOCAL_CODEX_OK' "$RUNNER_TEMP/oge-25-local-codex.log"; then
+            echo CODEX_LOCAL_RESPONSE_MARKER_MISSING
+            exit 90
+          fi
+          echo OGE25_LOCAL_CODEX_READ_ONLY_INFERENCE_OK
