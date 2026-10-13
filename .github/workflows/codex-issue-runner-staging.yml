@@ -66,7 +66,7 @@ jobs:
       - name: Load only the existing OpenAI API key from Infisical
         id: openai_binding
         continue-on-error: true
-        uses: Infisical/secrets-action@v1.0.9
+        uses: Infisical/secrets-action@v1.0.17
         with:
           method: oidc
           identity-id: ${{ env.INFISICAL_IDENTITY_ID }}

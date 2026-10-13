@@ -15,7 +15,7 @@ Issue record: https://github.com/Ogenicchocolate21debug/Build-Platform/issues/25
 
 ## Fix applied by this bootstrap patch
 
-The staging Codex runner now uses the existing Infisical OIDC identity to fetch only OPENAI_API_KEY from the existing staging secret path. It no longer binds OPENAI_API_KEY from the empty GitHub secret. The secret value is not read or printed by this ChatGPT-side patch; the Infisical action injects it only for subsequent steps of the runner job.
+The staging Codex runner now uses Infisical/secrets-action@v1.0.17, which supports secret-name, with the existing OIDC identity to fetch only OPENAI_API_KEY from the existing staging secret path. It no longer binds OPENAI_API_KEY from the empty GitHub secret. The secret value is not read or printed by this ChatGPT-side patch; the Infisical action injects it only for subsequent steps of the runner job.
 
 The runner fails closed with exit code 86 if the key remains unavailable. The shared entry contract has a Node test that checks the OIDC permission, single-secret fetch, isolated task branch, fallback status, and absence of merge/deploy commands.
 

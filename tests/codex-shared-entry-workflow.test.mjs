@@ -13,7 +13,7 @@ test('shared Codex runner uses the existing staging-only entry path', () => {
 
 test('Codex gets one existing Infisical secret and never overrides it with an empty GitHub secret', () => {
   assert.match(workflow, /id-token: write/);
-  assert.match(workflow, /uses: Infisical\/secrets-action@v1\.0\.9/);
+  assert.match(workflow, /uses: Infisical\/secrets-action@v1\.0\.17/);
   assert.match(workflow, /secret-name: OPENAI_API_KEY/);
   assert.match(workflow, /secret-path: \/\n\s+secret-name: OPENAI_API_KEY/);
   assert.match(workflow, /include-imports: false/);
