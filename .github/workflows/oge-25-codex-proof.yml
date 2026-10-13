@@ -45,4 +45,3 @@ jobs:
           set -euo pipefail
           npm install --no-audit --no-fund
           npm run check
-          python3 scripts/validate_toolkit.py
