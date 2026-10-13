@@ -125,13 +125,20 @@ jobs:
           source_present=0; [[ -f "$profile_source" ]] && source_present=1
           target_present=0; [[ -f "$profile_target" ]] && target_present=1
           profile_loaded=0
-          if [[ -r /sys/kernel/security/apparmor/profiles ]] && grep -Fq 'bwrap-userns-restrict' /sys/kernel/security/apparmor/profiles; then profile_loaded=1; fi
+          profile_probe_readable=0
+          profile_list=""
+          if profile_list="$(cat /sys/kernel/security/apparmor/profiles 2>/dev/null)"; then
+            profile_probe_readable=1
+            if grep -Fq 'bwrap-userns-restrict' <<< "$profile_list"; then profile_loaded=1; fi
+          fi
           target_matches=0
           if [[ "$source_present" == "1" && "$target_present" == "1" ]] && cmp -s "$profile_source" "$profile_target"; then target_matches=1; fi
           need_packages=0
-          if [[ "$bwrap_present" != "1" || "$parser_present" != "1" || ("$profile_loaded" != "1" && "$source_present" != "1") ]]; then need_packages=1; fi
+          if [[ "$bwrap_present" != "1" || "$parser_present" != "1" || "$source_present" != "1" ]]; then need_packages=1; fi
           need_admin=0
-          if [[ "$need_packages" == "1" || "$profile_loaded" != "1" || "$target_matches" != "1" ]]; then need_admin=1; fi
+          # Reading AppArmor's kernel status may be denied to the runner user. That alone
+          # is not proof the profile is absent: only require admin when packages/files need repair.
+          if [[ "$need_packages" == "1" || "$target_matches" != "1" ]]; then need_admin=1; fi
           if [[ "$need_admin" == "1" && "$sudo_n_success" != "1" ]]; then
             echo "exit_code=89" >> "$GITHUB_OUTPUT"
             {
@@ -144,6 +151,7 @@ jobs:
               echo "profile_source_present=$source_present"
               echo "profile_target_present=$target_present"
               echo "profile_loaded=$profile_loaded"
+              echo "profile_probe_readable=$profile_probe_readable"
               echo "profile_target_matches_source=$target_matches"
               echo "No repository, secret, deployment, or runner service was changed."
             } > "$RUNNER_TEMP/codex-summary.txt"
@@ -164,9 +172,13 @@ jobs:
           fi
           if [[ ! -f "$profile_target" ]] || ! cmp -s "$profile_source" "$profile_target"; then
             run_admin install -m 0644 "$profile_source" "$profile_target"
-            target_matches=0
+            target_matches=1
+            profile_loaded=0
           fi
-          if [[ "$profile_loaded" != "1" || "$target_matches" != "1" ]]; then
+          # Try a privileged reload only when kernel status is readable and says the profile is absent,
+          # or when this workflow had to repair the installed profile. If status access is denied,
+          # let Codex's real sandbox probe decide rather than failing on an inspection permission.
+          if [[ "$sudo_n_success" == "1" && ( "$profile_probe_readable" != "1" || "$profile_loaded" != "1" ) ]]; then
             run_admin apparmor_parser -r "$profile_target"
           fi
           set +e

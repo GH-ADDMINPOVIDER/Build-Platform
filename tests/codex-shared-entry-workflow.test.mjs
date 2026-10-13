@@ -45,6 +45,10 @@ test('Codex repairs and checks the host bubblewrap/AppArmor sandbox before bound
   assert.match(workflow, /sudo_noninteractive=\$sudo_n_success/);
   assert.match(workflow, /if \[\[ "\$EUID" -eq 0 \]\]/);
   assert.match(workflow, /profile_loaded=\$profile_loaded/);
+  assert.match(workflow, /profile_probe_readable=\$profile_probe_readable/);
+  assert.match(workflow, /Reading AppArmor's kernel status may be denied/);
+  assert.match(workflow, /need_packages" == "1" \|\| "\$target_matches" != "1/);
+  assert.match(workflow, /let Codex's real sandbox probe decide/);
   assert.match(workflow, /tail -n 30 "\$RUNNER_TEMP\/codex-sandbox-preflight\.log"/);
 });
 
