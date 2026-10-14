@@ -16,6 +16,25 @@ on:
       - "worker/capability-card-stone.ts"
       - "worker/capability-card-stone-api.ts"
       - "config/capability-card-stone.json"
+      - "assets/toolkit-manifest.json"
+      - "docs/CCS_AUTHORITY_CONTRACT.md"
+      - "docs/WEB_TOOLKIT_COST_GUARD.md"
+      - "tests/web-toolkit-card-contract.test.mjs"
+      - ".github/workflows/oge-78-use-card-check.yml"
+  pull_request:
+    branches:
+      - phase-vi-provider-incentive-metering
+    paths:
+      - "config/capability-card-stone.json"
+      - "worker/capability-card-stone.ts"
+      - "worker/capability-card-stone-api.ts"
+      - "assets/toolkit-manifest.json"
+      - "docs/CCS_AUTHORITY_CONTRACT.md"
+      - "docs/WEB_TOOLKIT_COST_GUARD.md"
+      - "tests/oge-78-use-card.test.mjs"
+      - "tests/oge-79-ccs-protocol.test.mjs"
+      - "tests/oge-82-ccs-authority.test.mjs"
+      - "tests/web-toolkit-card-contract.test.mjs"
       - ".github/workflows/oge-78-use-card-check.yml"
   workflow_dispatch:
 
@@ -33,6 +52,6 @@ jobs:
           node-version: 22
       # Repository intentionally has no committed package-lock; generate an ephemeral one before npm ci.
       - run: npm install --package-lock-only --ignore-scripts && npm ci
-      - run: node --test tests/oge-78-use-card.test.mjs tests/oge-79-ccs-protocol.test.mjs tests/oge-82-ccs-authority.test.mjs
+      - run: node --test tests/oge-78-use-card.test.mjs tests/oge-79-ccs-protocol.test.mjs tests/oge-82-ccs-authority.test.mjs tests/web-toolkit-card-contract.test.mjs
       - run: npm run typecheck
       - run: npm run build
