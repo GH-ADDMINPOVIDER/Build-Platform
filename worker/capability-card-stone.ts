@@ -1,4 +1,5 @@
 import ccsConfig from "../config/capability-card-stone.json";
+import { resolveCanonicalAlias } from "./web-toolkit-alias";
 import type { UseCardDescriptor } from "./use-card-policy";
 
 export type CcsVerb = "INSERT" | "VERIFY" | "USE" | "LEASE" | "RETURN" | "REVOKE";
@@ -58,17 +59,9 @@ function clean(value: unknown, max = 160) {
   return String(value ?? "").trim().slice(0, max);
 }
 
-function normalizeAlias(value: unknown) {
-  return clean(value, 160).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-}
-
 /** Resolve legacy names to the one canonical CCS Web Toolkit card. */
 export function resolveWebToolkitAlias(value: unknown) {
-  const requested = normalizeAlias(value);
-  if (!requested) return null;
-  const card = ccsConfig.primary_card;
-  const accepted = [card.display_name, ...card.aliases].map(normalizeAlias);
-  return accepted.includes(requested) ? card : null;
+  return resolveCanonicalAlias(value, ccsConfig.primary_card);
 }
 export function toCcsCardView(card: UseCardDescriptor, role = "capability_holder"): CcsCardView {
   return {
