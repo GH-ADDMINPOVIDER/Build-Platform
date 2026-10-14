@@ -58,6 +58,18 @@ function clean(value: unknown, max = 160) {
   return String(value ?? "").trim().slice(0, max);
 }
 
+function normalizeAlias(value: unknown) {
+  return clean(value, 160).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/** Resolve legacy names to the one canonical CCS Web Toolkit card. */
+export function resolveWebToolkitAlias(value: unknown) {
+  const requested = normalizeAlias(value);
+  if (!requested) return null;
+  const card = ccsConfig.primary_card;
+  const accepted = [card.display_name, ...card.aliases].map(normalizeAlias);
+  return accepted.includes(requested) ? card : null;
+}
 export function toCcsCardView(card: UseCardDescriptor, role = "capability_holder"): CcsCardView {
   return {
     protocol: "CCS/1.0",
@@ -106,6 +118,7 @@ export function transitionCcsState(from: CcsState, verb: CcsVerb): CcsTransition
 }
 
 export function publicCcsStatus() {
+  const card = ccsConfig.primary_card;
   return {
     ok: true,
     protocol: ccsConfig.schema_version,
@@ -118,6 +131,17 @@ export function publicCcsStatus() {
     compatibility: {
       use_card_v1: ccsConfig.compatibility.use_card_v1,
       maop_wrapper: ccsConfig.compatibility.maop_wrapper,
+    },
+    primary_card: {
+      card_id: card.card_id,
+      display_name: card.display_name,
+      protocol: card.protocol,
+      canonical: card.canonical,
+      aliases: card.aliases,
+      alias_resolution: card.alias_resolution,
+      components: card.components,
+      cost_guard: card.cost_guard,
+      safety: card.safety,
     },
   };
 }
