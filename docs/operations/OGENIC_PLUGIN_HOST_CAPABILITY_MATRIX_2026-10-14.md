@@ -8,7 +8,7 @@ Status: **Audited and staged**, not a production migration. This is an inventory
 - Infisical CLI user-local install: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38491772460
 - Bubblewrap sandbox verification: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38492220381
 - Active Codex account verification: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38491235489
-- Standby small CLI install proof: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38494192060 (check final status, do not claim PASS before job completion)
+- Standby small CLI installation **COMPLETE/SUCCESS**: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38494192060 — SHA-256 verified: `rg 15.2.0`, `yq 4.54.1`, `uv/uvx 0.13.0`; no service started / secrets / sudo
 
 ## Current WAVE host state (observed)
 
