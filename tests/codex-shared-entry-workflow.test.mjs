@@ -23,7 +23,7 @@ test('Codex uses the verified local Suthi login and never loads a repository sec
   assert.match(workflow, /\.codex.*auth\.json/);
   assert.match(workflow, /CODEX_LOCAL_ACCOUNT_MATCH/);
   assert.match(workflow, /CODEX_LOCAL_ACCOUNT_MISMATCH/);
-  assert.doesNotMatch(workflow, /Infisical|OPENAI_API_KEY|id-token: write/);
+  assert.doesNotMatch(workflow, /Infisical|id-token: write/);\n  assert.match(workflow, /env -u OPENAI_API_KEY -u CODEX_API_KEY codex exec/);
 });
 
 test('the invocation stays isolated and the workflow does not merge or deploy', () => {
