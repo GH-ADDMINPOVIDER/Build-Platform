@@ -1,4 +1,4 @@
-export type CanonicalAliasCard = { display_name: string; aliases: string[]; [key: string]: unknown };
+export type CanonicalAliasCard = { display_name: string; aliases: string[] };
 
 function normalizeAlias(value: unknown) {
   return String(value ?? "").trim().slice(0, 160).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
