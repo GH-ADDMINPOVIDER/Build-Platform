@@ -14,12 +14,16 @@ on:
       - "tests/oge-79-ccs-protocol.test.mjs"
       - "tests/oge-82-ccs-authority.test.mjs"
       - "worker/capability-card-stone.ts"
+      - "worker/web-toolkit-alias.ts"
+      - "worker/web-toolkit-alias.ts"
       - "worker/capability-card-stone-api.ts"
+      - "worker/web-toolkit-alias.ts"
       - "config/capability-card-stone.json"
       - "assets/toolkit-manifest.json"
       - "docs/CCS_AUTHORITY_CONTRACT.md"
       - "docs/WEB_TOOLKIT_COST_GUARD.md"
       - "tests/web-toolkit-card-contract.test.mjs"
+      - "worker/web-toolkit-alias.ts"
       - ".github/workflows/oge-78-use-card-check.yml"
   pull_request:
     branches:
