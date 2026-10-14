@@ -104,6 +104,7 @@ export default function Landing() {
         <a href="/command">COMMAND</a>
         <a href="/agents">AGENTS</a>
         <a href="/overview">OPERATE</a>
+        <a href="/news">TOP NEWS</a>
         <a href="#stones">STONES</a>
         <a href="/app">APP</a>
       </nav>

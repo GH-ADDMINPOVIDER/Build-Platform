@@ -7,6 +7,7 @@ import WaveNext from "./WaveNext";
 import WaveDashboard from "./WaveDashboard";
 import WaveThemeToggle from "./WaveThemeToggle";
 import MaopLab from "./MaopLab";
+import TopNews from "./TopNews";
 
 const LegacyControlSurface = lazy(() => import("./LegacyControlSurface"));
 import "./unified-chat.css";
@@ -17,6 +18,7 @@ import "./wave-dashboard.css";
 import "./wave-route-polish.css";
 import "./wave-theme.css";
 import "./maop-lab.css";
+import "./top-news.css";
 
 const nativeApp = Capacitor.isNativePlatform();
 const WAVE_ORIGIN = "https://wave.ogenicchocolate.com";
@@ -103,6 +105,7 @@ const commandRoute = !nativeApp && (pathname === "/command" || pathname.startsWi
 const agentsRoute = !nativeApp && (pathname === "/agents" || pathname.startsWith("/agents/"));
 const maopLabRoute = !nativeApp && (pathname === "/maop" || pathname.startsWith("/maop/"));
 const legacyOverviewRoute = !nativeApp && (pathname === "/overview/legacy" || pathname.startsWith("/overview/legacy/"));
+const topNewsRoute = !nativeApp && (pathname === "/news" || pathname.startsWith("/news/"));
 const dashboardRoute = !nativeApp && pathname === "/overview";
 const waveNextRoute = !nativeApp && !legacyOverviewRoute && (
   pathname === "/overview/next" ||
@@ -115,28 +118,30 @@ const appRoute = explicitAppRoute || (!webChatRoute && !controlRoute && (params.
 const unifiedChatSurface = !controlRoute && !landingRoute && (nativeApp || appRoute || webChatRoute);
 const sourceSurface = webChatRoute ? "ogenic-web" as const : "ogenic-app" as const;
 
-document.title = landingRoute
-  ? "WAVE — WEB"
-  : commandRoute
-    ? "WAVE — COMMAND"
-    : agentsRoute
-      ? "WAVE — AGENTS"
-      : maopLabRoute
-        ? "WAVE — MA-OP LAB"
-      : dashboardRoute
-        ? "WAVE — DASHBOARD"
-      : waveNextRoute
-        ? "WAVE — OPERATE"
-        : controlRoute
-          ? "WAVE — DASHBOARD"
-          : surfaceTitle(sourceSurface);
+document.title = topNewsRoute
+  ? "WAVE — TOP NEWS"
+  : landingRoute
+    ? "WAVE — WEB"
+    : commandRoute
+      ? "WAVE — COMMAND"
+      : agentsRoute
+        ? "WAVE — AGENTS"
+        : maopLabRoute
+          ? "WAVE — MA-OP LAB"
+          : dashboardRoute
+            ? "WAVE — DASHBOARD"
+            : waveNextRoute
+              ? "WAVE — OPERATE"
+              : controlRoute
+                ? "WAVE — DASHBOARD"
+                : surfaceTitle(sourceSurface);
 
 function surfaceTitle(surface: "ogenic-web" | "ogenic-app") {
   return surface === "ogenic-web" ? "WAVE — CHAT" : "WAVE — SAME MIND · APP";
 }
 
 function SurfaceBridge() {
-  if (landingRoute || nativeApp || dashboardRoute || waveNextRoute || commandRoute || agentsRoute) return null;
+  if (landingRoute || nativeApp || topNewsRoute || dashboardRoute || waveNextRoute || commandRoute || agentsRoute) return null;
   const links = controlRoute
     ? [["WEB", "/"], ["CHAT", "/chat"], ["COMMAND", "/command"]]
     : [["WEB", "/"], ["COMMAND", "/command"], ["OPERATE", "/overview"]];
@@ -184,6 +189,8 @@ createRoot(document.getElementById("root")!).render(
     <SurfaceBridge />
     {landingRoute
       ? <Landing />
+      : topNewsRoute
+        ? <TopNews />
       : dashboardRoute
         ? <WaveDashboard />
       : commandRoute
