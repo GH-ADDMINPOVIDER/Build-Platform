@@ -6,7 +6,15 @@
   "toolkit_count": 1,
   "operator_harness": "Harness—Ammonite-OC-Ops",
   "operator_identity": "Ammonite",
-  "pipeline": ["intent", "capability", "provider", "execute", "verify", "persist", "report"],
+  "pipeline": [
+    "intent",
+    "capability",
+    "provider",
+    "execute",
+    "verify",
+    "persist",
+    "report"
+  ],
   "primary_runtime": "Cloudflare Workers",
   "canonical_database": "Cloudflare D1",
   "source_code": "GitHub",
@@ -15,7 +23,27 @@
   "task_agent_surface": "Linear",
   "artifact_surface": "Documents",
   "template_surface": "Template Creator",
-  "migration_sources": ["Notion", "n8n"],
+  "migration_sources": [
+    "Notion",
+    "n8n"
+  ],
   "secret_policy": "references-only-outside-secret-manager",
-  "production_policy": "preview-verify-explicit-promote"
+  "production_policy": "preview-verify-explicit-promote",
+  "front_door": {
+    "canonical_card_id": "web-toolkit",
+    "display_name": "Web Toolkit",
+    "protocol": "CCS/1.0",
+    "aliases": [
+      "Web Toolkit",
+      "OGENIC God Toolkit",
+      "God Toolkit",
+      "Control Tower",
+      "Vercel Agent",
+      "Vercel Sandbox"
+    ],
+    "no_duplicate_cards": true,
+    "unknown_alias": "BLOCK",
+    "production_promotion": false,
+    "cost_policy": "ZERO_PAID_SPEND"
+  }
 }
