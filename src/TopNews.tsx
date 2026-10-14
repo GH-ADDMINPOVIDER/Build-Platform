@@ -40,6 +40,7 @@ export default function TopNews() {
         headers: { Accept: "application/json" },
       });
       const body = await response.json().catch(() => ({})) as NewsResponse;
+      if (body.sources) setPayload(body);
       if (!response.ok || !body.ok) {
         if (response.status === 401) throw new Error("OWNER_SESSION_REQUIRED");
         throw new Error(body.code || "TOP_NEWS_UNAVAILABLE");

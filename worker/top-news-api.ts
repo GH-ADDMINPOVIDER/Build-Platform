@@ -143,7 +143,7 @@ async function fetchFeed(source: NewsSource) {
       }
       const response = await fetch(current.toString(), {
         method: "GET",
-        headers: { Accept: "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8" },
+        headers: { Accept: "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8", "User-Agent": "WAVE-Top-News-ReadOnly/1.0" },
         redirect: "manual",
         cache: "no-store",
         signal: controller.signal,
