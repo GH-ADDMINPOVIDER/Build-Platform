@@ -66,6 +66,54 @@
         }
       ],
       "canonical": false
+    },
+    "candybaked_web": {
+      "role": "read_only_business_website_and_source_reference",
+      "provider_status": "optional",
+      "routing_mode": "owner_explicit_read_only",
+      "canonical": false,
+      "fail_closed": true,
+      "capabilities": [
+        {
+          "id": "site_status",
+          "permission_class": "READ",
+          "adapter_state": "worker_owner_readonly_http",
+          "auto_route": false
+        },
+        {
+          "id": "site_text_read",
+          "permission_class": "READ",
+          "adapter_state": "allowlisted_owner_readonly_http",
+          "auto_route": false,
+          "untrusted_content": true
+        },
+        {
+          "id": "public_source_readme",
+          "permission_class": "READ",
+          "adapter_state": "allowlisted_github_read_only",
+          "auto_route": false,
+          "canonical_product_data": false
+        },
+        {
+          "id": "vercel_project_inspect",
+          "permission_class": "READ",
+          "adapter_state": "external_connector_only",
+          "auto_route": false
+        },
+        {
+          "id": "deploy_preview",
+          "permission_class": "EXECUTE",
+          "adapter_state": "external_connector_only",
+          "auto_route": false,
+          "production_promotion": false
+        }
+      ],
+      "authority_invariants": {
+        "primary_runtime": "cloudflare_pages",
+        "canonical_product_media_and_A1_A6_data": "google_drive_and_canonical_docs",
+        "github_role": "public_source_mirror_and_deployment_notes",
+        "vercel_role": "secondary_optional_preview_and_deployment_inspection"
+      }
     }
   }
 }

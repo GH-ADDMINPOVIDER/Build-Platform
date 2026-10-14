@@ -30,6 +30,7 @@ import { createN8nMigrationApi } from "./n8n-migration-api";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { planAthenaCommand } from "./athena-command-planner";
+import { createWebCafeConnectorApi } from "./web-cafe-connector-api";
 import { createDiscordApi } from "./discord-api";
 
 const resolverApi = createCapabilityResolverApi();
@@ -58,7 +59,8 @@ const useCardApi = createUseCardApi();
 const capabilityCardStoneApi = createCapabilityCardStoneApi();
 // CCS facade route proof trigger
 const n8nMigrationApi = createN8nMigrationApi();
-const discordApi = createDiscordApi();
+
+const webCafeConnectorApi = createWebCafeConnectorApi();const discordApi = createDiscordApi();
 
 const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
@@ -255,6 +257,9 @@ export default {
     }
     if (pathname === "/api/moli/status") {
       return moliBrowserApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/web-cafe/")) {
+      return webCafeConnectorApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/knowledge-refinery/")) {
       return knowledgeRefineryApi.fetch(request, env as never, ctx as never);

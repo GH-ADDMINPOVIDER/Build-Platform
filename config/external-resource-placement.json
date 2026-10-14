@@ -63,6 +63,28 @@
         "high-frequency runtime queue",
         "canonical execution state"
       ]
+    },
+    {
+      "id": "candybaked_web",
+      "placement": "read_only_business_website_and_source_reference",
+      "routing_mode": "owner_explicit_read_only",
+      "critical_path": false,
+      "current_evidence": "Source mapping comes from the owner-approved OGE-124 specification; live Worker reachability remains unverified until an approved staging deployment.",
+      "canonical_source": "Google Drive + canonical Google Docs for Candy A1-A6; this connector does not query or replace those sources.",
+      "use_for": [
+        "owner-only live HTTP status checks for allowlisted public websites",
+        "owner-only read of sanitized public website text and image/link references",
+        "read of approved public deployment README files from the existing source repository",
+        "secondary Vercel deployment inspection through the existing authenticated Vercel connector"
+      ],
+      "do_not_use_for": [
+        "canonical product or media data",
+        "write access to the Candy repository or site",
+        "Cloudflare configuration changes or deployments",
+        "Vercel production promotion",
+        "credential or secret retrieval",
+        "automatic routing of write or deploy actions"
+      ]
     }
   ]
 }

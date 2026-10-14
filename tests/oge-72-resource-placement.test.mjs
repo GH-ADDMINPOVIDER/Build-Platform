@@ -47,3 +47,17 @@ test("OGE-72 provider registry matches placement roles", () => {
   assert.ok(ids.has("clickup"));
   assert.ok(ids.has("notion"));
 });
+
+
+test("OGE-124 registers Candy Baked as read-only without promoting Vercel or replacing canonical Drive/Docs", () => {
+  const resource = placement.resources.find((item) => item.id === "candybaked_web");
+  const capability = capabilities.resources.candybaked_web;
+  assert.ok(resource);
+  assert.equal(resource.critical_path, false);
+  assert.equal(resource.routing_mode, "owner_explicit_read_only");
+  assert.equal(capability.provider_status, "optional");
+  assert.equal(capability.canonical, false);
+  assert.equal(capability.fail_closed, true);
+  assert.ok(capability.capabilities.every((item) => item.auto_route === false));
+  assert.equal(resource.canonical_source, "Google Drive + canonical Google Docs for Candy A1-A6; this connector does not query or replace those sources.");
+});
