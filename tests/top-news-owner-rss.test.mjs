@@ -57,3 +57,11 @@ test("feed output is sanitized and source-linked; owner session failures remain 
   assert.ok(page.includes('target="_blank" rel="noreferrer"'));
   assert.ok(page.includes("No headlines returned for this filter."));
 });
+
+test("OGE-125 connector proof does not dispatch on unrelated shared Worker entry changes alone", async () => {
+  const workflow = await read(".github/workflows/oge-125-web-cafe-connector-proof.yml");
+  const pathBlock = workflow.split("paths:")[1]?.split("jobs:")[0] ?? "";
+  assert.ok(pathBlock.includes('worker/web-cafe-connector-api.ts'));
+  assert.ok(!pathBlock.includes('worker/entry-yellow-stone.ts'));
+  assert.ok(!pathBlock.includes('.github/workflows/oge-125-web-cafe-connector-proof.yml'));
+});

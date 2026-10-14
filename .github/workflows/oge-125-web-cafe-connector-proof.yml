@@ -5,13 +5,11 @@ on:
     branches: [phase-vi-provider-incentive-metering]
     paths:
       - "worker/web-cafe-connector-api.ts"
-      - "worker/entry-yellow-stone.ts"
       - "config/external-resource-placement.json"
       - "config/external-resource-capabilities.json"
       - "tests/web-cafe-connector.test.mjs"
       - "tests/oge-72-resource-placement.test.mjs"
       - "docs/integrations/CANDY_BAKED_READONLY_CONNECTOR.md"
-      - ".github/workflows/oge-125-web-cafe-connector-proof.yml"
   workflow_dispatch:
 
 permissions:
