@@ -1,0 +1,48 @@
+name: OGENIC WAVE lightweight standby toolkit
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - .github/workflows/oge-wave-standby-toolkit.yml
+      - scripts/host-bootstrap/ogenic-ready-toolkit.sh
+permissions:
+  contents: read
+concurrency:
+  group: oge-wave-standby-toolkit
+  cancel-in-progress: false
+jobs:
+  install:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 13
+    steps:
+      - name: Read exact staging source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Prepare verified user-local tools without background services
+        id: install
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          bash scripts/host-bootstrap/ogenic-ready-toolkit.sh
+      - name: Publish factual receipt
+        if: always()
+        shell: bash
+        env:
+          RESULT: ${{ steps.install.outcome }}
+        run: |
+          {
+            echo "## OGENIC WAVE standby tools"
+            echo "- Host: $RUNNER_NAME"
+            echo "- SHA: $GITHUB_SHA"
+            echo "- Install/verify: $RESULT"
+            echo "- Root privileges: not used"
+            echo "- Services started: none"
+            echo "- No secrets fetched or provider inference"
+            echo "- Tools installed for user wave only; PATH: /home/wave/.local/bin"
+            echo "- Source: scripts/host-bootstrap/ogenic-ready-toolkit.sh"
+          } >> "$GITHUB_STEP_SUMMARY"
