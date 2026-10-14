@@ -4,8 +4,24 @@
   "display_name": "Capability Card Stone",
   "facade_for": "OGENIC_USE_CARD_V1",
   "stone_code": "YS-01",
-  "verbs": ["INSERT", "VERIFY", "USE", "LEASE", "RETURN", "REVOKE"],
-  "states": ["ABSENT", "INSERTED", "VERIFIED", "IN_USE", "LEASED", "RETURNED", "REVOKED", "BLOCKED"],
+  "verbs": [
+    "INSERT",
+    "VERIFY",
+    "USE",
+    "LEASE",
+    "RETURN",
+    "REVOKE"
+  ],
+  "states": [
+    "ABSENT",
+    "INSERTED",
+    "VERIFIED",
+    "IN_USE",
+    "LEASED",
+    "RETURNED",
+    "REVOKED",
+    "BLOCKED"
+  ],
   "public_fields": [
     "protocol",
     "card_id",
@@ -43,5 +59,99 @@
     "lease_policy_source": "OGENIC_USE_CARD_V1",
     "backward_compatible_use_card_api": true,
     "schema_change": false
+  },
+  "primary_card_ref": "web-toolkit",
+  "primary_card": {
+    "card_id": "web-toolkit",
+    "display_name": "Web Toolkit",
+    "protocol": "CCS/1.0",
+    "canonical": true,
+    "aliases": [
+      "Web Toolkit",
+      "OGENIC God Toolkit",
+      "God Toolkit",
+      "Control Tower",
+      "Vercel Agent",
+      "Vercel Sandbox"
+    ],
+    "alias_resolution": {
+      "mode": "single_canonical_card",
+      "map": {
+        "ogenic god toolkit": "web-toolkit",
+        "god toolkit": "web-toolkit",
+        "control tower": "web-toolkit",
+        "vercel agent": "web-toolkit",
+        "vercel sandbox": "web-toolkit"
+      },
+      "unknown_alias": "BLOCK",
+      "duplicate_cards": false
+    },
+    "components": [
+      {
+        "id": "ogenic-router",
+        "display_name": "OGENIC routing and policy",
+        "purpose": "Route requests, classify approval and verify evidence.",
+        "current_surface": "OGENIC_GOD_TOOLKIT",
+        "state": "existing_surface",
+        "authority": "policy_gated"
+      },
+      {
+        "id": "control-tower-ui",
+        "display_name": "Control Tower UI",
+        "purpose": "Observability and control-plane view",
+        "current_surface": "render_control_tower",
+        "state": "legacy_name_alias",
+        "canonical_card_id": "web-toolkit"
+      },
+      {
+        "id": "vercel-agent",
+        "display_name": "Vercel Agent",
+        "purpose": "Optional provider agent; not directly invokable from the current OGENIC harness.",
+        "state": "not_exposed_in_ogenic_harness",
+        "allowed_use": "manual_free_chat_only",
+        "paid_actions_enabled": false
+      },
+      {
+        "id": "vercel-sandbox",
+        "display_name": "Vercel Sandbox",
+        "purpose": "Optional isolated development environment.",
+        "state": "disabled_pending_cost_and_access_verification",
+        "enabled": false,
+        "max_session_minutes": 45,
+        "max_vcpus": 1,
+        "exposed_ports": [],
+        "network_default": "deny_all"
+      }
+    ],
+    "cost_guard": {
+      "mode": "ZERO_PAID_SPEND",
+      "max_paid_spend_usd": 0,
+      "free_allowance_only": true,
+      "paid_fallback": false,
+      "paid_agent_chat": false,
+      "paid_agent_investigations": false,
+      "paid_agent_code_reviews": false,
+      "paid_sandbox_execution": false,
+      "preflight_required": true,
+      "block_at_or_before_included_limit_percent": 80,
+      "unknown_usage": "BLOCK",
+      "unknown_cost": "BLOCK",
+      "unknown_billing_mode": "BLOCK",
+      "missing_meter_adapter": "BLOCK",
+      "when_free_allowance_is_exhausted": "BLOCK",
+      "require_owner_approval_to_change_policy": true,
+      "enforcement_boundary": "OGENIC_ROUTED_ACTIONS_ONLY",
+      "boundary_note": "This policy cannot intercept actions manually initiated in the Vercel dashboard. Never approve a paid Vercel Agent plan or paid sandbox operation from the dashboard."
+    },
+    "safety": {
+      "fail_closed": true,
+      "owner_auth_required_for_ccs_api": true,
+      "yellow_stone_only_execution_authority": true,
+      "raw_secrets_in_card": false,
+      "credential_values_in_d1_or_logs": false,
+      "deploy_production": false,
+      "change_billing": false,
+      "create_sandbox_before_free_cost_verification": false
+    }
   }
 }
