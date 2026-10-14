@@ -1,0 +1,93 @@
+name: OGE-28 Install Infisical CLI on WAVE host (rootless)
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: ['.github/workflows/oge-28-install-infisical-cli-host.yml']
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: oge-28-infisical-cli-host-install
+  cancel-in-progress: false
+jobs:
+  install:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    steps:
+      - name: Install sha256-verified official CLI to wave user directory without root
+        id: install
+        shell: bash
+        env:
+          INFISICAL_VERSION: "0.43.143"
+          INFISICAL_EXPECTED_SHA256: "ce02c84be4164d8386c7534f93ce5b5467cf48b31b15e35e372f9979f3086308"
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test "$(id -un)" = "wave"
+          test "$(uname -s)" = "Linux"
+          test "$(uname -m)" = "x86_64"
+          echo "HOST_RUNNER=$RUNNER_NAME"
+          echo "HOST_USER=$(id -un)"
+          echo "SUDO_BIN=$(if command -v sudo >/dev/null 2>&1; then echo INSTALLED; else echo MISSING; fi)"
+          if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+            echo "SUDO_NONINTERACTIVE=AVAILABLE"
+          else
+            echo "SUDO_NONINTERACTIVE=NOT_AUTHORIZED_OR_UNAVAILABLE"
+          fi
+          if [[ -x "$HOME/.local/bin/infisical" ]] &&
+             "$HOME/.local/bin/infisical" --version 2>/dev/null | grep -q "$INFISICAL_VERSION"; then
+            echo "INFISICAL_CLI_ALREADY_INSTALLED=$INFISICAL_VERSION"
+          else
+            tmp="$(mktemp -d)"
+            trap 'rm -rf "$tmp"' EXIT
+            asset="cli_0.43.143_linux_amd64.tar.gz"
+            url="https://github.com/Infisical/cli/releases/download/v$INFISICAL_VERSION/$asset"
+            echo "OFFICIAL_INSTALL_SOURCE=Infisical/cli v$INFISICAL_VERSION linux_amd64"
+            curl -fL --proto '=https' --tlsv1.2 --retry 2 --connect-timeout 15 --max-time 180 -o "$tmp/$asset" "$url"
+            printf '%s  %s\n' "$INFISICAL_EXPECTED_SHA256" "$tmp/$asset" | sha256sum -c -
+            echo "INFISICAL_ARTIFACT_SHA256_VERIFIED=YES"
+            tar -tzf "$tmp/$asset" > "$tmp/files.txt"
+            if ! grep -Eq '(^|/)infisical$' "$tmp/files.txt"; then
+              echo "INFISICAL_ARCHIVE_MISSING_BINARY"
+              exit 71
+            fi
+            if grep -E '(^/|(^|/)\.\.(/|$))' "$tmp/files.txt"; then
+              echo "INFISICAL_ARCHIVE_UNSAFE_PATH"
+              exit 71
+            fi
+            mkdir -p "$tmp/unpack" "$HOME/.local/bin"
+            tar --no-same-owner -xzf "$tmp/$asset" -C "$tmp/unpack"
+            bin="$(find "$tmp/unpack" -type f -name infisical -print -quit)"
+            test -n "$bin"
+            install -m 0755 "$bin" "$HOME/.local/bin/infisical"
+            echo "INFISICAL_CLI_INSTALLED_USER_LOCAL=YES"
+          fi
+          test -x "$HOME/.local/bin/infisical"
+          "$HOME/.local/bin/infisical" --version
+          "$HOME/.local/bin/infisical" --help > "$RUNNER_TEMP/oge28-infisical-help.txt" 2>&1
+          test -s "$RUNNER_TEMP/oge28-infisical-help.txt"
+          echo "INFISICAL_CLI_COMMAND_PASS=YES"
+          echo "INFISICAL_CLI_AUTH_CONFIGURED=NOT_MEASURED"
+          echo "INFISICAL_SECRETS_FETCHED=NO"
+          echo "HOST_ROOT_CONFIGURATION_CHANGED=NO"
+      - name: Save sanitized evidence to issue 28
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INSTALL_STATUS: ${{ steps.install.outcome }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/oge28-cli-receipt.md" <<EOF
+          ## OGE-28 Infisical CLI host installation
+          - Job: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          - Existing runner: $RUNNER_NAME
+          - Infisical CLI v0.43.143 install and checksum check: $INSTALL_STATUS
+          - Installed location on success: /home/wave/.local/bin/infisical
+          - Root/Sudo unchanged. Needs separately authorized host administrator.
+          - No Infisical secrets fetched or printed. No deploy or main merge.
+          EOF
+          cat "$RUNNER_TEMP/oge28-cli-receipt.md" >> "$GITHUB_STEP_SUMMARY"
+          gh issue comment 28 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/oge28-cli-receipt.md" || echo ISSUE_COMMENT_BLOCKED
