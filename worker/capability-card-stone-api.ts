@@ -3,6 +3,7 @@ import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { evaluateUseCardLease, type UseCardDescriptor, type UseCardLeaseRequest } from "./use-card-policy";
 import {
   publicCcsStatus,
+  resolveWebToolkitAlias,
   transitionCcsState,
   type CcsState,
   type CcsVerb,
@@ -65,6 +66,23 @@ api.use("/api/ccs/*", async (c, next) => {
 });
 
 api.get("/api/ccs/status", (c) => c.json(publicCcsStatus(), 200, noStore));
+
+// Legacy God Toolkit / Control Tower names resolve to one canonical Web Toolkit card.
+// This endpoint performs alias resolution only; it never executes a provider operation.
+api.get("/api/ccs/resolve", (c) => {
+  const requestedName = clean(c.req.query("name"), 160);
+  const card = resolveWebToolkitAlias(requestedName);
+  if (!card) {
+    return c.json({ ok: false, code: "WEB_TOOLKIT_ALIAS_NOT_FOUND", canonical_name: "Web Toolkit", fail_closed: true }, 404, noStore);
+  }
+  return c.json({
+    ok: true,
+    canonical_card: { card_id: card.card_id, display_name: card.display_name, protocol: card.protocol, canonical: card.canonical },
+    resolved_alias: requestedName,
+    direct_execution_bypass: false,
+    cost_guard: { mode: card.cost_guard.mode, max_paid_spend_usd: card.cost_guard.max_paid_spend_usd, paid_fallback: card.cost_guard.paid_fallback, missing_meter_adapter: card.cost_guard.missing_meter_adapter },
+  }, 200, noStore);
+});
 
 api.post("/api/ccs/envelope", async (c) => {
   const body = await c.req.json<Record<string, unknown>>().catch(() => null);
