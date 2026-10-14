@@ -1,0 +1,65 @@
+name: OGE-28 Runner-2 host registration capability probe
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: [.github/workflows/oge-28-runner2-host-capability.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  runner2_probe:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 8
+    steps:
+      - name: Probe existing host and second-runner service without changing state
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo 'OGE28_RUNNER2_HOST_CAPABILITY_BEGIN'
+          echo "WORKFLOW_RUNNER=$RUNNER_NAME"
+          echo "HOSTNAME=$(hostname)"
+          echo "HOST_UID=$(id -u)"
+          echo "HOST_GROUPS=$(id -Gn)"
+          echo "STAGING_SHA=$GITHUB_SHA"
+          if sudo -n true >/dev/null 2>&1; then
+            echo HOST_NONINTERACTIVE_SUDO=YES
+          else
+            echo HOST_NONINTERACTIVE_SUDO=NO
+          fi
+          if command -v systemctl >/dev/null 2>&1; then
+            systemctl --no-pager list-units --all --type=service 2>/dev/null | grep -E 'actions.runner|github.runner' | sed -E 's/[[:space:]]+/ /g' | cut -c1-200 || true
+          fi
+          for dir in /opt/wave/actions-runner /opt/wave/actions-runner-2 /opt/wave/runner-2 /home/wave/actions-runner-2; do
+            if test -d "$dir"; then
+              echo "RUNNER_DIRECTORY_EXISTS=$dir"
+              if test -e "$dir/.runner"; then echo "RUNNER_REGISTRATION_FILE_PRESENT=$dir"; fi
+              if test -x "$dir/config.sh"; then echo "RUNNER_BINARY_PRESENT=$dir"; fi
+            fi
+          done
+          if command -v docker >/dev/null 2>&1 && timeout 8 docker info --format '{{.ServerVersion}}' >/dev/null 2>&1; then
+            echo HOST_DOCKER_ACCESS=YES
+          else
+            echo HOST_DOCKER_ACCESS=NO
+          fi
+          if timeout 8 env -u GH_TOKEN -u GITHUB_TOKEN gh auth status >/dev/null 2>&1; then
+            echo HOST_STORED_GITHUB_CLI_AUTH=YES
+          else
+            echo HOST_STORED_GITHUB_CLI_AUTH=NO
+          fi
+          # The job-scoped Actions token generally lacks repo administration. Probe only response status, not credentials.
+          if timeout 12 gh api "repos/$GITHUB_REPOSITORY/actions/runners" --jq '.runners[] | [.id,.name,.status,.busy] | @tsv' > "$RUNNER_TEMP/oge28-runners-list" 2>/dev/null; then
+            echo GITHUB_RUNNER_LIST_API=AVAILABLE
+            cat "$RUNNER_TEMP/oge28-runners-list"
+          else
+            echo GITHUB_RUNNER_LIST_API=INSUFFICIENT_SCOPE_OR_UNAVAILABLE
+          fi
+          if timeout 12 env -u GH_TOKEN -u GITHUB_TOKEN gh api "repos/$GITHUB_REPOSITORY/actions/runners" --jq '.runners[] | [.id,.name,.status,.busy] | @tsv' > "$RUNNER_TEMP/oge28-runners-stored" 2>/dev/null; then
+            echo STORED_ACCOUNT_RUNNER_LIST_API=AVAILABLE
+            cat "$RUNNER_TEMP/oge28-runners-stored"
+          else
+            echo STORED_ACCOUNT_RUNNER_LIST_API=INSUFFICIENT_SCOPE_OR_UNAVAILABLE
+          fi
+          echo OGE28_RUNNER2_HOST_CAPABILITY_END
