@@ -1,0 +1,76 @@
+name: OGENIC Self-host capacity and tool inventory
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: ['.github/workflows/oge-host-capacity-inventory.yml']
+permissions:
+  contents: read
+jobs:
+  inventory:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 6
+    steps:
+      - name: Audit host read-only (no install, secret access, or deployment)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          echo "OGENIC_INVENTORY_BEGIN"
+          echo "RUNNER=$RUNNER_NAME"
+          echo "HOST=$(hostname)"
+          echo "USER=$(id -un)"
+          echo "KERNEL=$(uname -r)"
+          if test -r /etc/os-release; then . /etc/os-release; echo "OS=$PRETTY_NAME"; fi
+          echo "ARCH=$(uname -m)"
+          echo "CPU_THREADS=$(nproc)"
+          if command -v lscpu >/dev/null 2>&1; then lscpu | grep -E '^(Model name|Virtualization|Architecture):' | cut -c1-200 || true; fi
+          echo "MEMORY_KiB_TOTAL=$(awk '/MemTotal:/ {print $2}' /proc/meminfo)"
+          echo "MEMORY_KiB_AVAILABLE=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
+          echo "SWAP_KiB_TOTAL=$(awk '/SwapTotal:/ {print $2}' /proc/meminfo)"
+          echo "SWAP_KiB_FREE=$(awk '/SwapFree:/ {print $2}' /proc/meminfo)"
+          echo "DISK_ROOT"
+          df -hP / | tail -n 1 | awk '{print "size="$2 " used="$3 " available="$4 " use%="$5}'
+          echo "DISK_ROOT_INODES"
+          df -iP / | tail -n 1 | awk '{print "inodes="$2 " used="$3 " available="$4 " use%="$5}'
+          echo "UPTIME"; uptime -p || true
+          echo "TOOLS_BEGIN"
+          for tool in git gh node npm npx python3 pip3 uv pipx ruby go cargo rustc docker docker-compose jq yq rg curl wget unzip tar zstd rsync rclone restic age sops infisical bwrap codex wrangler cf cloudflared n8n pm2 tmux htop atop ncdu caddy nginx traefik redis-server postgres psql sqlite3 kubectl helm terraform opentofu podman act git-lfs systemctl sudo; do
+            if command -v "$tool" >/dev/null 2>&1; then
+              echo "TOOL_$tool=YES"
+            elif test "$tool" = infisical && test -x "$HOME/.local/bin/infisical"; then
+              echo "TOOL_infisical=USER_LOCAL"
+            else
+              echo "TOOL_$tool=NO"
+            fi
+          done
+          echo "TOOLS_END"
+          echo "RUNTIMES_BEGIN"
+          for tool in git gh node npm python3 docker codex bwrap; do
+            if command -v "$tool" >/dev/null 2>&1; then
+              version="$("$tool" --version 2>/dev/null | head -n 1 | cut -c1-160 || true)"
+              printf '%s=%s\n' "$tool" "$version"
+            fi
+          done
+          if test -x "$HOME/.local/bin/infisical"; then "$HOME/.local/bin/infisical" --version; fi
+          echo "RUNTIMES_END"
+          echo "DOCKER_STATUS_BEGIN"
+          if command -v docker >/dev/null 2>&1 && timeout 8s docker info --format '{{.ServerVersion}}' >/dev/null 2>&1; then
+            echo "DOCKER_DAEMON_ACCESS=YES"
+            docker version --format 'server={{.Server.Version}}' || true
+            docker system df --format 'TYPE={{.Type}} TOTAL={{.TotalCount}} ACTIVE={{.Active}} SIZE={{.Size}} RECLAIMABLE={{.Reclaimable}}' 2>/dev/null | head -n 10 || true
+            echo "DOCKER_CONTAINERS_RUNNING=$(docker ps -q | wc -l)"
+            echo "DOCKER_CONTAINERS_TOTAL=$(docker ps -aq | wc -l)"
+            echo "DOCKER_IMAGES=$(docker images -q | sort -u | wc -l)"
+          else
+            echo "DOCKER_DAEMON_ACCESS=NO"
+          fi
+          echo "DOCKER_STATUS_END"
+          echo "HOST_SERVICE_RELEVANT_BEGIN"
+          systemctl --no-pager --plain --all list-units --type=service 2>/dev/null | grep -Ei 'actions.runner|github.runner|docker.service|containerd.service|cloudflared|n8n|redis|postgres|caddy|nginx|traefik|prometheus|grafana|fail2ban|ssh.service' | cut -c1-200 || true
+          echo "HOST_SERVICE_RELEVANT_END"
+          echo "ADMIN_SUDO_NONINTERACTIVE=$(if sudo -n true >/dev/null 2>&1; then echo YES; else echo NO; fi)"
+          echo "NETWORK_PORT_SCAN=NOT_PERFORMED"
+          echo "SECRET_ACCESS=NOT_PERFORMED"
+          echo "HOST_INSTALL_CHANGES=NONE"
+          echo "OGENIC_INVENTORY_END"
