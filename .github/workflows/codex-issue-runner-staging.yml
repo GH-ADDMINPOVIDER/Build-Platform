@@ -26,15 +26,7 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
-  id-token: write
 
-env:
-  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
-  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
-  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
-  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
-  INFISICAL_ENV_SLUG: staging
-  INFISICAL_API_URL: https://app.infisical.com
 
 concurrency:
   group: codex-staging-issue-${{ inputs.issue_number }}
@@ -112,77 +104,46 @@ jobs:
         shell: bash
         run: node --test tests/codex-shared-entry-workflow.test.mjs tests/codex-request.test.mjs
 
-      - name: Load only the existing OpenAI API key from Infisical
-        id: openai_binding
-        continue-on-error: true
-        uses: Infisical/secrets-action@v1.0.17
-        with:
-          method: oidc
-          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
-          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
-          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
-          domain: ${{ env.INFISICAL_API_URL }}
-          secret-path: /
-          secret-name: OPENAI_API_KEY
-          include-imports: false
-          recursive: false
-
-      - name: Verify Codex binding without printing the key
-        id: openai_preflight
+      - name: Verify local Codex login belongs to the requested account
+        id: local_auth
         if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success'
-        shell: bash
-        env:
-          BINDING_OUTCOME: ${{ steps.openai_binding.outcome }}
-        run: |
-          set -euo pipefail
-          if [[ "$BINDING_OUTCOME" != "success" || -z "${OPENAI_API_KEY:-}" ]]; then
-            printf '%s\n' 'Codex was not invoked: existing Infisical OPENAI_API_KEY binding is unavailable. No secret value was printed.' > "$RUNNER_TEMP/codex-summary.txt"
-            echo "exit_code=86" >> "$GITHUB_OUTPUT"
-            echo "::error::OPENAI_APPLICATION_BINDING_MISSING"
-            exit 86
-          fi
-          echo "exit_code=0" >> "$GITHUB_OUTPUT"
-          echo "OGENIC_CODEX_OPENAI_BINDING_PRESENT"
-
-      - name: Verify OpenAI API key account without logging identity
-        id: openai_account
-        if: steps.openai_preflight.outputs.exit_code == '0'
         shell: bash
         env:
           EXPECTED_OPENAI_EMAIL_SHA256: ${{ vars.CODEX_EXPECTED_OPENAI_EMAIL_SHA256 }}
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
-          const { createHash } = await import('node:crypto');
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          import { createHash } from 'node:crypto';
           const expected = process.env.EXPECTED_OPENAI_EMAIL_SHA256?.trim().toLowerCase();
-          const key = process.env.OPENAI_API_KEY;
-          if (!/^[a-f0-9]{64}$/.test(expected || '') || !key) {
-            console.error('OPENAI_ACCOUNT_VERIFICATION_NOT_CONFIGURED');
+          const authPath = join(process.env.CODEX_HOME || process.env.HOME, '.codex', 'auth.json');
+          if (!/^[a-f0-9]{64}$/.test(expected || '')) {
+            console.error('CODEX_LOCAL_ACCOUNT_GATE_UNCONFIGURED');
             process.exit(89);
           }
           try {
-            const response = await fetch('https://api.openai.com/v1/me', {
-              headers: { authorization: `Bearer ${key}` },
-              signal: AbortSignal.timeout(10000),
-            });
-            if (!response.ok) throw new Error('ACCOUNT_API_UNAVAILABLE');
-            const user = await response.json();
-            const actual = typeof user.email === 'string'
-              ? createHash('sha256').update(user.email.trim().toLowerCase()).digest('hex') : '';
+            const auth = JSON.parse(readFileSync(authPath, 'utf8'));
+            const jwt = auth.tokens?.id_token;
+            if (typeof jwt !== 'string' || jwt.split('.').length !== 3) throw new Error('NO_ID_TOKEN');
+            const claims = JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString('utf8'));
+            const email = typeof claims.email === 'string' ? claims.email.trim().toLowerCase() : '';
+            const actual = email ? createHash('sha256').update(email).digest('hex') : '';
+            if (!actual) throw new Error('NO_EMAIL_CLAIM');
             if (actual !== expected) {
-              console.error('OPENAI_ACCOUNT_MISMATCH');
+              console.error('CODEX_LOCAL_ACCOUNT_MISMATCH');
               process.exit(89);
             }
-            console.log('OPENAI_ACCOUNT_MATCH');
+            console.log('CODEX_LOCAL_ACCOUNT_MATCH');
           } catch {
-            console.error('OPENAI_ACCOUNT_VERIFICATION_UNAVAILABLE');
+            console.error('CODEX_LOCAL_ACCOUNT_UNVERIFIABLE');
             process.exit(89);
           }
           NODE
 
       - name: Verify existing runner sandbox without host changes
         id: sandbox_preflight
-        if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success' && steps.openai_preflight.outputs.exit_code == '0' && steps.openai_account.outcome == 'success'
+        if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success' && steps.local_auth.outcome == 'success'
         shell: bash
         run: |
           set -euo pipefail
@@ -204,18 +165,12 @@ jobs:
         if: steps.sandbox_preflight.outputs.exit_code == '0'
         shell: bash
         env:
-          # OPENAI_API_KEY is injected by the preceding single-secret Infisical action.
           ISSUE_NUMBER: ${{ steps.task.outputs.number }}
           TASK_BRANCH: ${{ steps.task.outputs.branch }}
           REPOSITORY: ${{ github.repository }}
           SOURCE_BRANCH: phase-vi-provider-incentive-metering
         run: |
           set -euo pipefail
-          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-            printf '%s\\n' 'Codex auth preflight failed: existing Infisical OPENAI_API_KEY binding is unavailable.' > "$RUNNER_TEMP/codex-summary.txt"
-            echo "exit_code=86" >> "$GITHUB_OUTPUT"
-            exit 86
-          fi
           python3 - <<'PY'
           import json, os
           issue = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "codex-issue.json"), encoding="utf-8"))
@@ -248,7 +203,7 @@ jobs:
           open(os.path.join(os.environ["RUNNER_TEMP"], "codex-task.md"), "w", encoding="utf-8").write(prompt)
           PY
           set +e
-          codex exec --sandbox workspace-write - < "$RUNNER_TEMP/codex-task.md" > "$RUNNER_TEMP/codex-output.log" 2>&1
+          env -u OPENAI_API_KEY -u CODEX_API_KEY codex exec --sandbox workspace-write - < "$RUNNER_TEMP/codex-task.md" > "$RUNNER_TEMP/codex-output.log" 2>&1
           rc=$?
           set -e
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
@@ -340,7 +295,7 @@ jobs:
         env:
           CODEX_EXIT: ${{ steps.codex.outputs.exit_code }}
           SANDBOX_EXIT: ${{ steps.sandbox_preflight.outputs.exit_code }}
-          BINDING_EXIT: ${{ steps.openai_preflight.outputs.exit_code }}
+          AUTH_EXIT: ${{ steps.local_auth.outcome }}
           PR_URL: ${{ steps.publish.outputs.pr_url }}
           JOB_STATUS: ${{ job.status }}
         shell: bash
@@ -360,7 +315,7 @@ jobs:
             ].filter(Boolean))],
             codex_exit: process.env.CODEX_EXIT || 'NOT_INVOKED',
             sandbox_exit: process.env.SANDBOX_EXIT || 'NOT_RUN',
-            binding_exit: process.env.BINDING_EXIT || 'NOT_RUN',
+            local_auth: process.env.AUTH_EXIT || 'NOT_RUN',
             draft_pr: process.env.PR_URL || null,
             recovery: 'Inspect this run and reservation before any new confirmation; never auto-delete reservation.',
           });
