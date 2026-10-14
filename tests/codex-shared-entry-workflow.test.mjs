@@ -11,22 +11,20 @@ test('shared entry requires dispatch on exact staging ref and authenticates befo
   assert.match(workflow, /confirm_bounded_task:/);
   assert.match(workflow, /vars.CODEX_AUTHORIZED_ACTOR_IDS/);
   assert.match(workflow, /admitRequest/);
-  assert.ok(workflow.indexOf('admitRequest') < workflow.indexOf('uses: Infisical/'));
+  assert.ok(workflow.indexOf('admitRequest') < workflow.indexOf('CODEX_LOCAL_ACCOUNT_MATCH'));
   assert.match(workflow, /codex-check-in-/);
   assert.match(workflow, /codex-check-out-/);
   assert.match(workflow, /cancel-in-progress: false/);
 });
 
-test('Codex gets one existing Infisical secret and never overrides it with an empty GitHub secret', () => {
-  assert.match(workflow, /id: contract/);
-  assert.match(workflow, /steps\.contract\.outcome == 'success'/);
-  assert.match(workflow, /id-token: write/);
-  assert.match(workflow, /uses: Infisical\/secrets-action@v1\.0\.17/);
-  assert.match(workflow, /secret-name: OPENAI_API_KEY/);
-  assert.match(workflow, /secret-path: \/\n\s+secret-name: OPENAI_API_KEY/);
-  assert.match(workflow, /include-imports: false/);
-  assert.doesNotMatch(workflow, /OPENAI_API_KEY: \$\{\{ secrets\.OPENAI_API_KEY \}\}/);
-  assert.match(workflow, /OPENAI_APPLICATION_BINDING_MISSING/);
+test('Codex uses the verified local Suthi login and never loads a repository secret', () => {
+  assert.match(workflow, /id: local_auth/);
+  assert.match(workflow, /vars.CODEX_EXPECTED_OPENAI_EMAIL_SHA256/);
+  assert.match(workflow, /\.codex.*auth\.json/);
+  assert.match(workflow, /CODEX_LOCAL_ACCOUNT_MATCH/);
+  assert.match(workflow, /CODEX_LOCAL_ACCOUNT_MISMATCH/);
+  assert.doesNotMatch(workflow, /Infisical|id-token: write/);
+  assert.match(workflow, /env -u OPENAI_API_KEY -u CODEX_API_KEY codex exec/);
 });
 
 test('the invocation stays isolated and the workflow does not merge or deploy', () => {
@@ -70,14 +68,13 @@ test('successful preflight cannot substitute for an actual Codex exit when publi
   assert.doesNotMatch(publish, /steps\.(sandbox_preflight|openai_preflight)\.outputs/);
 });
 
-test('Codex stops before sandbox unless the existing key belongs to the configured OpenAI account', () => {
-  const account = workflow.split('      - name: Verify OpenAI API key account')[1]?.split('      - name: Verify existing runner sandbox')[0] || '';
+test('Codex stops before sandbox unless the local login belongs to the configured account', () => {
+  const account = workflow.split('      - name: Verify local Codex login')[1]?.split('      - name: Verify existing runner sandbox')[0] || '';
   assert.match(account, /vars.CODEX_EXPECTED_OPENAI_EMAIL_SHA256/);
-  assert.match(account, /https:\/\/api\.openai\.com\/v1\/me/);
   assert.match(account, /createHash\('sha256'\)/);
-  assert.match(account, /OPENAI_ACCOUNT_MATCH/);
-  assert.match(account, /OPENAI_ACCOUNT_MISMATCH/);
-  assert.match(workflow, /steps\.openai_account\.outcome == 'success'/);
-  assert.ok(workflow.indexOf('OPENAI_ACCOUNT_MATCH') < workflow.indexOf('codex sandbox /bin/pwd'));
-  assert.doesNotMatch(account, /console\.(log|error)\([^\n]*(user\.email|OPENAI_API_KEY|\$\{key\})/);
+  assert.match(account, /CODEX_LOCAL_ACCOUNT_MATCH/);
+  assert.match(account, /CODEX_LOCAL_ACCOUNT_MISMATCH/);
+  assert.match(workflow, /steps\.local_auth\.outcome == 'success'/);
+  assert.ok(workflow.indexOf('CODEX_LOCAL_ACCOUNT_MATCH') < workflow.indexOf('codex sandbox /bin/pwd'));
+  assert.doesNotMatch(account, /console\.(log|error)\([^\n]*(email|auth|token)/);
 });
