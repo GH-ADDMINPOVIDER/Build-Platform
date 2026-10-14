@@ -6,17 +6,19 @@ import { loadTs } from "./_load-ts.mjs";
 const read = (path) => readFileSync(new URL("../" + path, import.meta.url), "utf8");
 const card = JSON.parse(read("config/capability-card-stone.json"));
 const toolkit = JSON.parse(read("assets/toolkit-manifest.json"));
-const core = await loadTs("worker/capability-card-stone.ts");
+const core = read("worker/capability-card-stone.ts");
 const api = read("worker/capability-card-stone-api.ts");
+const aliasResolver = await loadTs("worker/web-toolkit-alias.ts");
 
 test("Web Toolkit is the single canonical CCS card for legacy God Toolkit and Control Tower names", () => {
   assert.equal(card.primary_card.card_id, "web-toolkit");
   assert.equal(card.primary_card.display_name, "Web Toolkit");
   assert.equal(card.primary_card.canonical, true);
   for (const alias of ["OGENIC God Toolkit", "God Toolkit", "Control Tower", "Vercel Agent", "Vercel Sandbox"]) {
-    assert.equal(core.resolveWebToolkitAlias(alias)?.card_id, "web-toolkit", alias);
+    assert.equal(aliasResolver.resolveCanonicalAlias(alias, card.primary_card)?.card_id, "web-toolkit", alias);
   }
-  assert.equal(core.resolveWebToolkitAlias("unrelated admin surface"), null);
+  assert.equal(aliasResolver.resolveCanonicalAlias("unrelated admin surface", card.primary_card), null);
+  assert.match(core, /resolveCanonicalAlias\(value, ccsConfig\.primary_card\)/);
   assert.equal(toolkit.front_door.canonical_card_id, "web-toolkit");
 });
 
