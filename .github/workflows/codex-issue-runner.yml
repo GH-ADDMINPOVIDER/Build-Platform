@@ -22,17 +22,18 @@ concurrency:
 jobs:
   execute:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issues' &&
-       github.event.label.name == 'codex-run' &&
-       github.event.sender.login == 'Ogenicchocolate21debug')
+      github.repository == 'Ogenicchocolate21debug/Build-Platform' &&
+      github.actor == 'Ogenicchocolate21debug' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'issues' && github.event.label.name == 'codex-run'))
     runs-on: self-hosted
     timeout-minutes: 90
     steps:
-      - name: Checkout repository
+      - name: Checkout staging only (never write to main)
         uses: actions/checkout@v4
         with:
-          persist-credentials: true
+          ref: phase-vi-provider-incentive-metering
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Validate executor and resolve issue
@@ -54,15 +55,24 @@ jobs:
             exit 2
           fi
           command -v codex >/dev/null || { echo "::error::Codex CLI is not installed on this self-hosted runner."; exit 3; }
+          test "$GITHUB_REPOSITORY" = "Ogenicchocolate21debug/Build-Platform"
+          test "$(git symbolic-ref --quiet --short HEAD 2>/dev/null || echo detached)" != "main"
+          git ls-remote --exit-code origin refs/heads/phase-vi-provider-incentive-metering >/dev/null
           codex --version
           gh issue view "$issue_number" --repo "$REPOSITORY" --json number,title,body,url > "$RUNNER_TEMP/codex-issue.json"
+          TASK_BRANCH="codex/oge-${issue_number}-${GITHUB_RUN_ID}"
+          git switch --create "$TASK_BRANCH"
+          echo "task_branch=$TASK_BRANCH" >> "$GITHUB_OUTPUT"
           echo "number=$issue_number" >> "$GITHUB_OUTPUT"
 
       - name: Run Codex on issue task
         id: codex
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+          OPENAI_API_KEY: ""
+          CODEX_API_KEY: ""
           ISSUE_NUMBER: ${{ steps.task.outputs.number }}
           REPOSITORY: ${{ github.repository }}
         run: |
@@ -84,18 +94,30 @@ jobs:
           - Make focused changes, add/update behavioral tests, and preserve unrelated or untracked work. Never delete or overwrite unrelated files.
           - Never print, commit, upload, or include secrets, tokens, credentials, raw prompts from unrelated tasks, or sensitive environment values.
           - Do not bypass repository/security policies. Do not deploy production or merge pull requests.
-          - Create a task branch, commit the completed changes, push it, and open/update a draft PR when credentials/permissions permit. If cross-repository access or secrets are unavailable, continue all work possible in this repository and report the exact blocker and owner action.
+          - An isolated task branch is already checked out from staging. Never edit or push main, and never deploy. Do not commit, push or open a PR from within Codex; return focused diff for independent owner review. If host or provider access is unavailable, return the exact blocker.
           - Finish with a concise evidence-based report: changed files/commit/PR, commands and outcomes, runtime evidence, and remaining blockers. No unsupported success claims.
           """
           open(os.path.join(os.environ["RUNNER_TEMP"], "codex-task.md"), "w", encoding="utf-8").write(prompt)
           PY
           cd "$GITHUB_WORKSPACE"
           set +e
-          codex exec --full-auto "$(cat "$RUNNER_TEMP/codex-task.md")"
+          timeout 2700s env -u OPENAI_API_KEY -u CODEX_API_KEY codex exec --sandbox workspace-write - < "$RUNNER_TEMP/codex-task.md" > "$RUNNER_TEMP/codex-run.log" 2>&1
           rc=$?
           set -e
+          CLASSIFICATION=CODEX_EXECUTION_FAILED
+          if test "$rc" -eq 0; then
+            CLASSIFICATION=CODEX_EXECUTION_COMPLETED
+          elif grep -Eiq 'usage limit|quota exhausted|insufficient_quota|rate.limit' "$RUNNER_TEMP/codex-run.log"; then
+            CLASSIFICATION=CODEX_USAGE_LIMIT_RETRY_AFTER_RESET
+          elif grep -Eiq 'auth.*(fail|invalid)|unauthorized|login required' "$RUNNER_TEMP/codex-run.log"; then
+            CLASSIFICATION=CODEX_AUTH_REQUIRED
+          fi
+          echo "CODEX_PROVIDER_STATUS=$CLASSIFICATION"
           {
             echo "Codex exit code: $rc"
+            echo "Codex provider status: $CLASSIFICATION"
+            echo "Staging-only source SHA: $(git rev-parse HEAD)"
+            echo "Workflow: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo
             echo "Final git status:"
             git status --short
