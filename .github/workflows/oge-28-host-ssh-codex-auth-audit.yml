@@ -1,0 +1,90 @@
+name: OGE-28 WAVE host SSH and Codex login status audit
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - .github/workflows/oge-28-host-ssh-codex-auth-audit.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  verify:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 7
+    steps:
+      - name: Verify signed-in Codex user on existing WAVE SSH host without inference
+        id: audit
+        shell: bash
+        env:
+          EXPECTED_OPENAI_EMAIL_SHA256: ${{ vars.CODEX_EXPECTED_OPENAI_EMAIL_SHA256 }}
+        run: |
+          set -euo pipefail
+          echo "EXECUTOR_RUNNER=$RUNNER_NAME"
+          echo "HOSTNAME=$(hostname)"
+          echo "RUN_ID=$GITHUB_RUN_ID"
+          echo "SOURCE_SHA=$GITHUB_SHA"
+          echo "HOST_SSH_CLIENT=$(if command -v ssh >/dev/null 2>&1; then echo AVAILABLE; else echo MISSING; fi)"
+          echo "HOST_INFISICAL_CLI=$(if command -v infisical >/dev/null 2>&1; then echo AVAILABLE; else echo NOT_PRESENT; fi)"
+          echo "HOST_GH_CLI=$(if command -v gh >/dev/null 2>&1; then echo AVAILABLE; else echo MISSING; fi)"
+          if systemctl is-active --quiet actions.runner.Ogenicchocolate21debug-Build-Platform.wave-runner-01.service; then
+            echo "SELFHOST_RUNNER01_SERVICE=ACTIVE"
+          else
+            echo "SELFHOST_RUNNER01_SERVICE=UNKNOWN"
+          fi
+          if sudo -n true >/dev/null 2>&1; then echo "NONINTERACTIVE_HOST_SUDO=YES"; else echo "NONINTERACTIVE_HOST_SUDO=NO"; fi
+          codex --version
+          set +e
+          timeout 15s codex login status > "$RUNNER_TEMP/oge28-login-raw.txt" 2>&1
+          login_rc=$?
+          set -e
+          echo "CODEX_LOGIN_STATUS_EXIT=$login_rc"
+          if [[ "$login_rc" == 0 ]]; then
+            echo "CODEX_LOGIN_STATUS=AUTHENTICATED"
+          else
+            echo "CODEX_LOGIN_STATUS=FAILED_OR_UNKNOWN"
+          fi
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          import { createHash } from 'node:crypto';
+          const expected=process.env.EXPECTED_OPENAI_EMAIL_SHA256?.trim().toLowerCase();
+          let result='UNVERIFIABLE';
+          if (/^[0-9a-f]{64}$/.test(expected||'')) {
+            try {
+              const a=JSON.parse(readFileSync(join(process.env.CODEX_HOME||join(process.env.HOME,'.codex'),'auth.json'),'utf8'));
+              const raw=a.tokens?.id_token;
+              if (typeof raw === 'string' && raw.split('.').length===3) {
+                const c=JSON.parse(Buffer.from(raw.split('.')[1],'base64url').toString('utf8'));
+                const email=typeof c.email==='string'?c.email.trim().toLowerCase():'';
+                if (email) {
+                  const actual=createHash('sha256').update(email).digest('hex');
+                  result= actual===expected?'EXPECTED_SUTHI_ACCOUNT_MATCH':'ACCOUNT_MISMATCH';
+                }
+              }
+            } catch {}
+          }
+          console.log('CODEX_ACCOUNT_MATCH='+result);
+          if(result!=='EXPECTED_SUTHI_ACCOUNT_MATCH')process.exitCode=86;
+          NODE
+          echo "NO_INFERENCE_OR_API_CALL=TRUE"
+      - name: Post sanitized host receipt to Issue 28
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_CONCLUSION: ${{ steps.audit.outcome }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/oge28-ssh-audit.md" <<EOF
+          ## OGE-28 — SSH host/Codex authentication audit (no inference)
+          - Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          - Executor: \`$RUNNER_NAME\` on \`$(hostname)\`
+          - Staging source SHA: \`$GITHUB_SHA\`
+          - Host login/account check step: \`$AUDIT_CONCLUSION\` (see markers in run logs)
+          - No credentials printed; no inference, API key changes, SSH secret retrieval, merge or deploy.
+          - Host checked via GitHub self-hosted Actions, **not a new independent SSH session**.
+          EOF
+          gh issue comment 28 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/oge28-ssh-audit.md" || echo 'ISSUE_RECEIPT_COMMENT_BLOCKED'
