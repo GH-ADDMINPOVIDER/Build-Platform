@@ -20,7 +20,7 @@ test('shared entry requires dispatch on exact staging ref and authenticates befo
 test('Codex uses the verified local Suthi login and never loads a repository secret', () => {
   assert.match(workflow, /id: local_auth/);
   assert.match(workflow, /vars.CODEX_EXPECTED_OPENAI_EMAIL_SHA256/);
-  assert.match(workflow, /\\.codex.*auth\\.json/);
+  assert.match(workflow, /\.codex.*auth\.json/);
   assert.match(workflow, /CODEX_LOCAL_ACCOUNT_MATCH/);
   assert.match(workflow, /CODEX_LOCAL_ACCOUNT_MISMATCH/);
   assert.doesNotMatch(workflow, /Infisical|OPENAI_API_KEY|id-token: write/);
