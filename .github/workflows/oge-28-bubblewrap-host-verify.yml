@@ -1,0 +1,44 @@
+name: OGE-28 Bubblewrap host verification
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths: ['.github/workflows/oge-28-bubblewrap-host-verify.yml']
+permissions:
+  contents: read
+  issues: write
+jobs:
+  verify:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 5
+    steps:
+      - name: Check installed bubblewrap and sandbox safely
+        id: bwrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = 'wave-runner-01'
+          echo "HOST=$RUNNER_NAME"
+          echo "LINUX_USER=$(id -un)"
+          if command -v bwrap >/dev/null 2>&1; then
+            echo "BWRAP_ALREADY_INSTALLED=YES"
+            bwrap --version
+            echo "BWRAP_VERSION_CHECK=PASS"
+          else
+            echo "BWRAP_ALREADY_INSTALLED=NO"
+            exit 86
+          fi
+          codex sandbox /bin/true > "$RUNNER_TEMP/oge28-bwrap-sandbox.log" 2>&1
+          echo "CODEX_BWRAP_SANDBOX_CHECK=PASS"
+          echo "OPENAI_INFERENCE_CALLED=NO"
+      - name: Save result on Issue 28
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBE_OUTCOME: ${{ steps.bwrap.outcome }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' '## OGE-28 Bubblewrap verify' "- Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" "- Executing host: $RUNNER_NAME" "- Bubblewrap+Codex sandbox verification: $PROBE_OUTCOME" '- No AI inference, no sudo change, no Production deployment' > "$RUNNER_TEMP/oge28-bwrap-receipt.md"
+          cat "$RUNNER_TEMP/oge28-bwrap-receipt.md" >> "$GITHUB_STEP_SUMMARY"
+          gh issue comment 28 --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/oge28-bwrap-receipt.md" || echo "ISSUE_COMMENT_BLOCKED"
