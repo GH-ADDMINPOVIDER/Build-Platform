@@ -1,0 +1,29 @@
+name: OGE-28 Codex provider patch contract test (no inference)
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - .github/workflows/oge-28-provider-recovery-proof.yml
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 10
+    steps:
+      - name: Checkout immutable provider patch candidate
+        uses: actions/checkout@v4
+        with:
+          ref: c0b001ec8048d81422687cfd3e62c62591c153b6
+          persist-credentials: false
+      - name: Run static contract tests on exact proposed patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = c0b001ec8048d81422687cfd3e62c62591c153b6
+          node --test tests/oge28-codex-recovery.test.mjs
+          echo "OGE28_PROVIDER_PATCH_CONTRACT_PASS"
+          echo "NOTE: no Codex API/inference call; usage quota readiness not measured"
