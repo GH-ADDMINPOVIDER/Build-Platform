@@ -8,6 +8,8 @@ on:
       - "scripts/verify-oge-35-runtime.mjs"
       - "tests/athena-guarded-command-handoff.test.mjs"
       - "worker/entry-yellow-stone.ts"
+      - "worker/wave-command-contract.ts"
+      - "tests/wave-command-contract.test.mjs"
       - "worker/capability-execution-api.ts"
       - "worker/athena-chat-api.ts"
       - "src/WaveNext.tsx"
@@ -40,7 +42,7 @@ jobs:
         run: npm install --package-lock-only && npm ci
 
       - name: Contract tests
-        run: node --test tests/athena-guarded-command-handoff.test.mjs tests/athena-default-chat-contract.test.mjs tests/yellow-stone-execution-router-contract.test.mjs tests/blue-diamond-contract.test.mjs tests/wave-next-ui.test.mjs
+        run: node --test tests/athena-guarded-command-handoff.test.mjs tests/wave-command-contract.test.mjs tests/athena-default-chat-contract.test.mjs tests/yellow-stone-execution-router-contract.test.mjs tests/blue-diamond-contract.test.mjs tests/wave-next-ui.test.mjs
 
       - name: Typecheck
         run: npm run typecheck
