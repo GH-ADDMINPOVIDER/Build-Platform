@@ -30,6 +30,7 @@ import { createN8nMigrationApi } from "./n8n-migration-api";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { planAthenaCommand } from "./athena-command-planner";
+import { normalizeWaveCommandBody, waveCommandPolicy } from "./wave-command-contract";
 import { createDiscordApi } from "./discord-api";
 
 const resolverApi = createCapabilityResolverApi();
@@ -65,10 +66,13 @@ const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
 
 type Bindings = CapabilityResolverBindings & BlueDiamondRegistryEnv & PerplexityAgentBindings & DeepSeekBindings & GeminiBindings & XaiBindings & MetaModelBindings & TaskInboxBindings & ChatMessageActionBindings & Record<string, unknown>;
 type WaveCommandBody = {
+  command?: unknown;
   intent?: unknown;
   capability?: unknown;
   provider?: unknown;
   environment?: unknown;
+  mode?: unknown;
+  command_mode?: unknown;
   input?: { path?: unknown; prompt?: unknown };
 };
 
@@ -122,31 +126,34 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
   }
 
   const body = await request.clone().json().catch(() => null) as WaveCommandBody | null;
-  if (!body || typeof body !== "object") {
+  const normalized = normalizeWaveCommandBody(body);
+  if (!normalized.ok) {
     return Response.json({
       ok: false,
-      code: "INVALID_REQUEST",
-      message: "JSON command body required",
+      code: normalized.code,
+      message: normalized.message,
       command_handoff: handoffMetadata(athena),
-    }, { status: 400 });
+    }, { status: normalized.code === "ENVIRONMENT_SCOPE_MISMATCH" ? 409 : 400 });
   }
 
-  const intent = compact(body.intent, 1200);
-  const explicitCapability = compact(body.capability, 160);
-  const explicitProvider = compact(body.provider, 120);
-  const explicitStructured = Boolean(explicitCapability || explicitProvider);
+  const commandPolicy = waveCommandPolicy(normalized.mode);
+  const intent = normalized.intent;
+  const explicitCapability = normalized.capability;
+  const explicitProvider = normalized.provider;
+  const explicitStructured = normalized.explicit_structured;
 
   let commandPlan: Record<string, unknown>;
   let delegatedBody: Record<string, unknown>;
 
   if (explicitStructured) {
-    const inputPath = compact(body.input?.path, 500);
-    const inputPrompt = compact(body.input?.prompt, 6000);
+    const inputPath = normalized.input.path ?? "";
+    const inputPrompt = normalized.input.prompt ?? "";
     commandPlan = {
       plan_version: "ATHENA_COMMAND_PLAN_V1",
       planner: "EXPLICIT_STRUCTURED_V1",
       status: "READY",
       normalized_intent: intent,
+      command_mode: normalized.mode,
       capability: explicitCapability || undefined,
       provider: explicitProvider || undefined,
       environment: "staging",
@@ -157,6 +164,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
     };
     delegatedBody = {
       intent,
+      command_mode: normalized.mode,
       capability: explicitCapability,
       provider: explicitProvider,
       environment: "staging",
@@ -210,6 +218,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
   return new Response(JSON.stringify({
     ...payload,
     command_plan: commandPlan,
+    command_policy: commandPolicy,
     command_handoff: handoffMetadata(athena),
   }), {
     status: response.status,
