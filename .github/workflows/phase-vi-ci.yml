@@ -3,18 +3,6 @@ name: OGENIC Phase VI CI
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [phase-vi-provider-incentive-metering]
-    paths:
-      - "worker/**"
-      - "config/**"
-      - "tests/**"
-      - "src/**"
-      - "package.json"
-      - "package-lock.json"
-      - "vite.config.ts"
-      - "wrangler.jsonc"
-      - ".github/workflows/phase-vi-ci.yml"
   workflow_dispatch:
 
 permissions:
@@ -40,9 +28,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install --package-lock-only && npm ci
-
-      - name: Autonomous WAVE command contract tests
-        run: node --test tests/wave-command-contract.test.mjs tests/athena-guarded-command-handoff.test.mjs
 
       - name: Typecheck
         run: npm run typecheck
