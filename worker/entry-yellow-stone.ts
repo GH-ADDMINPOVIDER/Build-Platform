@@ -282,6 +282,28 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
     }, { status: 409, headers: { "Cache-Control": "no-store" } });
   }
 
+  if (explicitStructured && explicitCapability === "codex_selfhost" && explicitProvider === "openai") {
+    const db = (env as { DB?: CommandQueueDb }).DB;
+    if (!db) {
+      return Response.json({
+        ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB",
+        execution: { status: "NOT_QUEUED", consumer_proven: false },
+        command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
+      }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+    const queued = await queueApprovedCommand(db, commandPlan, approvalId);
+    return Response.json({
+      ok: true, code: "COMMAND_QUEUED", task: queued.task, idempotent_replay: queued.replayed,
+      approval: { required: false, approval_id: approvalId, confirmed: true },
+      execution: {
+        status: "QUEUED", consumer_proven: false,
+        route: "YELLOW_STONE_CODEX_SELFHOST",
+        note: "Queued in existing agent_tasks; no consumer receipt exists yet.",
+      },
+      command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
+    }, { status: queued.replayed ? 200 : 202, headers: { "Cache-Control": "no-store" } });
+  }
+
   const url = new URL(request.url);
   url.pathname = "/api/capabilities/execute";
   const headers = new Headers(request.headers);

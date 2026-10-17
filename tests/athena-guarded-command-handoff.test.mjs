@@ -71,3 +71,13 @@ test("WAVE command requires a matching second owner confirmation before queueing
   assert.match(ui, /ยืนยันและเข้าคิว/);
   assert.match(ui, /รอหลักฐานจาก Runner ก่อนนับว่ารันสำเร็จ/);
 });
+
+
+test("chat command routes arbitrary owner text to the bounded Codex self-host queue contract", () => {
+  const entry = read("worker/entry-yellow-stone.ts");
+  const ui = read("src/UnifiedChat.tsx");
+  assert.match(ui, /capability:\s*"codex_selfhost"/);
+  assert.match(ui, /provider:\s*"openai"/);
+  assert.match(entry, /YELLOW_STONE_CODEX_SELFHOST/);
+  assert.match(entry, /no consumer receipt exists yet/);
+});

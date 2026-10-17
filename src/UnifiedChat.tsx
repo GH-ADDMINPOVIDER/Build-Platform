@@ -587,7 +587,13 @@ export default function UnifiedChat({ surface }: Props) {
   async function runWaveCommand(prompt: string) {
     const response = await fetch("/api/wave/command", {
       method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ command: prompt, mode: "autonomous", environment: "staging" }),
+      body: JSON.stringify({
+        command: prompt,
+        mode: "autonomous",
+        environment: "staging",
+        capability: "codex_selfhost",
+        provider: "openai",
+      }),
     });
     const body = await response.json().catch(() => ({})) as {
       code?: string; message?: string;
@@ -617,6 +623,7 @@ export default function UnifiedChat({ surface }: Props) {
         method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           command: approved.intent, mode: "autonomous", environment: "staging",
+          capability: "codex_selfhost", provider: "openai",
           approval: { confirmed: true, approval_id: approved.approval_id },
         }),
       });
