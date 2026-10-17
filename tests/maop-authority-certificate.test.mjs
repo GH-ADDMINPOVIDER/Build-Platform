@@ -39,7 +39,7 @@ test("issuer key must be pinned server-side", async () => {
   assert.equal(r.code, "UNTRUSTED_CERTIFICATE_ISSUER");
 });
 test("edited certificate fails signature verification", async () => {
-  const c = await sign(claims);
+  const c = await sign({ ...claims });
   c.claims.permissions = [...claims.permissions, "DELETE"];
   assert.equal((await verifyCapabilityCertificate(c, { ...ctx, action: "DELETE", ownerVerified: true })).code, "CERTIFICATE_SIGNATURE_INVALID");
 });
