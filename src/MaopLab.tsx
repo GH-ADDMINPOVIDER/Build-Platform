@@ -50,9 +50,14 @@ export default function MaopLab() {
   const [busy, setBusy] = useState("");
   const [path, setPath] = useState("package.json");
   const [authRequired, setAuthRequired] = useState(false);
+  const [ownerCatalog, setOwnerCatalog] = useState<Json | null>(null);
   const [selectedChoices, setSelectedChoices] = useState<string[]>(["github-read"]);
 
   useEffect(() => {
+    void fetch("/api/maop/lab/owner-capabilities", { credentials: "include", cache: "no-store" })
+      .then(async (response) => response.json())
+      .then(setOwnerCatalog)
+      .catch(() => setOwnerCatalog({ ok: false, code: "CAPABILITY_CATALOG_NOT_LOADED" }));
     void fetch("/api/maop/lab/status", { credentials: "include", cache: "no-store" })
       .then(async (r) => {
         if (r.status === 401) setAuthRequired(true);
@@ -312,6 +317,30 @@ export default function MaopLab() {
           <span>Branch</span>
           <strong>{status?.canonical_branch ?? "—"}</strong>
         </div>
+      </section>
+
+      <section className="mlCard">
+        <div className="mlCardHead">
+          <div>
+            <span>AMMONITE REGISTRY</span>
+            <h2>บัญชี · สิทธิ์ · ความพร้อม</h2>
+          </div>
+          <b>CATALOG ONLY</b>
+        </div>
+        <p className="mlBody">รายการนี้แสดงขีดความสามารถที่ Owner ต้องการและสถานะการพิสูจน์จริง ไม่ใช่ใบอนุญาตให้ Execute หรือ Deploy ทันที</p>
+        <div className="mlCatalog">
+          {ownerCatalog?.actors?.map?.((actor: Json) => <div className="mlActor" key={actor.id}>
+            <div>
+              <strong>{actor.id} · {actor.provider}</strong>
+              <small>{actor.kind} · {actor.readiness}</small>
+              <small>Owner requested: {Array.isArray(actor.requested_capabilities) ? actor.requested_capabilities.join(" · ") : "—"}</small>
+            </div>
+            <span className={actor.granted_capabilities?.length ? "mlGranted" : "mlUnverified"}>
+              {actor.granted_capabilities?.length ? "GRANTED" : "NOT VERIFIED"}
+            </span>
+          </div>) ?? <p className="mlBody">{ownerCatalog?.code ?? "Loading owner catalog…"}</p>}
+        </div>
+        <p className="mlBody">Infisical Certificate Manager: {ownerCatalog?.certificate_manager?.status ?? "NOT VERIFIED"} · ไม่มีการสร้าง/เปิดเผย Certificate จากหน้านี้</p>
       </section>
 
       <section className="mlCard">
