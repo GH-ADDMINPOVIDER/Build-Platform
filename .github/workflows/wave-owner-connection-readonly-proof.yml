@@ -1,0 +1,106 @@
+name: WAVE Owner — Real Connections & Certificate Read-only Proof
+on:
+  push:
+    branches: [arch/owner-certificate-maop-20261017]
+    paths: [".github/workflows/wave-owner-connection-readonly-proof.yml"]
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+jobs:
+  inventory:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+      INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+    steps:
+      - name: Checkout exact non-deploy feature commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Inspect local runner services, Codex readiness and remote GitHub identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import {spawnSync} from 'node:child_process';
+          import {writeFileSync} from 'node:fs';
+          const sh=(command,args,timeout=8000,env=process.env)=>{
+            const x=spawnSync(command,args,{encoding:'utf8',timeout,env,maxBuffer:4096});
+            return {exit:x.status,ok:x.status===0,text:String(x.stdout||'').slice(0,4000)};
+          };
+          const r={
+            schema:'ogenic.owner.connection-proof.v1',source_sha:process.env.GITHUB_SHA,
+            runner:{actions_name:process.env.RUNNER_NAME,host_source:'self-hosted GH Actions',uname:sh('hostname',[]).text.trim(),
+              services:[],registrations:[],codex_cli:'NOT_TESTED',codex_local_login:'NOT_TESTED',
+              second_codex_login:'NOT_PROVEN'},
+            github:{connected_job_account:process.env.GITHUB_ACTOR,secondary_collaborator:'NOT_VERIFIED',registered_runner_list:'NOT_VERIFIED'},
+            infisical:{oidc:'NOT_TESTED',projects:[],certificate_manager:'NOT_VERIFIED',searches:[]},
+            deployment_changes:false,secret_values_read:false
+          };
+          const services=sh('systemctl',['list-units','--no-pager','--plain','--all','--type=service'],8000);
+          r.runner.services=services.text.split('\n').filter(s=>/actions.runner|github.runner/.test(s)).map(s=>s.trim().split(/\s+/)[0]).slice(0,10);
+          const dirs=['/opt/wave/actions-runner','/opt/wave/actions-runner-2','/opt/wave/runner-2','/home/wave/actions-runner-2'];
+          const fs=await import('node:fs');
+          r.runner.registrations=dirs.filter(x=>fs.existsSync(x)).map(x=>({directory:x,registered:fs.existsSync(x+'/.runner'),binary:fs.existsSync(x+'/config.sh')}));
+          r.runner.codex_cli=sh('codex',['--version']).ok?'INSTALLED':'NOT_AVAILABLE';
+          const codexLogin=sh('codex',['login','status'],8000);
+          r.runner.codex_local_login=codexLogin.ok?'LOCAL_CLI_SIGNED_IN':'NO_VERIFIED_LOCAL_LOGIN';
+          const permission=sh('gh',['api',`repos/${process.env.GITHUB_REPOSITORY}/collaborators/Wave-Runner-2/permission`,'--jq','.permission'],10000);
+          r.github.secondary_collaborator=permission.ok?permission.text.trim():'READ_PERMISSION_UNAVAILABLE';
+          const runners=sh('gh',['api',`repos/${process.env.GITHUB_REPOSITORY}/actions/runners`,'--jq','.runners[] | [.id,.name,.status] | @tsv'],10000);
+          r.github.registered_runner_list=runners.ok?runners.text.split('\n').filter(Boolean).slice(0,15):'RUNNER_ADMIN_API_UNAVAILABLE';
+          let token;
+          try{
+            if(!process.env.ACTIONS_ID_TOKEN_REQUEST_URL||!process.env.INFISICAL_IDENTITY_ID)throw Error('OIDC_CONTEXT_MISSING');
+            const api=async(url,opts={},label='REQUEST')=>{
+              const res=await fetch(url,{...opts,signal:AbortSignal.timeout(15000)});
+              let data={};try{data=await res.json()}catch{}
+              if(!res.ok)throw Error(label+'_HTTP_'+res.status);
+              return data;
+            };
+            const oidc=await api(process.env.ACTIONS_ID_TOKEN_REQUEST_URL,{headers:{Authorization:'Bearer '+process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}},'OIDC');
+            const login=await api('https://app.infisical.com/api/v1/auth/oidc-auth/login',{
+              method:'POST',headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({identityId:process.env.INFISICAL_IDENTITY_ID,jwt:oidc.value,organizationSlug:process.env.INFISICAL_ORG_SLUG})},'INFISICAL_AUTH');
+            token=login.accessToken;if(!token)throw Error('AUTH_NO_ACCESS_TOKEN');
+            r.infisical.oidc='AUTHENTICATED';
+            const projects=await api('https://app.infisical.com/api/v1/projects',{headers:{Authorization:'Bearer '+token}},'PROJECTS');
+            const scoped=(projects.projects||[]).filter(p=>p.orgId===process.env.INFISICAL_ORG_ID);
+            r.infisical.projects=scoped.map(p=>({slug:p.slug,name:p.name,type:p.type??p.projectType??'TYPE_NOT_RETURNED'}));
+            r.infisical.certificate_manager=scoped.length?'SEARCH_PENDING':'NO_PROJECT_VISIBLE';
+            for(const p of scoped.slice(0,8)){
+              try{
+                const rr=await fetch('https://app.infisical.com/api/v1/projects/'+encodeURIComponent(p.id)+'/certificates/search',{
+                  method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+                  body:JSON.stringify({limit:1,offset:0}),signal:AbortSignal.timeout(15000)});
+                // Do not return raw response; status-only metadata probe.
+                r.infisical.searches.push({project:p.slug||p.name,status:rr.status,accessible:rr.ok});
+              }catch(e){r.infisical.searches.push({project:p.slug||p.name,error:'REQUEST_FAILED'});}
+            }
+            r.infisical.certificate_manager=r.infisical.searches.some(p=>p.accessible)?'CERTIFICATE_LIST_ENDPOINT_ACCESSIBLE':'CERTIFICATE_PROJECT_NOT_VERIFIED';
+          }catch(e){
+            r.infisical.oidc=String(e.message||'BLOCKED').slice(0,90);
+            r.infisical.certificate_manager='NOT_VERIFIED';
+          }finally{token=undefined;}
+          writeFileSync('wave-owner-connection-proof.json',JSON.stringify(r,null,2)+'\n',{mode:0o600});
+          for(const [name,item] of Object.entries(r.runner)){if(name!=='uname')console.log('RUNNER_'+name.toUpperCase()+'='+JSON.stringify(item));}
+          console.log('GITHUB_SECONDARY_COLLABORATOR='+r.github.secondary_collaborator);
+          console.log('GITHUB_REGISTERED_RUNNERS='+JSON.stringify(r.github.registered_runner_list));
+          console.log('INFISICAL_OIDC='+r.infisical.oidc);
+          console.log('INFISICAL_PROJECTS='+JSON.stringify(r.infisical.projects));
+          console.log('INFISICAL_CERT_SEARCH='+JSON.stringify(r.infisical.searches));
+          console.log('NO_VALUE_OR_DEPLOY_CHANGES=YES');
+          NODE
+      - name: Save sanitized read-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wave-owner-connection-proof-${{ github.run_id }}
+          path: wave-owner-connection-proof.json
+          retention-days: 2
+          if-no-files-found: warn
