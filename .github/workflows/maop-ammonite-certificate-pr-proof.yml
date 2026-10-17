@@ -33,7 +33,7 @@ jobs:
       - name: Verify signed certificate contracts without any secret or provider calls
         run: node --test tests/maop-authority-certificate.test.mjs tests/ammonite-registry.test.mjs
       - name: Install dependencies for source validation only
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund && npm ci --ignore-scripts --no-audit --no-fund
       - name: Typecheck MA-OP selected-route UI
         run: npm run typecheck
       - name: Build staging preview bundle (no deploy)
