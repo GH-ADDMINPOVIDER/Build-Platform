@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import operatorRegistry from "../config/ammonite-maop-operator-registry.json";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { createCapabilityExecutionApi } from "./capability-execution-api";
 import {
@@ -94,6 +95,32 @@ api.get("/api/maop/lab/status", async (c) => {
       direct_provider_bypass: false,
       schema_change: false,
     },
+  }, 200, noStore);
+});
+
+// Owner-only capability catalog: a disclosure of known actor readiness, NOT an executable grant.
+api.get("/api/maop/lab/owner-capabilities", async (c) => {
+  if (!(await requireLabAuth(c.req.raw, c.env))) {
+    return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401, noStore);
+  }
+  const actors = operatorRegistry.actors.map((actor) => ({
+    id: actor.id,
+    provider: actor.provider,
+    kind: actor.kind,
+    readiness: actor.readiness,
+    requested_capabilities: actor.requested_capabilities,
+    granted_capabilities: actor.granted_capabilities,
+    certificate_status: actor.certificate_status,
+  }));
+  return c.json({
+    ok: true,
+    schema: "ogenic.ammonite.owner-capability-catalog.v1",
+    catalog_only: true,
+    does_not_authorize_execution: true,
+    canonical_gateway: "wave-runner-01",
+    evidence_policy: "PROOF_REQUIRED_PER_IDENTITY_AND_CAPABILITY",
+    certificate_manager: { project_slug: "cert-manager-89-qe", status: "OIDC_ACCESS_HTTP_403", certificate_issued: false },
+    actors,
   }, 200, noStore);
 });
 
