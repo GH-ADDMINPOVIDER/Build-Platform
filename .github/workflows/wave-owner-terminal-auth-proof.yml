@@ -6,7 +6,7 @@ on:
       - ".github/workflows/wave-owner-terminal-auth-proof.yml"
       - "scripts/owner-terminal-auth-proof.mjs"
       - "worker/entry-yellow-stone.ts"
-      - "config/owner-terminal-request.json"
+      - "ops/owner-terminal-request.json"
   workflow_dispatch:
 permissions:
   contents: read
