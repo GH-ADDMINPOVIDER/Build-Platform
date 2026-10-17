@@ -11,7 +11,11 @@ permissions:
 
 jobs:
   validate-and-bundle:
-    runs-on: ubuntu-latest
+    # The existing one-host WAVE gateway replaces unavailable GitHub-hosted minutes.
+    # Never execute untrusted fork PR code on the self-hosted runner.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == 'Ogenicchocolate21debug/Build-Platform'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
