@@ -7,7 +7,7 @@ export const GOVERNED_ACTIONS = Object.freeze([
   "READ", "WRITE", "EXECUTE", "DELETE", "SECRET_USE", "PERMISSION_CHANGE", "BILLING"
 ]);
 const actions = new Set(GOVERNED_ACTIONS);
-const protectedActions = new Set(["COMMIT", "DEPLOY", "DELETE", "PERMISSION_CHANGE", "BILLING"]);
+const protectedActions = new Set(["WRITE", "EXECUTE", "COMMIT", "DEPLOY", "DELETE", "SECRET_USE", "PERMISSION_CHANGE", "BILLING"]);
 const shaPattern = /^[0-9a-f]{40}$/i;
 
 export function canonicalCertificatePayload(value) {
