@@ -1,0 +1,51 @@
+name: MA-OP Ammonite Certificate PR Contract (source-only)
+on:
+  push:
+    branches: [arch/owner-certificate-maop-20261017]
+    paths:
+      - ".github/workflows/maop-ammonite-certificate-pr-proof.yml"
+      - "packages/maop-core/src/authority-certificate.mjs"
+      - "config/ammonite-maop-operator-registry.json"
+      - "src/MaopLab.tsx"
+      - "src/maop-lab.css"
+      - "tests/maop-authority-certificate.test.mjs"
+      - "tests/ammonite-registry.test.mjs"
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify no unrelated branch or environment execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "arch/owner-certificate-maop-20261017"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify signed certificate contracts without any secret or provider calls
+        run: node --test tests/maop-authority-certificate.test.mjs tests/ammonite-registry.test.mjs
+      - name: Install dependencies for source validation only
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck MA-OP selected-route UI
+        run: npm run typecheck
+      - name: Build staging preview bundle (no deploy)
+        run: npm run build
+      - name: Report truthful scope
+        if: always()
+        run: |
+          {
+            echo '### Ammonite/MA-OP certificate source proof'
+            echo "- SHA: $GITHUB_SHA"
+            echo '- No live Infisical secret read/write, no signing-key installation'
+            echo '- No actual cross-account login, capability elevation or deployments'
+            echo '- Does not certify Runner-2'
+            echo '- Requires separate authorized runtime integration and independent owner approval'
+          } >> "$GITHUB_STEP_SUMMARY"
