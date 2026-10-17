@@ -33,7 +33,7 @@ const report={
  rawSecretValuesCollected:false,accountPluginInstallStateProven:false,
  metadataOnly:true,run:"https://github.com/"+env.GITHUB_REPOSITORY+"/actions/runs/"+env.GITHUB_RUN_ID,
  projectCount:0,scannedEnvironmentCount:0,totalMetadataKeys:0,
- services:[],unclassifiedMetadataKeyCount:0,errors:[],identityMarkers:{GS:0,GT:0}
+ services:[],keyNames:[],unclassifiedMetadataKeyCount:0,errors:[],identityMarkers:{GS:0,GT:0}
 };
 async function getJson(url,init={},stage="API"){
  const res=await fetch(url,{...init,signal:AbortSignal.timeout(20000)});
@@ -75,6 +75,8 @@ try {
       if(seen.has(distinct))continue;
       seen.add(distinct);
       report.totalMetadataKeys++;
+      // Secret metadata only. Never retain/print secretValue, secretKeyCiphertext, or response objects.
+      report.keyNames.push({project:projectLabel,environment,path,key:secret.secretKey});
       const atoms=key.split("_");
       if(atoms.includes("GS"))report.identityMarkers.GS++;
       if(atoms.includes("GT"))report.identityMarkers.GT++;
@@ -92,6 +94,7 @@ try {
   }
  }
  report.services.sort((a,b)=>a.name.localeCompare(b.name));
+ report.keyNames.sort((a,b)=>a.project.localeCompare(b.project)||a.environment.localeCompare(b.environment)||a.path.localeCompare(b.path)||a.key.localeCompare(b.key));
  report.status=report.scannedEnvironmentCount?
   (report.errors.length?"PARTIAL_METADATA_READ":"METADATA_READ_SUCCESS"):"NO_ACCESSIBLE_METADATA";
 }catch(err){
@@ -103,6 +106,10 @@ console.log("INFISICAL_METADATA_STATUS="+report.status);
 console.log("PROJECT_COUNT="+report.projectCount);
 console.log("SCANNED_ENVIRONMENTS="+report.scannedEnvironmentCount);
 console.log("TOTAL_SECRET_KEY_METADATA="+report.totalMetadataKeys);
+console.log("KEY_NAME_RECORD_COUNT="+report.keyNames.length);
+for (const item of report.keyNames) {
+  console.log("INFISICAL_KEY_NAME_ONLY="+JSON.stringify(item));
+}
 console.log("MATCHED_SERVICES="+report.services.map(x=>x.name).join(","));
 console.log("UNKNOWN_SERVICE_KEY_COUNT="+report.unclassifiedMetadataKeyCount);
 console.log("GS_GT_MARKERS_NOT_ACCOUNT_AUTH_PROOF=YES");
