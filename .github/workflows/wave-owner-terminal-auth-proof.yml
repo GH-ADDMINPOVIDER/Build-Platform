@@ -1,11 +1,12 @@
 name: WAVE Owner — Runner-1 Terminal & Dual Codex Identity Proof
 on:
   push:
-    branches: [fix/owner-terminal-runtime-20261017]
+    branches: [fix/owner-terminal-runtime-20261017, phase-vi-provider-incentive-metering]
     paths:
       - ".github/workflows/wave-owner-terminal-auth-proof.yml"
       - "scripts/owner-terminal-auth-proof.mjs"
       - "worker/entry-yellow-stone.ts"
+      - "config/owner-terminal-request.json"
   workflow_dispatch:
 permissions:
   contents: read
