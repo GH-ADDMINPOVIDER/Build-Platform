@@ -32,6 +32,17 @@ function ResultCard({ title, value }: { title: string; value: Json | null }) {
   </section>;
 }
 
+const maopChoices = [
+  { id: "github-read", title: "GitHub · File READ", enabled: true, note: "Existing MA-OP → Yellow live-read bridge" },
+  { id: "ruby-audit", title: "Ruby · Verify / Audit", enabled: true, note: "Existing read-only Ruby scorecard" },
+  { id: "n8n-readiness", title: "n8n · Self-host Readiness", enabled: true, note: "Existing read-only self-host status" },
+  { id: "codex-ts", title: "Codex TS · Build/Debug", enabled: false, note: "CERTIFICATE_AND_RUNTIME_PROOF_REQUIRED" },
+  { id: "codex-gs", title: "Codex GS · Build/Debug", enabled: false, note: "SECOND_ACCOUNT_DISPATCH_NOT_VERIFIED" },
+  { id: "gpt-ts", title: "GPT TS · Command", enabled: false, note: "CROSS_ACCOUNT_COMMAND_BRIDGE_REQUIRED" },
+  { id: "gpt-gs", title: "GPT GS · Command", enabled: false, note: "CROSS_ACCOUNT_COMMAND_BRIDGE_REQUIRED" },
+  { id: "manus", title: "Manus · Long-run Agent", enabled: false, note: "WAVE_RUNTIME_DISPATCH_NOT_VERIFIED" }
+] as const;
+
 export default function MaopLab() {
   const [status, setStatus] = useState<Json | null>(null);
   const [result, setResult] = useState<Json | null>(null);
@@ -39,6 +50,7 @@ export default function MaopLab() {
   const [busy, setBusy] = useState("");
   const [path, setPath] = useState("package.json");
   const [authRequired, setAuthRequired] = useState(false);
+  const [selectedChoices, setSelectedChoices] = useState<string[]>(["github-read"]);
 
   useEffect(() => {
     void fetch("/api/maop/lab/status", { credentials: "include", cache: "no-store" })
@@ -232,6 +244,46 @@ export default function MaopLab() {
     }
   }
 
+  async function inspectSelectedChoices() {
+    const selected = maopChoices.filter((item) => item.enabled && selectedChoices.includes(item.id));
+    if (!selected.length) {
+      setTitle("Selected provider route");
+      setResult({ ok: false, code: "NO_AVAILABLE_PROVIDER_SELECTED" });
+      return;
+    }
+    setBusy("selected-providers");
+    setTitle("MA-OP · Owner-selected provider checks");
+    const checks: Json[] = [];
+    try {
+      for (const item of selected) {
+        const url = item.id === "github-read" ? "/api/maop/lab/github"
+          : item.id === "ruby-audit" ? "/api/ruby/scorecard"
+          : "/api/n8n/migration/selfhost/status";
+        try {
+          const response = await fetch(url, {
+            credentials: "include",
+            cache: "no-store",
+            ...(item.id === "github-read"
+              ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path }) }
+              : {}),
+          });
+          if (response.status === 401) setAuthRequired(true);
+          const payload = await response.json();
+          checks.push({ selected: item.id, http_status: response.status,
+            ok: response.ok && payload?.ok !== false, result: payload });
+        } catch (error) {
+          checks.push({ selected: item.id, ok: false, code: "NETWORK_ERROR", message: String(error) });
+        }
+      }
+      setResult({ ok: checks.every((item) => item.ok === true),
+        execution_authority: "YELLOW_STONE_ONLY",
+        mode: "EXPLICIT_OWNER_SELECTION_READ_ONLY",
+        not_a_cross_account_dispatch: true, checks });
+    } finally {
+      setBusy("");
+    }
+  }
+
   return <main className="mlRoot">
     <div className="mlFrame">
       <header className="mlHeader">
@@ -260,6 +312,30 @@ export default function MaopLab() {
           <span>Branch</span>
           <strong>{status?.canonical_branch ?? "—"}</strong>
         </div>
+      </section>
+
+      <section className="mlCard">
+        <div className="mlCardHead">
+          <div>
+            <span>MA-OP SELECTOR</span>
+            <h2>เลือก Provider / Agent</h2>
+          </div>
+          <b>READ / PREFLIGHT</b>
+        </div>
+        <p className="mlBody">ติ๊กเส้นทางที่ต้องการทดสอบได้พร้อมกัน ตัวที่ยังไม่ยืนยัน OAuth/Runner/Certificate จะไม่ถูกสั่งงานหรือแสดงว่าออนไลน์ปลอม</p>
+        <div className="mlSelector">
+          {maopChoices.map((item) => <label className={item.enabled ? "mlChoice" : "mlChoice mlChoiceLocked"} key={item.id}>
+            <input type="checkbox" disabled={!item.enabled || Boolean(busy)}
+              checked={selectedChoices.includes(item.id)}
+              onChange={(event) => setSelectedChoices((prev) => event.target.checked
+                ? [...prev, item.id] : prev.filter((id) => id !== item.id))} />
+            <span><strong>{item.title}</strong><small>{item.note}</small></span>
+          </label>)}
+        </div>
+        <button className="mlRuby" disabled={Boolean(busy) || selectedChoices.length === 0}
+          onClick={() => void inspectSelectedChoices()}>
+          {busy === "selected-providers" ? "CHECKING…" : "Inspect selected routes"}
+        </button>
       </section>
 
       <section className="mlCard">
