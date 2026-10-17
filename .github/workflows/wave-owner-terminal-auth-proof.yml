@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   terminal-proof:
-    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && contains(fromJSON('["Ogenicchocolate21debug","Wave-Runner-2"]'), github.actor)
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 25
     steps:
@@ -28,7 +28,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REF_NAME" = fix/owner-terminal-runtime-20261017
+          case "$GITHUB_REF_NAME" in
+            fix/owner-terminal-runtime-20261017|phase-vi-provider-incentive-metering) ;;
+            *) echo 'REF_SCOPE_NOT_ALLOWED'; exit 64 ;;
+          esac
           test "$RUNNER_NAME" = wave-runner-01
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           echo "TERMINAL_TRANSPORT=GITHUB_ACTIONS_SELFHOSTED"
