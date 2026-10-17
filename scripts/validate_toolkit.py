@@ -169,6 +169,15 @@ def main() -> None:
             compact_key = re.sub(r"[^a-z0-9]", "", leaf_key)
             if compact_key.endswith(NON_SECRET_STATUS_SUFFIXES):
                 continue
+            # Exact documented environment VARIABLE NAME in a third-party example.
+            # This is not a credential value; do not weaken checks for any other key.
+            if (
+                path.relative_to(ROOT).as_posix()
+                == "third_party/pstack-portable/automations/benny/templates/configuration.example.yaml"
+                and leaf_key == "optional_bot_token_env"
+                and value.strip().strip('"').strip("'") == "BENNY_SLACK_BOT_TOKEN"
+            ):
+                continue
             if looks_like_plaintext_secret(value):
                 raise SystemExit(
                     f"Possible plaintext secret assignment in {path.relative_to(ROOT)}: {key}"
