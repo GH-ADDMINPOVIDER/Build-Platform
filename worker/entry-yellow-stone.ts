@@ -32,6 +32,7 @@ import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-di
 import { planAthenaCommand } from "./athena-command-planner";
 import { normalizeWaveCommandBody, waveCommandPolicy } from "./wave-command-contract";
 import { createDiscordApi } from "./discord-api";
+import { dispatchWaveCommandConsumer } from "./wave-command-dispatch";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
@@ -133,32 +134,6 @@ async function queueApprovedCommand(db: CommandQueueDb, plan: Record<string, unk
     "SELECT id, status, capability, correlation_id FROM agent_tasks WHERE id = ? LIMIT 1",
   ).bind(taskId).first<Record<string, unknown>>();
   return { task, replayed: false };
-}
-
-async function dispatchCommandConsumer(env: Bindings, taskId: string) {
-  const token = compact(env.GITHUB_TOKEN, 4000);
-  if (!token) return { ok: false as const, code: "CONFIGURATION_REQUIRED", missing: "GITHUB_TOKEN" };
-  const response = await fetch(
-    "https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/actions/workflows/wave-command-consumer.yml/dispatches",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "Content-Type": "application/json",
-        "User-Agent": "ogenic-wave-command",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-      body: JSON.stringify({
-        ref: "phase-vi-provider-incentive-metering",
-        inputs: { task_id: taskId },
-      }),
-    },
-  );
-  if (!response.ok) {
-    return { ok: false as const, code: `GITHUB_DISPATCH_HTTP_${response.status}` };
-  }
-  return { ok: true as const };
 }
 
 async function markDispatchFailure(db: CommandQueueDb, taskId: string, code: string) {
@@ -423,7 +398,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
     const queued = await queueApprovedCommand(db, commandPlan, approvalId);
     const taskId = compact(queued.task?.id, 180);
     if (!queued.replayed) {
-      const dispatched = await dispatchCommandConsumer(env, taskId);
+      const dispatched = await dispatchWaveCommandConsumer(env, taskId);
       if (!dispatched.ok) {
         await markDispatchFailure(db, taskId, dispatched.code);
         return Response.json({

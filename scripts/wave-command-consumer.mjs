@@ -1,10 +1,20 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { accessSync, constants } from "node:fs";
+import { join } from "node:path";
 
 const taskId = String(process.env.WAVE_TASK_ID || "").trim();
 const waveUrl = String(process.env.WAVE_URL || "https://wave.ogenicchocolate.com").replace(/\/$/, "");
 const opsKey = String(process.env.OGENIC_OPS_KEY || "");
-const codexHome = String(process.env.WAVE_CODEX_HOME_ACCOUNT_1 || "").trim();
+const configuredCodexHome = String(process.env.WAVE_CODEX_HOME_ACCOUNT_1 || "").trim();
+const existingCodexHome = join(String(process.env.HOME || "/home/wave"), ".codex");
+let codexHome = configuredCodexHome;
+if (!codexHome) {
+  try {
+    accessSync(join(existingCodexHome, "auth.json"), constants.R_OK);
+    codexHome = existingCodexHome;
+  } catch { /* fail closed below */ }
+}
 const evidenceRef = String(process.env.WAVE_EVIDENCE_REF || "").slice(0, 300);
 const workspace = process.cwd();
 
@@ -14,7 +24,7 @@ function fail(message) {
 }
 if (!/^wavecmd_[a-f0-9]{64}$/.test(taskId)) fail("INVALID_TASK_ID");
 if (!opsKey) fail("CONFIGURATION_REQUIRED:OGENIC_OPS_KEY");
-if (!codexHome.startsWith("/")) fail("CONFIGURATION_REQUIRED:WAVE_CODEX_HOME_ACCOUNT_1");
+if (!codexHome.startsWith("/")) fail("CONFIGURATION_REQUIRED:CODEX_LOGIN_CONTEXT");
 if (process.env.GITHUB_REF_NAME !== "phase-vi-provider-incentive-metering") fail("ENVIRONMENT_SCOPE_MISMATCH");
 
 async function api(path, body) {

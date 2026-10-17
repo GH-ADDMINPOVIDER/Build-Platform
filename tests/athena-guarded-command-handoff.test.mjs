@@ -69,7 +69,7 @@ test("WAVE command requires a matching second owner confirmation before queueing
   assert.match(ui, /WAVE Command/);
   assert.match(ui, /confirmWaveCommand/);
   assert.match(ui, /ยืนยันและเข้าคิว/);
-  assert.match(ui, /รอหลักฐานจาก Runner ก่อนนับว่ารันสำเร็จ/);
+  assert.match(ui, /Runner-1 กำลังรับงาน/);
 });
 
 
@@ -79,15 +79,16 @@ test("chat command routes arbitrary owner text to the bounded Codex self-host qu
   assert.match(ui, /capability:\s*"codex_selfhost"/);
   assert.match(ui, /provider:\s*"openai"/);
   assert.match(entry, /YELLOW_STONE_CODEX_SELFHOST/);
-  assert.match(entry, /no consumer receipt exists yet/);
+  assert.match(entry, /completion requires COMMAND_RESULT event/);
 });
 
 
 test("approved Codex command dispatches Runner-1 consumer and records terminal evidence", () => {
   const entry = read("worker/entry-yellow-stone.ts");
+  const dispatch = read("worker/wave-command-dispatch.ts");
   const workflow = read(".github/workflows/wave-command-consumer.yml");
   const consumer = read("scripts/wave-command-consumer.mjs");
-  assert.match(entry, /wave-command-consumer\.yml\/dispatches/);
+  assert.match(dispatch, /wave-command-consumer\.yml\/dispatches/);
   assert.match(entry, /COMMAND_CONSUMER_STARTED/);
   assert.match(entry, /COMMAND_RESULT_/);
   assert.match(entry, /capability = 'codex_selfhost'/);
