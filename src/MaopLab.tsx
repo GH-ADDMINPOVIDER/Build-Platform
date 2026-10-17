@@ -333,10 +333,11 @@ export default function MaopLab() {
             <div>
               <strong>{actor.id} · {actor.provider}</strong>
               <small>{actor.kind} · {actor.readiness}</small>
+              <small>Platform proven: {Array.isArray(actor.platform_proven_capabilities) && actor.platform_proven_capabilities.length ? actor.platform_proven_capabilities.join(" · ") : "NOT YET PROVEN"}</small>
               <small>Owner requested: {Array.isArray(actor.requested_capabilities) ? actor.requested_capabilities.join(" · ") : "—"}</small>
             </div>
             <span className={actor.granted_capabilities?.length ? "mlGranted" : "mlUnverified"}>
-              {actor.granted_capabilities?.length ? "GRANTED" : "NOT VERIFIED"}
+              {actor.granted_capabilities?.length ? "CARD GRANTED" : "CARD NOT ISSUED"}
             </span>
           </div>) ?? <p className="mlBody">{ownerCatalog?.code ?? "Loading owner catalog…"}</p>}
         </div>
