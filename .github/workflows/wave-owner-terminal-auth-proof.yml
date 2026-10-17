@@ -36,6 +36,23 @@ jobs:
           test "$RUNNER_NAME" = wave-runner-01
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           echo "TERMINAL_TRANSPORT=GITHUB_ACTIONS_SELFHOSTED"
+      - name: Validate bounded owner request (no arbitrary terminal command)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const r = JSON.parse(readFileSync("ops/owner-terminal-request.json", "utf8"));
+          const good = r.schema === "ogenic.owner.terminal-request.v1"
+            && /^[A-Za-z0-9._-]{8,100}$/.test(r.request_id)
+            && r.operation === "READINESS_AND_BUILD"
+            && r.target === "wave-runner-01"
+            && r.execution === "SEQUENTIAL"
+            && r.no_arbitrary_shell === true && r.no_raw_credentials === true;
+          if (!good) throw new Error("UNAUTHORIZED_TERMINAL_OPERATION");
+          console.log("OWNER_TERMINAL_REQUEST_ACCEPTED="+r.request_id);
+          console.log("OWNER_TERMINAL_OPERATION=READINESS_AND_BUILD");
+          NODE
       - name: Verify both Codex local identities with sanitized claims
         shell: bash
         env:
