@@ -1,4 +1,4 @@
-name: OGENIC Infisical plugin/service metadata audit (no secret values)
+name: OGENIC Infisical secret key NAME inventory (no values)
 on:
   push:
     branches: [phase-vi-provider-incentive-metering]
@@ -30,13 +30,13 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           umask 077
           node scripts/infisical-plugin-metadata-audit.mjs
-      - name: Upload sanitized service-only registry (no tokens or raw key names)
+      - name: Upload authorized names-only metadata inventory (no secret values)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ogenic-infisical-service-map-${{ github.run_id }}
+          name: ogenic-infisical-key-names-${{ github.run_id }}
           path: oge-infisical-plugin-metadata-audit.json
-          retention-days: 14
+          retention-days: 1
           if-no-files-found: warn
       - name: State factual metadata-audit status
         if: always()
@@ -45,11 +45,13 @@ jobs:
           RESULT: ${{ steps.audit.outcome }}
         run: |
           {
-            echo "## OGENIC Infisical service metadata audit"
+            echo "## OGENIC Infisical key name inventory"
             echo "- Runner: $RUNNER_NAME"
             echo "- Status: $RESULT"
             echo "- Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo "- Scope: OGENIC organization, project environments visible to existing Runner-01 Machine Identity"
-            echo "- No secret values, no raw secret names, no downloaded credential files, no auth tokens in outputs"
+            echo "- Output: secret key names + project/environment/path metadata ONLY"
+            echo "- No secret values, no downloaded credential files, no auth tokens in outputs"
+            echo "- Repository: private; names-only artifact retention: 1 day"
             echo "- Credentials in Infisical do not establish plugin installation in either GS or GT ChatGPT account"
           } >> "$GITHUB_STEP_SUMMARY"
