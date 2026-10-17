@@ -1,0 +1,230 @@
+{
+  "schema": "ogenic.ammonite.operator-registry.v1",
+  "phase": "STAGING_DESIGN_NOT_LIVE",
+  "canonical_router": "Cloudflare/Yellow/MA-OP",
+  "execution_gateway": "wave-runner-01",
+  "identity": "ammonite-wave-ai",
+  "identity_kind": "owner_command_interface",
+  "identity_is_root_or_host_sudo": false,
+  "human_owner_approval_source": "EXTERNAL_AUTHENTICATED_OWNER_SESSION",
+  "requested_capabilities": [
+    "BUILD",
+    "DEBUG",
+    "RUNNER",
+    "AUDIT",
+    "DONE",
+    "COMMIT",
+    "DEPLOY"
+  ],
+  "certificate_contract": "packages/maop-core/src/authority-certificate.mjs",
+  "certificate_trust": {
+    "issuer_keys": "PINNED_SERVER_SIDE_ONLY",
+    "ttl_max_seconds": 900,
+    "audience": "ogenic-wave-command",
+    "revocation": "REQUIRED",
+    "evidence_ref": "REQUIRED",
+    "raw_secret_values_in_certificates": false,
+    "final_yellow_execution_check": true
+  },
+  "actors": [
+    {
+      "id": "gpt-ts",
+      "provider": "openai-chatgpt",
+      "kind": "agent",
+      "readiness": "ACCOUNT_OAUTH_NOT_VERIFIED",
+      "requested_capabilities": [
+        "BUILD",
+        "DEBUG",
+        "RUNNER",
+        "AUDIT",
+        "DONE",
+        "COMMIT",
+        "DEPLOY"
+      ],
+      "certificate_status": "NOT_ISSUED",
+      "granted_capabilities": []
+    },
+    {
+      "id": "gpt-gs",
+      "provider": "openai-chatgpt",
+      "kind": "agent",
+      "readiness": "ACCOUNT_OAUTH_NOT_VERIFIED",
+      "requested_capabilities": [
+        "BUILD",
+        "DEBUG",
+        "RUNNER",
+        "AUDIT",
+        "DONE",
+        "COMMIT",
+        "DEPLOY"
+      ],
+      "certificate_status": "NOT_ISSUED",
+      "granted_capabilities": []
+    },
+    {
+      "id": "codex-ts",
+      "provider": "openai-codex",
+      "kind": "agent",
+      "readiness": "ACCOUNT_RUNTIME_NOT_VERIFIED",
+      "requested_capabilities": [
+        "BUILD",
+        "DEBUG",
+        "RUNNER",
+        "AUDIT",
+        "DONE",
+        "COMMIT",
+        "DEPLOY"
+      ],
+      "certificate_status": "NOT_ISSUED",
+      "granted_capabilities": []
+    },
+    {
+      "id": "codex-gs",
+      "provider": "openai-codex",
+      "kind": "agent",
+      "readiness": "LOCAL_LOGIN_HISTORICALLY_VERIFIED_RUNTIME_NOT_PROVEN",
+      "requested_capabilities": [
+        "BUILD",
+        "DEBUG",
+        "RUNNER",
+        "AUDIT",
+        "DONE",
+        "COMMIT",
+        "DEPLOY"
+      ],
+      "certificate_status": "NOT_ISSUED",
+      "granted_capabilities": []
+    },
+    {
+      "id": "github-primary",
+      "provider": "github",
+      "kind": "tool",
+      "readiness": "CONNECTED_IN_CURRENT_SESSION",
+      "requested_capabilities": [
+        "BUILD",
+        "DEBUG",
+        "RUNNER",
+        "AUDIT",
+        "DONE",
+        "COMMIT",
+        "DEPLOY"
+      ],
+      "certificate_status": "NOT_ISSUED",
+      "granted_capabilities": []
+    },
+    {
+      "id": "github-secondary",
+      "provider": "github",
+      "kind": "tool",
+      "readiness": "COLLABORATOR_WRITE_NOT_RUNTIME_VERIFIED",
+      "requested_capabilities": [
+        "BUILD",
+        "DEBUG",
+        "RUNNER",
+        "AUDIT",
+        "DONE",
+        "COMMIT",
+        "DEPLOY"
+      ],
+      "certificate_status": "NOT_ISSUED",
+      "granted_capabilities": []
+    },
+    {
+      "id": "linear-codex",
+      "provider": "linear",
+      "kind": "tool",
+      "readiness": "WORKFLOW_IDENTITY_NOT_VERIFIED",
+      "requested_capabilities": [
+        "BUILD",
+        "DEBUG",
+        "RUNNER",
+        "AUDIT",
+        "DONE",
+        "COMMIT",
+        "DEPLOY"
+      ],
+      "certificate_status": "NOT_ISSUED",
+      "granted_capabilities": []
+    },
+    {
+      "id": "manus",
+      "provider": "manus",
+      "kind": "agent",
+      "readiness": "CONNECTOR_TASK_CAPABILITY_AVAILABLE_DISPATCH_NOT_PROVEN",
+      "requested_capabilities": [
+        "BUILD",
+        "DEBUG",
+        "RUNNER",
+        "AUDIT",
+        "DONE",
+        "COMMIT",
+        "DEPLOY"
+      ],
+      "certificate_status": "NOT_ISSUED",
+      "granted_capabilities": []
+    },
+    {
+      "id": "wave-runner-01",
+      "provider": "github-actions",
+      "kind": "executor",
+      "readiness": "EXISTING_SELF_HOSTED_RUNNER",
+      "requested_capabilities": [
+        "BUILD",
+        "DEBUG",
+        "RUNNER",
+        "AUDIT",
+        "DONE",
+        "COMMIT",
+        "DEPLOY"
+      ],
+      "certificate_status": "NOT_ISSUED",
+      "granted_capabilities": []
+    },
+    {
+      "id": "wave-runner-02",
+      "provider": "github-actions",
+      "kind": "executor",
+      "readiness": "UNREGISTERED_OR_NOT_VERIFIED",
+      "requested_capabilities": [
+        "BUILD",
+        "DEBUG",
+        "RUNNER",
+        "AUDIT",
+        "DONE",
+        "COMMIT",
+        "DEPLOY"
+      ],
+      "certificate_status": "NOT_ISSUED",
+      "granted_capabilities": []
+    },
+    {
+      "id": "n8n-selfhost",
+      "provider": "n8n",
+      "kind": "workflow-fabric",
+      "readiness": "RAILWAY_ONLINE_WORKFLOW_DISPATCH_NOT_VERIFIED",
+      "requested_capabilities": [
+        "BUILD",
+        "DEBUG",
+        "RUNNER",
+        "AUDIT",
+        "DONE",
+        "COMMIT",
+        "DEPLOY"
+      ],
+      "certificate_status": "NOT_ISSUED",
+      "granted_capabilities": []
+    }
+  ],
+  "audit": {
+    "allow_identity_impersonation": false,
+    "cross_account_oauth_by_owner": true,
+    "approval_not_derived_from_model": true,
+    "all_account_powers_not_inferred_from_names": true
+  },
+  "notes": [
+    "Requested capabilities do not establish API permissions or runtime ability.",
+    "Running all agents on a 1GB/1vCPU host concurrently is not promised.",
+    "Second GitHub collaborator Wave-Runner-2 is not equivalent to a registered runner.",
+    "No secrets or production permissions are changed by this registry."
+  ]
+}
