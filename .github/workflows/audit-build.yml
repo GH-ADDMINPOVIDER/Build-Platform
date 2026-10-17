@@ -26,22 +26,32 @@ jobs:
       - name: Validate Phase VI toolkit
         run: python scripts/validate_toolkit.py
 
-      - name: Build single toolkit bundle
+      - name: Build single toolkit bundle (Python stdlib, no zip/sudo required)
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p dist
-          zip -r dist/ogenic-phase-vi.zip \
-            .codex-plugin \
-            skills/ogenic-phase-vi \
-            assets/toolkit-manifest.json \
-            config \
-            database \
-            worker \
-            src \
-            index.html package.json tsconfig.json vite.config.ts wrangler.jsonc \
-            README.md PRIVACY.md TERMS.md \
-            -x "**/__pycache__/**" "*.pyc"
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          include = [
+              ".codex-plugin", "skills/ogenic-phase-vi", "assets/toolkit-manifest.json",
+              "config", "database", "worker", "src",
+              "index.html", "package.json", "tsconfig.json", "vite.config.ts",
+              "wrangler.jsonc", "README.md", "PRIVACY.md", "TERMS.md",
+          ]
+          Path("dist").mkdir(exist_ok=True)
+          with ZipFile("dist/ogenic-phase-vi.zip", "w", ZIP_DEFLATED) as archive:
+              for name in include:
+                  path = Path(name)
+                  if not path.exists():
+                      raise SystemExit(f"BUNDLE_SOURCE_MISSING:{name}")
+                  files = (sorted(path.rglob("*")) if path.is_dir() else [path])
+                  for candidate in files:
+                      if not candidate.is_file() or "__pycache__" in candidate.parts or candidate.suffix == ".pyc":
+                          continue
+                      archive.write(candidate, candidate.as_posix())
+          print("OGENIC_TOOLKIT_ARCHIVE_CREATED")
+          PY
 
       - name: Upload OGENIC Phase VI toolkit
         uses: actions/upload-artifact@v4
