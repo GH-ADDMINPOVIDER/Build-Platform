@@ -1,0 +1,16 @@
+{
+  "schema": "ogenic.owner.terminal-request.v1",
+  "request_id": "OWNER-2026-10-17-ACCOUNT-TERMINAL-PROOF",
+  "operation": "READINESS_AND_BUILD",
+  "target": "wave-runner-01",
+  "accounts": [
+    "github-primary",
+    "github-secondary",
+    "codex-ts",
+    "codex-gs"
+  ],
+  "execution": "SEQUENTIAL",
+  "authorization": "GITHUB_ACTOR_AND_WAVE_BOUNDED_POLICY",
+  "no_arbitrary_shell": true,
+  "no_raw_credentials": true
+}
