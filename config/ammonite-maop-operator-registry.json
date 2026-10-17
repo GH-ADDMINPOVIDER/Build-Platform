@@ -1,5 +1,5 @@
 {
-  "schema": "ogenic.ammonite.operator-registry.v1",
+  "schema": "ogenic.ammonite.operator-registry.v2",
   "phase": "STAGING_DESIGN_NOT_LIVE",
   "canonical_router": "Cloudflare/Yellow/MA-OP",
   "execution_gateway": "wave-runner-01",
@@ -42,7 +42,9 @@
         "DEPLOY"
       ],
       "certificate_status": "NOT_ISSUED",
-      "granted_capabilities": []
+      "granted_capabilities": [],
+      "platform_proven_capabilities": [],
+      "platform_evidence": "NOT_PROVEN"
     },
     {
       "id": "gpt-gs",
@@ -59,7 +61,9 @@
         "DEPLOY"
       ],
       "certificate_status": "NOT_ISSUED",
-      "granted_capabilities": []
+      "granted_capabilities": [],
+      "platform_proven_capabilities": [],
+      "platform_evidence": "NOT_PROVEN"
     },
     {
       "id": "codex-ts",
@@ -76,7 +80,9 @@
         "DEPLOY"
       ],
       "certificate_status": "NOT_ISSUED",
-      "granted_capabilities": []
+      "granted_capabilities": [],
+      "platform_proven_capabilities": [],
+      "platform_evidence": "NOT_PROVEN"
     },
     {
       "id": "codex-gs",
@@ -93,7 +99,9 @@
         "DEPLOY"
       ],
       "certificate_status": "NOT_ISSUED",
-      "granted_capabilities": []
+      "granted_capabilities": [],
+      "platform_proven_capabilities": [],
+      "platform_evidence": "NOT_PROVEN"
     },
     {
       "id": "github-primary",
@@ -110,13 +118,18 @@
         "DEPLOY"
       ],
       "certificate_status": "NOT_ISSUED",
-      "granted_capabilities": []
+      "granted_capabilities": [],
+      "platform_proven_capabilities": [
+        "GITHUB_REPO_PUSH_WRITE",
+        "GITHUB_WORKFLOW_RUNS_READ"
+      ],
+      "platform_evidence": "GitHub get_repo + authenticated profile"
     },
     {
       "id": "github-secondary",
       "provider": "github",
       "kind": "tool",
-      "readiness": "COLLABORATOR_WRITE_NOT_RUNTIME_VERIFIED",
+      "readiness": "GITHUB_COLLABORATOR_WRITE_VERIFIED_ACTIONS_RUNNER_UNPROVEN",
       "requested_capabilities": [
         "BUILD",
         "DEBUG",
@@ -127,7 +140,11 @@
         "DEPLOY"
       ],
       "certificate_status": "NOT_ISSUED",
-      "granted_capabilities": []
+      "granted_capabilities": [],
+      "platform_proven_capabilities": [
+        "GITHUB_REPOSITORY_COLLABORATOR_WRITE"
+      ],
+      "platform_evidence": "GitHub run 39029736292 / GH API collaborator permission=write"
     },
     {
       "id": "linear-codex",
@@ -144,7 +161,9 @@
         "DEPLOY"
       ],
       "certificate_status": "NOT_ISSUED",
-      "granted_capabilities": []
+      "granted_capabilities": [],
+      "platform_proven_capabilities": [],
+      "platform_evidence": "NOT_PROVEN"
     },
     {
       "id": "manus",
@@ -161,7 +180,9 @@
         "DEPLOY"
       ],
       "certificate_status": "NOT_ISSUED",
-      "granted_capabilities": []
+      "granted_capabilities": [],
+      "platform_proven_capabilities": [],
+      "platform_evidence": "NOT_PROVEN"
     },
     {
       "id": "wave-runner-01",
@@ -178,7 +199,13 @@
         "DEPLOY"
       ],
       "certificate_status": "NOT_ISSUED",
-      "granted_capabilities": []
+      "granted_capabilities": [],
+      "platform_proven_capabilities": [
+        "GITHUB_ACTIONS_JOB_EXECUTION",
+        "CODEX_CLI_INSTALLED",
+        "ONE_LOCAL_CODEX_LOGIN"
+      ],
+      "platform_evidence": "GitHub run 39029736292"
     },
     {
       "id": "wave-runner-02",
@@ -195,7 +222,9 @@
         "DEPLOY"
       ],
       "certificate_status": "NOT_ISSUED",
-      "granted_capabilities": []
+      "granted_capabilities": [],
+      "platform_proven_capabilities": [],
+      "platform_evidence": "NOT_PROVEN"
     },
     {
       "id": "n8n-selfhost",
@@ -212,7 +241,11 @@
         "DEPLOY"
       ],
       "certificate_status": "NOT_ISSUED",
-      "granted_capabilities": []
+      "granted_capabilities": [],
+      "platform_proven_capabilities": [
+        "RAILWAY_STAGING_SERVICE_ONLINE"
+      ],
+      "platform_evidence": "Railway environment_status staging service n8n"
     }
   ],
   "audit": {
@@ -226,5 +259,21 @@
     "Running all agents on a 1GB/1vCPU host concurrently is not promised.",
     "Second GitHub collaborator Wave-Runner-2 is not equivalent to a registered runner.",
     "No secrets or production permissions are changed by this registry."
+  ],
+  "catalog_purpose": "OWNER_VISIBLE_ACCOUNT_FUNCTIONS_AND_EVIDENCE_NOT_HOST_SUDO",
+  "certificate_manager": {
+    "project_slug": "cert-manager-89-qe",
+    "project_type": "cert-manager",
+    "discovery": "PROJECT_VISIBLE",
+    "machine_identity": "OIDC_AUTHENTICATED",
+    "certificate_search": "HTTP_403",
+    "issued_from_infisical": false
+  },
+  "evidence_notes": [
+    "GitHub collaborator Wave-Runner-2 has repository Write. This is not evidence of a second registered Actions Runner.",
+    "Only one Actions runner service and only one current Codex CLI sign-in context verified on wave-runner-01.",
+    "The owner requests sequential use of agents through one shared gateway; no second DigitalOcean Droplet required.",
+    "infisical Certificate Manager is a real project, but current Machine Identity has 403 for certificate metadata.",
+    "Registry document lists owner-requested actions separately from proven provider permissions and certificate-based grants."
   ]
 }
