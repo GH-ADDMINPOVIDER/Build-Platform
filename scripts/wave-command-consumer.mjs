@@ -1,0 +1,65 @@
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+
+const taskId = String(process.env.WAVE_TASK_ID || "").trim();
+const waveUrl = String(process.env.WAVE_URL || "https://wave.ogenicchocolate.com").replace(/\/$/, "");
+const opsKey = String(process.env.OGENIC_OPS_KEY || "");
+const codexHome = String(process.env.WAVE_CODEX_HOME_ACCOUNT_1 || "").trim();
+const evidenceRef = String(process.env.WAVE_EVIDENCE_REF || "").slice(0, 300);
+const workspace = process.cwd();
+
+function fail(message) {
+  process.stderr.write(message + "\n");
+  process.exit(1);
+}
+if (!/^wavecmd_[a-f0-9]{64}$/.test(taskId)) fail("INVALID_TASK_ID");
+if (!opsKey) fail("CONFIGURATION_REQUIRED:OGENIC_OPS_KEY");
+if (!codexHome.startsWith("/")) fail("CONFIGURATION_REQUIRED:WAVE_CODEX_HOME_ACCOUNT_1");
+if (process.env.GITHUB_REF_NAME !== "phase-vi-provider-incentive-metering") fail("ENVIRONMENT_SCOPE_MISMATCH");
+
+async function api(path, body) {
+  const response = await fetch(waveUrl + path, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-ogenic-ops-key": opsKey },
+    body: JSON.stringify(body),
+  });
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok || !json.ok) throw new Error(String(json.code || ("HTTP_" + response.status)));
+  return json;
+}
+
+const claim = await api("/api/wave/command/claim", { task_id: taskId });
+const intent = String(claim.task?.intent || "").trim();
+if (!intent) fail("APPROVED_INTENT_UNAVAILABLE");
+
+const guard = [
+  "Operate only in the current OGENIC staging checkout.",
+  "Never touch main, production, Candy, D1 schema, billing, authentication, or secret values.",
+  "Do not print environment variables or credentials.",
+  "Make the smallest reversible change; run relevant tests; report exact evidence.",
+  "Owner-approved command:",
+  intent,
+].join("\n");
+
+const run = spawnSync("codex", ["exec", "--sandbox", "workspace-write", "--skip-git-repo-check", guard], {
+  cwd: workspace,
+  env: { ...process.env, CODEX_HOME: codexHome },
+  encoding: "utf8",
+  timeout: 15 * 60 * 1000,
+  maxBuffer: 1024 * 1024,
+});
+const combined = String(run.stdout || "") + "\n" + String(run.stderr || "");
+const secretLike = /(sk-[a-z0-9_-]{12,}|gh[pousr]_[a-z0-9_]{12,}|bearer\s+[a-z0-9._~+/=-]{12,}|BEGIN (?:RSA|OPENSSH|EC) PRIVATE KEY)/i;
+const status = run.status === 0 && !secretLike.test(combined) ? "DONE" : secretLike.test(combined) ? "BLOCKED" : "FAILED";
+const resultHash = createHash("sha256").update(combined.slice(0, 1_000_000)).digest("hex");
+const git = spawnSync("git", ["rev-parse", "HEAD"], { cwd: workspace, encoding: "utf8" });
+const gitSha = String(git.stdout || "").trim();
+await api("/api/wave/command/result", {
+  task_id: taskId,
+  status,
+  result_sha256: resultHash,
+  git_sha: gitSha,
+  evidence_ref: evidenceRef,
+});
+process.stdout.write(JSON.stringify({ ok: status === "DONE", task_id: taskId, status, result_sha256: resultHash, git_sha: gitSha }) + "\n");
+if (status !== "DONE") process.exit(1);

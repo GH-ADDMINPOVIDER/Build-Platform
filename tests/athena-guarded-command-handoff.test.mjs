@@ -81,3 +81,19 @@ test("chat command routes arbitrary owner text to the bounded Codex self-host qu
   assert.match(entry, /YELLOW_STONE_CODEX_SELFHOST/);
   assert.match(entry, /no consumer receipt exists yet/);
 });
+
+
+test("approved Codex command dispatches Runner-1 consumer and records terminal evidence", () => {
+  const entry = read("worker/entry-yellow-stone.ts");
+  const workflow = read(".github/workflows/wave-command-consumer.yml");
+  const consumer = read("scripts/wave-command-consumer.mjs");
+  assert.match(entry, /wave-command-consumer\.yml\/dispatches/);
+  assert.match(entry, /COMMAND_CONSUMER_STARTED/);
+  assert.match(entry, /COMMAND_RESULT_/);
+  assert.match(entry, /capability = 'codex_selfhost'/);
+  assert.match(workflow, /runs-on: \[self-hosted, linux, x64, wave\]/);
+  assert.match(workflow, /Infisical\/secrets-action/);
+  assert.match(consumer, /CODEX_HOME/);
+  assert.match(consumer, /spawnSync\("codex", \["exec"/);
+  assert.match(consumer, /\/api\/wave\/command\/result/);
+});

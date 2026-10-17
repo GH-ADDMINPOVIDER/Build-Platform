@@ -135,6 +135,135 @@ async function queueApprovedCommand(db: CommandQueueDb, plan: Record<string, unk
   return { task, replayed: false };
 }
 
+async function dispatchCommandConsumer(env: Bindings, taskId: string) {
+  const token = compact(env.GITHUB_TOKEN, 4000);
+  if (!token) return { ok: false as const, code: "CONFIGURATION_REQUIRED", missing: "GITHUB_TOKEN" };
+  const response = await fetch(
+    "https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/actions/workflows/wave-command-consumer.yml/dispatches",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "User-Agent": "ogenic-wave-command",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({
+        ref: "phase-vi-provider-incentive-metering",
+        inputs: { task_id: taskId },
+      }),
+    },
+  );
+  if (!response.ok) {
+    return { ok: false as const, code: `GITHUB_DISPATCH_HTTP_${response.status}` };
+  }
+  return { ok: true as const };
+}
+
+async function markDispatchFailure(db: CommandQueueDb, taskId: string, code: string) {
+  await db.prepare(
+    "UPDATE agent_tasks SET status = 'BLOCKED', updated_at = CURRENT_TIMESTAMP, completed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'QUEUED'",
+  ).bind(taskId).run();
+  await db.prepare(
+    `INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, external_ref, created_at)
+     VALUES (?, ?, 'COMMAND_DISPATCH_BLOCKED', 'yellow-stone', ?, CURRENT_TIMESTAMP)`,
+  ).bind(`event-dispatch-blocked-${taskId}`, taskId, code).run();
+}
+
+async function commandConsumerClaim(request: Request, env: Bindings) {
+  if (!(await hasOwnerOrOpsAccess(request, env))) {
+    return Response.json({ ok: false, code: "REAUTH_REQUIRED" }, { status: 401 });
+  }
+  const db = (env as { DB?: CommandQueueDb }).DB;
+  if (!db) return Response.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, { status: 503 });
+  const body = await request.json().catch(() => ({})) as { task_id?: unknown };
+  const taskId = compact(body.task_id, 180);
+  if (!/^wavecmd_[a-f0-9]{64}$/.test(taskId)) {
+    return Response.json({ ok: false, code: "INVALID_TASK_ID" }, { status: 400 });
+  }
+  const task = await db.prepare(
+    `UPDATE agent_tasks
+     SET status = 'RUNNING', claimed_by = 'codex-selfhost:wave-runner-01',
+         claimed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP,
+         attempt_count = attempt_count + 1
+     WHERE id = ? AND status = 'QUEUED' AND capability = 'codex_selfhost'
+       AND EXISTS (
+         SELECT 1 FROM agent_events
+         WHERE task_id = agent_tasks.id AND event_type = 'OWNER_APPROVED_COMMAND_QUEUED'
+       )
+     RETURNING id, title, status, capability, correlation_id, claimed_by`,
+  ).bind(taskId).first<Record<string, unknown>>();
+  if (!task) {
+    const existing = await db.prepare(
+      "SELECT id, status, claimed_by FROM agent_tasks WHERE id = ? LIMIT 1",
+    ).bind(taskId).first<Record<string, unknown>>();
+    return Response.json({
+      ok: false,
+      code: existing ? "TASK_NOT_CLAIMABLE" : "TASK_NOT_FOUND",
+      task: existing ?? null,
+    }, { status: existing ? 409 : 404 });
+  }
+  const event = await db.prepare(
+    `SELECT external_ref FROM agent_events
+     WHERE task_id = ? AND event_type = 'OWNER_APPROVED_COMMAND_QUEUED'
+     ORDER BY created_at ASC LIMIT 1`,
+  ).bind(taskId).first<{ external_ref?: string }>();
+  let command: Record<string, unknown> = {};
+  try { command = JSON.parse(String(event?.external_ref || "{}")); } catch { /* fail below */ }
+  const intent = compact(command.intent, 1200);
+  if (!intent) {
+    await db.prepare(
+      "UPDATE agent_tasks SET status = 'BLOCKED', updated_at = CURRENT_TIMESTAMP, completed_at = CURRENT_TIMESTAMP WHERE id = ?",
+    ).bind(taskId).run();
+    return Response.json({ ok: false, code: "APPROVED_INTENT_UNAVAILABLE" }, { status: 409 });
+  }
+  await db.prepare(
+    `INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, external_ref, created_at)
+     VALUES (?, ?, 'COMMAND_CONSUMER_STARTED', 'codex-selfhost:wave-runner-01', 'runner-1', CURRENT_TIMESTAMP)`,
+  ).bind(`event-consumer-start-${taskId}`, taskId).run();
+  return Response.json({
+    ok: true,
+    task: { ...task, intent },
+    policy: "OWNER_APPROVED_ONLY · STAGING_ONLY · RUNNER_1",
+  }, { status: 200, headers: { "Cache-Control": "no-store" } });
+}
+
+async function commandConsumerResult(request: Request, env: Bindings) {
+  if (!(await hasOwnerOrOpsAccess(request, env))) {
+    return Response.json({ ok: false, code: "REAUTH_REQUIRED" }, { status: 401 });
+  }
+  const db = (env as { DB?: CommandQueueDb }).DB;
+  if (!db) return Response.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, { status: 503 });
+  const body = await request.json().catch(() => ({})) as {
+    task_id?: unknown; status?: unknown; result_sha256?: unknown; git_sha?: unknown; evidence_ref?: unknown;
+  };
+  const taskId = compact(body.task_id, 180);
+  const status = compact(body.status, 24).toUpperCase();
+  const resultSha = compact(body.result_sha256, 64);
+  const gitSha = compact(body.git_sha, 64);
+  const evidenceRef = compact(body.evidence_ref, 300);
+  if (!/^wavecmd_[a-f0-9]{64}$/.test(taskId) || !["DONE", "BLOCKED", "FAILED"].includes(status)
+      || !/^[a-f0-9]{64}$/.test(resultSha) || !/^[a-f0-9]{40}$/.test(gitSha)) {
+    return Response.json({ ok: false, code: "INVALID_RESULT" }, { status: 400 });
+  }
+  const task = await db.prepare(
+    `UPDATE agent_tasks SET status = ?, updated_at = CURRENT_TIMESTAMP, completed_at = CURRENT_TIMESTAMP
+     WHERE id = ? AND status = 'RUNNING' AND claimed_by = 'codex-selfhost:wave-runner-01'
+     RETURNING id, status, capability, correlation_id, claimed_by, completed_at`,
+  ).bind(status, taskId).first<Record<string, unknown>>();
+  if (!task) return Response.json({ ok: false, code: "TASK_RESULT_REJECTED" }, { status: 409 });
+  const external = JSON.stringify({ result_sha256: resultSha, git_sha: gitSha, evidence_ref: evidenceRef || null });
+  await db.prepare(
+    `INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, external_ref, created_at)
+     VALUES (?, ?, ?, 'codex-selfhost:wave-runner-01', ?, CURRENT_TIMESTAMP)`,
+  ).bind(`event-consumer-result-${taskId}`, taskId, `COMMAND_RESULT_${status}`, external).run();
+  return Response.json({ ok: true, task, evidence: { result_sha256: resultSha, git_sha: gitSha, evidence_ref: evidenceRef || null } }, {
+    status: 200,
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+
 function handoffMetadata(athena: { maturity?: unknown }) {
   return {
     source_surface: "WAVE",
@@ -292,16 +421,32 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
       }, { status: 503, headers: { "Cache-Control": "no-store" } });
     }
     const queued = await queueApprovedCommand(db, commandPlan, approvalId);
+    const taskId = compact(queued.task?.id, 180);
+    if (!queued.replayed) {
+      const dispatched = await dispatchCommandConsumer(env, taskId);
+      if (!dispatched.ok) {
+        await markDispatchFailure(db, taskId, dispatched.code);
+        return Response.json({
+          ok: false, code: dispatched.code, missing: "missing" in dispatched ? dispatched.missing : undefined,
+          task: { ...queued.task, status: "BLOCKED" },
+          approval: { required: false, approval_id: approvalId, confirmed: true },
+          execution: { status: "BLOCKED", consumer_proven: false, route: "YELLOW_STONE_CODEX_SELFHOST" },
+          command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
+        }, { status: 503, headers: { "Cache-Control": "no-store" } });
+      }
+    }
     return Response.json({
-      ok: true, code: "COMMAND_QUEUED", task: queued.task, idempotent_replay: queued.replayed,
+      ok: true, code: queued.replayed ? "COMMAND_ALREADY_QUEUED" : "COMMAND_DISPATCHED",
+      task: queued.task, idempotent_replay: queued.replayed,
       approval: { required: false, approval_id: approvalId, confirmed: true },
       execution: {
-        status: "QUEUED", consumer_proven: false,
+        status: queued.replayed ? compact(queued.task?.status, 40) : "DISPATCHED",
+        consumer_proven: false,
         route: "YELLOW_STONE_CODEX_SELFHOST",
-        note: "Queued in existing agent_tasks; no consumer receipt exists yet.",
+        note: "GitHub Actions dispatched to Runner-1; completion requires COMMAND_RESULT event.",
       },
       command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
-    }, { status: queued.replayed ? 200 : 202, headers: { "Cache-Control": "no-store" } });
+    }, { status: 202, headers: { "Cache-Control": "no-store" } });
   }
 
   const url = new URL(request.url);
@@ -366,6 +511,12 @@ export default {
     }
     if (pathname === "/api/capabilities/execute") {
       return executionApi.fetch(request, env, ctx as never);
+    }
+    if (pathname === "/api/wave/command/claim") {
+      return commandConsumerClaim(request, env);
+    }
+    if (pathname === "/api/wave/command/result") {
+      return commandConsumerResult(request, env);
     }
     if (pathname === "/api/wave/command") {
       return athenaGuardedCommand(request, env, ctx);

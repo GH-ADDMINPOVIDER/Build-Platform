@@ -633,13 +633,13 @@ export default function UnifiedChat({ surface }: Props) {
         run_id?: string; verification?: { status?: string };
       };
       if (!response.ok || !body.ok) throw new Error(body.message || body.code || `HTTP_${response.status}`);
-      const queued = body.code === "COMMAND_QUEUED";
-      const text = queued
-        ? `ยืนยันแล้ว · QUEUED · task ${body.task?.id || "unknown"} · รอหลักฐานจาก Runner ก่อนนับว่ารันสำเร็จ`
+      const dispatched = body.code === "COMMAND_DISPATCHED" || body.code === "COMMAND_ALREADY_QUEUED";
+      const text = dispatched
+        ? `ยืนยันแล้ว · ${body.code === "COMMAND_DISPATCHED" ? "DISPATCHED" : "QUEUED"} · task ${body.task?.id || "unknown"} · Runner-1 กำลังรับงาน`
         : `ยืนยันแล้ว · ${body.verification?.status || "executed"} · run ${body.run_id || "n/a"}`;
       setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "assistant", text, created_at: Date.now() }]);
       setPendingCommand(null);
-      setInlineNotice(queued ? "คำสั่งเข้าคิวจริงแล้ว · ยังไม่อ้างว่า DONE จนมี consumer receipt" : "คำสั่ง READ ทำงานผ่าน Yellow Stone แล้ว");
+      setInlineNotice(dispatched ? "ส่งงานไป Runner-1 แล้ว · รอ COMMAND_RESULT ก่อนแสดง DONE" : "คำสั่ง READ ทำงานผ่าน Yellow Stone แล้ว");
       await loadRuntime();
     } catch (error) {
       setInlineNotice(error instanceof Error ? error.message : "Confirm failed");
