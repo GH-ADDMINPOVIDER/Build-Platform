@@ -56,3 +56,18 @@ test("guarded command preserves canonical 1LSS through existing Yellow Stone evi
   assert.match(execution, /YELLOW_STONE VERIFIED READ/);
   assert.match(execution, /SECRET_LIKE_CONTENT_REJECTED/);
 });
+
+
+test("WAVE command requires a matching second owner confirmation before queueing", () => {
+  const entry = read("worker/entry-yellow-stone.ts");
+  const ui = read("src/UnifiedChat.tsx");
+  assert.match(entry, /OWNER_APPROVAL_REQUIRED/);
+  assert.match(entry, /APPROVAL_PLAN_MISMATCH/);
+  assert.match(entry, /OWNER_APPROVED_COMMAND_QUEUED/);
+  assert.match(entry, /INSERT INTO agent_tasks/);
+  assert.match(entry, /consumer_proven:\s*false/);
+  assert.match(ui, /WAVE Command/);
+  assert.match(ui, /confirmWaveCommand/);
+  assert.match(ui, /ยืนยันและเข้าคิว/);
+  assert.match(ui, /รอหลักฐานจาก Runner ก่อนนับว่ารันสำเร็จ/);
+});

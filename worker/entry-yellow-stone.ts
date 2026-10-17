@@ -74,9 +74,66 @@ type WaveCommandBody = {
   mode?: unknown;
   command_mode?: unknown;
   input?: { path?: unknown; prompt?: unknown };
+  approval?: { confirmed?: unknown; approval_id?: unknown };
 };
 
+type D1Prepared = {
+  bind: (...values: unknown[]) => D1Prepared;
+  first: <T = Record<string, unknown>>() => Promise<T | null>;
+  run: () => Promise<unknown>;
+};
+
+type CommandQueueDb = { prepare: (query: string) => D1Prepared };
+
 const compact = (value: unknown, max: number) => String(value ?? "").trim().slice(0, max);
+
+async function sha256Hex(value: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function approvalIdFor(plan: Record<string, unknown>) {
+  return `wave-approval-${await sha256Hex(JSON.stringify(plan))}`;
+}
+
+async function queueApprovedCommand(db: CommandQueueDb, plan: Record<string, unknown>, approvalId: string) {
+  const taskId = `wavecmd_${approvalId.replace("wave-approval-", "")}`;
+  const correlationId = `wavecmd-corr-${approvalId.slice(-40)}`;
+  const capability = compact(plan.capability, 120) || "wave_command";
+  const provider = compact(plan.provider, 80) || "yellow-stone";
+  const intent = compact(plan.normalized_intent, 1200);
+  const title = compact(intent, 160) || `WAVE command · ${capability}`;
+  const resourceKey = `wave-command:${provider}:staging`;
+  const existing = await db.prepare(
+    "SELECT id, status, capability, correlation_id FROM agent_tasks WHERE id = ? LIMIT 1",
+  ).bind(taskId).first<Record<string, unknown>>();
+  if (existing) return { task: existing, replayed: true };
+
+  await db.prepare(
+    `INSERT INTO agent_tasks(
+       id, title, capability, status, priority, resource_key, claimed_by,
+       correlation_id, github_repo, source_ref, attempt_count, created_at, updated_at
+     ) VALUES (?, ?, ?, 'QUEUED', 90, ?, NULL, ?,
+       'Ogenicchocolate21debug/Build-Platform', 'owner-main/1LSS_OWNER_MAIN', 0,
+       CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+  ).bind(taskId, title, capability, resourceKey, correlationId).run();
+
+  await db.prepare(
+    `INSERT OR IGNORE INTO agent_events(
+       id, task_id, event_type, actor, correlation_id, external_ref, created_at
+     ) VALUES (?, ?, 'OWNER_APPROVED_COMMAND_QUEUED', 'owner-main', ?, ?, CURRENT_TIMESTAMP)`,
+  ).bind(
+    `event-owner-approved-${approvalId.slice(-48)}`,
+    taskId,
+    correlationId,
+    JSON.stringify({ approval_id: approvalId, provider, capability, environment: "staging", intent, execution_authority: EXECUTION_AUTHORITY }),
+  ).run();
+
+  const task = await db.prepare(
+    "SELECT id, status, capability, correlation_id FROM agent_tasks WHERE id = ? LIMIT 1",
+  ).bind(taskId).first<Record<string, unknown>>();
+  return { task, replayed: false };
+}
 
 function handoffMetadata(athena: { maturity?: unknown }) {
   return {
@@ -196,6 +253,35 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
     };
   }
 
+  const approvalId = await approvalIdFor(commandPlan);
+  const approvalConfirmed = body?.approval?.confirmed === true;
+  const suppliedApprovalId = compact(body?.approval?.approval_id, 160);
+  if (!approvalConfirmed) {
+    return Response.json({
+      ok: false,
+      code: "OWNER_APPROVAL_REQUIRED",
+      command_plan: commandPlan,
+      command_policy: commandPolicy,
+      approval: {
+        required: true,
+        approval_id: approvalId,
+        action: "CONFIRM_AND_QUEUE",
+        environment: "staging",
+        effect: "Queues the approved command for the existing Yellow Stone / self-host consumer.",
+      },
+      execution: { status: "NOT_STARTED", consumer_proven: false },
+      command_handoff: handoffMetadata(athena),
+    }, { status: 202, headers: { "Cache-Control": "no-store" } });
+  }
+  if (!suppliedApprovalId || suppliedApprovalId !== approvalId) {
+    return Response.json({
+      ok: false,
+      code: "APPROVAL_PLAN_MISMATCH",
+      verification: { status: "blocked", reason: "APPROVAL_ID_MUST_MATCH_CURRENT_PLAN" },
+      command_handoff: handoffMetadata(athena),
+    }, { status: 409, headers: { "Cache-Control": "no-store" } });
+  }
+
   const url = new URL(request.url);
   url.pathname = "/api/capabilities/execute";
   const headers = new Headers(request.headers);
@@ -213,6 +299,27 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
   if (!contentType.includes("application/json")) return response;
 
   const payload = await response.clone().json().catch(() => ({})) as Record<string, unknown>;
+  if (response.status === 409 && payload.code === "HUMAN_APPROVAL_REQUIRED") {
+    const db = (env as { DB?: CommandQueueDb }).DB;
+    if (!db) {
+      return Response.json({
+        ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB",
+        approval: { required: false, approval_id: approvalId, confirmed: true },
+        execution: { status: "NOT_QUEUED", consumer_proven: false },
+        command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
+      }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+    const queued = await queueApprovedCommand(db, commandPlan, approvalId);
+    return Response.json({
+      ok: true, code: "COMMAND_QUEUED", task: queued.task, idempotent_replay: queued.replayed,
+      approval: { required: false, approval_id: approvalId, confirmed: true },
+      execution: {
+        status: "QUEUED", consumer_proven: false,
+        note: "Queued in existing agent_tasks; runtime completion requires a real consumer receipt in agent_events.",
+      },
+      command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
+    }, { status: queued.replayed ? 200 : 202, headers: { "Cache-Control": "no-store" } });
+  }
   const responseHeaders = new Headers(response.headers);
   responseHeaders.set("Cache-Control", "no-store");
   return new Response(JSON.stringify({
