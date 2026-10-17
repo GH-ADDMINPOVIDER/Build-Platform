@@ -110,6 +110,8 @@ api.get("/api/maop/lab/owner-capabilities", async (c) => {
     readiness: actor.readiness,
     requested_capabilities: actor.requested_capabilities,
     granted_capabilities: actor.granted_capabilities,
+    platform_proven_capabilities: actor.platform_proven_capabilities,
+    platform_evidence: actor.platform_evidence,
     certificate_status: actor.certificate_status,
   }));
   return c.json({
@@ -119,7 +121,11 @@ api.get("/api/maop/lab/owner-capabilities", async (c) => {
     does_not_authorize_execution: true,
     canonical_gateway: "wave-runner-01",
     evidence_policy: "PROOF_REQUIRED_PER_IDENTITY_AND_CAPABILITY",
-    certificate_manager: { project_slug: "cert-manager-89-qe", status: "OIDC_ACCESS_HTTP_403", certificate_issued: false },
+    certificate_manager: {
+      project_slug: operatorRegistry.certificate_manager.project_slug,
+      status: operatorRegistry.certificate_manager.certificate_search,
+      certificate_issued: operatorRegistry.certificate_manager.issued_from_infisical,
+    },
     actors,
   }, 200, noStore);
 });
