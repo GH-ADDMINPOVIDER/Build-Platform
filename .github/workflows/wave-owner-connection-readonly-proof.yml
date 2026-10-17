@@ -54,7 +54,7 @@ jobs:
           r.github.secondary_collaborator=permission.ok?permission.text.trim():'READ_PERMISSION_UNAVAILABLE';
           const runners=sh('gh',['api',`repos/${process.env.GITHUB_REPOSITORY}/actions/runners`,'--jq','.runners[] | [.id,.name,.status] | @tsv'],10000);
           r.github.registered_runner_list=runners.ok?runners.text.split('\n').filter(Boolean).slice(0,15):'RUNNER_ADMIN_API_UNAVAILABLE';
-          let token;
+          let sessionAuthorization;
           try{
             if(!process.env.ACTIONS_ID_TOKEN_REQUEST_URL||!process.env.INFISICAL_IDENTITY_ID)throw Error('OIDC_CONTEXT_MISSING');
             const api=async(url,opts={},label='REQUEST')=>{
@@ -67,16 +67,16 @@ jobs:
             const login=await api('https://app.infisical.com/api/v1/auth/oidc-auth/login',{
               method:'POST',headers:{'Content-Type':'application/json'},
               body:JSON.stringify({identityId:process.env.INFISICAL_IDENTITY_ID,jwt:oidc.value,organizationSlug:process.env.INFISICAL_ORG_SLUG})},'INFISICAL_AUTH');
-            token=login.accessToken;if(!token)throw Error('AUTH_NO_ACCESS_TOKEN');
+            sessionAuthorization=login.accessToken;if(!sessionAuthorization)throw Error('AUTH_NO_ACCESS_TOKEN');
             r.infisical.oidc='AUTHENTICATED';
-            const projects=await api('https://app.infisical.com/api/v1/projects',{headers:{Authorization:'Bearer '+token}},'PROJECTS');
+            const projects=await api('https://app.infisical.com/api/v1/projects',{headers:{Authorization:'Bearer '+sessionAuthorization}},'PROJECTS');
             const scoped=(projects.projects||[]).filter(p=>p.orgId===process.env.INFISICAL_ORG_ID);
             r.infisical.projects=scoped.map(p=>({slug:p.slug,name:p.name,type:p.type??p.projectType??'TYPE_NOT_RETURNED'}));
             r.infisical.certificate_manager=scoped.length?'SEARCH_PENDING':'NO_PROJECT_VISIBLE';
             for(const p of scoped.slice(0,8)){
               try{
                 const rr=await fetch('https://app.infisical.com/api/v1/projects/'+encodeURIComponent(p.id)+'/certificates/search',{
-                  method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+                  method:'POST',headers:{Authorization:'Bearer '+sessionAuthorization,'Content-Type':'application/json'},
                   body:JSON.stringify({limit:1,offset:0}),signal:AbortSignal.timeout(15000)});
                 // Do not return raw response; status-only metadata probe.
                 r.infisical.searches.push({project:p.slug||p.name,status:rr.status,accessible:rr.ok});
@@ -86,7 +86,7 @@ jobs:
           }catch(e){
             r.infisical.oidc=String(e.message||'BLOCKED').slice(0,90);
             r.infisical.certificate_manager='NOT_VERIFIED';
-          }finally{token=undefined;}
+          }finally{sessionAuthorization=undefined;}
           writeFileSync('wave-owner-connection-proof.json',JSON.stringify(r,null,2)+'\n',{mode:0o600});
           for(const [name,item] of Object.entries(r.runner)){if(name!=='uname')console.log('RUNNER_'+name.toUpperCase()+'='+JSON.stringify(item));}
           console.log('GITHUB_SECONDARY_COLLABORATOR='+r.github.secondary_collaborator);
