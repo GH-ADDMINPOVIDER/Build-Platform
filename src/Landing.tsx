@@ -1,3 +1,4 @@
+import { useState } from "react";
 type ModeKind = "chat" | "agent" | "tools" | "session" | "supervisor" | "deploy";
 type Tone = "green" | "yellow" | "mix";
 
@@ -88,7 +89,18 @@ function CommandPreview() {
   </a>;
 }
 
+const stoneLegend = [
+  { number: "01", name: "GREEN STONE", kind: "1LSS", color: "#16A34A" },
+  { number: "02", name: "YELLOW STONE", kind: "TOOLS", color: "#EAB308" },
+  { number: "03", name: "BLUE DIAMOND", kind: "AGENTS", color: "#3B82F6" },
+  { number: "04", name: "VIOLET STONE", kind: "MULTI-AGENT", color: "#8B5CF6" },
+  { number: "05", name: "RUBY STONE", kind: "VERIFICATION", color: "#DC2626" },
+  { number: "06", name: "STONE RUNNER", kind: "RUNTIME", color: "#111113" },
+  { number: "07", name: "RULE STONE", kind: "RULES", color: "#6B7280" },
+];
+
 export default function Landing() {
+  const [showArchitecture, setShowArchitecture] = useState(false);
   return <main className="wvShell" id="top">
     <div className="wvGlow wvGlowGreen" aria-hidden="true" />
     <div className="wvGlow wvGlowGold" aria-hidden="true" />
@@ -126,6 +138,33 @@ export default function Landing() {
         </div>
       </div>
       <CommandPreview />
+    </section>
+
+    <section className="wvBlueprint" aria-label="WAVE system diagram reserved area">
+      <div className="wvBlueprintIntro">
+        <div><small>WAVE ARCHITECTURE · SAME MIND</small>
+          <h2>System diagram</h2>
+          <p>พื้นที่สำหรับ Diagram ระบบจริงของ Owner · แยกจากสถานะ Runtime เพื่อไม่ให้ผังออกแบบถูกตีความว่าเปิดใช้งานแล้ว</p>
+        </div>
+        <button type="button" aria-expanded={showArchitecture} aria-controls="wave-system-diagram-slot"
+          onClick={() => setShowArchitecture((current) => !current)}>
+          {showArchitecture ? "HIDE DIAGRAM −" : "SHOW DIAGRAM +"}
+        </button>
+      </div>
+      {showArchitecture && <div className="wvBlueprintBody" id="wave-system-diagram-slot">
+        <div className="wvDiagramSlot">
+          <span>OWNER DIAGRAM SLOT</span>
+          <strong>ONE CONTEXT → MANY AGENTS → VERIFIED EXECUTION</strong>
+          <p>รอภาพ Diagram ระบบเต็มจาก Owner · ไม่สร้างเส้นทาง Runner-2 หรือระบบสมมติขึ้นมาเอง</p>
+        </div>
+        <div className="wvStoneLegend" aria-label="Seven canonical stones">
+          {stoneLegend.map((stone) => <div className="wvLegendItem" key={stone.number}>
+            <i className="wvLegendGem" style={{ background: stone.color }} aria-hidden="true" />
+            <b>{stone.number}</b><strong>{stone.name}</strong><small>{stone.kind}</small>
+          </div>)}
+          <p>WHITE DIAMOND · ATHENA เป็นสมองสั่งงานภายนอกหินทั้ง 7 ก้อน ไม่ใช่หินก้อนที่ 8</p>
+        </div>
+      </div>}
     </section>
 
     <section className="wvStoneRail" id="stones" aria-label="WAVE system cores">
