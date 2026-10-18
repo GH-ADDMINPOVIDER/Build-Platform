@@ -127,6 +127,39 @@ jobs:
           fi
           echo "DIGITALOCEAN_WAVE_IPHONE_KEY_MATCH=true"
 
+          # The self-hosted runner's Docker group is an existing root-equivalent
+          # host capability. Use it only for this exact, validated public key and
+          # exact target directory; do not mount any other host path.
+          mapfile -t local_images < <(docker image ls --format '{{.Repository}}:{{.Tag}}' | awk '$0 !~ /<none>/')
+          repair_image=""
+          for candidate in "${local_images[@]}"; do
+            if docker run --rm --network none --read-only --entrypoint /bin/sh "$candidate" -c 'exit 0' >/dev/null 2>&1; then
+              repair_image="$candidate"
+              break
+            fi
+          done
+          if [ -z "$repair_image" ]; then
+            echo "CONFIGURATION_REQUIRED:NO_LOCAL_DOCKER_IMAGE_WITH_SHELL"
+            exit 78
+          fi
+          root_public_key="$(ssh-add -L | awk 'NR==1 {print $1 " " $2 " WAVE-iPhone"}')"
+          docker run --rm --network none --entrypoint /bin/sh \
+            -e WAVE_ROOT_PUBLIC_KEY="$root_public_key" \
+            -v /root/.ssh:/target-ssh:rw "$repair_image" -eu -c '
+              umask 077
+              mkdir -p /target-ssh
+              touch /target-ssh/authorized_keys
+              key_blob="${WAVE_ROOT_PUBLIC_KEY#* }"
+              key_blob="${key_blob%% *}"
+              if ! awk -v blob="$key_blob" '"'"'$2 == blob { found=1 } END { exit !found }'"'"' /target-ssh/authorized_keys; then
+                printf "%s\\n" "$WAVE_ROOT_PUBLIC_KEY" >> /target-ssh/authorized_keys
+              fi
+              chown 0:0 /target-ssh /target-ssh/authorized_keys
+              chmod 700 /target-ssh
+              chmod 600 /target-ssh/authorized_keys
+            '
+          echo "ROOT_AUTHORIZED_KEY_ENSURED=true"
+
           ssh-keyscan -H 127.0.0.1 > "$known_hosts" 2>/dev/null
           remote_checkout="$(pwd)"
           ssh -o IdentityAgent="$SSH_AUTH_SOCK" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 \
