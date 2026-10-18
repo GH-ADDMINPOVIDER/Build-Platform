@@ -1,0 +1,83 @@
+name: OGE-128 Staging Infisical CA bootstrap
+on:
+  push:
+    branches: [task/oge-128-runtime-certificate-20261018]
+    paths: [".github/workflows/oge-128-staging-ca-bootstrap.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+concurrency:
+  group: oge128-staging-ca-bootstrap
+  cancel-in-progress: false
+jobs:
+  ca-bootstrap:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 8
+    env:
+      INFISICAL_IDENTITY_ID: \${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_ORG_SLUG: \${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+      GH_TOKEN: \${{ github.token }}
+    steps:
+      - name: Confirm staging-only host
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test "$GITHUB_REF_NAME" = "task/oge-128-runtime-certificate-20261018"
+      - name: Bootstrap only one scoped internal staging CA
+        run: |
+          node <<'NODE'
+          const base='https://app.infisical.com', outcome={};
+          const report=(k,v)=>{outcome[k]=String(v);console.log('OGE128_CA_'+k+'='+String(v));};
+          const api=async(url,token,method='GET',body)=>{
+            const res=await fetch(url,{method,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(20000)});
+            let data={};if(res.ok){try{data=await res.json()}catch{}}
+            return {status:res.status,data};
+          };
+          async function go(){
+            const oidc=await fetch(process.env.ACTIONS_ID_TOKEN_REQUEST_URL,{headers:{Authorization:'Bearer '+process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN},signal:AbortSignal.timeout(15000)}).then(r=>r.json());
+            const login=await fetch(base+'/api/v1/auth/oidc-auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identityId:process.env.INFISICAL_IDENTITY_ID,jwt:oidc.value,organizationSlug:process.env.INFISICAL_ORG_SLUG}),signal:AbortSignal.timeout(15000)});
+            if(!login.ok){report('LOGIN','HTTP_'+login.status);return;}
+            const {accessToken}=await login.json();if(!accessToken){report('LOGIN','NO_TOKEN');return;}
+            report('LOGIN','PASS');
+            const projects=await api(base+'/api/v1/projects',accessToken);
+            const project=(projects.data.projects||[]).find(p=>p.slug==='cert-manager-89-qe');
+            if(!project?.id){report('PROJECT','NOT_AUTHORIZED');return;}
+            const casResult=await api(base+'/api/v1/projects/'+encodeURIComponent(project.id)+'/cas',accessToken);
+            if(casResult.status!==200){report('CA_INVENTORY_HTTP',casResult.status);return;}
+            const cas=casResult.data.cas;
+            if(!Array.isArray(cas)){report('CA_INVENTORY','UNEXPECTED_SCHEMA');return;}
+            report('PREEXISTING_COUNT',cas.length);
+            const known=cas.find(c=>c.commonName==='OGENIC WAVE STAGING ROOT CA');
+            if(known){report('RESULT','ALREADY_PRESENT');report('STATUS',known.status||'UNKNOWN');return;}
+            if(cas.length){report('RESULT','STOP_FOREIGN_CA_EXISTS');return;}
+            const now=new Date(), expiry=new Date();
+            expiry.setUTCFullYear(expiry.getUTCFullYear()+3);
+            const result=await api(base+'/api/v1/pki/ca',accessToken,'POST',{
+              projectSlug:'cert-manager-89-qe',type:'root',
+              friendlyName:'wave-staging-root-ca',commonName:'OGENIC WAVE STAGING ROOT CA',
+              organization:'OGENIC',ou:'WAVE Staging',country:'TH',province:'Bangkok',locality:'Bangkok',
+              notBefore:new Date(now.getTime()-60000).toISOString(),notAfter:expiry.toISOString(),
+              maxPathLength:0,keyAlgorithm:'EC_prime256v1',requireTemplateForIssuance:true
+            });
+            report('CREATE_HTTP',result.status);
+            if(result.status===200||result.status===201){
+              report('RESULT','CREATED');
+              const ca=result.data.ca||result.data;
+              report('STATUS',ca.status||'UNKNOWN');
+              report('ID_PRESENT',Boolean(ca.id));
+            }else report('RESULT','CREATE_REJECTED');
+          }
+          go().catch(()=>report('RESULT','NETWORK_OR_AUTH_ERROR')).finally(async()=>{
+            const body=['OGE-128 Infisical staging CA bootstrap','SHA: '+process.env.GITHUB_SHA+' / Run: '+process.env.GITHUB_RUN_ID,
+              ...Object.entries(outcome).map(([k,v])=>'OGE128_CA_'+k+'='+v.slice(0,90)),
+              'No keys or certificate bodies exported. Staging CA only.'].join('\n');
+            const result=await fetch('https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/issues/39/comments',{
+              method:'POST',headers:{Authorization:'Bearer '+process.env.GH_TOKEN,'Accept':'application/vnd.github+json','User-Agent':'oge128-ca-bootstrap'},
+              body:JSON.stringify({body}),signal:AbortSignal.timeout(12000)
+            }).catch(()=>({status:'NETWORK_ERROR'}));
+            report('ISSUE_RECEIPT_HTTP',result.status);
+          });
+          NODE
