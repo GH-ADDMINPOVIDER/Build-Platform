@@ -7,6 +7,8 @@ on:
       - ".github/workflows/wave-liquid-glass-command-ux-proof.yml"
       - "src/WaveNext.tsx"
       - "src/Landing.tsx"
+      - "src/StoneCircuitDiagram.tsx"
+      - "src/stone-circuit-diagram.css"
       - "src/landing.css"
       - "src/wave-theme.css"
       - "src/main.tsx"
@@ -32,9 +34,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
       - name: Install verified repository dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm install --no-package-lock --no-audit --no-fund
       - name: Feature contract checks
         run: node --test tests/wave-liquid-glass-command-ux.test.mjs tests/wave-next-ui.test.mjs tests/landing-phase2-ui.test.mjs
       - name: Typecheck
