@@ -111,6 +111,32 @@ jobs:
             if(!profile?.id){say('PROFILE','ID_NOT_FOUND');return;}
             if(profile.caId&&profile.caId!==ca.id){say('PROFILE','CA_MISMATCH');return;}
             say('PROFILE','FOUND');
+            // 2026 Infisical PKI issues via an Application, not a bare Profile.
+            const applicationName='oge128-wave-runner-01-staging';
+            const apps=await call('/api/v1/cert-manager/applications?limit=100',accessToken);
+            requirePass('APPLICATIONS',apps);
+            let app=(apps.data.applications||[]).find(x=>x.name===applicationName);
+            if(!app) {
+              const made=await call('/api/v1/cert-manager/applications',accessToken,'POST',{
+                name:applicationName,
+                description:'OGE-128 staging certificate application for existing Runner-1 only',
+                profileIds:[profile.id]
+              });
+              say('APPLICATION_CREATE_HTTP',made.status);
+              if(![200,201].includes(made.status)){
+                say('APPLICATION_ERROR',String(made.data?.message||'NO_API_MESSAGE').replace(/[^a-zA-Z0-9 _.,:;()\\/-]/g,'').slice(0,150));return;
+              }
+              app=made.data.application||made.data;
+            }
+            if(!app?.id){say('APPLICATION','ID_NOT_FOUND');return;}
+            say('APPLICATION','FOUND');
+            // Configure native PKI enrollment auto-renew for this exact app/profile only.
+            const enroll=await call('/api/v1/cert-manager/applications/'+encodeURIComponent(app.id)
+              +'/profiles/'+encodeURIComponent(profile.id)+'/enrollment/api',accessToken,'PUT',
+              {autoRenew:true,renewBeforeDays:30});
+            say('ENROLLMENT_CONFIG_HTTP',enroll.status);
+            if(enroll.status!==200){say('ENROLLMENT_CONFIG','NOT_CONFIRMED');return;}
+            say('ENROLLMENT','AUTO_RENEW_30_DAYS');
             const candidates=await call('/api/v1/cert-manager/certificate-profiles/'+encodeURIComponent(profile.id)+'/certificates?status=active&limit=100',accessToken);
             const fallback=candidates.status===200?candidates:await call('/api/v1/projects/'+encodeURIComponent(project.id)+'/certificates/search',accessToken,'POST',{offset:0,limit:100});
             say('CERTIFICATE_INVENTORY_ROUTE',candidates.status===200?'PROFILE':'PROJECT_FALLBACK');
@@ -120,7 +146,7 @@ jobs:
             let cert=listOfCertificates.find(c=>((c.cn||c.commonName)==='wave-runner-01')&&c.status==='active'&&(!c.profileId||c.profileId===profile.id));
             if(!cert) {
               const created=await call('/api/v1/cert-manager/certificates',accessToken,'POST',{
-                profileId:profile.id,
+                profileId:profile.id,applicationId:app.id,
                 attributes:{commonName:'wave-runner-01',
                   keyUsages:['digital_signature'],extendedKeyUsages:['client_auth'],
                   keyAlgorithm:'EC_prime256v1',signatureAlgorithm:'ECDSA-SHA256',ttl:'90d',
