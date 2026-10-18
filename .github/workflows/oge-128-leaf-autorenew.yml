@@ -41,7 +41,7 @@ jobs:
             try {
               const res=await fetch(base+url,{method,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
                 ...(body!==undefined?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(30000)});
-              let data={}; if(res.ok){try{data=await res.json()}catch{}}
+              let data={}; try{data=await res.json()}catch{}
               return {status:res.status,data};
             }catch{return {status:'NETWORK_ERROR',data:{}};}
           }
@@ -101,7 +101,11 @@ jobs:
                 }
               });
               say('PROFILE_CREATE_HTTP',created.status);
-              if(![200,201].includes(created.status))return;
+              if(![200,201].includes(created.status)){
+                const reason=String(created.data?.message||created.data?.error||'NO_API_MESSAGE')
+                  .replace(/[^a-zA-Z0-9 _.,:;()\/-]/g,'').slice(0,180);
+                say('PROFILE_ERROR',reason); return;
+              }
               profile=created.data.certificateProfile||created.data.profile||created.data;
             }
             if(!profile?.id){say('PROFILE','ID_NOT_FOUND');return;}
