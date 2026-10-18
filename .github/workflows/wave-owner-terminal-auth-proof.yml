@@ -115,7 +115,7 @@ jobs:
             -e OPENAI_API_KEY= -e CODEX_API_KEY= -e GH_TOKEN= -e GITHUB_TOKEN= \
             -v /root:/host-root:ro \
             -v "$GITHUB_WORKSPACE/scripts/owner-terminal-auth-proof.mjs":/root-proof.mjs:ro \
-            "$node_image" -eu -c 'node /root-proof.mjs'
+            "$node_image" -eu -c 'node /root-proof.mjs' | tee "$RUNNER_TEMP/oge128-root-claims.txt"
           echo "ROOT_DOCKER_CLAIM_PROOF=FINISHED_NO_OAUTH_MUTATION"
       - name: Inspect existing host Codex binary for Docker TS binding
         shell: bash
@@ -177,7 +177,16 @@ jobs:
                   echo ROOT_CODEX_TS_RUNTIME=LOGIN_STATUS_UNAVAILABLE
                 fi
               fi
-            '
+            ' | tee "$RUNNER_TEMP/oge128-root-login.txt"
+          if grep -Fxq 'ROOT_CODEX_TS_LOGIN_STATUS=SIGNED_IN' "$RUNNER_TEMP/oge128-root-login.txt" \
+             && grep -Fq '"identity":"GPT_TS_CODEX"' "$RUNNER_TEMP/oge128-root-claims.txt"; then
+            echo "ts_ready=true" >> "$GITHUB_OUTPUT"
+            echo "CODEX_TS_EXISTING_ROOT_DOCKER_BINDING=READY"
+            echo "CODEX_DUAL_LOGIN_VERIFIED=true"
+          else
+            echo "ts_ready=false" >> "$GITHUB_OUTPUT"
+            echo "CODEX_TS_EXISTING_ROOT_DOCKER_BINDING=NOT_READY"
+          fi
       - name: Discover canonical Infisical project
         id: infisical_project
         shell: bash
@@ -192,6 +201,9 @@ jobs:
           secret-path: /
           recursive: true
       - name: Verify SSH root Codex context with sanitized claims
+        # Root-SSH is fallback only: the original TS account has an approved
+        # read-only Docker control path; do not fail it for an unrelated SSH key.
+        if: steps.root_codex_login.outputs.ts_ready != 'true'
         shell: bash
         run: |
           set -euo pipefail
