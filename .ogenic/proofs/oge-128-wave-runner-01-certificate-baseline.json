@@ -195,6 +195,19 @@
       "status": "GITHUB_REGISTRY_DEFINED_D1_WRITE_PENDING",
       "proof": "Connected MCP namespace inspection and individual read API probes 2026-10-18",
       "historical_data_deleted": false
+    },
+    {
+      "event": "certificate_lincenc_d1_first_write_and_readback",
+      "status": "PASS",
+      "record_name": "Certificate lincenc",
+      "database": "ogenic-phase-vi-staging",
+      "table": "certificate_lincenc",
+      "plugin_groups": 23,
+      "verified_connections": 18,
+      "document_sha256": "09d8f471b65feafc546bc941203d6043eee719591699023293197ef905b7b14f",
+      "proof": "github-actions:39137196276/job/117704016011",
+      "preexisting_seven_stone_tables_modified": false,
+      "no_raw_credentials": true
     }
   ],
   "secret_contract": {
@@ -226,9 +239,11 @@
       "runtime_worker": "ogenic-phase-vi-staging",
       "d1_binding": "DB",
       "d1_database": "ogenic-phase-vi-staging",
-      "evidence_record_written": "NOT_VERIFIED",
+      "evidence_record_written": "VERIFIED_IN_ISOLATED_STAGING_D1_TABLE",
       "automatic_infisical_to_cloudflare_certificate_replication": "NOT_VERIFIED",
-      "note": "Configured D1 is a runtime/memory store. No actual certificate row or sync receipt has been retrieved."
+      "note": "Configured D1 is a runtime/memory store. No actual certificate row or sync receipt has been retrieved.",
+      "original_status": "NOT_VERIFIED",
+      "evidence_ref": "github-actions:39137196276/job/117704016011"
     },
     "lss": {
       "canonical": "owner-main / 1LSS_OWNER_MAIN",
@@ -597,8 +612,15 @@
         "database": "ogenic-phase-vi-staging",
         "binding": "DB",
         "record_type": "certificate_lincenc",
-        "status": "WRITE_PENDING_VERIFICATION",
-        "separate_table_requested": true
+        "status": "WRITE_CONFIRMED_READBACK_PASS",
+        "separate_table_requested": true,
+        "previous_status": "WRITE_PENDING_VERIFICATION",
+        "table": "certificate_lincenc",
+        "database_id": "b4ac3a33-df80-47cf-8e75-7574e025b87b",
+        "first_live_verified_run": "github-actions:39137196276/job/117704016011",
+        "first_live_verified_sha256": "09d8f471b65feafc546bc941203d6043eee719591699023293197ef905b7b14f",
+        "first_live_verified_at_utc": "2026-10-18T14:42:53Z",
+        "original_cert_file_history_retained": true
       },
       "infisical": {
         "certificate_manager_project": "-",
