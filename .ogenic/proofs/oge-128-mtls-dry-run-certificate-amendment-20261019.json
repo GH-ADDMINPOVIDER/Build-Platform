@@ -1,0 +1,37 @@
+{
+  "schema": "ogenic.certificate-lincenc.evidence-amendment.v1",
+  "certificate_id": "oge-128-wave-runner-01-baseline-20261018",
+  "canonical_certificate_file": ".ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json",
+  "evidence_id": "oge-128-mtls-ephemeral-key-dry-run-20261019",
+  "evidence_scope": "Runner-1 staging isolated localhost mTLS test keys, no external WAVE endpoint",
+  "proof": {
+    "github_actions_run_id": "39161934049",
+    "github_actions_sha": "13772388ec43c608c18bb0fa8bbe9c2e9c8219fb",
+    "proof_url": "https://github.com/Ogenicchocolate21debug/Build-Platform/issues/39#issuecomment-6254559747",
+    "run_conclusion": "success",
+    "inspected_folders": 2,
+    "ephemeral_key_pairs_confirmed": 2,
+    "cryptographic_key_match": 2,
+    "self_signed_localhost_certs": 2,
+    "blocked": 0,
+    "unexpected_items": 0,
+    "private_keys_publicly_readable": 0,
+    "cleanup_performed": false,
+    "leaf_private_key_accessed": false,
+    "secrets_exported": false
+  },
+  "assessment": {
+    "status": "VERIFIED_DRY_RUN_CLEANUP_PENDING",
+    "cleanup_status": "PENDING",
+    "post_cleanup_verification": "NOT_RUN",
+    "no_leak_absolute_assurance": false,
+    "historical_scope": "BOUNDED",
+    "security_audit_run": "39161269166",
+    "pre_cleanup_audit_receipt": "https://github.com/Ogenicchocolate21debug/Build-Platform/issues/39#issuecomment-6254477701",
+    "signed_capability_grant_created": false,
+    "x509_reissued": false,
+    "staging_only": true
+  },
+  "next_action": "Merge into existing Certificate lincenc document_json on staging D1 with SHA readback; cleanup only after separate approval and verification",
+  "secret_policy": "No raw keys, secrets, PEM data, or credentials in this amendment"
+}
