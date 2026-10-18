@@ -1,0 +1,49 @@
+name: OGE-128 OpenCode Readiness (No install)
+on:
+  push:
+    branches: [task/oge-128-runtime-certificate-20261018]
+    paths: [".github/workflows/oge-128-opencode-readiness.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  inspect:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Non-mutating host and agent inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$GITHUB_REF_NAME" = task/oge-128-runtime-certificate-20261018
+          node <<'NODE'
+          const os=require('os'), cp=require('child_process'), path=require('path');
+          const result={};
+          const probe=(name)=>{try{return cp.execFileSync('sh',['-c','command -v '+name],{encoding:'utf8',timeout:1500,stdio:['ignore','pipe','ignore']}).trim()?true:false}catch{return false}};
+          result.RUNNER='wave-runner-01';
+          result.OPENCODE_INSTALLED=probe('opencode');
+          result.NODE=probe('node');
+          result.NPM=probe('npm');
+          result.SSH=probe('ssh');
+          result.GIT=probe('git');
+          result.DOCKER=probe('docker');
+          result.RAM_TOTAL_MIB=Math.floor(os.totalmem()/1024/1024);
+          result.CPU_COUNT=os.cpus().length;
+          result.OPENCODE_SERVER_START='NOT_ATTEMPTED';
+          result.OPENCODE_INSTALL='NOT_ATTEMPTED';
+          result.RUNTIME_E2E='NOT_VERIFIED';
+          const body='OGE-128 OpenCode CLI readiness on existing Runner-1 (read-only)\n'
+            +'Source SHA '+process.env.GITHUB_SHA+' / Run '+process.env.GITHUB_RUN_ID+'\n'
+            +Object.entries(result).map(([key,val])=>key+'='+val).join('\n')
+            +'\nNo install, server bind, root, external model usage, or filesystem modification.';
+          for(const [key,val] of Object.entries(result)) console.log('OGE128_'+key+'='+val);
+          fetch('https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/issues/39/comments',{
+            method:'POST',headers:{Authorization:'Bearer '+process.env.GH_TOKEN,Accept:'application/vnd.github+json','Content-Type':'application/json','User-Agent':'oge128-opencode-preflight'},
+            body:JSON.stringify({body}),signal:AbortSignal.timeout(12000)
+          }).then(r=>console.log('OGE128_RECEIPT_HTTP='+r.status)).catch(()=>console.log('OGE128_RECEIPT_HTTP=NETWORK_BLOCKED'));
+          NODE
