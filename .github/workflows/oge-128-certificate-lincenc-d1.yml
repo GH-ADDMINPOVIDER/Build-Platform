@@ -1,0 +1,166 @@
+name: OGE-128 Certificate lincenc - D1 Staging
+on:
+  push:
+    branches: [task/oge-128-runtime-certificate-20261018]
+    paths:
+      - ".github/workflows/oge-128-certificate-lincenc-d1.yml"
+      - ".ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json"
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: oge128-certificate-lincenc-d1-staging
+  cancel-in-progress: false
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: staging
+jobs:
+  certificate-lincenc-d1:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && contains(fromJSON('["Ogenicchocolate21debug","Wave-Runner-2"]'), github.actor)
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact certificate source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Assert host and source are staging only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$GITHUB_REF_NAME" = task/oge-128-runtime-certificate-20261018
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "LINCENC_TARGET=ONE_RUNNER_STAGING_ONLY"
+      - name: Locate existing Infisical Cloudflare credentials
+        id: discovery
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+      - name: Resolve Infisical secrets via existing GitHub OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ steps.discovery.outputs.project_slug }}
+          env-slug: ${{ steps.discovery.outputs.secret_env_slug }}
+          secret-path: ${{ steps.discovery.outputs.secret_path }}
+      - name: Sync the existing certificate to an isolated D1 staging table with readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, urllib.error, urllib.request
+          from pathlib import Path
+          
+          dbid="b4ac3a33-df80-47cf-8e75-7574e025b87b"
+          dbname="ogenic-phase-vi-staging"
+          name="certificate_lincenc"
+          certfile=Path(".ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json")
+          assert os.environ["GITHUB_REPOSITORY"]=="Ogenicchocolate21debug/Build-Platform"
+          assert os.environ["GITHUB_REF_NAME"]=="task/oge-128-runtime-certificate-20261018"
+          assert os.environ["RUNNER_NAME"]=="wave-runner-01"
+          cfg=json.loads(Path("wrangler.jsonc").read_text())
+          assert cfg["name"]==dbname
+          assert any(x.get("database_id")==dbid and x.get("database_name")==dbname for x in cfg["d1_databases"])
+          raw=certfile.read_bytes()
+          cert=json.loads(raw)
+          reg=cert["plugin_license_registry"]
+          assert cert["environment"]=="staging"
+          assert cert["certificate_id"]=="oge-128-wave-runner-01-baseline-20261018"
+          assert reg["slug"]==name and reg["display_name"]=="Certificate lincenc"
+          assert reg["logical_separation"]=="INDEPENDENT_OF_SEVEN_STONES"
+          n=len(reg["entries"])
+          v=sum(x["status"]=="VERIFIED_CONNECTED_READ_API" for x in reg["entries"])
+          assert n==reg["plugin_groups_exposed"] and v==reg["confirmed_connections"]
+          assert all(x["credential_values_included"]==False for x in reg["entries"])
+          account=os.getenv("CLOUDFLARE_ACCOUNT_ID")
+          token=os.getenv("CLOUDFLARE_API_TOKEN")
+          if not account or not token: raise RuntimeError("INFISICAL_CLOUDFLARE_CREDENTIALS_MISSING")
+          root="https://api.cloudflare.com/client/v4/accounts/"+account+"/d1/database/"+dbid
+          
+          def request(url, body=None):
+              b=None if body is None else json.dumps(body).encode("utf-8")
+              req=urllib.request.Request(url,data=b,method="GET" if b is None else "POST",
+                headers={"Authorization":"Bearer "+token,"Content-Type":"application/json","Accept":"application/json"})
+              try:
+                  with urllib.request.urlopen(req,timeout=30) as res: obj=json.load(res)
+              except urllib.error.HTTPError as e: raise RuntimeError("CLOUDFLARE_HTTP_"+str(e.code)) from None
+              except urllib.error.URLError: raise RuntimeError("CLOUDFLARE_NETWORK_FAILURE") from None
+              if obj.get("success") is not True: raise RuntimeError("CLOUDFLARE_API_REJECTED")
+              return obj
+          
+          def query(sql,params=None):
+              b={"sql":sql}
+              if params is not None: b["params"]=[str(x) for x in params]
+              r=request(root+"/query",b).get("result",[])
+              if not isinstance(r,list) or len(r)!=1 or r[0].get("success") is not True:
+                  raise RuntimeError("D1_QUERY_FAILED")
+              return r[0].get("results",[]) or []
+          
+          meta=request(root).get("result") or {}
+          if meta.get("name")!=dbname: raise RuntimeError("STAGING_D1_DATABASE_IDENTITY_MISMATCH")
+          existing=query("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [name])
+          if not existing:
+              query("""CREATE TABLE IF NOT EXISTS certificate_lincenc (
+               certificate_id TEXT PRIMARY KEY,
+               display_name TEXT NOT NULL,
+               environment TEXT NOT NULL CHECK(environment='staging'),
+               document_sha256 TEXT NOT NULL,
+               plugin_groups INTEGER NOT NULL,
+               verified_connections INTEGER NOT NULL,
+               source_commit TEXT NOT NULL,
+               document_json TEXT NOT NULL,
+               created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+               updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+              )""")
+              print("CERTIFICATE_LINCENC_TABLE=CREATED_IN_STAGING")
+          else:
+              print("CERTIFICATE_LINCENC_TABLE=EXISTING")
+          cols={row.get("name") for row in query("PRAGMA table_info(certificate_lincenc)")}
+          required={"certificate_id","display_name","environment","document_sha256","plugin_groups","verified_connections","source_commit","document_json"}
+          if not required.issubset(cols): raise RuntimeError("LICENSE_TABLE_SCHEMA_INCOMPATIBLE")
+          if query("SELECT certificate_id FROM certificate_lincenc WHERE certificate_id != ? LIMIT 1",[cert["certificate_id"]]):
+              raise RuntimeError("SECOND_CERTIFICATE_ID_NOT_ALLOWED")
+          digest=hashlib.sha256(raw).hexdigest()
+          query("""INSERT INTO certificate_lincenc
+              (certificate_id,display_name,environment,document_sha256,plugin_groups,verified_connections,source_commit,document_json)
+              VALUES (?,?,?,?,?,?,?,?)
+              ON CONFLICT(certificate_id) DO UPDATE SET
+              document_sha256=excluded.document_sha256,
+              plugin_groups=excluded.plugin_groups,
+              verified_connections=excluded.verified_connections,
+              source_commit=excluded.source_commit,
+              document_json=excluded.document_json,
+              updated_at=CURRENT_TIMESTAMP
+              WHERE certificate_lincenc.document_sha256 != excluded.document_sha256""",
+              [cert["certificate_id"],reg["display_name"],"staging",digest,n,v,os.environ["GITHUB_SHA"],raw.decode("utf-8")])
+          rows=query("SELECT certificate_id,display_name,environment,document_sha256,plugin_groups,verified_connections,document_json FROM certificate_lincenc WHERE certificate_id=?", [cert["certificate_id"]])
+          assert len(rows)==1, "READBACK_ROW_COUNT"
+          row=rows[0]
+          assert row["document_sha256"]==digest
+          assert hashlib.sha256(row["document_json"].encode("utf-8")).hexdigest()==digest
+          assert row["display_name"]=="Certificate lincenc" and row["environment"]=="staging"
+          assert int(row["plugin_groups"])==n and int(row["verified_connections"])==v
+          assert json.loads(row["document_json"])["certificate_id"]==cert["certificate_id"]
+          print("CERTIFICATE_LINCENC_D1_WRITE=PASS")
+          print("CERTIFICATE_LINCENC_D1_READBACK=PASS")
+          print("CERTIFICATE_LINCENC_DOCUMENT_SHA256="+digest)
+          print("CERTIFICATE_LINCENC_PLUGIN_GROUPS="+str(n))
+          print("CERTIFICATE_LINCENC_VERIFIED_CONNECTIONS="+str(v))
+          print("CERTIFICATE_LINCENC_SEVEN_STONES_TABLES_MUTATED=FALSE")
+          summary=os.getenv("GITHUB_STEP_SUMMARY")
+          if summary:
+              with open(summary,"a") as f:
+                  f.write("### Certificate lincenc staging D1 receipt\n\n")
+                  f.write("- D1 write and SHA-256 readback: PASS\n")
+                  f.write("- Certificate ID: "+cert["certificate_id"]+"\n")
+                  f.write("- SHA-256: "+digest+"\n")
+                  f.write("- Plugin groups: "+str(n)+"; connected verified: "+str(v)+"\n")
+                  f.write("- Seven stones tables modified: false\n")
+          
+          PY
