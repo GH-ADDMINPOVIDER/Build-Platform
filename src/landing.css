@@ -341,3 +341,45 @@ body { margin:0; }
   background:rgba(255,255,255,.72);
   box-shadow:0 14px 44px rgba(34,57,43,.08);
 }
+
+
+/* Owner architecture slot — original hero and Green/Yellow stone cards stay intact. */
+.wvBlueprint {
+  position:relative; z-index:1; width:min(100%,1380px);
+  margin:0 auto 18px; border:1px solid var(--wave-glass-border,var(--line));
+  background:var(--wave-glass-surface,rgba(255,255,255,.08));
+  border-radius:20px; overflow:hidden;
+  -webkit-backdrop-filter:blur(22px) saturate(155%);
+  backdrop-filter:blur(22px) saturate(155%);
+}
+.wvBlueprintIntro {display:flex;justify-content:space-between;align-items:center;gap:20px;padding:20px 24px;}
+.wvBlueprintIntro small{display:block;margin-bottom:7px;color:var(--muted);font:800 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;}
+.wvBlueprintIntro h2{margin:0 0 8px;font-size:clamp(22px,4vw,32px);line-height:1;letter-spacing:-.04em;}
+.wvBlueprintIntro p{max-width:620px;margin:0;color:var(--muted);font-size:12px;line-height:1.5;}
+.wvBlueprintIntro button {min-height:44px;min-width:138px;padding:0 15px;border-radius:999px;
+  color:var(--text);font:800 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.04em;
+  border:1px solid var(--wave-glass-border,var(--line-strong));background:var(--wave-glass-raised,rgba(255,255,255,.08));cursor:pointer;}
+.wvBlueprintIntro button:focus-visible{outline:2px solid var(--green);outline-offset:3px;}
+.wvBlueprintBody{padding:0 20px 20px;}
+.wvDiagramSlot {min-height:176px;padding:22px;border:1px dashed var(--line-strong);border-radius:16px;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:9px;
+  background:linear-gradient(130deg,rgba(102,178,141,.08),rgba(218,194,110,.08));}
+.wvDiagramSlot span{font:800 9px/1 ui-monospace,Menlo,monospace;letter-spacing:.1em;color:var(--muted)}
+.wvDiagramSlot strong{font-size:clamp(14px,3vw,20px);line-height:1.3;}
+.wvDiagramSlot p{margin:0;font-size:11px;line-height:1.45;color:var(--muted);}
+.wvStoneLegend{margin-top:14px;display:grid;gap:5px;}
+.wvLegendItem {min-height:42px;display:grid;grid-template-columns:22px 32px minmax(0,1fr) auto;align-items:center;
+  gap:12px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:rgba(130,160,138,.035);}
+.wvLegendGem {width:19px;height:19px;clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);
+  box-shadow:inset 0 3px 5px rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.14);}
+.wvLegendItem b,.wvLegendItem small{font:750 10px/1 ui-monospace,Menlo,monospace;color:var(--muted);}
+.wvLegendItem strong{font-size:12px;line-height:1.3;}
+.wvStoneLegend>p{margin:8px 4px 0;font-size:10px;color:var(--muted);}
+@media(max-width:620px){
+  .wvBlueprint{border-radius:14px;}
+  .wvBlueprintIntro{padding:16px;display:grid;gap:12px;}
+  .wvBlueprintIntro button{justify-self:start;}
+  .wvBlueprintBody{padding:0 12px 14px;}
+  .wvLegendItem{gap:7px;grid-template-columns:22px 26px minmax(0,1fr) auto;}
+  .wvLegendItem strong{font-size:10px;}.wvLegendItem small{font-size:9px;}
+}
