@@ -135,13 +135,17 @@
     "issued_at": "2026-10-18T17:08:00+07:00",
     "note": "This is an evidence-backed authorization record, not an X.509 leaf certificate.",
     "security_evidence_checkpoint": {
-      "status": "DRY_RUN_VERIFIED_CLEANUP_PENDING",
+      "status": "SCOPED_LOCAL_TEST_CLEANUP_VERIFIED_AUDIT_PARTIAL",
       "dry_run_receipt": "github-actions:39161934049",
-      "scoped_audit_receipt": "github-actions:39161269166",
-      "confirmed_test_key_pairs": 2,
-      "cleanup_status": "PENDING",
-      "post_cleanup_audit": "NOT_RUN",
-      "historical_no_leak_guarantee": false,
+      "cleanup_receipt": "github-actions:39163934022",
+      "cleanup_status": "PASS",
+      "local_mtls_test_key_directories_remaining": 0,
+      "post_cleanup_scoped_pattern_matches": 0,
+      "post_cleanup_actions_logs_scanned": 0,
+      "post_cleanup_infisical_audit_api": "HTTP_200",
+      "post_cleanup_audit_receipt_published": false,
+      "full_historical_no_leak_guarantee": false,
+      "certificate_owner_authorization_changed": false,
       "signed_capability_grant": false
     }
   },
@@ -232,6 +236,27 @@
       "no_raw_credentials": true,
       "cleanup_status": "PENDING",
       "full_security_certification": false
+    },
+    {
+      "event": "oge128_local_test_cleanup_verified",
+      "status": "SCOPED_LOCAL_TEST_CLEANUP_PASS_AUDIT_PARTIAL",
+      "environment": "staging",
+      "source_dry_run": "github-actions:39161934049",
+      "cleanup_job_step_receipt": "github-actions:39163934022/step/targeted-cleanup",
+      "cleanup_source_commit": "b1ff8f004d3023cbd54660dec4261abb3749e48e",
+      "independent_post_cleanup_host_residue_count": 0,
+      "deleted_test_directories": 2,
+      "deleted_test_private_key_files": 2,
+      "post_cleanup_bounded_audit_result": "NO_HIGH_CONFIDENCE_MATCH",
+      "post_cleanup_actions_logs_scanned": 0,
+      "post_cleanup_infisical_audit_api": "HTTP_200",
+      "post_cleanup_audit_receipt_published": false,
+      "full_git_history_audited": false,
+      "full_secret_exposure_assurance": false,
+      "sensitive_values_written": false,
+      "production_mutated": false,
+      "infisical_leaf_mutated": false,
+      "timestamp_utc": "2026-10-18T20:46:06+00:00"
     }
   ],
   "secret_contract": {
