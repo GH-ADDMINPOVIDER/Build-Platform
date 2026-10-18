@@ -66,5 +66,320 @@
     "note": "Evidence baseline only. A live signed capability certificate still requires an independently trusted issuer and Yellow Stone authorization."
   },
   "source_sha": "af77aa993632193c55d23e697eb1e20627e0d727",
-  "recorded_at": "2026-10-18T16:54:00+07:00"
+  "recorded_at": "2026-10-18T16:54:00+07:00",
+  "consolidated_record": {
+    "contract": "SINGLE_CERTIFICATE_ONE_EXISTING_GITHUB_PATH",
+    "original_certificate_id": "-",
+    "imported_owner_certificate_id": "OGE-128-WAVE-RUNNER-01-20261018",
+    "duplicate_value_marker": "-",
+    "identity": {
+      "subject": "-",
+      "environment": "-",
+      "canonical": "-"
+    },
+    "authorization": {
+      "status": "ACTIVE_EVIDENCE_BASELINE",
+      "term": "PERMANENT_UNTIL_REVOKED",
+      "authority": "Yellow Stone / Owner",
+      "certificate_manager_project": "-",
+      "certificate_manager_role": "-",
+      "revocation": "Owner or Certificate Manager may revoke immediately",
+      "signed_capability_grant": false
+    },
+    "cryptographic_leaf": {
+      "status": "PENDING_INFISICAL_ISSUANCE",
+      "maximum_validity_days": 397,
+      "renew_before_days": 30,
+      "auto_renew_required": true,
+      "non_expiring_leaf_allowed": false,
+      "reason": "Permanent authorization is represented by the revocable record; leaf credentials rotate automatically."
+    },
+    "runtime_subjects": {
+      "github_primary": {
+        "id": "-",
+        "permission": "-",
+        "status": "PASS"
+      },
+      "github_secondary": {
+        "id": "-",
+        "permission": "-",
+        "status": "PASS"
+      },
+      "runner": {
+        "id": "-",
+        "service_count": "-",
+        "status": "PASS"
+      },
+      "codex_gs": {
+        "id": "-",
+        "status": "PASS"
+      },
+      "codex_ts": {
+        "id": "GPT_TS_CODEX",
+        "status": "HISTORICAL_RECORD_WAS_BLOCKED_ROOT_SSH; NEW_DOCKER_INFERENCE_PASS",
+        "current_proof": "github-actions:39124078680/job/117665435544"
+      },
+      "wave_command": {
+        "status": "SOURCE_VERIFIED_RUNTIME_PENDING",
+        "e2e_receipt": "NOT_VERIFIED"
+      }
+    },
+    "constraints": [
+      "No main or production mutation",
+      "No Candy mutation",
+      "No D1 schema mutation",
+      "No raw credential disclosure",
+      "One existing Runner-1 service",
+      "Owner confirmation and Yellow Stone authorization required"
+    ],
+    "issued_at": "2026-10-18T17:08:00+07:00",
+    "note": "This is an evidence-backed authorization record, not an X.509 leaf certificate."
+  },
+  "evidence_history_additions": [
+    {
+      "event": "historical_root_ssh_denied",
+      "status": "BLOCKED_ROOT_PUBLIC_KEY_NOT_AUTHORIZED",
+      "source": "github-actions:39118118283/job/117647963926",
+      "superseded_in_scope": "root_ssh_not_required_for_docker_path"
+    },
+    {
+      "event": "ts_original_root_identity_found",
+      "status": "GPT_TS_CODEX_PROFILE_FOUND",
+      "profile": "/root/.codex",
+      "source": "github-actions:39122261272/job/117660076417"
+    },
+    {
+      "event": "ts_existing_cli_login",
+      "status": "SIGNED_IN",
+      "source": "github-actions:39122728376/job/117661439193"
+    },
+    {
+      "event": "ts_existing_account_inference",
+      "status": "TS_CODEX_EXEC=SUCCESS",
+      "mode": "Docker CLI, read-only proof, NOT universal routing",
+      "source": "github-actions:39124078680/job/117665435544",
+      "source_sha": "7f1dc856cf23480714dc17088d995098e09be122"
+    },
+    {
+      "event": "gs_runner_user_context",
+      "status": "SIGNED_IN",
+      "profile": "/home/wave/.codex",
+      "source": "github-actions:39124078680/job/117665435544"
+    },
+    {
+      "event": "github_primary_secondary_repository",
+      "status": "ADMIN_AND_WRITE_VERIFIED",
+      "primary": "-",
+      "secondary": "-",
+      "source": "GitHub collaborator permission read 2026-10-18"
+    },
+    {
+      "event": "wave_command_e2e",
+      "status": "NOT_VERIFIED",
+      "source": "source review: worker/entry-yellow-stone.ts, worker/wave-command-dispatch.ts, scripts/wave-command-consumer.mjs"
+    },
+    {
+      "event": "ides_execution_e2e",
+      "status": "NOT_VERIFIED",
+      "source": "GitHub PR #36 is documentation-only"
+    },
+    {
+      "event": "server_runner_count",
+      "status": "ONE_SELFHOSTED_SERVICE_OBSERVED",
+      "other_runner": "NOT_VERIFIED_NOT_CLAIMED",
+      "source": "github-actions:39115866114/job/117641403648"
+    }
+  ],
+  "secret_contract": {
+    "values_exposed": false,
+    "names_only": [
+      "SSH_PRIVATE_KEY",
+      "SSH_KEY",
+      "WAVE_RUNNER_01_SSH_PRIVATE_KEY"
+    ],
+    "oidc_source": "Infisical Machine Identity",
+    "historical_key_pair_status": "SSH_AGENT_LOAD_SUCCESS_PUBLIC_KEY_ROOT_SSH_DENIED",
+    "leaf_prerequisites": [
+      "trusted CA / issuing profile",
+      "subject/SAN policy",
+      "30-day renewal policy",
+      "revocation policy"
+    ],
+    "raw_values_in_certificate": false
+  },
+  "canonical_storage": {
+    "authoritative_evidence_file": "Ogenicchocolate21debug/Build-Platform:task/oge-128-runtime-certificate-20261018:.ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json",
+    "github_write": "THIS_REVISION_PENDING",
+    "infisical_certificate_manager": {
+      "project": "cert-manager-89-qe",
+      "api_access": "HTTP_200_VERIFIED",
+      "certificate_leaf_issued": "NOT_VERIFIED"
+    },
+    "cloudflare": {
+      "runtime_worker": "ogenic-phase-vi-staging",
+      "d1_binding": "DB",
+      "d1_database": "ogenic-phase-vi-staging",
+      "evidence_record_written": "NOT_VERIFIED",
+      "automatic_infisical_to_cloudflare_certificate_replication": "NOT_VERIFIED",
+      "note": "Configured D1 is a runtime/memory store. No actual certificate row or sync receipt has been retrieved."
+    },
+    "lss": {
+      "canonical": "owner-main / 1LSS_OWNER_MAIN",
+      "certificate_evidence_sequence": "NOT_VERIFIED"
+    }
+  },
+  "source_preservation": {
+    "original_github_blob_sha": "6b67451d9301e36f1502ed256be1c1319d3382fe",
+    "owner_uploaded_source_sha256": "3732822d73015cdb60134f9d0b4d6d240a18971f230c10195d1fec620e886fff",
+    "uploaded_baseline_source_sha256": "72cda9773d0bc900bebaecbb5e73e61e39ca6fb1b1e396cb8b36dd43",
+    "contract_source_sha256": "fbea1748071f67d121a21d02d9f6614b1aeca64ed142494d297d622c72460987",
+    "readme_source_sha256": "03c7b8db3a8889a19a0f6e2a760ba5ed68aa531ca2d0bb0f4eda8478cc5fc3e6",
+    "all_original_data_retained": true,
+    "archive": {
+      "owner-authorization-certificate.json": {
+        "schema": "ogenic.owner-authorization-certificate.v1",
+        "certificate_id": "OGE-128-WAVE-RUNNER-01-20261018",
+        "subject": "wave-runner-01",
+        "environment": "staging",
+        "authorization": {
+          "status": "ACTIVE_EVIDENCE_BASELINE",
+          "term": "PERMANENT_UNTIL_REVOKED",
+          "authority": "Yellow Stone / Owner",
+          "certificate_manager_project": "cert-manager-89-qe",
+          "certificate_manager_role": "Admin (Permanent)"
+        },
+        "cryptographic_leaf": {
+          "status": "PENDING_INFISICAL_ISSUANCE",
+          "maximum_validity_days": 397,
+          "renew_before_days": 30,
+          "auto_renew_required": true,
+          "non_expiring_leaf_allowed": false,
+          "reason": "Permanent authorization is represented by the revocable record; leaf credentials rotate automatically."
+        },
+        "runtime_subjects": {
+          "github_primary": {
+            "id": "Ogenicchocolate21debug",
+            "permission": "admin",
+            "status": "PASS"
+          },
+          "github_secondary": {
+            "id": "Wave-Runner-2",
+            "permission": "write",
+            "status": "PASS"
+          },
+          "runner": {
+            "id": "wave-runner-01",
+            "service_count": 1,
+            "status": "PASS"
+          },
+          "codex_gs": {
+            "id": "GPT_GS_CODEX",
+            "status": "PASS"
+          },
+          "codex_ts": {
+            "id": "GPT_TS_CODEX",
+            "status": "BLOCKED_ROOT_PUBLIC_KEY_NOT_AUTHORIZED"
+          },
+          "wave_command": {
+            "status": "SOURCE_VERIFIED_RUNTIME_PENDING"
+          }
+        },
+        "constraints": [
+          "No main or production mutation",
+          "No Candy mutation",
+          "No D1 schema mutation",
+          "No raw credential disclosure",
+          "One existing Runner-1 service",
+          "Owner confirmation and Yellow Stone authorization required"
+        ],
+        "issued_at": "2026-10-18T17:08:00+07:00",
+        "revocation": "Owner or Certificate Manager may revoke immediately",
+        "signed_capability_grant": false,
+        "note": "This is an evidence-backed authorization record, not an X.509 leaf certificate."
+      },
+      "certificate-baseline.json (owner-uploaded)": {
+        "schema": "ogenic.runtime-certificate-baseline.v1",
+        "certificate_id": "oge-128-wave-runner-01-baseline-20261018",
+        "subject": "wave-runner-01",
+        "environment": "staging",
+        "canonical": {
+          "repository": "Ogenicchocolate21debug/Build-Platform",
+          "branch": "phase-vi-provider-incentive-metering",
+          "conversation_id": "owner-main",
+          "session_line": "1LSS_OWNER_MAIN"
+        },
+        "certificate_manager": {
+          "project": "cert-manager-89-qe",
+          "access": "PASS",
+          "http_status": 200,
+          "machine_identity": "Master Secret Data Gatway",
+          "role": "Admin (Permanent)",
+          "evidence_ref": "github-actions:39030482640/job/117403600915"
+        },
+        "certified_facts": [
+          {
+            "claim": "github.primary.permission",
+            "subject": "Ogenicchocolate21debug",
+            "value": "admin"
+          },
+          {
+            "claim": "github.secondary.permission",
+            "subject": "Wave-Runner-2",
+            "value": "write"
+          },
+          {
+            "claim": "runner.actions_name",
+            "value": "wave-runner-01"
+          },
+          {
+            "claim": "runner.service_count",
+            "value": 1
+          },
+          {
+            "claim": "terminal.transport",
+            "value": "GITHUB_ACTIONS_SELFHOSTED"
+          },
+          {
+            "claim": "codex.identity",
+            "subject": "GPT_GS_CODEX",
+            "value": "SIGNED_IN"
+          }
+        ],
+        "pending_facts": [
+          {
+            "claim": "codex.identity",
+            "subject": "GPT_TS_CODEX",
+            "value": "BLOCKED_ROOT_PUBLIC_KEY_NOT_AUTHORIZED",
+            "evidence_ref": "github-actions:39118118283/job/117647963926"
+          },
+          {
+            "claim": "wave.command.runtime",
+            "value": "PENDING_COMMAND_RESULT_RECEIPT"
+          }
+        ],
+        "raw_credentials_included": false,
+        "source_sha": "af77aa993632193c55d23e697eb1e20627e0d727",
+        "recorded_at": "2026-10-18T16:54:00+07:00"
+      },
+      "infisical-secret-contract.txt": "INFISICAL SECRET CONTRACT — VALUES MUST NEVER BE STORED IN THIS PACKAGE\n\nRequired for current GPT-TS root proof:\n- SSH_PRIVATE_KEY                 present; encrypted private key detected\n- SSH_KEY                         owner-designated passphrase fallback; verified able to decrypt SSH_PRIVATE_KEY\n\nAccepted dedicated alias:\n- WAVE_RUNNER_01_SSH_PRIVATE_KEY  preferred future name for SSH_PRIVATE_KEY\n\nExisting workflow behavior:\n- pulls secrets with Infisical OIDC\n- writes the private key only to a mode-600 temporary file\n- loads encrypted key through ssh-agent and masked askpass\n- deletes temporary key and askpass files on exit\n- never uploads or prints private key/passphrase\n\nVerified runtime result:\n- private key format valid\n- key/passphrase pair valid\n- ssh-agent load succeeded\n- root@127.0.0.1 rejected the public key; root authorization or SSH policy remains pending\n\nCertificate Manager issuance inputs still required for a real leaf certificate:\n- trusted CA / issuing certificate profile in cert-manager-89-qe\n- subject/SAN policy for wave-runner-01\n- renewal policy (30 days before expiry)\n- revocation policy\n",
+      "README.md": "# OGENIC WAVE Runner-1 — Certificate & Runtime Evidence\n\nGenerated: 2026-10-18 (Asia/Bangkok)\n\nThis package is the owner-retained evidence set for OGE-128. It contains no raw token, password, private key, cookie, OAuth file, or Codex authentication file.\n\n## Current truth\n\n- GitHub primary `Ogenicchocolate21debug`: **PASS / admin**.\n- GitHub secondary `Wave-Runner-2`: **PASS / write**.\n- Existing Actions service: **PASS / `wave-runner-01` / one service**.\n- Codex `GPT_GS_CODEX`: **PASS / signed in under runner user `wave`**.\n- Codex `GPT_TS_CODEX`: **BLOCKED AT ROOT SSH AUTHORIZATION**. `SSH_PRIVATE_KEY` was decrypted with the owner-designated `SSH_KEY` passphrase fallback and loaded into `ssh-agent`, but `root@127.0.0.1` rejected the corresponding public key.\n- WAVE Command source path: **SOURCE VERIFIED**. `/api/wave/command` performs owner confirmation, dispatches `wave-command-consumer.yml` to Runner-1, runs `codex exec`, and posts a result receipt.\n- WAVE Command live E2E: **NOT YET PROVEN**. The live `/command` page requires Owner sign-in and no completed Command Consumer receipt has been captured in this package.\n\n## Certificate policy\n\nThe owner authorization record is permanent until explicitly revoked. A cryptographic leaf certificate is not made non-expiring: it must be short-lived and automatically renewed. This prevents a stolen private key from becoming permanent access.\n\n- Authorization record: `PERMANENT_UNTIL_REVOKED`\n- X.509 leaf maximum: 397 days\n- Automatic renewal window: 30 days before expiry\n- Revocation: immediate through Infisical Certificate Manager / Yellow Stone authority\n\n## Exact evidence\n\n- Certificate Manager access: GitHub Actions run `39030482640`, job `117403600915`.\n- Runner/Codex GS proof: run `39115866114`, job `117641403648`.\n- Encrypted private-key detection: run `39117947367`, job `117647457443`, artifact `12133197026`, digest `sha256:ee5e3d468d4c6108f0131fd8547f6f86ead2c803e9723ec785e98909fe3d086e`.\n- SSH encrypted-key support commit: `11ebb06ec1a999f884d75ba9c8e8d0e93bf4724b`.\n- Key/passphrase pairing and root authorization result: run `39118118283`, job `117647963926`, commit `9ccc591dd2cea7d3a54abe1bc2894f8880b33671`, artifact `12133310952`, digest `sha256:a72dcf170bb9c310f35335a0973582f5719c9bbff4622a4880f64f8a8e3950a4`. Key loaded successfully; root rejected public-key authentication.\n- Manual re-run attempt #2 of run `39118118283`, job `117648861899`, artifact `12133665511`, digest `sha256:1f4f27f0935dc059f1d744d16c50208b55fffd8560b2b212f0a01abaec77cddb`. The key again decrypted and loaded successfully; root again rejected public-key authentication.\n- Draft PR: `https://github.com/Ogenicchocolate21debug/Build-Platform/pull/41`.\n\n## Next runtime closure\n\n1. Authorize the matching public key for root on Runner-1, or explicitly allow this key through the host SSH policy. Do not paste the private key or passphrase in chat.\n2. Re-run `WAVE Owner — Runner-1 Terminal & Dual Codex Identity Proof` on the task branch. The workflow already supports the owner-designated `SSH_KEY` passphrase fallback.\n3. Accept GPT-TS only if the root proof reports `GPT_TS_CODEX` signed in without exposing authentication material.\n4. Sign in to WAVE Owner Access and execute one bounded read-only Command. Accept the workflow only after the UI shows a real task/run ID and the backend records `COMMAND_RESULT_DONE`.\n"
+    }
+  },
+  "owner_legacy_review": {
+    "historical_append_record_id": "OGE-128-OWNER-REVIEW-20261018-A",
+    "duplicate_claims_use": "-",
+    "requested_owner_marker": "-Ow",
+    "marker_activation": "NOT_ENABLED; owner authentication and Yellow Stone approval remain required",
+    "docker": "OPTIONAL_TS_RECOVERY_ADAPTER_NOT_MANDATORY_GATEWAY",
+    "github_second_account": "Wave-Runner-2 is account, not second runner host"
+  },
+  "consolidation_revision": {
+    "updated_on": "2026-10-18",
+    "operation": "MERGE_IN_PLACE_PRESERVE_ORIGINAL_FIELDS",
+    "duplicate_new_fields": "-",
+    "delete_existing_fields": false,
+    "created_new_certificate_id": false,
+    "originally_issued_x509": false,
+    "staging_only": true
+  }
 }
