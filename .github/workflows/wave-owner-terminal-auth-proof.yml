@@ -117,6 +117,25 @@ jobs:
             -v "$GITHUB_WORKSPACE/scripts/owner-terminal-auth-proof.mjs":/root-proof.mjs:ro \
             "$node_image" -eu -c 'node /root-proof.mjs'
           echo "ROOT_DOCKER_CLAIM_PROOF=FINISHED_NO_OAUTH_MUTATION"
+      - name: Inspect existing host Codex binary for Docker TS binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          codex_entry="$(command -v codex || true)"
+          if [ -z "$codex_entry" ]; then
+            echo "HOST_CODEX_BINARY=UNAVAILABLE"
+            exit 0
+          fi
+          codex_real="$(readlink -f "$codex_entry")"
+          echo "HOST_CODEX_ENTRY=$codex_entry"
+          echo "HOST_CODEX_REAL=$codex_real"
+          echo "HOST_CODEX_BIN_TYPE=$(file -b "$codex_real" 2>/dev/null | cut -c1-160 || true)"
+          echo "HOST_CODEX_PACKAGE_HINT=$(dirname "$(dirname "$codex_real")")"
+          echo "HOST_NODE_BINARY=$(command -v node || true)"
+          echo "HOST_NPM_GLOBAL_ROOT=$(npm root -g 2>/dev/null || true)"
+          if [ -f "$(dirname "$(dirname "$codex_real")")/package.json" ]; then
+            node -e 'const p=require(process.argv[1]); console.log("HOST_CODEX_PACKAGE="+String(p.name||"unknown"))' "$(dirname "$(dirname "$codex_real")")/package.json"
+          fi
       - name: Discover canonical Infisical project
         id: infisical_project
         shell: bash
