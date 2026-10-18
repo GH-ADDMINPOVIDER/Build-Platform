@@ -86,17 +86,32 @@ jobs:
         run: |
           set -euo pipefail
           known_hosts="$RUNNER_TEMP/oge128-known-hosts"
-          trap 'rm -f "$known_hosts"' EXIT
+          key_file="$RUNNER_TEMP/oge128-root-ssh-key"
+          trap 'rm -f "$known_hosts" "$key_file"' EXIT
+
+          # Prefer the dedicated name. Compatibility fallbacks are accepted only
+          # when the resolved value is a real private key; values are never printed.
+          key_material="${WAVE_RUNNER_01_SSH_PRIVATE_KEY:-${SSH_PRIVATE_KEY:-${SSH_KEY:-}}}"
+          case "$key_material" in
+            *"BEGIN "*"PRIVATE KEY"*) ;;
+            *) echo 'CONFIGURATION_REQUIRED:WAVE_RUNNER_01_SSH_PRIVATE_KEY'; exit 78 ;;
+          esac
+          umask 077
+          printf '%s\n' "$key_material" | tr -d '\r' > "$key_file"
+          chmod 600 "$key_file"
+          ssh-keygen -y -f "$key_file" >/dev/null
+          echo "SSH_PRIVATE_KEY_VALID=true"
+
           ssh-keyscan -H 127.0.0.1 > "$known_hosts" 2>/dev/null
           remote_checkout="$(pwd)"
-          ssh -o BatchMode=yes -o ConnectTimeout=10 \
+          ssh -i "$key_file" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 \
             -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes \
             root@127.0.0.1 \
             "cd '$remote_checkout' && env PATH='$PATH' OPENAI_API_KEY='' CODEX_API_KEY='' GH_TOKEN='' GITHUB_TOKEN='' CODEX_PROOF_OUTPUT=/tmp/root-codex-auth-proof.json '$(command -v node)' scripts/owner-terminal-auth-proof.mjs"
-          scp -o BatchMode=yes -o ConnectTimeout=10 \
+          scp -i "$key_file" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 \
             -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes \
             root@127.0.0.1:/tmp/root-codex-auth-proof.json root-codex-auth-proof.json
-          ssh -o BatchMode=yes -o ConnectTimeout=10 \
+          ssh -i "$key_file" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 \
             -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes \
             root@127.0.0.1 "rm -f /tmp/root-codex-auth-proof.json"
       - uses: actions/setup-node@v4
@@ -116,7 +131,7 @@ jobs:
           path: |
             owner-terminal-auth-proof.json
             root-codex-auth-proof.json
-          retention-days: 2
+          retention-days: 90
           if-no-files-found: warn
       - name: Print exact proof scope
         if: always()
