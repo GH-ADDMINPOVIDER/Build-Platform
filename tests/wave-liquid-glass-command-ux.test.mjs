@@ -86,3 +86,14 @@ test("terminal special environment keeps OpenCode with SSH and IDEs, outside the
   assert.match(styles, /\.scTerminalTools/);
   assert.match(styles, /grid-template-columns:1fr/);
 });
+
+test("Terminal Solo still keeps three functional tools but does not claim OpenCode or web IDE is live", () => {
+  const diagram = read("src/StoneCircuitDiagram.tsx");
+  assert.match(diagram, /data-execution-mode="solo"/);
+  assert.match(diagram, /data-max-active-commands="1"/);
+  assert.match(diagram, /TERMINAL ENVIRONMENT · SOLO/);
+  assert.match(diagram, /SOLO · NOT MULTI-AGENT/);
+  assert.match(diagram, /Web IDE/);
+  assert.match(diagram, /CLI ยังไม่ได้ติดตั้ง/);
+  assert.match(diagram, /Serial Queue/);
+});
