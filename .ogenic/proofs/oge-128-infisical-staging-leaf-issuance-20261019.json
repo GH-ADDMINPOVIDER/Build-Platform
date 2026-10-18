@@ -1,0 +1,55 @@
+{
+  "schema": "ogenic.certificate-lincenc.evidence-append.v1",
+  "record_id": "OGE128-INFISICAL-STAGING-LEAF-20261019",
+  "certificate_id": "oge-128-wave-runner-01-baseline-20261018",
+  "scope": {
+    "repository": "Ogenicchocolate21debug/Build-Platform",
+    "branch": "task/oge-128-runtime-certificate-20261018",
+    "environment": "staging",
+    "subject": "wave-runner-01",
+    "infisical_project": "cert-manager-89-qe",
+    "runner_service_count": 1
+  },
+  "authorization": {
+    "owner_record": "PERMANENT_UNTIL_REVOKED",
+    "source": "Certificate lincenc / Yellow Stone",
+    "signed_capability_grant": false,
+    "authority": "Owner / Yellow Stone"
+  },
+  "leaf": {
+    "type": "X.509 client-auth staging identity",
+    "issuer_ca": "OGENIC WAVE STAGING ROOT CA",
+    "ca_status": "ACTIVE",
+    "leaf_status": "active",
+    "not_after_utc": "2027-01-16T18:25:48.772Z",
+    "validity_days_target": 90,
+    "policy": "oge128-wave-runner-staging-mtls",
+    "profile": "oge128-wave-runner-01-staging-90d",
+    "application": "oge128-wave-runner-01-staging",
+    "auto_renew_enabled": true,
+    "renew_before_days": 30,
+    "auto_renew_configuration_proof": "github-actions:39154203875",
+    "future_renewal_cycle_observed": false,
+    "host_mtls_binding_verified": false,
+    "owner_command_e2e_verified": false
+  },
+  "evidence": [
+    {
+      "run_id": 39153220305,
+      "claim": "staging CA created and active",
+      "source": "https://github.com/Ogenicchocolate21debug/Build-Platform/issues/39#issuecomment-6253390914"
+    },
+    {
+      "run_id": 39154097349,
+      "claim": "application and API enrollment auto-renew accepted, initial leaf request HTTP 200",
+      "source": "https://github.com/Ogenicchocolate21debug/Build-Platform/issues/39#issuecomment-6253508098"
+    },
+    {
+      "run_id": 39154203875,
+      "claim": "active leaf read back; 30-day auto-renew certificate configuration accepted; exact expiry captured",
+      "source": "https://github.com/Ogenicchocolate21debug/Build-Platform/issues/39#issuecomment-6253522715"
+    }
+  ],
+  "key_handling": "NO PRIVATE KEY, OAUTH TOKEN, CERTIFICATE PEM, OR COOKIE IN THIS RECORD",
+  "canonical_integrity": "Append-only evidence. Original Certificate lincenc baseline and its SHA256 are not overwritten. Leaf lifetime metadata and authorization-record lifetime are separate."
+}
