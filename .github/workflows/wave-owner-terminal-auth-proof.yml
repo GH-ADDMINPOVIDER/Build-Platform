@@ -106,12 +106,15 @@ jobs:
           chmod 600 "$key_file"
 
           # ssh-add supports encrypted keys without putting the passphrase in
-          # command arguments. The askpass helper reads only the masked env var.
-          printf '%s\n' '#!/bin/sh' 'exec printenv SSH_PRIVATE_KEY_PASSPHRASE' > "$askpass"
+          # command arguments. Prefer a dedicated passphrase secret; the owner-
+          # supplied SSH_KEY compatibility fallback is copied only into a masked
+          # process environment and is never printed.
+          export SSH_EFFECTIVE_KEY_PASSPHRASE="${SSH_PRIVATE_KEY_PASSPHRASE:-${SSH_KEY:-}}"
+          printf '%s\n' '#!/bin/sh' 'exec printenv SSH_EFFECTIVE_KEY_PASSPHRASE' > "$askpass"
           chmod 700 "$askpass"
           eval "$(ssh-agent -s)" >/dev/null
           if ! DISPLAY=:0 SSH_ASKPASS="$askpass" SSH_ASKPASS_REQUIRE=force setsid -w ssh-add "$key_file" </dev/null >/dev/null 2>&1; then
-            echo 'CONFIGURATION_REQUIRED:SSH_PRIVATE_KEY_PASSPHRASE_OR_KEY_MISMATCH'
+            echo 'CONFIGURATION_REQUIRED:SSH_KEY_PASSPHRASE_OR_KEY_MISMATCH'
             exit 78
           fi
           echo "SSH_PRIVATE_KEY_VALID=true"
