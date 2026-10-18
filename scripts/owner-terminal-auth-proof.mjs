@@ -86,7 +86,8 @@ const report = {
   identity_tokens_exposed: false, secret_values_logged: false,
   interpretation: "LOCAL_IDENTITY_AND_STATUS_ONLY_NOT_PAID_INFERENCE_OR_CROSS_ACCOUNT_DISPATCH",
 };
-writeFileSync("owner-terminal-auth-proof.json", JSON.stringify(report, null, 2)+"\n", { mode: 0o600 });
+const outputPath = process.env.CODEX_PROOF_OUTPUT || "owner-terminal-auth-proof.json";
+writeFileSync(outputPath, JSON.stringify(report, null, 2)+"\n", { mode: 0o600 });
 console.log("RUNNER_NAME="+report.runner_name);
 console.log("RUNNER_SERVICE_COUNT="+services.length);
 console.log("CODEX_CLI_AVAILABLE="+cliAvailable);
