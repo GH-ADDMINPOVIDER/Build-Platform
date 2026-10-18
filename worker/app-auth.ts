@@ -165,6 +165,25 @@ export function createAuthApi() {
     );
   });
 
+  // Silent renewal is permitted only when a signed OWNER session already
+  // exists. The owner key is never persisted, returned or requested here.
+  // No renewal is possible after expiration or explicit sign-out.
+  api.post("/api/session/refresh", async (c) => {
+    if (!sameOrigin(c.req.raw)) return c.json({ ok: false, code: "ORIGIN_DENIED" }, 403);
+    const configured = String(c.env.OGENIC_OPS_KEY ?? "").trim();
+    if (!configured) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED" }, 503);
+    if (!(await hasOwnerSession(c.req.raw, c.env))) {
+      return c.json({ ok: false, code: "REAUTH_REQUIRED" }, 401, { "Cache-Control": "no-store" });
+    }
+    const token = await issueSession(configured);
+    const payload: Record<string, unknown> = { ok: true, authenticated: true, renewed: true };
+    if (nativeClient(c.req.raw)) payload.session_token = token;
+    return c.json(payload, 200, {
+      "Cache-Control": "no-store",
+      "Set-Cookie": `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_SECONDS}`,
+    });
+  });
+
   api.delete("/api/session", (c) => c.json(
     { ok: true, authenticated: false },
     200,
