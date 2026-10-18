@@ -1,7 +1,7 @@
 name: WAVE Owner — Runner-1 Terminal & Dual Codex Identity Proof
 on:
   push:
-    branches: [fix/owner-terminal-runtime-20261017, phase-vi-provider-incentive-metering]
+    branches: [fix/owner-terminal-runtime-20261017, phase-vi-provider-incentive-metering, task/oge-128-runtime-certificate-20261018]
     paths:
       - ".github/workflows/wave-owner-terminal-auth-proof.yml"
       - "scripts/owner-terminal-auth-proof.mjs"
@@ -30,7 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           case "$GITHUB_REF_NAME" in
-            fix/owner-terminal-runtime-20261017|phase-vi-provider-incentive-metering) ;;
+            fix/owner-terminal-runtime-20261017|phase-vi-provider-incentive-metering|task/oge-128-runtime-certificate-20261018) ;;
             *) echo 'REF_SCOPE_NOT_ALLOWED'; exit 64 ;;
           esac
           test "$RUNNER_NAME" = wave-runner-01
@@ -53,14 +53,26 @@ jobs:
           console.log("OWNER_TERMINAL_REQUEST_ACCEPTED="+r.request_id);
           console.log("OWNER_TERMINAL_OPERATION=READINESS_AND_BUILD");
           NODE
-      - name: Verify both Codex local identities with sanitized claims
+      - name: Verify runner-service Codex context with sanitized claims
         shell: bash
         env:
           OPENAI_API_KEY: ""
           CODEX_API_KEY: ""
+          CODEX_PROOF_OUTPUT: owner-terminal-auth-proof.json
         run: |
           set -euo pipefail
           node scripts/owner-terminal-auth-proof.mjs
+      - name: Verify SSH root Codex context with sanitized claims
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo -n true
+          sudo -n -H env \
+            PATH="$PATH" OPENAI_API_KEY="" CODEX_API_KEY="" GH_TOKEN="" GITHUB_TOKEN="" \
+            CODEX_PROOF_OUTPUT=/tmp/root-codex-auth-proof.json \
+            "$(command -v node)" "$(pwd)/scripts/owner-terminal-auth-proof.mjs"
+          sudo -n chown "$(id -u):$(id -g)" /tmp/root-codex-auth-proof.json
+          mv /tmp/root-codex-auth-proof.json root-codex-auth-proof.json
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -75,7 +87,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wave-owner-terminal-auth-proof-${{ github.run_id }}
-          path: owner-terminal-auth-proof.json
+          path: |
+            owner-terminal-auth-proof.json
+            root-codex-auth-proof.json
           retention-days: 2
           if-no-files-found: warn
       - name: Print exact proof scope
