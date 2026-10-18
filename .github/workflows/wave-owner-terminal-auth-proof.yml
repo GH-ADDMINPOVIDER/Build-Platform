@@ -85,44 +85,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "${SSH_KEY:-}"
-          key_file="$RUNNER_TEMP/oge128-root-ssh-key"
           known_hosts="$RUNNER_TEMP/oge128-known-hosts"
-          cleanup() {
-            command -v shred >/dev/null 2>&1 && shred -u "$key_file" || rm -f "$key_file"
-            rm -f "$known_hosts"
-          }
-          trap cleanup EXIT
-          KEY_FILE="$key_file" node --input-type=module <<'NODE'
-          import { writeFileSync } from "node:fs";
-          let key = String(process.env.SSH_KEY || "").trim();
-          if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
-            try { key = JSON.parse(key); } catch { key = key.slice(1, -1); }
-          }
-          key = String(key).replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").trim();
-          if (!key.includes("BEGIN ")) {
-            const decoded = Buffer.from(key, "base64").toString("utf8").trim();
-            if (decoded.includes("BEGIN ")) key = decoded;
-          }
-          const begin = key.indexOf("-----BEGIN ");
-          if (begin >= 0) key = key.slice(begin);
-          const end = key.match(/-----END [A-Z0-9 ]+-----/);
-          if (end) key = key.slice(0, end.index + end[0].length);
-          if (!key.includes("PRIVATE KEY")) throw new Error(key.startsWith("ssh-") ? "SSH_KEY_IS_PUBLIC_ONLY" : "SSH_PRIVATE_KEY_FORMAT_UNRECOGNIZED");
-          writeFileSync(process.env.KEY_FILE, key + "\n", { mode: 0o600 });
-          NODE
-          chmod 600 "$key_file"
-          ssh-keygen -y -f "$key_file" >/dev/null
+          trap 'rm -f "$known_hosts"' EXIT
           ssh-keyscan -H 127.0.0.1 > "$known_hosts" 2>/dev/null
           remote_checkout="$(pwd)"
-          ssh -i "$key_file" -o BatchMode=yes -o IdentitiesOnly=yes \
+          ssh -o BatchMode=yes -o ConnectTimeout=10 \
             -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes \
             root@127.0.0.1 \
             "cd '$remote_checkout' && env PATH='$PATH' OPENAI_API_KEY='' CODEX_API_KEY='' GH_TOKEN='' GITHUB_TOKEN='' CODEX_PROOF_OUTPUT=/tmp/root-codex-auth-proof.json '$(command -v node)' scripts/owner-terminal-auth-proof.mjs"
-          scp -i "$key_file" -o BatchMode=yes -o IdentitiesOnly=yes \
+          scp -o BatchMode=yes -o ConnectTimeout=10 \
             -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes \
             root@127.0.0.1:/tmp/root-codex-auth-proof.json root-codex-auth-proof.json
-          ssh -i "$key_file" -o BatchMode=yes -o IdentitiesOnly=yes \
+          ssh -o BatchMode=yes -o ConnectTimeout=10 \
             -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes \
             root@127.0.0.1 "rm -f /tmp/root-codex-auth-proof.json"
       - uses: actions/setup-node@v4
