@@ -360,7 +360,14 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
   const approvalId = await approvalIdFor(commandPlan);
   const approvalConfirmed = body?.approval?.confirmed === true;
   const suppliedApprovalId = compact(body?.approval?.approval_id, 160);
-  if (!approvalConfirmed) {
+  // Explicit GitHub file reads are already resolved and enforced as READ by
+  // capabilityExecutionApi. Keep them auto-allowed; every queued or mutating
+  // command still requires the matching second owner confirmation below.
+  const safeExplicitRead =
+    explicitStructured &&
+    explicitCapability === "read_file" &&
+    explicitProvider === "github";
+  if (!safeExplicitRead && !approvalConfirmed) {
     return Response.json({
       ok: false,
       code: "OWNER_APPROVAL_REQUIRED",
@@ -377,7 +384,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
       command_handoff: handoffMetadata(athena),
     }, { status: 202, headers: { "Cache-Control": "no-store" } });
   }
-  if (!suppliedApprovalId || suppliedApprovalId !== approvalId) {
+  if (!safeExplicitRead && (!suppliedApprovalId || suppliedApprovalId !== approvalId)) {
     return Response.json({
       ok: false,
       code: "APPROVAL_PLAN_MISMATCH",
