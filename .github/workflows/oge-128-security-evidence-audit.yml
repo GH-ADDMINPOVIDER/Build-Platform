@@ -1,0 +1,54 @@
+name: OGE-128 Security Evidence Audit (Bounded)
+on:
+  push:
+    branches: [task/oge-128-runtime-certificate-20261018]
+    paths:
+      - ".github/workflows/oge-128-security-evidence-audit.yml"
+      - "scripts/security/oge128_secret_exposure_audit.py"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+  issues: write
+concurrency:
+  group: oge128-security-audit-one-host
+  cancel-in-progress: false
+jobs:
+  audit:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 14
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout bounded history without changing host software
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 100
+      - name: Restrict execution and compile audit script
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test "$GITHUB_REF_NAME" = "task/oge-128-runtime-certificate-20261018"
+          command -v python3 >/dev/null
+          python3 - <<'PY'
+          import ast
+          ast.parse(open("scripts/security/oge128_secret_exposure_audit.py",encoding="utf-8").read())
+          print("AUDIT_SYNTAX=PASS")
+          PY
+      - name: Bounded read-only secret exposure audit with sanitized receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/security/oge128_secret_exposure_audit.py
+      - name: Mark bounded scan result correctly
+        if: always()
+        run: |
+          echo "Security audit is read-only and bounded: scanning no-match is NOT proof of no historic leakage." >> "$GITHUB_STEP_SUMMARY"
+          echo "Canonical sanitized results: OGE-128 Issue #39." >> "$GITHUB_STEP_SUMMARY"
