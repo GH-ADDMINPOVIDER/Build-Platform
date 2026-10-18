@@ -338,8 +338,16 @@ jobs:
                 --output-last-message /tmp/ts-proof-last.txt \
                 "Return exactly the text OGENIC_TS_CODEX_READY. Do not inspect files or run shell commands." \
                 > /tmp/ts-exec.log 2>&1 || {
-                  if grep -Eiq "401|unauthorized|login required|sign in|authentication" /tmp/ts-exec.log; then
-                    echo "TS_CODEX_EXEC=REAUTH_REQUIRED"
+                  echo "TS_CODEX_PROOF_LOG_SHA256=$(sha256sum /tmp/ts-exec.log | awk '{print $1}')"
+                  if grep -Eiq "invalid_grant|refresh.token.*(failed|expired|invalid)|failed to refresh|reauthentication required" /tmp/ts-exec.log; then
+                    echo "TS_CODEX_EXEC=TOKEN_REFRESH_REJECTED"
+                  elif grep -Eiq "401 Unauthorized|HTTP_401|status[: ]+401|response 401" /tmp/ts-exec.log; then
+                    echo "TS_CODEX_EXEC=OPENAI_API_HTTP_401"
+                  elif grep -Eiq "403 Forbidden|HTTP_403|status[: ]+403|response 403" /tmp/ts-exec.log; then
+                    echo "TS_CODEX_EXEC=OPENAI_API_HTTP_403"
+                  elif grep -Eiq "not logged in|login required|please sign in|device.authorization" /tmp/ts-exec.log; then
+                    echo "TS_CODEX_EXEC=INTERACTIVE_OAUTH_REQUIRED"
+                  elif grep -Eiq "quota|usage limit|rate limit|429" /tmp/ts-exec.log; then
                   elif grep -Eiq "quota|usage limit|rate limit|429" /tmp/ts-exec.log; then
                     echo "TS_CODEX_EXEC=QUOTA_OR_RATE_LIMIT"
                   elif grep -Eiq "sandbox|bubblewrap|bwrap|permission denied|namespace" /tmp/ts-exec.log; then
