@@ -132,11 +132,12 @@ jobs:
                 const timer=setTimeout(()=>done('TIMEOUT'),7000);
                 server.on('error',()=>{clearTimeout(timer);done('SERVER_ERROR')});
                 server.listen(0,'127.0.0.1',()=>{
-                  const socket=tls.connect({
+                  let socket;
+                  try { socket=tls.connect({
                     host:'127.0.0.1',port:server.address().port,servername:'localhost',
-                    key:x.privateKey,cert:x.certificate+(x.certificateChain||''),
+                    key:x.privateKey,cert:[x.certificate,x.certificateChain].filter(Boolean).join('\n'),
                     ca:fs.readFileSync(serverPem),rejectUnauthorized:true,minVersion:'TLSv1.2'
-                  });
+                  }); } catch {clearTimeout(timer);done('CLIENT_CERT_CONFIGURATION_ERROR');return;}
                   socket.setTimeout(5000,()=>{socket.destroy();clearTimeout(timer);done('TIMEOUT')});
                   let got='';
                   socket.on('data',b=>{got+=b.toString('utf8').slice(0,10)});
