@@ -21,8 +21,8 @@ concurrency:
 jobs:
   ux-proof:
     if: github.repository == 'Ogenicchocolate21debug/Build-Platform'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 25
     steps:
       - name: Checkout exact feature SHA
         uses: actions/checkout@v4
@@ -33,8 +33,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Dependencies (no postinstall execution)
-        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install verified repository dependencies
+        run: npm ci --no-audit --no-fund
       - name: Feature contract checks
         run: node --test tests/wave-liquid-glass-command-ux.test.mjs tests/wave-next-ui.test.mjs tests/landing-phase2-ui.test.mjs
       - name: Typecheck
