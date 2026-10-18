@@ -68,6 +68,55 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/owner-terminal-auth-proof.mjs
+      - name: Discover existing root Codex identity with Docker read-only (no SSH or OAuth changes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = "wave-runner-01"
+          # Reuse an image already installed on Runner-1; no pulling/building.
+          # The host root directory is read-only. Never copy or print auth.json.
+          mapfile -t images < <(docker image ls --format '{{.Repository}}:{{.Tag}}' | awk '$0 !~ /<none>/')
+          shell_image=""
+          node_image=""
+          for img in "${images[@]}"; do
+            if [ -z "$shell_image" ] && docker run --rm --network none --read-only --user 0:0 --entrypoint /bin/sh "$img" -c 'exit 0' >/dev/null 2>&1; then
+              shell_image="$img"
+            fi
+            if [ -z "$node_image" ] && docker run --rm --network none --read-only --user 0:0 --entrypoint /bin/sh "$img" -c 'command -v node >/dev/null 2>&1' >/dev/null 2>&1; then
+              node_image="$img"
+            fi
+            if [ -n "$shell_image" ] && [ -n "$node_image" ]; then break; fi
+          done
+          if [ -z "$shell_image" ]; then
+            echo "ROOT_DOCKER_CONTEXT=NO_PREEXISTING_LOCAL_SHELL_IMAGE"
+            exit 0
+          fi
+          docker run --rm --network none --read-only --user 0:0 --entrypoint /bin/sh \
+            -v /root:/host-root:ro "$shell_image" -eu -c '
+              for entry in ROOT_DEFAULT:/host-root/.codex ROOT_TS:/host-root/.codex-ts ROOT_GS:/host-root/.codex-gs ROOT_CONFIG_TS:/host-root/.config/codex-ts; do
+                label="${entry%%:*}"
+                folder="${entry#*:}"
+                if [ -f "$folder/auth.json" ]; then echo "CODEX_${label}_AUTH_METADATA=PRESENT"
+                elif [ -d "$folder" ]; then echo "CODEX_${label}_AUTH_METADATA=NO_AUTH_JSON"
+                else echo "CODEX_${label}_AUTH_METADATA=NO_DIRECTORY"; fi
+              done
+            '
+          if [ -z "$node_image" ]; then
+            echo "ROOT_DOCKER_CLAIM_PROOF=NODE_IMAGE_NOT_INSTALLED"
+            exit 0
+          fi
+          # Run the EXISTING claim-only auditor inside ephemeral Docker root.
+          # HOME points at the host root's read-only mount; output stays tmpfs.
+          docker run --rm --network none --read-only --user 0:0 \
+            --tmpfs /tmp:rw,nosuid,noexec,size=4m --workdir /tmp \
+            --entrypoint /bin/sh \
+            -e HOME=/host-root -e CODEX_HOME=/host-root/.codex \
+            -e CODEX_PROOF_OUTPUT=/tmp/root-codex-identity.json \
+            -e OPENAI_API_KEY= -e CODEX_API_KEY= -e GH_TOKEN= -e GITHUB_TOKEN= \
+            -v /root:/host-root:ro \
+            -v "$GITHUB_WORKSPACE/scripts/owner-terminal-auth-proof.mjs":/root-proof.mjs:ro \
+            "$node_image" -eu -c 'node /root-proof.mjs'
+          echo "ROOT_DOCKER_CLAIM_PROOF=FINISHED_NO_OAUTH_MUTATION"
       - name: Discover canonical Infisical project
         id: infisical_project
         shell: bash
