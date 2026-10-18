@@ -1,0 +1,151 @@
+name: OGE-128 Certificate and D1 Security Closure
+on:
+  push:
+    branches: [task/oge-128-runtime-certificate-20261018]
+    paths: [".github/workflows/oge-128-certificate-d1-security-closure.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+  id-token: write
+  issues: write
+concurrency:
+  group: oge128-certificate-lincenc-staging-closure
+  cancel-in-progress: false
+env:
+  GH_TOKEN: ${{ github.token }}
+  GITHUB_TOKEN: ${{ github.token }}
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: staging
+  PYTHONDONTWRITEBYTECODE: "1"
+jobs:
+  cert-security-closure:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 22
+    steps:
+      - name: Checkout evidence branch without modifying production
+        uses: actions/checkout@v4
+        with:
+          ref: task/oge-128-runtime-certificate-20261018
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Guard runner staging and validate scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$GITHUB_REF_NAME" = task/oge-128-runtime-certificate-20261018
+          test "$GITHUB_REPOSITORY" = Ogenicchocolate21debug/Build-Platform
+          test "$(git branch --show-current)" = task/oge-128-runtime-certificate-20261018
+          python3 -m py_compile scripts/security/oge128_certificate_evidence_closure.py
+          node --check scripts/security/oge128_targeted_cleanup.cjs
+          echo "EVIDENCE_CLOSURE_SCOPE=STAGING_RUNNER_1_ONLY"
+      - name: Discover existing Infisical credentials for STAGING D1 only
+        id: discovery
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+      - name: Obtain existing Cloudflare staging D1 credentials via Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ steps.discovery.outputs.project_slug }}
+          env-slug: ${{ steps.discovery.outputs.secret_env_slug }}
+          secret-path: ${{ steps.discovery.outputs.secret_path }}
+      - name: Prepare guarded incremental dry-run evidence using verified source run
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/security/oge128_certificate_evidence_closure.py prepare
+          git diff --check
+          if ! git diff --quiet -- .ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json
+            git commit -m "evidence(oge128): append dry-run proof to existing Certificate lincenc"
+            git push origin HEAD:task/oge-128-runtime-certificate-20261018
+          fi
+          echo "CERT_PRE_CLEANUP_GIT=PASS"
+      - name: Sync SAME Certificate lincenc row to staging D1 and verify SHA readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/security/oge128_certificate_evidence_closure.py sync
+          echo "CERT_PRE_CLEANUP_D1_SYNC=PASS"
+      - name: Targeted cleanup guarded cryptographically for exactly two test-only filesets
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/security/oge128_targeted_cleanup.cjs
+          echo "CERT_LOCAL_KEY_CLEANUP=PASS"
+      - name: Post-cleanup scoped Security Audit (still NOT universal historical assurance)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/security/oge128_secret_exposure_audit.py | tee "$RUNNER_TEMP/oge128-postcleanup-audit.txt"
+          grep -qx 'AUDIT_ASSESSMENT=NO_HIGH_CONFIDENCE_MATCH_BOUNDED_SCOPE' "$RUNNER_TEMP/oge128-postcleanup-audit.txt"
+          grep -qx 'AUDIT_SIGNALS=0' "$RUNNER_TEMP/oge128-postcleanup-audit.txt"
+          grep -qx 'AUDIT_RECEIPT_HTTP=201' "$RUNNER_TEMP/oge128-postcleanup-audit.txt"
+          echo "CERT_POST_CLEANUP_SCOPED_AUDIT=PASS"
+      - name: Append targeted cleanup proof to existing Certificate (same ID)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/security/oge128_certificate_evidence_closure.py finalize
+          git diff --check
+          if ! git diff --quiet -- .ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json
+            git commit -m "evidence(oge128): finalize scoped localhost test cleanup and audit receipt"
+            git push origin HEAD:task/oge-128-runtime-certificate-20261018
+          fi
+          echo "CERT_FINAL_EVIDENCE_GIT=PASS"
+      - name: Final SAME-ID D1 synchronization and cryptographic readback
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/security/oge128_certificate_evidence_closure.py sync
+          echo "CERT_FINAL_D1_SYNC_AND_READBACK=PASS"
+      - name: Publish sanitized final receipt to OGE-128 (without secret contents)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,pathlib,hashlib,urllib.request
+          f=pathlib.Path(".ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json")
+          doc=json.loads(f.read_bytes())
+          state=doc["consolidated_record"]["security_evidence_checkpoint"]
+          assert state["status"]=="SCOPED_LOCAL_TEST_CLEANUP_AND_POSTAUDIT_PASS"
+          assert state["cleanup_status"]=="PASS"
+          assert doc["proof_policy"]["signed_capability_grant"] is False
+          body="\n".join([
+           "OGE-128 CERTIFICATE LINCENC — SCOPED LOCAL SECURITY CLOSURE",
+           "Certificate ID: "+doc["certificate_id"],
+           "Source run: "+os.environ["GITHUB_RUN_ID"],
+           "Canonical committed SHA: "+__import__("subprocess").check_output(["git","rev-parse","HEAD"],text=True).strip(),
+           "Document SHA256: "+hashlib.sha256(f.read_bytes()).hexdigest(),
+           "D1 STAGING SAME ID WRITE_READBACK=PASS",
+           "TEMP_LOCALHOST_TEST_KEY_PAIRS_DELETED=2",
+           "TEMP_LOCALHOST_TEST_DIRECTORIES_REMAINING=0",
+           "POST_CLEANUP_SCOPED_SECURITY_AUDIT=PASS",
+           "HISTORICAL_NO_LEAK_GUARANTEE=FALSE",
+           "INFISICAL_X509_LEAF_UNCHANGED=TRUE",
+           "PRODUCTION_MUTATED=FALSE",
+           "YELLOW_STONE_SIGNED_GRANT=FALSE",
+           "No raw keys, credentials or leaf private keys included."
+          ])
+          req=urllib.request.Request(
+           "https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/issues/39/comments",
+           data=json.dumps({"body":body}).encode(),method="POST",
+           headers={"Authorization":"Bearer "+os.environ["GH_TOKEN"],
+              "Accept":"application/vnd.github+json","Content-Type":"application/json",
+              "User-Agent":"oge128-security-closure"})
+          with urllib.request.urlopen(req,timeout=15) as response:
+           assert response.status==201,"GITHUB_RECEIPT_WRITE_FAILED"
+          print("CERTIFICATE_LINCENC_FINAL_RECEIPT=PASS")
+          PY
