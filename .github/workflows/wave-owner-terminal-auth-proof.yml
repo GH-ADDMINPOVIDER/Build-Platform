@@ -93,8 +93,19 @@ jobs:
             rm -f "$known_hosts"
           }
           trap cleanup EXIT
-          printf '%s\n' "$SSH_KEY" > "$key_file"
+          KEY_FILE="$key_file" node --input-type=module <<'NODE'
+          import { writeFileSync } from "node:fs";
+          let key = String(process.env.SSH_KEY || "").trim();
+          if (key.includes("\\n")) key = key.replace(/\\n/g, "\n");
+          if (!key.includes("BEGIN ")) {
+            const decoded = Buffer.from(key, "base64").toString("utf8").trim();
+            if (decoded.includes("BEGIN ")) key = decoded;
+          }
+          if (!key.includes("PRIVATE KEY")) throw new Error("SSH_PRIVATE_KEY_FORMAT_UNRECOGNIZED");
+          writeFileSync(process.env.KEY_FILE, key + "\n", { mode: 0o600 });
+          NODE
           chmod 600 "$key_file"
+          ssh-keygen -y -f "$key_file" >/dev/null
           ssh-keyscan -H 127.0.0.1 > "$known_hosts" 2>/dev/null
           remote_checkout="$(pwd)"
           ssh -i "$key_file" -o BatchMode=yes -o IdentitiesOnly=yes \
