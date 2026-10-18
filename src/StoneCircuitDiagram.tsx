@@ -180,13 +180,13 @@ export default function StoneCircuitDiagram() {
     </div>
 
     {/* Terminal is one special execution environment, not an eighth stone and not an Agent Registry entry. */}
-    <section className="scTerminalEnvironment" aria-label="Special Terminal environment: SSH, IDEs and OpenCode">
+    <section className="scTerminalEnvironment" data-execution-mode="solo" data-max-active-commands="1" aria-label="Terminal Solo environment: SSH, IDEs and OpenCode">
       <div className="scTerminalHeading">
         <div><small>ONE SPECIAL ENVIRONMENT · EXISTING RUNNER-1</small>
-          <h4>TERMINAL ENVIRONMENT</h4>
-          <p>แยกจาก Agent Environment · รันหลัง Yellow Stone Policy / Owner Approval · ไม่ข้ามสิทธิ์ด้วยตัวเอง</p>
+          <h4>TERMINAL ENVIRONMENT · SOLO</h4>
+          <p>หนึ่ง Session / หนึ่งคำสั่งที่กำลังรัน · แยกจาก Agent Environment · รันหลัง Yellow Stone Policy / Owner Approval</p>
         </div>
-        <span className="scTerminalFlag">SEPARATE FROM AGENT REGISTRY</span>
+        <span className="scTerminalFlag">SOLO · NOT MULTI-AGENT · SEPARATE FROM AGENT REGISTRY</span>
       </div>
       <div className="scTerminalTools" role="list" aria-label="Three Terminal components">
         <div className="scTerminalTool" role="listitem">
@@ -195,14 +195,14 @@ export default function StoneCircuitDiagram() {
         </div>
         <div className="scTerminalTool" role="listitem">
           <span aria-hidden="true" className="scTerminalGlyph">⌘</span>
-          <div><strong>IDEs</strong><small>EDITOR / DEBUGGER</small><p>พื้นที่แก้โค้ดและตรวจสอบ Workspace</p></div>
+          <div><strong>IDEs</strong><small>EDITOR / DEBUGGER</small><p>กลุ่มพัฒนา · ล่าสุดพบ Vim บน Host แต่ยังไม่พบ Web IDE</p></div>
         </div>
         <div className="scTerminalTool" role="listitem">
           <span aria-hidden="true" className="scTerminalGlyph">◇</span>
-          <div><strong>OPC · OpenCode</strong><small>TERMINAL CODING AGENT</small><p>ตำแหน่งตาม Blueprint · ยังไม่ได้ติดตั้งบน Runner-1</p></div>
+          <div><strong>OPC · OpenCode</strong><small>TERMINAL CODING AGENT · SOLO</small><p>Adapter reserved · CLI ยังไม่ได้ติดตั้ง · รอขยาย RAM ก่อนเริ่มใช้งาน</p></div>
         </div>
       </div>
-      <p className="scTerminalBoundary"><b>Execution boundary:</b> ATHENA → YELLOW STONE (Policy / Approval) → RUNNER-1 → TERMINAL [SSH | IDEs | OPC] → RUBY PROOF → GREEN 1LSS. Blue/Violet จัดการ Agent Environment ทั่วไป แต่ OPC ยืนอยู่ใน Terminal Block นี้เท่านั้น</p>
+      <p className="scTerminalBoundary"><b>Execution boundary:</b> ATHENA → YELLOW STONE (Policy / Approval) → RUNNER-1 → TERMINAL [SSH | IDEs | OPC] → RUBY PROOF → GREEN 1LSS. Blue/Violet จัดการ Agent Environment ทั่วไป แต่ OPC อยู่ Terminal Solo Block นี้เท่านั้น · ไม่ส่งคำสั่งพร้อมกันหลาย Executor</p>
     </section>
 
     <footer className="scFooter">
@@ -213,7 +213,7 @@ export default function StoneCircuitDiagram() {
       {showDetails && <div className="scFlowNotes">
         <p>ATHENA = วางแผน · YELLOW = บังคับสิทธิ์/อนุมัติ · BLUE = Agent Registry · VIOLET = จัดทีม · RUNNER = รันงาน · RUBY = ตรวจหลักฐาน · GREEN = บันทึกบริบท · RULE = กฎกลาง</p>
         <p>Runner-1 เป็นเครื่อง Self-hosted เพียงเครื่องเดียวที่ตรวจพบ; GitHub Account 2 ไม่ใช่ Runner-2 Host. สายสัญญาณเป็นผังอธิบาย ไม่ยืนยันความพร้อม Runtime ทุกช่องทาง</p>
-        <p>Terminal Environment เป็นบล็อกพิเศษเดียว: SSH = Access, IDEs = Editor/Debugger, OpenCode/OPC = Terminal Coding Agent (ยังไม่ได้ติดตั้ง). ไม่จัด OPC เป็น Blue/Violet Agent ทั่วไปและไม่ให้ข้าม Yellow Stone</p>
+        <p>Terminal Environment เป็นบล็อกพิเศษเดียว: SSH = Access, IDEs = Editor/Debugger, OpenCode/OPC = Terminal Solo Coding Agent (ยังไม่ได้ติดตั้ง). IDE ล่าสุดมี Vim แต่ Web IDE ยังไม่ยืนยัน ไม่จัด OPC เป็น Blue/Violet Agent ทั่วไป ไม่ให้ข้าม Yellow Stone และต้องใช้ Serial Queue สำหรับคำสั่งจริง</p>
       </div>}
     </footer>
   </section>;
