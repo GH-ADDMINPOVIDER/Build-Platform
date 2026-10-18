@@ -136,6 +136,48 @@ jobs:
           if [ -f "$(dirname "$(dirname "$codex_real")")/package.json" ]; then
             node -e 'const p=require(process.argv[1]); console.log("HOST_CODEX_PACKAGE="+String(p.name||"unknown"))' "$(dirname "$(dirname "$codex_real")")/package.json"
           fi
+      - name: Verify historical TS Codex login using Docker and installed host CLI
+        id: root_codex_login
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test -f /usr/lib/node_modules/@openai/codex/bin/codex.js
+          mapfile -t images < <(docker image ls --format '{{.Repository}}:{{.Tag}}' | awk '$0 !~ /<none>/')
+          runtime_image=""
+          for img in "${images[@]}"; do
+            if docker run --rm --network none --read-only --user 0:0 --entrypoint /bin/sh "$img" -c 'command -v node >/dev/null 2>&1' >/dev/null 2>&1; then
+              runtime_image="$img"
+              break
+            fi
+          done
+          if [ -z "$runtime_image" ]; then
+            echo "ROOT_CODEX_TS_CLI_STATUS=NO_LOCAL_NODE_IMAGE"
+            exit 0
+          fi
+          # Existing CLI package and root's historical auth are mounted read-only.
+          # Nothing is copied from root to wave; no token, e-mail or JWT is printed.
+          docker run --rm --network none --read-only --user 0:0 \
+            --tmpfs /tmp:rw,nosuid,noexec,size=8m --workdir /tmp \
+            --entrypoint /bin/sh \
+            -e HOME=/host-root -e CODEX_HOME=/host-root/.codex \
+            -e OPENAI_API_KEY= -e CODEX_API_KEY= -e GH_TOKEN= -e GITHUB_TOKEN= \
+            -v /root:/host-root:ro \
+            -v /usr/lib/node_modules:/usr/lib/node_modules:ro \
+            "$runtime_image" -eu -c '
+              if node /usr/lib/node_modules/@openai/codex/bin/codex.js login status > /tmp/ts-codex-status.log 2>&1; then
+                echo ROOT_CODEX_TS_LOGIN_STATUS=SIGNED_IN
+              else
+                echo ROOT_CODEX_TS_LOGIN_STATUS=NOT_VERIFIED
+                if grep -Eq "Cannot find module|MODULE_NOT_FOUND|ERR_MODULE_NOT_FOUND" /tmp/ts-codex-status.log; then
+                  echo ROOT_CODEX_TS_RUNTIME=PACKAGE_DEPENDENCY_UNAVAILABLE
+                elif grep -Eq "GLIBC|not found|No such file" /tmp/ts-codex-status.log; then
+                  echo ROOT_CODEX_TS_RUNTIME=NATIVE_EXECUTABLE_UNAVAILABLE
+                else
+                  echo ROOT_CODEX_TS_RUNTIME=LOGIN_STATUS_UNAVAILABLE
+                fi
+              fi
+            '
       - name: Discover canonical Infisical project
         id: infisical_project
         shell: bash
