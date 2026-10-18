@@ -97,7 +97,7 @@ jobs:
                   ttlDays:90,commonName:'wave-runner-01',keyAlgorithm:'EC_prime256v1',
                   signatureAlgorithm:'ECDSA-SHA256',keyUsages:['digital_signature'],
                   extendedKeyUsages:['client_auth'],basicConstraints:{isCA:false},
-                  organization:'OGENIC',organizationalUnit:'WAVE Staging',country:'TH',state:'Bangkok',locality:'Bangkok'
+                  // Subject CN only: existing certificate policy restricts all other RDNs.
                 }
               });
               say('PROFILE_CREATE_HTTP',created.status);
@@ -117,8 +117,7 @@ jobs:
             if(!cert) {
               const created=await call('/api/v1/cert-manager/certificates',accessToken,'POST',{
                 profileId:profile.id,
-                attributes:{commonName:'wave-runner-01',organization:'OGENIC',
-                  organizationalUnit:'WAVE Staging',country:'TH',state:'Bangkok',locality:'Bangkok',
+                attributes:{commonName:'wave-runner-01',
                   keyUsages:['digital_signature'],extendedKeyUsages:['client_auth'],
                   keyAlgorithm:'EC_prime256v1',signatureAlgorithm:'ECDSA-SHA256',ttl:'90d',
                   basicConstraints:{isCA:false}},
