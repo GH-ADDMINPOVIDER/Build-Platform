@@ -87,7 +87,12 @@ jobs:
           set -euo pipefail
           known_hosts="$RUNNER_TEMP/oge128-known-hosts"
           key_file="$RUNNER_TEMP/oge128-root-ssh-key"
-          trap 'rm -f "$known_hosts" "$key_file"' EXIT
+          askpass="$RUNNER_TEMP/oge128-ssh-askpass"
+          cleanup() {
+            ssh-agent -k >/dev/null 2>&1 || true
+            rm -f "$known_hosts" "$key_file" "$askpass"
+          }
+          trap cleanup EXIT
 
           # Prefer the dedicated name. Compatibility fallbacks are accepted only
           # when the resolved value is a real private key; values are never printed.
@@ -99,19 +104,29 @@ jobs:
           umask 077
           printf '%s\n' "$key_material" | tr -d '\r' > "$key_file"
           chmod 600 "$key_file"
-          ssh-keygen -y -f "$key_file" >/dev/null
+
+          # ssh-add supports encrypted keys without putting the passphrase in
+          # command arguments. The askpass helper reads only the masked env var.
+          printf '%s\n' '#!/bin/sh' 'exec printenv SSH_PRIVATE_KEY_PASSPHRASE' > "$askpass"
+          chmod 700 "$askpass"
+          eval "$(ssh-agent -s)" >/dev/null
+          if ! DISPLAY=:0 SSH_ASKPASS="$askpass" SSH_ASKPASS_REQUIRE=force setsid -w ssh-add "$key_file" </dev/null >/dev/null 2>&1; then
+            echo 'CONFIGURATION_REQUIRED:SSH_PRIVATE_KEY_PASSPHRASE_OR_KEY_MISMATCH'
+            exit 78
+          fi
           echo "SSH_PRIVATE_KEY_VALID=true"
+          echo "SSH_PRIVATE_KEY_AGENT_LOADED=true"
 
           ssh-keyscan -H 127.0.0.1 > "$known_hosts" 2>/dev/null
           remote_checkout="$(pwd)"
-          ssh -i "$key_file" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 \
+          ssh -o IdentityAgent="$SSH_AUTH_SOCK" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 \
             -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes \
             root@127.0.0.1 \
             "cd '$remote_checkout' && env PATH='$PATH' OPENAI_API_KEY='' CODEX_API_KEY='' GH_TOKEN='' GITHUB_TOKEN='' CODEX_PROOF_OUTPUT=/tmp/root-codex-auth-proof.json '$(command -v node)' scripts/owner-terminal-auth-proof.mjs"
-          scp -i "$key_file" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 \
+          scp -o IdentityAgent="$SSH_AUTH_SOCK" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 \
             -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes \
             root@127.0.0.1:/tmp/root-codex-auth-proof.json root-codex-auth-proof.json
-          ssh -i "$key_file" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 \
+          ssh -o IdentityAgent="$SSH_AUTH_SOCK" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 \
             -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes \
             root@127.0.0.1 "rm -f /tmp/root-codex-auth-proof.json"
       - uses: actions/setup-node@v4
