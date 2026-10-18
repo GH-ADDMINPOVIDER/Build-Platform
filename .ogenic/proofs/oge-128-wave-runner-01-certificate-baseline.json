@@ -133,7 +133,17 @@
       "Owner confirmation and Yellow Stone authorization required"
     ],
     "issued_at": "2026-10-18T17:08:00+07:00",
-    "note": "This is an evidence-backed authorization record, not an X.509 leaf certificate."
+    "note": "This is an evidence-backed authorization record, not an X.509 leaf certificate.",
+    "security_evidence_checkpoint": {
+      "status": "DRY_RUN_VERIFIED_CLEANUP_PENDING",
+      "dry_run_receipt": "github-actions:39161934049",
+      "scoped_audit_receipt": "github-actions:39161269166",
+      "confirmed_test_key_pairs": 2,
+      "cleanup_status": "PENDING",
+      "post_cleanup_audit": "NOT_RUN",
+      "historical_no_leak_guarantee": false,
+      "signed_capability_grant": false
+    }
   },
   "evidence_history_additions": [
     {
@@ -208,6 +218,20 @@
       "proof": "github-actions:39137196276/job/117704016011",
       "preexisting_seven_stone_tables_modified": false,
       "no_raw_credentials": true
+    },
+    {
+      "event": "oge128_mtls_temp_key_dry_run",
+      "status": "TEST_KEYS_CONFIRMED_CLEANUP_PENDING",
+      "environment": "staging",
+      "scope": "Runner-1 ephemeral localhost mTLS test-server certificates",
+      "proof": "github-actions:39161934049",
+      "amendment_file": ".ogenic/proofs/oge-128-mtls-dry-run-certificate-amendment-20261019.json",
+      "source_sha": "13772388ec43c608c18bb0fa8bbe9c2e9c8219fb",
+      "key_pairs_verified": 2,
+      "blocked": 0,
+      "no_raw_credentials": true,
+      "cleanup_status": "PENDING",
+      "full_security_certification": false
     }
   ],
   "secret_contract": {
