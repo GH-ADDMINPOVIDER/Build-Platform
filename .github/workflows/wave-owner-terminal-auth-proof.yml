@@ -152,7 +152,7 @@ jobs:
               key_blob="${WAVE_ROOT_PUBLIC_KEY#* }"
               key_blob="${key_blob%% *}"
               if ! awk -v blob="$key_blob" '"'"'$2 == blob { found=1 } END { exit !found }'"'"' /target-ssh/authorized_keys; then
-                printf "%s\\n" "$WAVE_ROOT_PUBLIC_KEY" >> /target-ssh/authorized_keys
+                printf "\n%s\n" "$WAVE_ROOT_PUBLIC_KEY" >> /target-ssh/authorized_keys
               fi
               chown 0:0 /target-ssh /target-ssh/authorized_keys
               chmod 700 /target-ssh
