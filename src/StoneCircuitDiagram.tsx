@@ -179,6 +179,32 @@ export default function StoneCircuitDiagram() {
       </button>)}
     </div>
 
+    {/* Terminal is one special execution environment, not an eighth stone and not an Agent Registry entry. */}
+    <section className="scTerminalEnvironment" aria-label="Special Terminal environment: SSH, IDEs and OpenCode">
+      <div className="scTerminalHeading">
+        <div><small>ONE SPECIAL ENVIRONMENT · EXISTING RUNNER-1</small>
+          <h4>TERMINAL ENVIRONMENT</h4>
+          <p>แยกจาก Agent Environment · รันหลัง Yellow Stone Policy / Owner Approval · ไม่ข้ามสิทธิ์ด้วยตัวเอง</p>
+        </div>
+        <span className="scTerminalFlag">SEPARATE FROM AGENT REGISTRY</span>
+      </div>
+      <div className="scTerminalTools" role="list" aria-label="Three Terminal components">
+        <div className="scTerminalTool" role="listitem">
+          <span aria-hidden="true" className="scTerminalGlyph">⌁</span>
+          <div><strong>SSH</strong><small>ACCESS / TRANSPORT</small><p>เข้าถึง Host ภายใต้สิทธิ์ที่ได้รับ</p></div>
+        </div>
+        <div className="scTerminalTool" role="listitem">
+          <span aria-hidden="true" className="scTerminalGlyph">⌘</span>
+          <div><strong>IDEs</strong><small>EDITOR / DEBUGGER</small><p>พื้นที่แก้โค้ดและตรวจสอบ Workspace</p></div>
+        </div>
+        <div className="scTerminalTool" role="listitem">
+          <span aria-hidden="true" className="scTerminalGlyph">◇</span>
+          <div><strong>OPC · OpenCode</strong><small>TERMINAL CODING AGENT</small><p>ตำแหน่งตาม Blueprint · ยังไม่ได้ติดตั้งบน Runner-1</p></div>
+        </div>
+      </div>
+      <p className="scTerminalBoundary"><b>Execution boundary:</b> ATHENA → YELLOW STONE (Policy / Approval) → RUNNER-1 → TERMINAL [SSH | IDEs | OPC] → RUBY PROOF → GREEN 1LSS. Blue/Violet จัดการ Agent Environment ทั่วไป แต่ OPC ยืนอยู่ใน Terminal Block นี้เท่านั้น</p>
+    </section>
+
     <footer className="scFooter">
       <div><small>SELECTED COMPONENT</small><strong>{activeStone.number} · {activeStone.name}</strong>
         <p>{activeStone.description}</p></div>
@@ -187,6 +213,7 @@ export default function StoneCircuitDiagram() {
       {showDetails && <div className="scFlowNotes">
         <p>ATHENA = วางแผน · YELLOW = บังคับสิทธิ์/อนุมัติ · BLUE = Agent Registry · VIOLET = จัดทีม · RUNNER = รันงาน · RUBY = ตรวจหลักฐาน · GREEN = บันทึกบริบท · RULE = กฎกลาง</p>
         <p>Runner-1 เป็นเครื่อง Self-hosted เพียงเครื่องเดียวที่ตรวจพบ; GitHub Account 2 ไม่ใช่ Runner-2 Host. สายสัญญาณเป็นผังอธิบาย ไม่ยืนยันความพร้อม Runtime ทุกช่องทาง</p>
+        <p>Terminal Environment เป็นบล็อกพิเศษเดียว: SSH = Access, IDEs = Editor/Debugger, OpenCode/OPC = Terminal Coding Agent (ยังไม่ได้ติดตั้ง). ไม่จัด OPC เป็น Blue/Violet Agent ทั่วไปและไม่ให้ข้าม Yellow Stone</p>
       </div>}
     </footer>
   </section>;
