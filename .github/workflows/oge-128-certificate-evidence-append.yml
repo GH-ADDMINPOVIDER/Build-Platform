@@ -1,0 +1,116 @@
+name: OGE-128 Certificate Evidence Append (Dry-Run)
+on:
+  push:
+    branches: [task/oge-128-runtime-certificate-20261018]
+    paths: [".github/workflows/oge-128-certificate-evidence-append.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: oge128-certificate-evidence-append-only
+  cancel-in-progress: false
+jobs:
+  append:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 7
+    steps:
+      - name: Checkout authorization-evidence branch
+        uses: actions/checkout@v4
+        with:
+          ref: task/oge-128-runtime-certificate-20261018
+          persist-credentials: true
+      - name: Verify the previously completed dry-run and append-only certificate update
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$GITHUB_REF_NAME" = task/oge-128-runtime-certificate-20261018
+          python3 - <<'PY'
+          import json,os,pathlib,urllib.request
+          from copy import deepcopy
+          repo="Ogenicchocolate21debug/Build-Platform"
+          source=pathlib.Path(".ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json")
+          req=urllib.request.Request(
+            "https://api.github.com/repos/"+repo+"/actions/runs/39161934049",
+            headers={"Authorization":"Bearer "+os.environ["GH_TOKEN"],"Accept":"application/vnd.github+json","User-Agent":"oge128-evidence-append"})
+          with urllib.request.urlopen(req,timeout=15) as response:run=json.load(response)
+          assert run["conclusion"]=="success" and run["status"]=="completed"
+          assert run["head_sha"]=="13772388ec43c608c18bb0fa8bbe9c2e9c8219fb"
+          req=urllib.request.Request(
+            "https://api.github.com/repos/"+repo+"/issues/comments/6254559747",
+            headers={"Authorization":"Bearer "+os.environ["GH_TOKEN"],"Accept":"application/vnd.github+json","User-Agent":"oge128-evidence-append"})
+          with urllib.request.urlopen(req,timeout=15) as response:comment=json.load(response)
+          body=comment.get("body","")
+          for fact in ("status=TEST_KEYS_CONFIRMED","folders=2","eligible=2","blocked=0",
+                       "key_pair_matches=2","cleanup_performed=false","leaf_private_key_accessed=false"):
+            assert fact in body, "SOURCE_RECEIPT_MISMATCH"
+          doc=json.loads(source.read_text(encoding="utf-8"))
+          assert doc["certificate_id"]=="oge-128-wave-runner-01-baseline-20261018"
+          assert doc["environment"]=="staging"
+          assert doc["proof_policy"]["signed_capability_grant"] is False
+          assert doc["plugin_license_registry"]["slug"]=="certificate_lincenc"
+          assert doc["consolidated_record"]["authorization"]["signed_capability_grant"] is False
+          old=deepcopy(doc)
+          record={
+            "event":"oge128_mtls_temp_key_dry_run",
+            "status":"TEST_KEYS_CONFIRMED_CLEANUP_PENDING",
+            "environment":"staging",
+            "scope":"Local mTLS test-only temporary files on wave-runner-01",
+            "proof":"github-actions:39161934049",
+            "source_commit":"13772388ec43c608c18bb0fa8bbe9c2e9c8219fb",
+            "receipt":"https://github.com/Ogenicchocolate21debug/Build-Platform/issues/39#issuecomment-6254559747",
+            "test_folders":2,
+            "test_server_key_pairs_confirmed":2,
+            "keypair_matching":2,
+            "unapproved_items":0,
+            "cleanup_status":"PENDING",
+            "cleanup_performed":False,
+            "recheck_after_cleanup":"NOT_TESTED",
+            "raw_secret_values_included":False,
+            "leaf_private_key_accessed":False,
+            "universal_no_leak_claim":False
+          }
+          history=doc.setdefault("evidence_history_additions",[])
+          if any(e.get("event")==record["event"] and e.get("proof")==record["proof"] for e in history):
+            print("CERT_EVIDENCE=ALREADY_RECORDED")
+            raise SystemExit(0)
+          history.append(record)
+          doc["consolidated_record"]["security_evidence_checkpoint"]={
+            "status":"DRY_RUN_VERIFIED_CLEANUP_PENDING",
+            "dry_run_receipt":record["proof"],
+            "scoped_audit_receipt":"github-actions:39161269166",
+            "test_key_pairs_confirmed":2,
+            "cleanup_status":"PENDING",
+            "final_security_closure":"NOT_CERTIFIED",
+            "future_cleanup_receipt":"NOT_AVAILABLE",
+            "no_absolute_leak_assurance":True
+          }
+          assert doc["certificate_id"]==old["certificate_id"]
+          assert doc["proof_policy"]==old["proof_policy"]
+          assert doc["source_preservation"]==old["source_preservation"]
+          assert doc["plugin_license_registry"]==old["plugin_license_registry"]
+          assert doc["consolidated_record"]["authorization"]==old["consolidated_record"]["authorization"]
+          assert doc["consolidated_record"]["cryptographic_leaf"]==old["consolidated_record"]["cryptographic_leaf"]
+          assert len(history)==len(old.get("evidence_history_additions",[]))+1
+          source.write_text(json.dumps(doc,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          print("CERT_DRYRUN_APPEND=PASS")
+          print("CERT_OWNER_GRANT_CHANGED=FALSE")
+          print("CERT_X509_FIELDS_CHANGED=FALSE")
+          print("CERT_CLEANUP_STATUS=PENDING")
+          PY
+          if git diff --quiet -- .ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json; then
+            echo "CERT_APPEND=ALREADY_UP_TO_DATE"
+            exit 0
+          fi
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json
+          git commit -m "evidence(oge128): append dry-run mTLS test-key proof to existing Certificate lincenc"
+          git push origin HEAD:task/oge-128-runtime-certificate-20261018
+          echo "CERT_APPEND=COMMITTED"
+          echo "CERT_COMMIT=$(git rev-parse HEAD)"
