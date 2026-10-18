@@ -318,7 +318,7 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
       .map((agent) => ({ label: agent.agent_id, detail: agent.visible_identity || agent.app || "Registered agent" }));
     return [...MENTION_PRESETS, ...registered.filter((agent) => !MENTION_PRESETS.some((known) => known.label.toLowerCase() === agent.label.toLowerCase()))];
   }, [violet.agents]);
-  const activeMention = command.match(/(?:^|\\s)@([a-z0-9_.-]*)$/i)?.[1];
+  const activeMention = command.match(/(?:^|\s)@([a-z0-9_.-]*)$/i)?.[1];
   const mentionMatches = activeMention === undefined ? [] : mentionChoices
     .filter((item) => item.label.toLowerCase().includes(activeMention.toLowerCase()))
     .slice(0, 8);
