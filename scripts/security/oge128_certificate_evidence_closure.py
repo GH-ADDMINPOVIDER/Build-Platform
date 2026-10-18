@@ -2,7 +2,7 @@
 """OGE-128 existing Certificate lincenc lifecycle: evidence append and staging D1 readback.
 Never print document_json, API credentials, private keys or PEM.
 """
-import hashlib, json, os, pathlib, sys, urllib.request, urllib.error
+import hashlib, json, os, pathlib, sys, subprocess, urllib.request, urllib.error
 from copy import deepcopy
 
 ROOT=pathlib.Path(".ogenic/proofs")
@@ -171,7 +171,7 @@ def sync():
     assert len(latest_history)>=len(old_history) and latest_history[:len(old_history)]==old_history, "D1_PROOF_HISTORY_WOULD_ROLL_BACK"
     if rows[0]["document_sha256"]!=sha:
         query("UPDATE certificate_lincenc SET document_sha256=?,document_json=?,source_commit=?,updated_at=CURRENT_TIMESTAMP WHERE certificate_id=? AND environment='staging'",
-          [sha,raw.decode("utf-8"),os.environ["GITHUB_SHA"],CERT_ID])
+          [sha,raw.decode("utf-8"),subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),CERT_ID])
     readback=query("SELECT certificate_id,environment,document_sha256,document_json FROM certificate_lincenc WHERE certificate_id=?", [CERT_ID])
     assert len(readback)==1 and readback[0]["document_sha256"]==sha
     assert hashlib.sha256(readback[0]["document_json"].encode()).hexdigest()==sha
