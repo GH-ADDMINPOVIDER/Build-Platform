@@ -138,7 +138,7 @@ jobs:
             if(enroll.status!==200){say('ENROLLMENT_CONFIG','NOT_CONFIRMED');return;}
             say('ENROLLMENT','AUTO_RENEW_30_DAYS');
             const candidates=await call('/api/v1/cert-manager/certificate-profiles/'+encodeURIComponent(profile.id)+'/certificates?status=active&limit=100',accessToken);
-            const fallback=candidates.status===200?candidates:await call('/api/v1/projects/'+encodeURIComponent(project.id)+'/certificates/search',accessToken,'POST',{offset:0,limit:100});
+            const fallback=candidates.status===200?candidates:await call('/api/v1/projects/'+encodeURIComponent(project.id)+'/certificates/search',accessToken,'POST',{offset:0,limit:100,commonName:'wave-runner-01',profileIds:[profile.id]});
             say('CERTIFICATE_INVENTORY_ROUTE',candidates.status===200?'PROFILE':'PROJECT_FALLBACK');
             requirePass('CERTIFICATES',fallback);
             const listOfCertificates=fallback.data.certificates||fallback.data.results||[];
@@ -162,8 +162,18 @@ jobs:
               }
               // NEVER print, upload, or persist returned key, certificate, or chain.
               const obj=created.data;
-              cert={id:obj.certificateId||obj.certificate?.id||obj.id};
-              say('ISSUANCE','CREATED_NO_KEY_EXPORTED');
+              say('ISSUE_STATUS',obj.status||'UNKNOWN');
+              cert={id:obj.certificate?.certificateId||obj.certificateId||obj.certificate?.id||obj.id};
+              if(!cert.id) {
+                // Verify through sanitized inventory before deciding whether another request is necessary.
+                const refreshed=await call('/api/v1/projects/'+encodeURIComponent(project.id)+'/certificates/search',
+                  accessToken,'POST',{offset:0,limit:100,commonName:'wave-runner-01',profileIds:[profile.id]});
+                if(refreshed.status===200) {
+                  const row=(refreshed.data.certificates||[]).find(c=>c.commonName==='wave-runner-01'&&c.status==='active');
+                  cert={id:row?.id};
+                }
+              }
+              say('ISSUANCE',cert.id?'CREATED_OR_PENDING_WITH_ID_NO_KEY_EXPORTED':'REQUEST_RECORDED_ID_PENDING');
             } else say('ISSUANCE','ACTIVE_REUSED');
             if(!cert?.id){say('CERTIFICATE','ID_NOT_FOUND');return;}
             const renew=await call('/api/v3/pki/certificates/'+encodeURIComponent(cert.id)+'/config',
@@ -171,7 +181,7 @@ jobs:
             say('RENEW_CONFIG_HTTP',renew.status);
             if(renew.status!==200){say('AUTO_RENEW','NOT_CONFIRMED');return;}
             say('AUTO_RENEW','CONFIG_ACCEPTED_30_DAYS');
-            const check=await call('/api/v1/projects/'+encodeURIComponent(project.id)+'/certificates/search',accessToken,'POST',{offset:0,limit:100});
+            const check=await call('/api/v1/projects/'+encodeURIComponent(project.id)+'/certificates/search',accessToken,'POST',{offset:0,limit:100,commonName:'wave-runner-01',profileIds:[profile.id]});
             if(check.status===200) {
               const row=(check.data.certificates||check.data.results||[]).find(c=>c.id===cert.id||c.cn==='wave-runner-01'||c.commonName==='wave-runner-01');
               if(row){say('LEAF_STATUS',row.status||'UNKNOWN');say('NOT_AFTER',row.notAfter||'NOT_RETURNED');}
