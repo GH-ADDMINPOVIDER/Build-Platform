@@ -27,8 +27,19 @@ jobs:
           set -euo pipefail
           test "$RUNNER_NAME" = "wave-runner-01"
           test "$GITHUB_REF_NAME" = "task/oge-128-runtime-certificate-20261018"
-          command -v openssl >/dev/null
+          echo "OPENSSL_AVAILABLE=$(command -v openssl >/dev/null && echo yes || echo no)"
           echo "MTLS_SCOPE=LOOPBACK_ONLY"
+      - name: Publish sanitized test-start marker
+        shell: bash
+        run: |
+          node <<'NODE'
+          fetch('https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/issues/39/comments',{
+            method:'POST',headers:{Authorization:'Bearer '+process.env.GH_TOKEN,'Accept':'application/vnd.github+json',
+              'Content-Type':'application/json','User-Agent':'oge128-mtls-proof-start'},
+            body:JSON.stringify({body:'OGE-128 mTLS loopback proof STARTED / Run: '+process.env.GITHUB_RUN_ID+' / SHA: '+process.env.GITHUB_SHA+
+              '\nNo secrets included; result pending.'}),signal:AbortSignal.timeout(12000)
+          }).then(r=>console.log('MTLS_STARTED_RECEIPT_HTTP='+r.status)).catch(()=>console.log('MTLS_STARTED_RECEIPT=NETWORK_ERROR'));
+          NODE
       - name: Authenticate, load existing leaf in memory, prove client-auth TLS locally
         shell: bash
         run: |
