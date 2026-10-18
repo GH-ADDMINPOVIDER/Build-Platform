@@ -112,7 +112,7 @@ def runner():
      nested["regular_files"]+=stat.S_ISREG(meta.st_mode)
      nested["symlinks"]+=stat.S_ISLNK(meta.st_mode)
      nested["world_or_group_readable_files"]+=bool(meta.st_mode & 0o044)
-     nested["private_key_named_files"]+=bool(re.search(r"(\\.key$|private.*\\.pem$|server\\.key$)",e.name,re.I))
+     nested["private_key_named_files"]+=bool(re.search(r"(\.key$|private.*\.pem$|server\.key$)",e.name,re.I))
     except Exception:pass
   except Exception:pass
  REPORT["runner"]={"host":os.getenv("RUNNER_NAME"),"oge128_temp_residue_count":len(paths),
