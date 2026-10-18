@@ -1,0 +1,157 @@
+name: OGE-128 Infisical Staging Leaf 90d Auto Renewal
+on:
+  push:
+    branches: [task/oge-128-runtime-certificate-20261018]
+    paths: [".github/workflows/oge-128-leaf-autorenew.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+concurrency:
+  group: oge128-wave-runner-staging-leaf
+  cancel-in-progress: false
+jobs:
+  leaf:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 10
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Enforce OGE-128 staging evidence scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test "$GITHUB_REF_NAME" = "task/oge-128-runtime-certificate-20261018"
+      - name: Reuse staging CA; create PKI policy/profile/90-day leaf and enable renew
+        shell: bash
+        run: |
+          node <<'NODE'
+          const base='https://app.infisical.com';
+          const policyName='oge128-wave-runner-staging-mtls';
+          const profileSlug='oge128-wave-runner-01-staging-90d';
+          const caCN='OGENIC WAVE STAGING ROOT CA';
+          const receipt={};
+          const say=(k,v)=>{receipt[k]=String(v);console.log('OGE128_LEAF_'+k+'='+String(v));};
+          async function call(url,token,method='GET',body) {
+            try {
+              const res=await fetch(base+url,{method,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+                ...(body!==undefined?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(30000)});
+              let data={}; if(res.ok){try{data=await res.json()}catch{}}
+              return {status:res.status,data};
+            }catch{return {status:'NETWORK_ERROR',data:{}};}
+          }
+          function requirePass(what,result,expected=[200]) {
+            if(!expected.includes(result.status)){say(what+'_HTTP',result.status);throw Error(what+'_FAILED');}
+          }
+          async function go() {
+            const oidc=await fetch(process.env.ACTIONS_ID_TOKEN_REQUEST_URL,{headers:{Authorization:'Bearer '+process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN},signal:AbortSignal.timeout(15000)}).then(x=>x.json());
+            const login=await fetch(base+'/api/v1/auth/oidc-auth/login',{method:'POST',headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({identityId:process.env.INFISICAL_IDENTITY_ID,jwt:oidc.value,organizationSlug:process.env.INFISICAL_ORG_SLUG}),signal:AbortSignal.timeout(15000)});
+            if(!login.ok){say('OIDC_HTTP',login.status);return;}
+            const {accessToken}=await login.json();if(!accessToken){say('OIDC','NO_TOKEN');return;}
+            say('OIDC','PASS');
+            const projects=await call('/api/v1/projects',accessToken);
+            requirePass('PROJECTS',projects);
+            const project=(projects.data.projects||[]).find(x=>x.slug==='cert-manager-89-qe');
+            if(!project?.id){say('PROJECT','NOT_FOUND');return;}
+            const cas=await call('/api/v1/projects/'+encodeURIComponent(project.id)+'/cas',accessToken);
+            requirePass('CAS',cas);
+            const list=cas.data.cas;
+            if(!Array.isArray(list)){say('CAS','SCHEMA_ERROR');return;}
+            const ca=list.find(c=>c.commonName===caCN&&c.status==='active');
+            if(!ca?.id){say('CA','EXPECTED_ACTIVE_CA_NOT_FOUND');return;}
+            say('CA','ACTIVE_VERIFIED');
+            const policies=await call('/api/v1/cert-manager/certificate-policies?limit=100',accessToken);
+            requirePass('POLICIES',policies);
+            let policy=(policies.data.certificatePolicies||[]).find(p=>p.name===policyName);
+            if(!policy) {
+              const made=await call('/api/v1/cert-manager/certificate-policies',accessToken,'POST',{
+                name:policyName,
+                description:'OGENIC OGE-128 staging runner mTLS identity only; Owner grant remains Yellow Stone policy-gated.',
+                subject:[{type:'common_name',required:['wave-runner-01']}],
+                keyUsages:{required:['digital_signature'],denied:['key_cert_sign','crl_sign']},
+                extendedKeyUsages:{required:['client_auth'],denied:['server_auth','code_signing']},
+                algorithms:{signature:['ECDSA-SHA256'],keyAlgorithm:['EC_prime256v1']},
+                validity:{max:'90d'},
+                basicConstraints:{isCA:'denied'}
+              });
+              say('POLICY_CREATE_HTTP',made.status);
+              if(![200,201].includes(made.status))return;
+              policy=made.data.certificatePolicy||made.data.policy||made.data;
+            }
+            if(!policy?.id){say('POLICY','ID_NOT_FOUND');return;}
+            say('POLICY','FOUND');
+            const profiles=await call('/api/v1/cert-manager/certificate-profiles?limit=100',accessToken);
+            requirePass('PROFILES',profiles);
+            let profile=(profiles.data.certificateProfiles||[]).find(p=>p.slug===profileSlug);
+            if(!profile) {
+              const created=await call('/api/v1/cert-manager/certificate-profiles',accessToken,'POST',{
+                slug:profileSlug,caId:ca.id,certificatePolicyId:policy.id,issuerType:'ca',
+                description:'OGE-128 90-day staging-only runner client authentication',
+                defaults:{
+                  ttlDays:90,commonName:'wave-runner-01',keyAlgorithm:'EC_prime256v1',
+                  signatureAlgorithm:'ECDSA-SHA256',keyUsages:['digital_signature'],
+                  extendedKeyUsages:['client_auth'],basicConstraints:{isCA:false},
+                  organization:'OGENIC',organizationalUnit:'WAVE Staging',country:'TH',state:'Bangkok',locality:'Bangkok'
+                }
+              });
+              say('PROFILE_CREATE_HTTP',created.status);
+              if(![200,201].includes(created.status))return;
+              profile=created.data.certificateProfile||created.data.profile||created.data;
+            }
+            if(!profile?.id){say('PROFILE','ID_NOT_FOUND');return;}
+            if(profile.caId&&profile.caId!==ca.id){say('PROFILE','CA_MISMATCH');return;}
+            say('PROFILE','FOUND');
+            const candidates=await call('/api/v1/cert-manager/certificate-profiles/'+encodeURIComponent(profile.id)+'/certificates?status=active&limit=100',accessToken);
+            requirePass('CERTIFICATES',candidates);
+            let cert=(candidates.data.certificates||[]).find(c=>c.cn==='wave-runner-01'&&c.status==='active');
+            if(!cert) {
+              const created=await call('/api/v1/cert-manager/certificates',accessToken,'POST',{
+                profileId:profile.id,
+                attributes:{commonName:'wave-runner-01',organization:'OGENIC',
+                  organizationalUnit:'WAVE Staging',country:'TH',state:'Bangkok',locality:'Bangkok',
+                  keyUsages:['digital_signature'],extendedKeyUsages:['client_auth'],
+                  keyAlgorithm:'EC_prime256v1',signatureAlgorithm:'ECDSA-SHA256',ttl:'90d',
+                  basicConstraints:{isCA:false}},
+                metadata:[{key:'ogenic_certificate_id',value:'oge-128-wave-runner-01-baseline-20261018'},
+                          {key:'environment',value:'staging'}]
+              });
+              say('ISSUE_HTTP',created.status);
+              if(![200,201].includes(created.status))return;
+              // NEVER print, upload, or persist returned key, certificate, or chain.
+              const obj=created.data;
+              cert={id:obj.certificateId||obj.certificate?.id||obj.id};
+              say('ISSUANCE','CREATED_NO_KEY_EXPORTED');
+            } else say('ISSUANCE','ACTIVE_REUSED');
+            if(!cert?.id){say('CERTIFICATE','ID_NOT_FOUND');return;}
+            const renew=await call('/api/v3/pki/certificates/'+encodeURIComponent(cert.id)+'/config',
+              accessToken,'PATCH',{enableAutoRenewal:true,renewBeforeDays:30});
+            say('RENEW_CONFIG_HTTP',renew.status);
+            if(renew.status!==200){say('AUTO_RENEW','NOT_CONFIRMED');return;}
+            say('AUTO_RENEW','CONFIG_ACCEPTED_30_DAYS');
+            const check=await call('/api/v1/cert-manager/certificate-profiles/'+encodeURIComponent(profile.id)+'/certificates?status=active&limit=100',accessToken);
+            if(check.status===200) {
+              const row=(check.data.certificates||[]).find(c=>c.id===cert.id||c.cn==='wave-runner-01');
+              if(row){say('LEAF_STATUS',row.status||'UNKNOWN');say('NOT_AFTER',row.notAfter||'NOT_RETURNED');}
+              else say('LEAF_STATUS','NOT_FOUND_ON_READBACK');
+            }else say('READBACK_HTTP',check.status);
+            say('CERTIFICATE_MTLS_BOUND_TO_RUNNER','NOT_VERIFIED');
+            say('SIGNED_CAPABILITY_GRANT','FALSE_OWNER_YELLOW_GATE_REQUIRED');
+          }
+          go().catch(()=>say('RESULT','STOPPED_ON_FAILED_PREREQUISITE')).finally(async()=>{
+            const body=['OGE-128 staging leaf issuance and auto-renewal (sanitized)',
+              'GitHub SHA: '+process.env.GITHUB_SHA+' / Run: '+process.env.GITHUB_RUN_ID,
+              ...Object.entries(receipt).map(([k,v])=>'OGE128_LEAF_'+k+'='+String(v).slice(0,100)),
+              'No private keys, leaf PEM, bearer tokens or credentials included. No production changes.',
+              'Do not treat issuance alone as WAVE Command E2E or a signed Yellow Stone capability grant.'].join('\n');
+            const res=await fetch('https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/issues/39/comments',{
+              method:'POST',headers:{Authorization:'Bearer '+process.env.GH_TOKEN,'Accept':'application/vnd.github+json','User-Agent':'oge128-leaf-renew'},
+              body:JSON.stringify({body}),signal:AbortSignal.timeout(12000)}).catch(()=>({status:'NETWORK_ERROR'}));
+            say('ISSUE_RECEIPT_HTTP',res.status);
+          });
+          NODE
