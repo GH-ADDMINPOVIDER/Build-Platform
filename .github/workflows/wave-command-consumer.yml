@@ -13,6 +13,7 @@ permissions:
   id-token: write
 
 concurrency:
+  # Per-task dispatch deduplication; a *stable host flock* enforces SOLO without coalescing other tasks.
   group: wave-command-${{ inputs.task_id }}
   cancel-in-progress: false
 
@@ -59,4 +60,4 @@ jobs:
         env:
           WAVE_TASK_ID: ${{ inputs.task_id }}
           WAVE_EVIDENCE_REF: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: node scripts/wave-command-consumer.mjs
+        run: bash scripts/wave-terminal-solo.sh
