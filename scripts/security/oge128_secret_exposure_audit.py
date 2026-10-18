@@ -100,7 +100,7 @@ def runner():
    details["older_than_1h"]+=time.time()-info.st_mtime>3600
    details["owned_by_runner"]+=info.st_uid==os.getuid()
   except Exception:pass
- nested={"total_entries":0,"regular_files":0,"private_key_named_files":0,"world_or_group_readable_files":0,"symlinks":0}
+ nested={"total_entries":0,"regular_files":0,"private_key_named_files":0,"private_key_group_world_readable_files":0,"world_or_group_readable_files":0,"symlinks":0}
  for root in sorted(paths):
   if not os.path.isdir(root) or os.path.islink(root):continue
   try:
@@ -112,7 +112,9 @@ def runner():
      nested["regular_files"]+=stat.S_ISREG(meta.st_mode)
      nested["symlinks"]+=stat.S_ISLNK(meta.st_mode)
      nested["world_or_group_readable_files"]+=bool(meta.st_mode & 0o044)
-     nested["private_key_named_files"]+=bool(re.search(r"(\.key$|private.*\.pem$|server\.key$)",e.name,re.I))
+     looks_like_key=bool(re.search(r"(\.key$|private.*\.pem$|server\.key$)",e.name,re.I))
+     nested["private_key_named_files"]+=looks_like_key
+     nested["private_key_group_world_readable_files"]+=bool(looks_like_key and meta.st_mode & 0o044)
     except Exception:pass
   except Exception:pass
  REPORT["runner"]={"host":os.getenv("RUNNER_NAME"),"oge128_temp_residue_count":len(paths),
@@ -157,7 +159,8 @@ def infisical():
 def publish():
  findings={a+"_"+b:n for (a,b),n in sorted(FOUND.items()) if n}
  REPORT["findings"]={"high_confidence_patterns":findings,"signals":sum(findings.values())}
- REPORT["conclusion"]="POTENTIAL_EXPOSURE_TRIAGE_REQUIRED" if findings else "NO_HIGH_CONFIDENCE_MATCH_BOUNDED_SCOPE"
+ residue_keys=REPORT.get("runner",{}).get("nested_temp_metadata_no_pathnames",{}).get("private_key_named_files",0)
+ REPORT["conclusion"]="POTENTIAL_EXPOSURE_TRIAGE_REQUIRED" if findings else "LOCAL_TEMP_KEY_ARTIFACTS_NEED_REVIEW" if residue_keys else "NO_HIGH_CONFIDENCE_MATCH_BOUNDED_SCOPE"
  REPORT["absolute_no_leak_claim"]=False
  body="OGE-128 SECURITY EXPOSURE AUDIT — SCOPED READ-ONLY\n\n"+json.dumps(REPORT,indent=2,sort_keys=True)+"\n\nNo raw values, secrets, or snippets included. A bounded audit cannot prove that no historical leakage ever occurred."
  req=urllib.request.Request("https://api.github.com/repos/"+REPO+"/issues/39/comments",
