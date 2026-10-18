@@ -68,3 +68,21 @@ test("existing signed session renews without saving Owner key or bypassing authe
   assert.match(bridge, /20 \* 60 \* 1000/);
   assert.doesNotMatch(bridge, /localStorage\.setItem\([^)]*ownerKey/);
 });
+
+test("terminal special environment keeps OpenCode with SSH and IDEs, outside the seven stones and agent registry", () => {
+  const circuit = read("src/StoneCircuitDiagram.tsx");
+  const styles = read("src/stone-circuit-diagram.css");
+  const seven = circuit.split("const stones: Stone[] = [")[1]?.split("];")[0];
+  assert.ok(seven, "canonical stones must exist");
+  assert.equal((seven.match(/id: "/g) || []).length, 7);
+  assert.doesNotMatch(seven, /OpenCode|OPC|IDEs|TERMINAL ENVIRONMENT/);
+  assert.match(circuit, /scTerminalEnvironment/);
+  assert.match(circuit, /TERMINAL ENVIRONMENT/);
+  assert.match(circuit, /SEPARATE FROM AGENT REGISTRY/);
+  assert.match(circuit, /OPC · OpenCode/);
+  assert.match(circuit, /SSH/);
+  assert.match(circuit, /IDEs/);
+  assert.match(circuit, /Yellow Stone Policy \/ Owner Approval/);
+  assert.match(styles, /\.scTerminalTools/);
+  assert.match(styles, /grid-template-columns:1fr/);
+});
