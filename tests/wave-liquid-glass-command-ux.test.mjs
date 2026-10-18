@@ -32,11 +32,21 @@ test("glass themes reuse existing WAVE theme state and original landing content"
   assert.match(landing, /ONE CONTEXT/);
   assert.match(landing, /GREEN STONE/);
   assert.match(landing, /YELLOW STONE/);
-  assert.match(landing, /OWNER DIAGRAM SLOT/);
+  assert.match(landing, /<StoneCircuitDiagram \/>/);
   assert.match(landing, /aria-expanded=\{showArchitecture\}/);
-  assert.match(landing, /stoneLegend\.map/);
+  const circuit = read("src/StoneCircuitDiagram.tsx");
+  const circuitCss = read("src/stone-circuit-diagram.css");
+  assert.match(circuit, /const stones: Stone\[\] = \[/);
+  assert.match(circuit, /const traces: Trace\[\] = \[/);
+  assert.match(circuit, /animateMotion/);
+  assert.match(circuit, /pauseAnimations/);
+  assert.match(circuit, /setCurrentTime/);
+  assert.match(circuit, /function reset/);
+  assert.match(circuit, /function step/);
+  assert.match(circuit, /VISUAL SIMULATION/);
+  assert.match(circuitCss, /scMobileRail/);
   for (const label of ["BLUE DIAMOND","VIOLET STONE","RUBY STONE","STONE RUNNER","RULE STONE"]) {
-    assert.ok(landing.includes(label), label);
+    assert.ok(circuit.includes(label), label);
   }
   assert.match(glass, /WAVE LIQUID GLASS CLEAR 2026/);
   assert.match(glass, /backdrop-filter:\s*blur/);
