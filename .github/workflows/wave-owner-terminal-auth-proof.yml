@@ -303,6 +303,64 @@ jobs:
         run: npm run typecheck
       - name: Build staging source without any deployment
         run: npm run build
+      - name: Exercise TS Codex read-only inference through existing Docker adapter
+        if: steps.root_codex_login.outputs.ts_ready == 'true'
+        timeout-minutes: 4
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test "$GITHUB_REF_NAME" = "task/oge-128-runtime-certificate-20261018"
+          mapfile -t images < <(docker image ls --format '{{.Repository}}:{{.Tag}}' | awk '$0 !~ /<none>/')
+          runtime_image=""
+          for img in "${images[@]}"; do
+            if docker run --rm --network none --read-only --user 0:0 --entrypoint /bin/sh "$img" -c 'command -v node >/dev/null 2>&1' >/dev/null 2>&1; then
+              runtime_image="$img"
+              break
+            fi
+          done
+          if [ -z "$runtime_image" ]; then echo "TS_CODEX_EXEC=NO_LOCAL_NODE_IMAGE"; exit 78; fi
+          # Minimal one-turn read-only proof. OAuth refresh, if necessary, stays in
+          # its own root CODEX_HOME. Neither auth data nor model transcript is logged.
+          timeout 150s docker run --rm --read-only --user 0:0 \
+            --cap-drop ALL --security-opt no-new-privileges \
+            --pids-limit 96 --memory 704m \
+            --tmpfs /tmp:rw,nosuid,noexec,size=24m --workdir /workspace \
+            --entrypoint /bin/sh \
+            -e HOME=/root -e CODEX_HOME=/root/.codex -e CI=1 \
+            -e OPENAI_API_KEY= -e CODEX_API_KEY= -e GH_TOKEN= -e GITHUB_TOKEN= \
+            -v /root/.codex:/root/.codex:rw \
+            -v /usr/lib/node_modules:/usr/lib/node_modules:ro \
+            -v "$GITHUB_WORKSPACE":/workspace:ro \
+            "$runtime_image" -eu -c '
+              node /usr/lib/node_modules/@openai/codex/bin/codex.js exec \
+                --sandbox read-only --skip-git-repo-check \
+                --output-last-message /tmp/ts-proof-last.txt \
+                "Return exactly the text OGENIC_TS_CODEX_READY. Do not inspect files or run shell commands." \
+                > /tmp/ts-exec.log 2>&1 || {
+                  if grep -Eiq "401|unauthorized|login required|sign in|authentication" /tmp/ts-exec.log; then
+                    echo "TS_CODEX_EXEC=REAUTH_REQUIRED"
+                  elif grep -Eiq "quota|usage limit|rate limit|429" /tmp/ts-exec.log; then
+                    echo "TS_CODEX_EXEC=QUOTA_OR_RATE_LIMIT"
+                  elif grep -Eiq "sandbox|bubblewrap|bwrap|permission denied|namespace" /tmp/ts-exec.log; then
+                    echo "TS_CODEX_EXEC=DOCKER_SANDBOX_RESTRICTED"
+                  elif grep -Eiq "certificate|dns|connection|proxy|network" /tmp/ts-exec.log; then
+                    echo "TS_CODEX_EXEC=NETWORK_UNAVAILABLE"
+                  else
+                    echo "TS_CODEX_EXEC=RUNTIME_FAILURE"
+                  fi
+                  exit 78
+                }
+              if [ -f /tmp/ts-proof-last.txt ] && grep -Fq "OGENIC_TS_CODEX_READY" /tmp/ts-proof-last.txt; then
+                echo "TS_CODEX_EXEC=SUCCESS"
+                echo "TS_CODEX_EXEC_SANDBOX=READ_ONLY"
+                echo "TS_CODEX_EXEC_ACCOUNT=GPT_TS_CODEX"
+                echo "TS_CODEX_EXEC_NO_RAW_TOKENS=true"
+              else
+                echo "TS_CODEX_EXEC=RESPONSE_MARKER_NOT_FOUND"
+                exit 78
+              fi
+            '
       - name: Publish sanitized credential-free evidence
         if: always()
         uses: actions/upload-artifact@v4
