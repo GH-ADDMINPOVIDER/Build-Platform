@@ -1,0 +1,104 @@
+name: OGE-128 Ephemeral Key Identity Dry Run
+on:
+  push:
+    branches: [task/oge-128-runtime-certificate-20261018]
+    paths: [".github/workflows/oge-128-temp-key-dry-run.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: oge128-key-dry-run
+  cancel-in-progress: false
+jobs:
+  identify:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Guard specific staging runner and ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test "$GITHUB_REF_NAME" = "task/oge-128-runtime-certificate-20261018"
+          echo "EVIDENCE_MODE=READ_ONLY_DRY_RUN"
+      - name: Identify local mTLS test server keys; report only booleans and counts
+        shell: bash
+        run: |
+          node <<'NODE'
+          'use strict';
+          const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto');
+          const now=Date.now();
+          const report={
+            audit:'OGE128_TEMP_KEY_IDENTITY_DRY_RUN',mode:'READ_ONLY',
+            target:'LOCAL_MTLS_TEST_SERVER_KEY_ONLY',cleanup_performed:false,
+            secret_exported:false,leaf_private_key_accessed:false,
+            folders:0,eligible:0,blocked:0,key_pair_matches:0,self_signed_localhost:0,
+            private_key_non_public:0,unexpected_items:0,
+            should_cleanup_if_approved:false,status:'NOT_TESTED',
+            run_id:process.env.GITHUB_RUN_ID,git_sha:process.env.GITHUB_SHA
+          };
+          const safeFlag=(key,val)=>{report[key]=val;};
+          const dirs=fs.readdirSync(os.tmpdir(),{withFileTypes:true})
+            .filter(d=>d.name.startsWith('oge128-local-tls-')).slice(0,16);
+          if(dirs.length===16){report.status='CAP_REACHED_REVIEW_REQUIRED';report.blocked=16;}
+          for(const entry of dirs){
+            report.folders++;
+            let eligible=false;
+            try{
+              if(!entry.isDirectory()||entry.isSymbolicLink())throw Error('TYPE');
+              const dirname=path.join(os.tmpdir(),entry.name),st=fs.lstatSync(dirname);
+              if(st.uid!==process.getuid()||(st.mode&0o077)!==0)throw Error('DIR_PERMISSIONS');
+              const items=fs.readdirSync(dirname).sort();
+              if(items.length!==2||items[0]!=='server.crt'||items[1]!=='server.key'){
+                report.unexpected_items++;throw Error('UNEXPECTED_FILES');
+              }
+              const kp=path.join(dirname,'server.key'),cp=path.join(dirname,'server.crt');
+              const keyInfo=fs.lstatSync(kp),certInfo=fs.lstatSync(cp);
+              if(!keyInfo.isFile()||!certInfo.isFile()||keyInfo.isSymbolicLink()||certInfo.isSymbolicLink())throw Error('FILE_TYPES');
+              if(keyInfo.uid!==process.getuid()||certInfo.uid!==process.getuid())throw Error('OWNERSHIP');
+              if(keyInfo.mode&0o077)throw Error('KEY_PERMISSIONS');
+              report.private_key_non_public++;
+              if(keyInfo.size>12000||certInfo.size>12000||keyInfo.size<100||certInfo.size<100)throw Error('SIZE');
+              // Contents stay only in RAM on Runner-1: no key, cert, fingerprint, path or content printed.
+              const key=crypto.createPrivateKey(fs.readFileSync(kp));
+              const cert=new crypto.X509Certificate(fs.readFileSync(cp));
+              const a=crypto.createPublicKey(key).export({type:'spki',format:'der'});
+              const b=cert.publicKey.export({type:'spki',format:'der'});
+              if(!a.equals(b))throw Error('PAIR_MISMATCH');
+              report.key_pair_matches++;
+              const subject=cert.subject, san=cert.subjectAltName||'';
+              if(!/CN\s*=\s*localhost(?:\n|$)/.test(subject))throw Error('NOT_LOCALHOST');
+              if(!san.includes('DNS:localhost')||!san.includes('IP Address:127.0.0.1'))throw Error('SAN_UNEXPECTED');
+              if(!cert.verify(cert.publicKey))throw Error('NOT_SELF_SIGNED');
+              const from=Date.parse(cert.validFrom),to=Date.parse(cert.validTo);
+              if(!Number.isFinite(from)||!Number.isFinite(to)||to-from>2*86400000||from>now+86400000)throw Error('LIFETIME_UNEXPECTED');
+              report.self_signed_localhost++;
+              eligible=true;
+            }catch{}
+            if(eligible)report.eligible++;else report.blocked++;
+          }
+          if(report.status==='NOT_TESTED')report.status=report.blocked?'REVIEW_REQUIRED':report.folders?'TEST_KEYS_CONFIRMED':'NOTHING_TO_REVIEW';
+          safeFlag('should_cleanup_if_approved',Boolean(report.folders&&report.blocked===0));
+          const lines=Object.entries(report).map(([k,v])=>k+'='+String(v).slice(0,100));
+          for(const [k,v] of Object.entries(report)){
+            if(k==='git_sha'||k==='run_id')continue;
+            console.log('OGE128_DRYRUN_'+k+'='+v);
+          }
+          const body='OGE-128 TEMP KEY DRY-RUN (NO DELETION)\n'
+            +lines.join('\n')
+            +'\nLocal self-signed test key classification only. No production, Infisical leaf, or user files touched.'
+            +'\nTrue historical no-leak assurance is not implied by this test.';
+          fetch('https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/issues/39/comments',{
+            method:'POST',headers:{
+              Authorization:'Bearer '+process.env.GH_TOKEN,
+              Accept:'application/vnd.github+json',
+              'Content-Type':'application/json','User-Agent':'oge128-local-key-proof'
+            },
+            body:JSON.stringify({body}),signal:AbortSignal.timeout(15000)
+          }).then(r=>console.log('OGE128_DRYRUN_RECEIPT_HTTP='+r.status))
+            .catch(()=>console.log('OGE128_DRYRUN_RECEIPT_HTTP=NETWORK_ERROR'));
+          NODE
