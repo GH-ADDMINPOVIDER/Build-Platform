@@ -188,6 +188,13 @@
       "status": "ONE_SELFHOSTED_SERVICE_OBSERVED",
       "other_runner": "NOT_VERIFIED_NOT_CLAIMED",
       "source": "github-actions:39115866114/job/117641403648"
+    },
+    {
+      "event": "plugin_license_registry_requested",
+      "name": "Certificate lincenc",
+      "status": "GITHUB_REGISTRY_DEFINED_D1_WRITE_PENDING",
+      "proof": "Connected MCP namespace inspection and individual read API probes 2026-10-18",
+      "historical_data_deleted": false
     }
   ],
   "secret_contract": {
@@ -385,5 +392,226 @@
     "created_new_certificate_id": false,
     "originally_issued_x509": false,
     "staging_only": true
+  },
+  "plugin_license_registry": {
+    "display_name": "Certificate lincenc",
+    "slug": "certificate_lincenc",
+    "type": "PLUGIN_CONNECTOR_LICENSE_EVIDENCE_REGISTRY",
+    "scope": "OGENIC / WAVE / owner-main / 1LSS_OWNER_MAIN",
+    "logical_separation": "INDEPENDENT_OF_SEVEN_STONES",
+    "execution_authority": "YELLOW_STONE_GATED_WHEN_COMMAND_HAS_SIDE_EFFECTS",
+    "owner_designated_one_certificate_id": "-",
+    "license_is_provider_entitlement": false,
+    "signature_or_oauth_grant_created": false,
+    "active_sessions_are_connection_specific": true,
+    "issuer": "OGENIC OWNER EVIDENCE REGISTRY; NOT PROVIDER SOFTWARE LICENSE",
+    "inventory_as_of": "2026-10-18",
+    "plugin_groups_exposed": 23,
+    "confirmed_connections": 18,
+    "entries": [
+      {
+        "plugin": "AppDeploy",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "app_deploy",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Canva",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "design_and_docs",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "ClickUp",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "task_and_docs",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Context7",
+        "status": "MCP_TOOL_EXPOSED_CONNECTION_UNVERIFIED",
+        "capability": "developer_documentation",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "DataCamp",
+        "status": "MCP_TOOL_EXPOSED_CONNECTION_UNVERIFIED",
+        "capability": "learning_catalog",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "DigitalOcean",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "droplet_control_plane_read",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Figma",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "design",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Firecrawl",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "web_research",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "GitHub",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "version_control,code_review,actions_trigger",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Gmail",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "mail",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Google_Calendar",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "calendar_events",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Google_Contacts",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "contacts",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Google_Drive",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "file_metadata_and_content",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Linear",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "issues_and_tracking",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Lovable",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "web_app_development",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Manus",
+        "status": "MCP_TOOL_EXPOSED_CONNECTION_UNVERIFIED",
+        "capability": "research_delegation",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Microsoft_Outlook_Email",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "mail",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Notion",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "knowledge_registry",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "OpenAI_Platform",
+        "status": "MCP_TOOL_EXPOSED_CONNECTION_UNVERIFIED",
+        "capability": "api_platform",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Plugin_Management",
+        "status": "MCP_TOOL_EXPOSED_CONNECTION_UNVERIFIED",
+        "capability": "plugin_directory_and_controls",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Railway",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "cloud_runtime",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Statsig",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "feature_management",
+        "credential_values_included": false
+      },
+      {
+        "plugin": "Vercel",
+        "status": "VERIFIED_CONNECTED_READ_API",
+        "capability": "cloud_deploy",
+        "credential_values_included": false
+      }
+    ],
+    "connected_identity_refs": {
+      "github_primary": {
+        "account": "Ogenicchocolate21debug",
+        "repository_permission": "admin",
+        "state": "READ_API_VERIFIED"
+      },
+      "github_secondary": {
+        "account": "Wave-Runner-2",
+        "repository_permission": "write",
+        "state": "READ_API_VERIFIED"
+      },
+      "digitalocean": {
+        "droplet": "wave-runner-01",
+        "id": 604432491,
+        "connection": "READ_API_VERIFIED"
+      },
+      "statsig": {
+        "project": "Ogenic-Registry",
+        "connection": "READ_API_VERIFIED"
+      }
+    },
+    "separately_named_skills": [
+      {
+        "name": "treg",
+        "status": "NOT_VERIFIED_AS_MCP_CONNECTOR"
+      },
+      {
+        "name": "UI UX Designer",
+        "status": "NOT_VERIFIED_AS_MCP_CONNECTOR"
+      },
+      {
+        "name": "NVIDIA Skills",
+        "status": "NOT_VERIFIED_AS_MCP_CONNECTOR"
+      },
+      {
+        "name": "Writing Style",
+        "status": "TOOL_SURFACE_EXPOSED_NOT_OAUTH_TESTED"
+      },
+      {
+        "name": "Template Creator",
+        "status": "NOT_VERIFIED_AS_MCP_CONNECTOR"
+      }
+    ],
+    "canonical_storage": {
+      "github": "CURRENT_CERTIFICATE_FILE_NO_NEW_FILE",
+      "cloudflare_d1": {
+        "database": "ogenic-phase-vi-staging",
+        "binding": "DB",
+        "record_type": "certificate_lincenc",
+        "status": "WRITE_PENDING_VERIFICATION",
+        "separate_table_requested": true
+      },
+      "infisical": {
+        "certificate_manager_project": "-",
+        "secret_values_included": false
+      },
+      "raw_credentials_in_registry": false
+    },
+    "constraints": {
+      "no_seven_stones_table_changes": true,
+      "no_main_or_production_mutation": true,
+      "no_secret_contents": true,
+      "no_second_runner_host": true,
+      "owner_marker": "-Ow NOT_AUTHORIZED_BY_BARE_TEXT"
+    }
   }
 }
