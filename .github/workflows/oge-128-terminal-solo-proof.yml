@@ -1,0 +1,55 @@
+name: OGE-128 Terminal Solo Environment Proof
+on:
+  push:
+    branches: [task/oge-128-runtime-certificate-20261018]
+    paths: [".github/workflows/oge-128-terminal-solo-proof.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  terminal-solo:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check one host and three functions without installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test "$GITHUB_REF_NAME" = "task/oge-128-runtime-certificate-20261018"
+          node <<'NODE'
+          const cp=require('node:child_process'),os=require('node:os');
+          const flags={TERMINAL_GROUP:'SOLO',EXECUTION_CONCURRENCY:'ONE_COMMAND_AT_A_TIME_POLICY',RUNNER:'wave-runner-01',
+            OPC_LOCATION:'TERMINAL_NOT_AGENT_REGISTRY',SOLO_E2E:'NOT_PROVEN'};
+          const found=bin=>{
+            try{const r=cp.spawnSync('sh',['-c','command -v '+bin],{timeout:2000,encoding:'utf8',stdio:['ignore','pipe','ignore']});
+              return r.status===0&&!!r.stdout.trim();}catch{return false;}
+          };
+          flags.SSH_CLI=found('ssh')?'INSTALLED':'UNAVAILABLE';
+          flags.IDE_CODE=found('code')?'INSTALLED':'UNAVAILABLE';
+          flags.IDE_CODE_SERVER=found('code-server')?'INSTALLED':'UNAVAILABLE';
+          flags.IDE_OPENVSCODE=found('openvscode-server')?'INSTALLED':'UNAVAILABLE';
+          flags.IDE_NEOVIM=found('nvim')?'INSTALLED':'UNAVAILABLE';
+          flags.IDE_VIM=found('vim')?'INSTALLED':'UNAVAILABLE';
+          flags.OPENCODE_CLI=found('opencode')?'INSTALLED':'NOT_INSTALLED';
+          flags.RAM_MIB=Math.floor(os.totalmem()/1024/1024);
+          flags.CPUS=os.cpus().length;
+          flags.HOST_CHANGES='NONE';
+          flags.PROVIDER_CALLS='NONE';
+          flags.PORTS_OPENED='NONE';
+          const body=['OGE-128 TERMINAL SOLO environment proof',
+            'SHA '+process.env.GITHUB_SHA+' / Run '+process.env.GITHUB_RUN_ID,
+            ...Object.entries(flags).map(([k,v])=>k+'='+v),
+            'SSH | IDEs | OPC are one specialized terminal environment. No app install / no Production changes.'].join('\n');
+          for(const [k,v] of Object.entries(flags))console.log('TERMINAL_'+k+'='+v);
+          fetch('https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/issues/39/comments',{
+            method:'POST',headers:{Authorization:'Bearer '+process.env.GH_TOKEN,'Content-Type':'application/json',
+              'Accept':'application/vnd.github+json','User-Agent':'oge128-terminal-solo-proof'},
+            body:JSON.stringify({body}),signal:AbortSignal.timeout(12000)
+          }).then(res=>console.log('TERMINAL_ISSUE_RECEIPT_HTTP='+res.status))
+            .catch(()=>console.log('TERMINAL_ISSUE_RECEIPT_HTTP=NETWORK_ERROR'));
+          NODE
