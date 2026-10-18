@@ -1,0 +1,70 @@
+{
+  "schema": "ogenic.runtime-certificate-baseline.v1",
+  "certificate_id": "oge-128-wave-runner-01-baseline-20261018",
+  "subject": "wave-runner-01",
+  "environment": "staging",
+  "canonical": {
+    "repository": "Ogenicchocolate21debug/Build-Platform",
+    "branch": "phase-vi-provider-incentive-metering",
+    "conversation_id": "owner-main",
+    "session_line": "1LSS_OWNER_MAIN"
+  },
+  "certificate_manager": {
+    "project": "cert-manager-89-qe",
+    "name": "Certificate Manager",
+    "access": "PASS",
+    "http_status": 200,
+    "machine_identity": "Master Secret Data Gatway",
+    "role": "Admin (Permanent)",
+    "evidence_ref": "github-actions:39030482640/job/117403600915"
+  },
+  "certified_facts": [
+    {
+      "claim": "github.primary.permission",
+      "subject": "Ogenicchocolate21debug",
+      "value": "admin",
+      "evidence_ref": "github-collaborator-permission:2026-10-18"
+    },
+    {
+      "claim": "github.secondary.permission",
+      "subject": "Wave-Runner-2",
+      "value": "write",
+      "evidence_ref": "github-collaborator-permission:2026-10-18"
+    },
+    {
+      "claim": "runner.actions_name",
+      "value": "wave-runner-01",
+      "evidence_ref": "github-actions:39115866114/job/117641403648"
+    },
+    {
+      "claim": "runner.service_count",
+      "value": 1,
+      "evidence_ref": "github-actions:39115866114/job/117641403648"
+    },
+    {
+      "claim": "terminal.transport",
+      "value": "GITHUB_ACTIONS_SELFHOSTED",
+      "evidence_ref": "github-actions:39115866114/job/117641403648"
+    },
+    {
+      "claim": "codex.cli",
+      "value": "AVAILABLE",
+      "evidence_ref": "github-actions:39115866114/job/117641403648"
+    },
+    {
+      "claim": "codex.identity",
+      "subject": "GPT_GS_CODEX",
+      "value": "SIGNED_IN",
+      "path_tag": "~/.codex",
+      "evidence_ref": "github-actions:39115866114/job/117641403648"
+    }
+  ],
+  "proof_policy": {
+    "signed_capability_grant": false,
+    "raw_credentials_included": false,
+    "permissions_granted": [],
+    "note": "Evidence baseline only. A live signed capability certificate still requires an independently trusted issuer and Yellow Stone authorization."
+  },
+  "source_sha": "af77aa993632193c55d23e697eb1e20627e0d727",
+  "recorded_at": "2026-10-18T16:54:00+07:00"
+}
