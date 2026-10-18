@@ -119,6 +119,13 @@ jobs:
           fi
           echo "SSH_PRIVATE_KEY_VALID=true"
           echo "SSH_PRIVATE_KEY_AGENT_LOADED=true"
+          loaded_key_fingerprint="$(ssh-add -L | ssh-keygen -lf - -E md5 | awk 'NR==1 {print $2}')"
+          echo "SSH_PRIVATE_KEY_FINGERPRINT=$loaded_key_fingerprint"
+          if [ "$loaded_key_fingerprint" != "MD5:70:66:fc:1e:e7:18:99:65:b0:d4:82:9d:c7:b8:79:fa" ]; then
+            echo "CONFIGURATION_REQUIRED:PRIVATE_KEY_DOES_NOT_MATCH_DIGITALOCEAN_WAVE_IPHONE"
+            exit 78
+          fi
+          echo "DIGITALOCEAN_WAVE_IPHONE_KEY_MATCH=true"
 
           ssh-keyscan -H 127.0.0.1 > "$known_hosts" 2>/dev/null
           remote_checkout="$(pwd)"
