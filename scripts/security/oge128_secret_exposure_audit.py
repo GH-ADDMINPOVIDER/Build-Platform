@@ -68,10 +68,10 @@ def gitcmd(*args):
  if p.returncode:raise RuntimeError("GIT_COMMAND_FAILED")
  return p.stdout
 def history():
- d={"scope":"CHECKED_OUT_REF_REACHABLE_BLOBS","max_objects":1200,"max_blob_bytes":512000,"scanned":0,"skipped_large":0,"capped":False}
+ d={"scope":"CHECKED_OUT_REF_REACHABLE_BLOBS","max_objects":6000,"max_blob_bytes":512000,"scanned":0,"skipped_large":0,"capped":False}
  try:
-  refs=gitcmd("rev-list","--objects","HEAD").splitlines();d["capped"]=len(refs)>1200
-  for line in refs[:1200]:
+  refs=gitcmd("rev-list","--objects","HEAD").splitlines();d["capped"]=len(refs)>6000
+  for line in refs[:6000]:
    sha=line.split(b" ",1)[0].decode("ascii","ignore")
    if not re.fullmatch("[0-9a-f]{40,64}",sha):continue
    try:
@@ -85,15 +85,31 @@ def history():
  REPORT["github"]["history"]=d
  REPORT["limitations"].append("GIT_NOT_ALL_REFS_OR_UNREACHABLE_DELETED_OBJECTS")
 def runner():
- REPORT["runner"]={
-  "host":os.getenv("RUNNER_NAME"),"oge128_temp_residue_count":
-   sum(len(glob.glob(p)) for p in ("/tmp/oge128-local-tls-*","/tmp/oge128-*.key","/tmp/oge128-*.pem")),
+ import stat, time
+ paths=set()
+ for pat in ("/tmp/oge128-local-tls-*","/tmp/oge128-*.key","/tmp/oge128-*.pem"):
+  paths.update(glob.glob(pat))
+ details={"directories":0,"regular_files":0,"symlinks":0,"other":0,"group_or_world_readable":0,"group_or_world_writable":0,"older_than_1h":0,"owned_by_runner":0}
+ for p in paths:
+  try:
+   info=os.lstat(p);mode=info.st_mode
+   category="directories" if stat.S_ISDIR(mode) else "regular_files" if stat.S_ISREG(mode) else "symlinks" if stat.S_ISLNK(mode) else "other"
+   details[category]+=1
+   details["group_or_world_readable"]+=bool(mode & 0o044)
+   details["group_or_world_writable"]+=bool(mode & 0o022)
+   details["older_than_1h"]+=time.time()-info.st_mtime>3600
+   details["owned_by_runner"]+=info.st_uid==os.getuid()
+  except Exception:pass
+ REPORT["runner"]={"host":os.getenv("RUNNER_NAME"),"oge128_temp_residue_count":len(paths),
+  "temp_metadata_no_pathnames":details,"contents_read":False,
   "system_journal":"NOT_SCANNED","other_user_files":"NOT_SCANNED"}
  REPORT["limitations"].append("RUNNER_GLOBAL_JOURNAL_AND_BACKUPS_UNSCANNED")
 def infreq(path,token="",body=None):
+ headers={"Content-Type":"application/json","User-Agent":"oge128-audit"}
+ if token:headers["Authorization"]="Bearer "+token
  req=urllib.request.Request("https://app.infisical.com"+path,
   data=json.dumps(body).encode() if body is not None else None,
-  headers={"Authorization":"Bearer "+token,"Content-Type":"application/json","User-Agent":"oge128-audit"})
+  headers=headers)
  try:
   with urllib.request.urlopen(req,timeout=16) as res:return res.status,json.loads(res.read(1500000))
  except urllib.error.HTTPError as e:return e.code,{}
