@@ -17,7 +17,7 @@ test("command simple mode accepts natural text with no path and queues only behi
 test("command can search @ agents and optionally open advanced paths", () => {
   const ui = read("src/WaveNext.tsx");
   assert.match(ui, /const MENTION_PRESETS/);
-  assert.match(ui, /@([a-z0-9_.-]+)/i);
+  assert.match(ui, /const activeMention = command\.match/);
   assert.match(ui, /mentionChoices/);
   assert.match(ui, /violet\.agents/);
   assert.match(ui, /aria-label="แนะนำเอเจ้น ทีม และสกิล"/);
