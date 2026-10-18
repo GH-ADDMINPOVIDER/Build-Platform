@@ -11,6 +11,12 @@ on:
 permissions:
   contents: read
   actions: read
+  id-token: write
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
 concurrency:
   group: wave-owner-auth-probe-${{ github.ref }}
   cancel-in-progress: false
@@ -62,17 +68,45 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/owner-terminal-auth-proof.mjs
+      - name: Discover canonical Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+      - name: Load bounded SSH authorization via Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
       - name: Verify SSH root Codex context with sanitized claims
         shell: bash
         run: |
           set -euo pipefail
-          sudo -n true
-          sudo -n -H env \
-            PATH="$PATH" OPENAI_API_KEY="" CODEX_API_KEY="" GH_TOKEN="" GITHUB_TOKEN="" \
-            CODEX_PROOF_OUTPUT=/tmp/root-codex-auth-proof.json \
-            "$(command -v node)" "$(pwd)/scripts/owner-terminal-auth-proof.mjs"
-          sudo -n chown "$(id -u):$(id -g)" /tmp/root-codex-auth-proof.json
-          mv /tmp/root-codex-auth-proof.json root-codex-auth-proof.json
+          test -n "${SSH_KEY:-}"
+          key_file="$RUNNER_TEMP/oge128-root-ssh-key"
+          known_hosts="$RUNNER_TEMP/oge128-known-hosts"
+          cleanup() {
+            command -v shred >/dev/null 2>&1 && shred -u "$key_file" || rm -f "$key_file"
+            rm -f "$known_hosts"
+          }
+          trap cleanup EXIT
+          printf '%s\n' "$SSH_KEY" > "$key_file"
+          chmod 600 "$key_file"
+          ssh-keyscan -H 127.0.0.1 > "$known_hosts" 2>/dev/null
+          remote_checkout="$(pwd)"
+          ssh -i "$key_file" -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes \
+            root@127.0.0.1 \
+            "cd '$remote_checkout' && env PATH='$PATH' OPENAI_API_KEY='' CODEX_API_KEY='' GH_TOKEN='' GITHUB_TOKEN='' CODEX_PROOF_OUTPUT=/tmp/root-codex-auth-proof.json '$(command -v node)' scripts/owner-terminal-auth-proof.mjs"
+          scp -i "$key_file" -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes \
+            root@127.0.0.1:/tmp/root-codex-auth-proof.json root-codex-auth-proof.json
+          ssh -i "$key_file" -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=yes \
+            root@127.0.0.1 "rm -f /tmp/root-codex-auth-proof.json"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
