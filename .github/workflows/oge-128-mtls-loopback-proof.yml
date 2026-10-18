@@ -1,0 +1,153 @@
+name: OGE-128 Staging mTLS Loopback Proof
+on:
+  push:
+    branches: [task/oge-128-runtime-certificate-20261018]
+    paths: [".github/workflows/oge-128-mtls-loopback-proof.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+concurrency:
+  group: oge128-mtls-local-proof
+  cancel-in-progress: false
+jobs:
+  mtls-proof:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 8
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify test is isolated from production and uses existing runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test "$GITHUB_REF_NAME" = "task/oge-128-runtime-certificate-20261018"
+          command -v openssl >/dev/null
+          echo "MTLS_SCOPE=LOOPBACK_ONLY"
+      - name: Authenticate, load existing leaf in memory, prove client-auth TLS locally
+        shell: bash
+        run: |
+          node <<'NODE'
+          'use strict';
+          const tls=require('node:tls'),crypto=require('node:crypto');
+          const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),cp=require('node:child_process');
+          const receipt={SCOPE:'STAGING_LOOPBACK_ONLY',BOUND_TO_WAVE:'NOT_TESTED',MUTATIONS:'NONE'};
+          const note=(k,v)=>{receipt[k]=String(v);console.log('MTLS_'+k+'='+String(v));};
+          async function fetchJson(url,opts){
+            try {
+              const response=await fetch(url,{...opts,signal:AbortSignal.timeout(16000)});
+              if(!response.ok)return {status:response.status};
+              const data=await response.json().catch(()=>null);
+              return {status:response.status,data};
+            }catch {return {status:'NETWORK_ERROR'};}
+          }
+          const host='https://app.infisical.com';
+          async function run(){
+            const a=process.env.ACTIONS_ID_TOKEN_REQUEST_URL, t=process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+            if(!a||!t){note('OIDC','UNAVAILABLE');return;}
+            const jwt=await fetchJson(a,{headers:{Authorization:'Bearer '+t}});
+            if(jwt.status!==200||!jwt.data?.value){note('OIDC','UNAVAILABLE');return;}
+            const login=await fetchJson(host+'/api/v1/auth/oidc-auth/login',{
+              method:'POST',headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({identityId:process.env.INFISICAL_IDENTITY_ID,
+                jwt:jwt.data.value,organizationSlug:process.env.INFISICAL_ORG_SLUG})
+            });
+            if(login.status!==200||!login.data?.accessToken){note('INFISICAL_AUTH','HTTP_'+login.status);return;}
+            note('INFISICAL_AUTH','PASS');
+            const token=login.data.accessToken;
+            const headers={Authorization:'Bearer '+token,'Content-Type':'application/json'};
+            const projects=await fetchJson(host+'/api/v1/projects',{headers});
+            const project=projects.data?.projects?.find(p=>p.slug==='cert-manager-89-qe');
+            if(!project?.id){note('CERT_PROJECT','NOT_VISIBLE');return;}
+            const found=await fetchJson(host+'/api/v1/projects/'+encodeURIComponent(project.id)+'/certificates/search',{
+              method:'POST',headers,body:JSON.stringify({offset:0,limit:100,commonName:'wave-runner-01',status:'active'})
+            });
+            if(found.status!==200){note('INVENTORY','HTTP_'+found.status);return;}
+            const all=found.data?.certificates||[];
+            const leaf=all.find(c=>c.commonName==='wave-runner-01'&&c.status==='active'&&c.applicationName==='oge128-wave-runner-01-staging');
+            if(!leaf?.id){note('LEAF','NOT_IN_APPLICATION');return;}
+            note('LEAF','ACTIVE');
+            note('HAS_PRIVATE_KEY',leaf.hasPrivateKey===true?'YES':'NO');
+            note('NOT_AFTER',leaf.notAfter||'UNAVAILABLE');
+            const now=Date.now();
+            if(Date.parse(leaf.notAfter)<=now||Date.parse(leaf.notBefore)>now){note('TIME_VALIDITY','FAIL');return;}
+            note('TIME_VALIDITY','PASS');
+            if(!leaf.hasPrivateKey){note('HANDSHAKE','BLOCKED_NO_RETRIEVABLE_KEY');return;}
+            const caId=leaf.caId;
+            if(!caId){note('CA','MISSING_ID');return;}
+            const ca=await fetchJson(host+'/api/v1/pki/ca/'+encodeURIComponent(caId)+'/certificate',{headers});
+            if(ca.status!==200||!ca.data?.certificate){note('CA','HTTP_'+ca.status);return;}
+            const bundle=await fetchJson(host+'/api/v1/cert-manager/certificates/'+encodeURIComponent(leaf.id)+'/bundle',{headers});
+            if(bundle.status!==200){note('BUNDLE','HTTP_'+bundle.status);return;}
+            const x=bundle.data||{};
+            if(typeof x.privateKey!=='string'||typeof x.certificate!=='string'||!x.privateKey.includes('PRIVATE KEY')){
+              note('BUNDLE','NO_CLIENT_KEY_OR_CERT');return;
+            }
+            note('BUNDLE','IN_MEMORY_ONLY');
+            let leafCert,caCert;
+            try{
+              leafCert=new crypto.X509Certificate(x.certificate);
+              caCert=new crypto.X509Certificate(ca.data.certificate);
+              const keyPublic=crypto.createPublicKey(x.privateKey).export({type:'spki',format:'der'});
+              const certPublic=leafCert.publicKey.export({type:'spki',format:'der'});
+              if(!keyPublic.equals(certPublic)){note('KEY_PAIR','MISMATCH');return;}
+            }catch {note('KEY_PAIR','INVALID_PEM_OR_KEY');return;}
+            note('KEY_PAIR','MATCH');
+            const runtime=fs.mkdtempSync(path.join(os.tmpdir(),'oge128-local-tls-'));
+            fs.chmodSync(runtime,0o700);
+            try{
+              const serverKey=path.join(runtime,'server.key'),serverPem=path.join(runtime,'server.crt');
+              cp.execFileSync('openssl',['req','-x509','-newkey','ec','-pkeyopt','ec_paramgen_curve:prime256v1',
+                '-nodes','-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1',
+                '-keyout',serverKey,'-out',serverPem],{stdio:'ignore',timeout:12000});
+              const serverOptions={
+                key:fs.readFileSync(serverKey),cert:fs.readFileSync(serverPem),
+                ca:ca.data.certificate,requestCert:true,rejectUnauthorized:true,
+                minVersion:'TLSv1.2'
+              };
+              let serverAuthenticated=false;
+              const server=tls.createServer(serverOptions,socket=>{
+                if(socket.authorized){serverAuthenticated=true;socket.end('OK');}
+                else socket.destroy();
+              });
+              const status=await new Promise(resolve=>{
+                let resolved=false;
+                const done=v=>{if(resolved)return;resolved=true;resolve(v);};
+                const timer=setTimeout(()=>done('TIMEOUT'),7000);
+                server.on('error',()=>{clearTimeout(timer);done('SERVER_ERROR')});
+                server.listen(0,'127.0.0.1',()=>{
+                  const socket=tls.connect({
+                    host:'127.0.0.1',port:server.address().port,servername:'localhost',
+                    key:x.privateKey,cert:x.certificate+(x.certificateChain||''),
+                    ca:fs.readFileSync(serverPem),rejectUnauthorized:true,minVersion:'TLSv1.2'
+                  });
+                  socket.setTimeout(5000,()=>{socket.destroy();clearTimeout(timer);done('TIMEOUT')});
+                  let got='';
+                  socket.on('data',b=>{got+=b.toString('utf8').slice(0,10)});
+                  socket.on('end',()=>{clearTimeout(timer);done(socket.authorized&&serverAuthenticated&&got.includes('OK')?'PASS':'FAIL')});
+                  socket.on('error',()=>{clearTimeout(timer);done('TLS_CLIENT_ERROR')});
+                });
+              });
+              server.close();
+              note('LOOPBACK_MTLS_HANDSHAKE',status);
+              note('MUTUAL_CERT_AUTH',status==='PASS'?'PASS':'NOT_PROVEN');
+            }finally{fs.rmSync(runtime,{recursive:true,force:true});}
+          }
+          run().catch(()=>note('TEST','FAILED_CLOSED')).finally(async()=>{
+            const body=['OGE-128 mTLS proof (Runner-1 / staging loopback)',
+              'Source SHA: '+process.env.GITHUB_SHA+' / Run: '+process.env.GITHUB_RUN_ID,
+              ...Object.entries(receipt).map(([k,v])=>'MTLS_'+k+'='+String(v).slice(0,100)),
+              'No leaf private key, certificate body, bearer token or credential exported.',
+              'This does not prove WAVE external endpoint binding or execution grant.'].join('\n');
+            await fetch('https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/issues/39/comments',{
+              method:'POST',headers:{Authorization:'Bearer '+process.env.GH_TOKEN,Accept:'application/vnd.github+json',
+                'Content-Type':'application/json','User-Agent':'oge128-mtls-local-proof'},
+              body:JSON.stringify({body}),signal:AbortSignal.timeout(15000)
+            }).then(r=>note('ISSUE_RECEIPT_HTTP',r.status)).catch(()=>note('ISSUE_RECEIPT_HTTP','NETWORK_ERROR'));
+          });
+          NODE
