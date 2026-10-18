@@ -17,9 +17,9 @@ jobs:
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 8
     env:
-      INFISICAL_IDENTITY_ID: \${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
-      INFISICAL_ORG_SLUG: \${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
-      GH_TOKEN: \${{ github.token }}
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Confirm staging-only host
         run: |
