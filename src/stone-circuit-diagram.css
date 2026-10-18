@@ -64,3 +64,27 @@
 @media(prefers-reduced-motion:reduce){
   .scTrace,.scMobileSignal{animation:none!important}
 }
+
+
+/* Terminal Block is an execution environment; not a new stone or agent registry. */
+.scTerminalEnvironment{margin:14px 16px 6px;padding:16px;border:1px solid rgba(174,212,203,.3);border-radius:16px;background:linear-gradient(115deg,rgba(22,35,38,.86),rgba(15,27,28,.95))}
+.scTerminalHeading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.scTerminalHeading small{font:800 10px/1.2 ui-monospace,SFMono-Regular,monospace;letter-spacing:.08em;color:#8fe1c1}
+.scTerminalHeading h4{margin:6px 0 4px;font-size:16px;letter-spacing:.02em;color:#f3faf8}
+.scTerminalHeading p{margin:0;color:#b9cec8;font-size:11px;line-height:1.65}
+.scTerminalFlag{flex-shrink:0;padding:7px 9px;border:1px solid rgba(166,199,197,.32);border-radius:999px;color:#bfd5d2;font:800 9px/1.25 ui-monospace,monospace;letter-spacing:.04em}
+.scTerminalTools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}
+.scTerminalTool{display:flex;align-items:center;gap:10px;min-width:0;padding:12px;border:1px solid rgba(181,211,204,.23);border-radius:12px;background:rgba(255,255,255,.045)}
+.scTerminalGlyph{flex:none;display:grid;place-items:center;width:36px;height:36px;border:1px solid rgba(196,230,213,.32);border-radius:10px;color:#bcf4d7;background:rgba(163,232,204,.09);font-size:22px}
+.scTerminalTool strong{display:block;color:#f5fbf8;font-size:13px}
+.scTerminalTool small{display:block;margin:4px 0;font:800 9px/1.3 ui-monospace,monospace;letter-spacing:.03em;color:#86e3bf}
+.scTerminalTool p{margin:0;color:#aabeb7;font-size:10px;line-height:1.45}
+.scTerminalBoundary{margin:0;padding-top:9px;border-top:1px solid rgba(173,217,197,.14);color:#a6bdb4;font-size:10.5px;line-height:1.6}
+.scTerminalBoundary b{color:#d7eee3}
+@media(max-width:720px){
+  .scTerminalEnvironment{margin:12px;padding:13px}
+  .scTerminalHeading{display:block}
+  .scTerminalFlag{display:inline-block;margin-top:10px}
+  .scTerminalTools{grid-template-columns:1fr}
+  .scTerminalTool{min-height:60px}
+}
