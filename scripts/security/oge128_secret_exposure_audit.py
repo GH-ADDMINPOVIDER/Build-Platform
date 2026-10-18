@@ -100,8 +100,23 @@ def runner():
    details["older_than_1h"]+=time.time()-info.st_mtime>3600
    details["owned_by_runner"]+=info.st_uid==os.getuid()
   except Exception:pass
+ nested={"total_entries":0,"regular_files":0,"private_key_named_files":0,"world_or_group_readable_files":0,"symlinks":0}
+ for root in sorted(paths):
+  if not os.path.isdir(root) or os.path.islink(root):continue
+  try:
+   entries=list(os.scandir(root))[:40]
+   for e in entries:
+    try:
+     meta=e.stat(follow_symlinks=False)
+     nested["total_entries"]+=1
+     nested["regular_files"]+=stat.S_ISREG(meta.st_mode)
+     nested["symlinks"]+=stat.S_ISLNK(meta.st_mode)
+     nested["world_or_group_readable_files"]+=bool(meta.st_mode & 0o044)
+     nested["private_key_named_files"]+=bool(re.search(r"(\\.key$|private.*\\.pem$|server\\.key$)",e.name,re.I))
+    except Exception:pass
+  except Exception:pass
  REPORT["runner"]={"host":os.getenv("RUNNER_NAME"),"oge128_temp_residue_count":len(paths),
-  "temp_metadata_no_pathnames":details,"contents_read":False,
+  "temp_metadata_no_pathnames":details,"nested_temp_metadata_no_pathnames":nested,"contents_read":False,
   "system_journal":"NOT_SCANNED","other_user_files":"NOT_SCANNED"}
  REPORT["limitations"].append("RUNNER_GLOBAL_JOURNAL_AND_BACKUPS_UNSCANNED")
 def infreq(path,token="",body=None):
