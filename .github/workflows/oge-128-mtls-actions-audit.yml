@@ -1,0 +1,45 @@
+name: OGE-128 mTLS Actions Audit
+on:
+  push:
+    branches: [task/oge-128-runtime-certificate-20261018]
+    paths: [".github/workflows/oge-128-mtls-actions-audit.yml"]
+  workflow_dispatch:
+permissions:
+  actions: read
+  issues: write
+  contents: read
+jobs:
+  audit:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 4
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Identify real mTLS Actions job conclusion
+        shell: bash
+        run: |
+          node <<'NODE'
+          async function go(){
+            const h={Authorization:'Bearer '+process.env.GH_TOKEN,Accept:'application/vnd.github+json','User-Agent':'oge128-mtls-run-audit'};
+            const q=await fetch('https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/actions/runs?branch=task%2Foge-128-runtime-certificate-20261018&per_page=60',{
+              headers:h,signal:AbortSignal.timeout(15000)
+            });
+            let facts={AUDIT_HTTP:q.status,RUN_ID:'UNKNOWN',CONCLUSION:'UNVERIFIED',STATUS:'UNKNOWN'};
+            if(q.ok){
+              const data=await q.json();
+              const item=(data.workflow_runs||[]).find(w=>w.name==='OGE-128 Staging mTLS Loopback Proof');
+              if(item)facts={AUDIT_HTTP:200,RUN_ID:item.id,CONCLUSION:item.conclusion||'PENDING',STATUS:item.status};
+              else facts={AUDIT_HTTP:200,RUN_ID:'NOT_LISTED',CONCLUSION:'NOT_TRIGGERED_OR_NOT_VISIBLE',STATUS:'NOT_LISTED'};
+            }
+            const body=['OGE-128 mTLS run index audit',...Object.entries(facts).map(([key,value])=>key+'='+value),
+              'Audit SHA '+process.env.GITHUB_SHA+' / Run '+process.env.GITHUB_RUN_ID].join('\n');
+            for(const [key,val] of Object.entries(facts))console.log('MTLS_RUN_'+key+'='+val);
+            const comment=await fetch('https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/issues/39/comments',{
+              method:'POST',headers:{...h,'Content-Type':'application/json'},body:JSON.stringify({body}),
+              signal:AbortSignal.timeout(12000)
+            });
+            console.log('MTLS_RUN_RECEIPT_HTTP='+comment.status);
+          }
+          go().catch(()=>console.log('MTLS_RUN_AUDIT=UNAVAILABLE'));
+          NODE
