@@ -53,7 +53,15 @@ const guard = [
 
 const run = spawnSync("codex", ["exec", "--sandbox", "workspace-write", "--skip-git-repo-check", guard], {
   cwd: workspace,
-  env: { ...process.env, CODEX_HOME: codexHome },
+  // Do not leak Infisical/GitHub/Cloudflare/Owner credentials to the coding child.
+  // Parent alone retains OGENIC_OPS_KEY to submit the command result receipt.
+  env: Object.fromEntries([
+    ...["PATH","HOME","USER","LOGNAME","SHELL","LANG","LC_ALL","LC_CTYPE","TMPDIR","TERM",
+        "SSL_CERT_FILE","SSL_CERT_DIR"].filter((name) => typeof process.env[name] === "string")
+      .map((name) => [name, process.env[name]]),
+    ["CODEX_HOME", codexHome],
+    ["OGENIC_EXECUTION_SCOPE", "staging-only"]
+  ]),
   encoding: "utf8",
   timeout: 15 * 60 * 1000,
   maxBuffer: 1024 * 1024,
