@@ -2,13 +2,25 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { loadTs } from "./_load-ts.mjs";
+import ts from "typescript";
 
 const entry=readFileSync(new URL("../worker/entry-yellow-stone.ts",import.meta.url),"utf8");
 const mcp=readFileSync(new URL("../worker/mcp-config-api.ts",import.meta.url),"utf8");
 const solo=readFileSync(new URL("../scripts/wave-terminal-solo.sh",import.meta.url),"utf8");
+async function loadProtocolBridge() {
+  const {connectorModes,connectorAliases}=await loadTs("worker/connector-endpoint-api.ts");
+  const source=readFileSync(new URL("../worker/connector-protocol-bridge.ts",import.meta.url),"utf8");
+  const injected=source.replace(
+    'import { connectorModes, connectorAliases } from "./connector-endpoint-api";',
+    "const connectorModes="+JSON.stringify(connectorModes)+";\nconst connectorAliases="+JSON.stringify(connectorAliases)+";",
+  );
+  const js=ts.transpileModule(injected,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
+  return import("data:text/javascript;base64,"+Buffer.from(js).toString("base64"));
+}
+
 
 test("all fifteen OGE-128 protocol categories are explicitly routable, not fifteen shell permissions",async()=>{
-  const {protocolCatalog,protocolActions,normalizeProtocolInvocation:n}=await loadTs("worker/connector-protocol-bridge.ts");
+  const {protocolCatalog,protocolActions,normalizeProtocolInvocation:n}=await loadProtocolBridge();
   assert.equal(protocolCatalog.length,15);
   assert.equal(new Set(protocolCatalog.map(x=>x.transport)).size,15);
   for(const mode of protocolCatalog) {
@@ -22,7 +34,7 @@ test("all fifteen OGE-128 protocol categories are explicitly routable, not fifte
 });
 
 test("strict schema rejects injection, unapproved capabilities and credential-bearing inputs",async()=>{
-  const {normalizeProtocolInvocation:n}=await loadTs("worker/connector-protocol-bridge.ts");
+  const {normalizeProtocolInvocation:n}=await loadProtocolBridge();
   assert.equal(n({transport:"rest_api",operation:"inspect"}).value.transport,"api");
   assert.equal(n({transport:"npx",operation:"plan",command:"Review staging package scripts"}).ok,true);
   assert.equal(n({transport:"api",operation:"inspect",environment:"production"}).code,"ENVIRONMENT_SCOPE_MISMATCH");
