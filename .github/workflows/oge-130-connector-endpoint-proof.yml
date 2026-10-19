@@ -30,7 +30,7 @@ jobs:
           test "$GITHUB_REF_NAME" = feature/wave-liquid-glass-command-ux-20261018
           node --test tests/wave-connector-endpoint.test.mjs tests/wave-command-contract.test.mjs tests/athena-guarded-command-handoff.test.mjs
       - name: Install dependencies and typecheck
-        run: npm ci && npm run typecheck
+        run: npm install --no-package-lock --no-audit --no-fund && npm run typecheck
       - name: Build Cloudflare Worker/Frontend bundle (not deploy)
         run: npm run build
       - name: Bounded readiness receipt
