@@ -15,3 +15,7 @@ Typing `@pstack` or `/pstack` as a whole draft opens the WAVE local guided-workf
 
 ## iPhone no-stacking UX after observed ATHENA_TOOL_LOOP_LIMIT
 Select exactly ONE pstack preset; selection fills no template body. Type a concrete task separately. Changing presets removes any exact old known preset paragraphs and leaves user text. Sending a selected workflow without a task must be blocked locally, before AI tool calls. Maintain ATHENA's bounded tool-loop safety; do not increase max iterations. A normal completed provider turn is needed for any future claim that an agent executed this workflow.
+
+
+## Curated local workflow extensions
+The existing WAVE P-Stack picker also exposes `diagram-design`, `engineering-loop`, and `agent-harness-guardrails` from `config/pstack-workflows.json`. These are OGENIC-authored guided workflows, not installations of the full upstream plugins. See `docs/architecture/EXTERNAL_SKILL_ADOPTIONS.md` for provenance and selection rationale. Keep the original 51 numbered P-Stack source manifest and taxonomy unchanged; never renumber or merge these local extensions into that upstream manifest. Workflow selection only prepares a draft; the owner must explicitly Send before any model call.
