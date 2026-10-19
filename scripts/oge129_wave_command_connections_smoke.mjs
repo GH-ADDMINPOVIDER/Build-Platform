@@ -81,8 +81,10 @@ if(cookie){
   const secondGate=yellow.code===409&&yellow.body?.code==="HUMAN_APPROVAL_REQUIRED"
     &&yellow.body?.approval?.required===true
     &&yellow.body?.verification?.status==="blocked";
-  summary("YELLOW_NONREAD_PERMISSION_GATE",secondGate?"PASS":"FAIL",
-    {http_status:yellow.code,code:yellow.body?.code||"UNAVAILABLE"});
+  summary("YELLOW_NONREAD_PERMISSION_GATE",secondGate?"PASS":
+    yellow.code===404&&yellow.body?.code==="RESOLVER_UNAVAILABLE"?"BLOCKED_CAPABILITY_NOT_REGISTERED":"FAIL",
+    {http_status:yellow.code,code:yellow.body?.code||"UNAVAILABLE",
+     gate_bypassed:false,source:"EXISTING_STAGING_PROVIDER_CAPABILITY_REGISTRY"});
   // Read-only provider connection route; no execution/import.
   const n8n=await jsonGet(base+"/api/n8n/migration/selfhost/status",{cookie});
   summary("WAVE_N8N_SELFHOST_READINESS",n8n.code===200&&n8n.body?.ok===true&&n8n.body?.destination?.reachable===true?"PASS":
@@ -95,14 +97,27 @@ if(cookie){
 }
 const n8nDirect=await jsonGet("https://n8n-staging-76b7.up.railway.app/healthz");
 summary("N8N_HTTP_HEALTH",n8nDirect.code===200?"PASS":"UNVERIFIED",{http_status:n8nDirect.code});
-// Independent GitHub identity and dispatch workflow metadata. NO dispatch performed.
+// GitHub dispatch workflow must be registered on default branch to be addressable.
+// Merely having a YAML file on a staging branch is NOT dispatchable.
 try{
   const resp=await fetch("https://api.github.com/repos/"+ghrepo+"/actions/workflows/wave-command-consumer.yml",
     {headers:ghHeaders,redirect:"error",signal:AbortSignal.timeout(timeout)});
   const body=await resp.json().catch(()=>({}));
-  summary("GITHUB_CONSUMER_WORKFLOW_READ",resp.status===200&&body?.state==="active"?"PASS":"UNVERIFIED",
-    {http_status:resp.status,workflow_state:body?.state||"NOT_LISTED"});
-}catch{summary("GITHUB_CONSUMER_WORKFLOW_READ","UNVERIFIED_NETWORK");}
+  summary("GITHUB_CONSUMER_REGISTERED_DEFAULT",
+    resp.status===200&&body?.state==="active"?"PASS":
+    resp.status===404?"BLOCKED_WORKFLOW_NOT_REGISTERED":"UNVERIFIED",
+    {http_status:resp.status,workflow_state:body?.state||"NOT_REGISTERED",
+      workflow_dispatch_attempted:false});
+}catch{summary("GITHUB_CONSUMER_REGISTERED_DEFAULT","UNVERIFIED_NETWORK");}
+try{
+  const resp=await fetch("https://api.github.com/repos/"+ghrepo+
+    "/contents/.github/workflows/wave-command-consumer.yml?ref=phase-vi-provider-incentive-metering",
+    {headers:ghHeaders,redirect:"error",signal:AbortSignal.timeout(timeout)});
+  const body=await resp.json().catch(()=>({}));
+  summary("GITHUB_CONSUMER_FILE_STAGING",
+    resp.status===200&&body?.path===".github/workflows/wave-command-consumer.yml"?"PASS":"UNVERIFIED",
+    {http_status:resp.status,file_present_on_staging:resp.status===200});
+}catch{summary("GITHUB_CONSUMER_FILE_STAGING","UNVERIFIED_NETWORK");}
 // Identity OIDC was performed by the existing Infisical action; never return secret values.
 summary("INFISICAL_OIDC_CREDENTIAL_BIND",process.env.OGENIC_OPS_KEY?"PASS":"NOT_VERIFIED",
   {credentials_logged:false});
@@ -122,6 +137,21 @@ if(cfAccount&&cfToken){
     summary("CLOUDFLARE_D1_READ_ONLY",response.status===200&&raw.success===true&&Number.isFinite(Number(nr))?"PASS":"BLOCKED",
       {http_status:response.status,rows_count:Number.isFinite(Number(nr))?Number(nr):null,query_is_read_only:true});
   }catch{summary("CLOUDFLARE_D1_READ_ONLY","UNVERIFIED_NETWORK")}
+  // Registry metadata only. Never select tokens, document_json, bindings secrets or provider payloads.
+  try{
+    const response=await fetch(q,{method:"POST",headers:{
+      Authorization:"Bearer "+cfToken,"Content-Type":"application/json","User-Agent":"ogenic-oge129-capability-audit"},
+      body:JSON.stringify({sql:
+        "SELECT c.permission_class AS permission_class, COUNT(*) AS n FROM provider_capabilities pc JOIN capabilities c ON c.id=pc.capability_id GROUP BY c.permission_class",
+        params:[]}),redirect:"error",signal:AbortSignal.timeout(timeout)});
+    const data=await response.json().catch(()=>({}));
+    const records=data.result?.[0]?.results||[];
+    const classes=Object.fromEntries(records.map(row=>[String(row.permission_class).slice(0,32),Number(row.n)||0]));
+    summary("D1_STAGING_CAPABILITY_METADATA",
+      response.status===200&&data.success===true?"PASS":"UNVERIFIED",
+      {http_status:response.status,capabilities_by_permission:classes,
+        non_read_registered:["WRITE","EXECUTE","DANGEROUS"].some(c=>(classes[c]||0)>0)});
+  }catch{summary("D1_STAGING_CAPABILITY_METADATA","UNVERIFIED_NETWORK")}
 }else summary("CLOUDFLARE_D1_READ_ONLY","NOT_VERIFIED_CREDENTIALS_MISSING");
 const outcome={
   protocol:"OGE129_WAVE_COMMAND_CONNECTOR_SMOKE_V1",
@@ -129,7 +159,7 @@ const outcome={
   source_sha:process.env.GITHUB_SHA,started_at:new Date().toISOString(),
   no_mutating_command_submitted:true,no_workflow_dispatch_submitted:true,
   no_public_endpoints_opened:true,no_prod_changes:true,no_secrets_in_receipt:true,
-  results,counts:Object.fromEntries(["PASS","FAIL","BLOCKED","UNVERIFIED"].map(k=>[k,
+  results,counts:Object.fromEntries(["PASS","FAIL","BLOCKED","UNVERIFIED","NOT_VERIFIED","NOT_TESTED"].map(k=>[k,
     results.filter(x=>x.status===k||x.status.startsWith(k+"_")).length]))
 };
 const body="### OGE-129 · WAVE Command/Connector Staging Smoke\n"+
