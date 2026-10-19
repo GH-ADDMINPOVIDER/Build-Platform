@@ -28,7 +28,9 @@ import { createMaopLabApi } from "./maop-lab-api";
 import { createUseCardApi } from "./use-card-api";
 import { createCapabilityCardStoneApi } from "./capability-card-stone-api";
 import { createN8nMigrationApi } from "./n8n-migration-api";
-import { hasOwnerOrOpsAccess } from "./app-auth";
+import { hasOwnerOrOpsAccess, hasOwnerSession } from "./app-auth";
+import { readConnectorRegistry, testConnector, recentConnectorEvents } from "./connector-runtime";
+import { verifiedFunctionTools, executeVerifiedTool, type VerifiedToolBindings } from "./verified-function-tools";
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { planAthenaCommand } from "./athena-command-planner";
 import { normalizeWaveCommandBody, waveCommandPolicy } from "./wave-command-contract";
@@ -511,6 +513,100 @@ export default {
       if (pathname === "/api/connector-endpoint/v1/manifest" && request.method === "GET") {
         return Response.json(connectorManifest, { headers: { "Cache-Control": "no-store" } });
       }
+      if (pathname === "/api/connector-endpoint/v1/functions" && request.method === "GET") {
+        return Response.json({
+          ok: true, version: connectorManifest.version, environment: "staging",
+          access: "EXISTING_OWNER_SESSION", read_only: true,
+          functions: verifiedFunctionTools.map((tool) => ({
+            name: tool.name, description: tool.description,
+            risk: "READ", verified_execution_scope: "EXISTING_SEVEN_READ_TOOLS",
+            parameters: tool.parameters,
+          })),
+          utilities: [
+            { name: "connector_test", endpoint: connectorManifest.connector_test, risk: "READ_PROBE" },
+            { name: "mcp_discover", endpoint: connectorManifest.mcp_discover, risk: "READ_DISCOVERY" },
+            { name: "connector_events", endpoint: connectorManifest.events, risk: "READ_METADATA" },
+          ],
+          write_execution: "YELLOW_STONE_OWNER_SIGN_REQUIRED", connector_modes: connectorManifest.transports,
+          runtime_e2e_proven: false,
+        }, { headers: { "Cache-Control": "no-store" } });
+      }
+      if ((pathname === "/api/connector-endpoint/v1/invoke" ||
+           pathname === "/api/connector-endpoint/v1/functions/invoke") && request.method === "POST") {
+        // The original verified-function bridge is OWNER-ONLY; an OPS token
+        // must not widen access to 1LSS messages or repository file content.
+        if (!(await hasOwnerSession(request, env))) {
+          return Response.json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, {
+            status: 401, headers: { "Cache-Control": "no-store" },
+          });
+        }
+        const raw = await request.text();
+        if (raw.length > 12000) {
+          return Response.json({ ok: false, code: "FUNCTION_TOO_LARGE" }, { status: 413 });
+        }
+        let body: Record<string, unknown> | null = null;
+        try { body = JSON.parse(raw) as Record<string, unknown>; } catch { /* Reject malformed JSON. */ }
+        if (!body || typeof body !== "object" || Array.isArray(body) ||
+            Object.keys(body).some((key) => key !== "name" && key !== "arguments") ||
+            !body.arguments || typeof body.arguments !== "object" || Array.isArray(body.arguments) ||
+            typeof body.name !== "string" || body.name.length > 100) {
+          return Response.json({ ok: false, code: "INVALID_FUNCTION_ENVELOPE" }, { status: 422 });
+        }
+        const name = body.name;
+        if (!verifiedFunctionTools.some((tool) => tool.name === name)) {
+          return Response.json({
+            ok: false, code: "HUMAN_APPROVAL_REQUIRED",
+            message: "Only pre-registered read-only functions may execute directly. Consequential actions must use the WAVE Command Owner sign gate.",
+            command: connectorManifest.command,
+          }, { status: 409, headers: { "Cache-Control": "no-store" } });
+        }
+        const result = await executeVerifiedTool(name, body.arguments, env as VerifiedToolBindings);
+        return Response.json({
+          ...result, route: "CONNECTOR_ENDPOINT_VERIFIED_READ", execution_authority: "READ_ONLY",
+        }, { status: result.ok === true ? 200 : 422, headers: { "Cache-Control": "no-store" } });
+      }
+      if (pathname === "/api/connector-endpoint/v1/test" && request.method === "POST") {
+        if (!(await hasOwnerSession(request, env))) {
+          return Response.json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, { status: 401 });
+        }
+        const raw = await request.text();
+        if (raw.length > 1200) return Response.json({ ok: false, code: "TEST_TOO_LARGE" }, { status: 413 });
+        let body: Record<string, unknown> | null = null;
+        try { body = JSON.parse(raw) as Record<string, unknown>; } catch { /* no-op */ }
+        if (!body || typeof body !== "object" || Array.isArray(body) ||
+            Object.keys(body).some((key) => key !== "connector") ||
+            typeof body.connector !== "string" || !/^[a-z0-9_-]{1,60}$/.test(body.connector)) {
+          return Response.json({ ok: false, code: "INVALID_CONNECTOR_TEST" }, { status: 422 });
+        }
+        const result = await testConnector(env, body.connector);
+        // This probes an existing provider adapter. CONFIGURED is NOT a write
+        // permission, and read health must not be reported as full E2E.
+        return Response.json({ ok: result.ok === true, test: result, full_e2e_proven: false }, {
+          status: result.ok === true ? 200 : 503, headers: { "Cache-Control": "no-store" },
+        });
+      }
+      if (pathname === "/api/connector-endpoint/v1/events" && request.method === "GET") {
+        if (!(await hasOwnerSession(request, env))) {
+          return Response.json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, { status: 401 });
+        }
+        if (!(env as {DB?: unknown}).DB) return Response.json({ ok: false, code: "CONFIGURATION_REQUIRED" }, { status: 503 });
+        const rawLimit = new URL(request.url).searchParams.get("limit") ?? "20";
+        if (!/^[0-9]{1,3}$/.test(rawLimit)) return Response.json({ ok: false, code: "INVALID_LIMIT" }, { status: 422 });
+        return Response.json({ ok: true, events: await recentConnectorEvents(env, Number(rawLimit)), raw_credential_values_exposed: false }, {
+          headers: { "Cache-Control": "no-store" },
+        });
+      }
+      if (pathname === "/api/connector-endpoint/v1/mcp/discover" && request.method === "GET") {
+        const provider = new URL(request.url).searchParams.get("provider") ?? "";
+        if (!/^[a-z0-9][a-z0-9_-]{0,79}$/.test(provider)) {
+          return Response.json({ ok: false, code: "INVALID_PROVIDER" }, { status: 422 });
+        }
+        const target = new URL(request.url);
+        target.pathname = "/api/mcp-config/discover";
+        target.search = new URLSearchParams({ provider }).toString();
+        // Delegate to existing allowlisted remote MCP initialize/tools-list.
+        return mcpConfigApi.fetch(new Request(target.toString(), request), env as never, ctx as never);
+      }
       if (pathname === "/api/connector-endpoint/v1/status" && request.method === "GET") {
         const stateUrl = new URL(request.url);
         stateUrl.pathname = "/api/mcp-config/state";
@@ -528,8 +624,16 @@ export default {
             runtime_execution_verified: false,
           };
         });
+        const providerStates = await readConnectorRegistry(env);
         return Response.json({
           ...connectorManifest,
+          provider_statuses: providerStates.map((item) => ({
+            id: item.id, kind: item.kind, state: item.state, route_mode: item.route_mode,
+            // The existing runtime registry reports config/health only; never
+            // promote its status into an authorized end-to-end execution proof.
+            authorized_execution_verified: false,
+            full_e2e_proven: false,
+          })),
           registry: { ok: state.ok === true, bindings: metadata, count: metadata.length },
           runtime_command_e2e_proven: false,
           binding_list_does_not_prove_adapter_execution: true,
