@@ -7,6 +7,7 @@ import WaveNext from "./WaveNext";
 import WaveDashboard from "./WaveDashboard";
 import WaveThemeToggle from "./WaveThemeToggle";
 import MaopLab from "./MaopLab";
+import WavePolicy from "./WavePolicy";
 
 const LegacyControlSurface = lazy(() => import("./LegacyControlSurface"));
 import "./unified-chat.css";
@@ -17,6 +18,7 @@ import "./wave-dashboard.css";
 import "./wave-route-polish.css";
 import "./wave-theme.css";
 import "./maop-lab.css";
+import "./wave-policy.css";
 
 const nativeApp = Capacitor.isNativePlatform();
 const WAVE_ORIGIN = "https://wave.ogenicchocolate.com";
@@ -124,6 +126,7 @@ const pathname = window.location.pathname;
 const params = new URLSearchParams(window.location.search);
 const explicitAppRoute = pathname === "/app" || pathname.startsWith("/app/");
 const webChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
+const policyRoute = !nativeApp && (pathname === "/policy" || pathname.startsWith("/policy/") || pathname === "/security" || pathname === "/verification");
 const commandRoute = !nativeApp && (pathname === "/command" || pathname.startsWith("/command/"));
 const agentsRoute = !nativeApp && (pathname === "/agents" || pathname.startsWith("/agents/"));
 const maopLabRoute = !nativeApp && (pathname === "/maop" || pathname.startsWith("/maop/"));
@@ -134,14 +137,16 @@ const waveNextRoute = !nativeApp && !legacyOverviewRoute && (
   pathname.startsWith("/overview/next/")
 );
 const controlRoute = commandRoute || agentsRoute || maopLabRoute || dashboardRoute || pathname.startsWith("/overview/");
-const shortcutApp = !webChatRoute && !controlRoute && params.get("source") === "app";
+const shortcutApp = !webChatRoute && !controlRoute && !policyRoute && params.get("source") === "app";
 const landingRoute = !nativeApp && pathname === "/";
-const appRoute = explicitAppRoute || (!webChatRoute && !controlRoute && (params.get("mobile") === "1" || shortcutApp));
+const appRoute = explicitAppRoute || (!webChatRoute && !controlRoute && !policyRoute && (params.get("mobile") === "1" || shortcutApp));
 const unifiedChatSurface = !controlRoute && !landingRoute && (nativeApp || appRoute || webChatRoute);
 const sourceSurface = webChatRoute ? "ogenic-web" as const : "ogenic-app" as const;
 
 document.title = landingRoute
   ? "WAVE — WEB"
+  : policyRoute
+    ? "WAVE — POLICY · SECURITY & VERIFICATION"
   : commandRoute
     ? "WAVE — COMMAND"
     : agentsRoute
@@ -161,7 +166,7 @@ function surfaceTitle(surface: "ogenic-web" | "ogenic-app") {
 }
 
 function SurfaceBridge() {
-  if (landingRoute || nativeApp || dashboardRoute || waveNextRoute || commandRoute || agentsRoute) return null;
+  if (landingRoute || policyRoute || nativeApp || dashboardRoute || waveNextRoute || commandRoute || agentsRoute) return null;
   const links = controlRoute
     ? [["WEB", "/"], ["CHAT", "/chat"], ["COMMAND", "/command"]]
     : [["WEB", "/"], ["COMMAND", "/command"], ["OPERATE", "/overview"]];
@@ -209,6 +214,8 @@ createRoot(document.getElementById("root")!).render(
     <SurfaceBridge />
     {landingRoute
       ? <Landing />
+      : policyRoute
+        ? <WavePolicy />
       : dashboardRoute
         ? <WaveDashboard />
       : commandRoute
