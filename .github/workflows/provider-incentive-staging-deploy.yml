@@ -416,6 +416,18 @@ jobs:
           printf '%s' "$BODY" | jq -e '.ok == true or .status == "ok" or .status == "healthy"' >/dev/null
           echo "Staging deploy verified: ${STAGING_URL}"
 
+      - name: Verify connector mode endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::OGENIC_OPS_KEY is unavailable for connector endpoint verification"; exit 1; }
+          BODY="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 --retry-all-errors \
+            -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" \
+            "${STAGING_URL}/api/connector-modes/status?probe=1")"
+          printf '%s' "$BODY" | jq -e '.ok == true and .modes_documented == 15 and .full_e2e_proven == false and (.modes | length == 15)' >/dev/null
+          printf '%s' "$BODY" | jq -e '([paths(scalars) as $p | getpath($p) | strings | select(test("(?i)(sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9]{12,}|bearer\\s+[A-Za-z0-9._~+/-]{12,}|-----BEGIN .*PRIVATE KEY-----)"))] | length) == 0' >/dev/null
+          echo "Connector mode endpoint verified: 15 modes returned; no secret-like values detected."
+
       - name: Verify WAVE shared-theme surface routes
         shell: bash
         run: |
