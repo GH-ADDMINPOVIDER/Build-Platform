@@ -1,0 +1,40 @@
+.wavePolicyRoot{min-height:100dvh;color:var(--wave-glass-ink,#f3faf5);background:linear-gradient(165deg,#07110e,#0b1713 60%,#060a09)}
+.wavePolicyTop{max-width:1220px;margin-inline:auto}
+.wavePolicyTopLinks{display:flex;flex-wrap:wrap;gap:clamp(10px,2.4vw,28px);align-items:center}
+.wavePolicyTopLinks a{color:var(--wave-glass-ink,#ecf9ee);font-size:11px;text-decoration:none;font-weight:750;letter-spacing:.09em}
+.wavePolicyTopLinks a:hover,.wavePolicyTopLinks a:focus-visible{text-decoration:underline}
+.wavePolicyLayout{width:min(1120px,calc(100% - 36px));margin:0 auto;padding:60px 0 90px}
+.wavePolicyHero{max-width:880px;padding:45px 0 48px}
+.wavePolicyEyebrow,.wavePolicySectionHeading>p{font-size:11px;letter-spacing:.17em;font-weight:800;color:#67cfa5}
+.wavePolicyHero h1{font-size:clamp(42px,7vw,82px);line-height:1.04;letter-spacing:-.055em;margin:18px 0 24px}
+.wavePolicyHero h1 span{color:#6ecbaa}
+.wavePolicyLead{font-size:clamp(16px,2.15vw,23px);line-height:1.6;max-width:780px;opacity:.94}
+.wavePolicyDisclosure{max-width:830px;padding:16px 20px;margin-top:28px;border-left:3px solid #a9cbb5;background:var(--wave-glass-surface,rgba(255,255,255,.045));font-size:13px;line-height:1.7}
+.wavePolicyContents{position:relative;display:flex;gap:9px;flex-wrap:wrap;padding:14px 0 36px;border-top:1px solid var(--wave-glass-border,rgba(255,255,255,.17))}
+.wavePolicyContents a{padding:12px 15px;border-radius:999px;border:1px solid var(--wave-glass-border,rgba(255,255,255,.25));color:var(--wave-glass-ink,#fff);background:var(--wave-glass-raised,rgba(255,255,255,.07));font-size:11px;font-weight:800;text-decoration:none;letter-spacing:.035em}
+.wavePolicySections,.wavePolicySection{scroll-margin-top:20px;padding:38px 0}
+.wavePolicySectionHeading{padding-bottom:20px}
+.wavePolicySectionHeading h2{max-width:780px;margin:9px 0 0;font-size:clamp(26px,4vw,42px);letter-spacing:-.025em;line-height:1.19}
+.wavePolicyArticle{display:grid;grid-template-columns:64px minmax(0,1fr);gap:18px;padding:26px 8px;border-top:1px solid var(--wave-glass-border,rgba(255,255,255,.14));scroll-margin-top:16px}
+.wavePolicyArticle:last-child{border-bottom:1px solid var(--wave-glass-border,rgba(255,255,255,.14))}
+.wavePolicyNumber{font-size:15px;color:#69cba4;font-weight:900;letter-spacing:.08em}
+.wavePolicyArticle h3,.wavePolicyStatusList h3{margin:0 0 14px;font-size:19px;line-height:1.35;letter-spacing:-.012em}
+.wavePolicyArticle p,.wavePolicyThree p,.wavePolicyStatusList p,.wavePolicyIntro,.wavePolicyLimits p{font-size:14px;line-height:1.78;opacity:.86;margin:0 0 13px;max-width:900px}
+.wavePolicyThree{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.wavePolicyThree article,.wavePolicyStatusList article{border-radius:22px;border:1px solid var(--wave-glass-border,rgba(255,255,255,.16));background:var(--wave-glass-surface,rgba(255,255,255,.055));box-shadow:0 15px 32px var(--wave-glass-shadow,rgba(0,0,0,.12));padding:25px;-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+.wavePolicyThree b{font-size:10px;letter-spacing:.12em;color:#67cfa5}
+.wavePolicyThree h3{font-size:18px;margin:15px 0}
+.wavePolicyThree p{margin-bottom:0}
+.wavePolicyIntro{margin:0 0 20px}
+.wavePolicyStatusList{display:grid;gap:12px}
+.wavePolicyStatusList article>div{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.wavePolicyStatusList p{margin:0}
+.wavePolicyStatus{font-size:10px;font-weight:800;letter-spacing:.06em;opacity:.8}
+.wavePolicyLimits{border-top:1px solid var(--wave-glass-border,rgba(255,255,255,.17))}
+.wavePolicyFooter{gap:15px;flex-wrap:wrap}
+.wavePolicyFooter a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+:root[data-og-theme="light"] .wavePolicyRoot{background:radial-gradient(circle at 90% 8%,rgba(188,226,204,.38),transparent 34%),#f1f8f3}
+:root[data-og-theme="dark"] .wavePolicyRoot{background:radial-gradient(circle at 90% 8%,rgba(43,104,77,.19),transparent 35%),#07110e}
+:root[data-og-theme] .wavePolicyThree article,:root[data-og-theme] .wavePolicyStatusList article{background:var(--wave-glass-surface);border-color:var(--wave-glass-border)}
+@media(max-width:720px){.wavePolicyLayout{padding:12px 0 52px}.wavePolicyTopLinks{gap:12px}.wavePolicyTopLinks a{font-size:10px}.wavePolicyHero{padding:38px 0}.wavePolicyArticle{grid-template-columns:38px minmax(0,1fr);gap:12px}.wavePolicyThree{grid-template-columns:1fr}.wavePolicyStatusList article{padding:18px}}
+@media(prefers-reduced-motion:reduce){.wavePolicyRoot *{scroll-behavior:auto!important}}
