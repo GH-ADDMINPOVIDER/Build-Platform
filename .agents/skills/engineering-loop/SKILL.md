@@ -10,7 +10,7 @@ This OGENIC-authored skill selectively adapts practices reviewed in [Matt Pocock
 1. Read the current branch/SHA, relevant code, related tests, architecture docs, and project rules before editing.
 2. Define acceptance criteria that can be checked. If an ambiguity blocks a safe change, ask one focused question; otherwise state a narrow assumption and proceed.
 3. For bugs, reproduce the behavior before applying the fix. Prefer a test that captures the failure.
-4. Make the smallest change that meets the goal. Avoid unrelated refactors, speculative abstractions, and touching adjacent code without a reason.
+4. Make the smallest surgical diff that meets the goal. Avoid unrelated refactors, speculative abstractions, and touching adjacent code without a reason.
 5. Test behavior rather than implementation details. Run the existing project checks that apply; for this repository, use `npm run check` when the environment supports it.
 6. Review the diff for security, compatibility, and blast radius. Confirm CI ran against the same SHA used in the report.
 7. Report source, CI, deploy, and runtime results separately. A green source test is not a runtime receipt.
