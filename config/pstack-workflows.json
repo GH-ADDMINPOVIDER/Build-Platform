@@ -36,6 +36,64 @@
       "title": "PR / CI babysit",
       "description": "Review GitHub PR/CI; no auto-merge",
       "prompt": "OGENIC pstack-adapted BABYSIT. Inspect exact current staging PR/commit and GitHub Actions run, compare source and runner SHA, assess blockers, prior OGE decision and independent Ruby evidence. Provide READY/FAILED/BLOCKED plus references. No auto-merge, deploy, billing changes, retries or other writes without approved Yellow authority."
+    },
+    {
+      "id": "diagram-design",
+      "title": "Diagram Design",
+      "description": "Turn a plain-language brief or existing code into editable Mermaid plus accessible HTML/SVG",
+      "source": "local_ogenic_adaptation",
+      "prompt": "OGENIC DIAGRAM DESIGN — locally authored workflow inspired by cathrynlavery/diagram-design (MIT). First inspect and reuse the existing source set: docs/architecture/OGE_SYSTEM_MAP.md, docs/architecture/OGE_SYSTEM_MAP.mmd, docs/architecture/oge-system-edges.json, docs/architecture/WAVE_EMBED.md, and public/architecture/oge-system-map.svg. Treat them as one existing architecture map, not separate systems. For a requested architecture change, update the editable Mermaid and machine-readable edges together, then regenerate derived SVG using the repository's existing process. Preserve the authority path WAVE → ATHENA/BLUE → YELLOW/MA-OP → CCS → VIOLET → RUBY → GREEN/1LSS. Produce clear hierarchy, concise labels, accessible titles/alt text, mobile-readable horizontal pan, and a monochrome/light-dark presentation option where supported. For a new diagram, provide editable Mermaid or structured data plus responsive standalone HTML/SVG. Produce PNG only when an existing renderer is available; never claim a file was generated if it was not written and inspected. Do not send private source to a remote diagram service, add a parallel architecture map, install a new server, or introduce dependencies without need. Selection only prepares this workflow; no agent/provider runs until the owner presses Send.\n\nUSER TASK:"
+    },
+    {
+      "id": "engineering-loop",
+      "title": "Engineering Loop",
+      "description": "Clarify the goal, make the smallest fix, test behavior, review risk, and hand off with evidence",
+      "source": "local_ogenic_adaptation",
+      "prompt": "OGENIC ENGINEERING LOOP — selectively adapts ideas reviewed from Matt Pocock Skills (MIT), ECC (MIT), and independently authored general engineering guardrails. Inspect the current branch/SHA, relevant files, existing tests, and project rules before editing. Define concrete acceptance criteria. Ask one focused question only when an ambiguity blocks a safe implementation; otherwise state a bounded assumption and continue. For bugs, reproduce the failure before changing code. Make the smallest surgical diff and avoid unrelated refactors. Test observable behavior, run the repository's applicable checks (prefer npm run check when relevant), review security and blast radius, and verify that CI tested the same SHA being reported. Use existing skills and workflows rather than installing duplicate catalogs. Keep source, CI, deployment, and runtime results separate. Do not claim completion without the evidence required by the task. Preserve existing approval gates and never change main, production, Candy, secrets, permissions, or D1 schema/data without explicit authorization.\n\nUSER TASK:"
+    },
+    {
+      "id": "agent-harness-guardrails",
+      "title": "Agent Harness Guardrails",
+      "description": "Route skills through existing authority, approval, verification, and canonical memory",
+      "source": "local_ogenic_adaptation",
+      "prompt": "OGENIC AGENT HARNESS GUARDRAILS — selective adaptation of ECC (MIT) and OGENIC's existing authority model. Reuse the existing VIOLET/P-Stack skill selection, Yellow/MA-OP execution authority, Ruby independent verification, and Green owner-main / 1LSS canonical memory. Parallel agents may investigate independently, but execution rights do not fan out and results return through Ruby with evidence references. Keep one canonical runtime, one canonical memory, and the existing runner/gateway; do not add a second memory database, agent registry, gateway, or runner. Use only adapters and tools actually present; report missing runtime bindings as unavailable instead of simulating execution. No hidden provider fallback, automatic paid-provider calls, unbounded retries, secret logging, or bypass of WRITE/EXECUTE approval. Distinguish SOURCE, CI, DEPLOY, and RUNTIME states and tie evidence to the exact SHA/Run ID. Return a compact RESULT | EVIDENCE | BLOCKED | NEXT report. Selection does not dispatch agents until the owner presses Send.\n\nUSER TASK:"
     }
-  ]
+  ],
+  "curated_extensions": {
+    "integration_state": "LOCAL_OGENIC_ADAPTATIONS",
+    "canonical_memory": "owner-main / 1LSS_OWNER_MAIN",
+    "no_new_runtime_or_database": true,
+    "sources_reviewed": [
+      {
+        "id": "diagram-design",
+        "repository": "https://github.com/cathrynlavery/diagram-design",
+        "license": "MIT",
+        "decision": "Adapt the diagram workflow to existing OGENIC architecture sources; no remote diagram service."
+      },
+      {
+        "id": "matt-pocock-skills",
+        "repository": "https://github.com/mattpocock/skills",
+        "license": "MIT",
+        "decision": "Selectively adapt specification, diagnosis, handoff, and review practices; do not install the full catalog."
+      },
+      {
+        "id": "ecc",
+        "repository": "https://github.com/affaan-m/ECC",
+        "license": "MIT",
+        "decision": "Selectively adapt verification and agent-harness guardrails; do not install the full system."
+      },
+      {
+        "id": "karpathy-skills",
+        "repository": "https://github.com/multica-ai/andrej-karpathy-skills",
+        "license": "NO_LICENSE_FILE_FOUND_IN_REVIEW",
+        "decision": "No source file or wording copied; independently authored general engineering guardrails only."
+      },
+      {
+        "id": "claude-mem",
+        "repository": "https://github.com/thedotmack/claude-mem",
+        "license": "Apache-2.0",
+        "decision": "Evaluated but not installed as a memory backend; preserve existing 1LSS/D1 canonical memory."
+      }
+    ]
+  }
 }

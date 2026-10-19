@@ -9,7 +9,7 @@ test("pstack original MIT license and honest integration state",()=>{
  assert.equal(conf.integration_state,"GUIDED_WORKFLOW_PRESETS");
  assert.equal(conf.native_cursor_plugin_installed,false);
  assert.equal(conf.model_calls_triggered_by_selection,0);
- assert.deepEqual(conf.workflows.map(x=>x.id),["investigation","session-pickup","bug-fix","babysit"]);
+ assert.deepEqual(conf.workflows.map(x=>x.id),["investigation","session-pickup","bug-fix","babysit","diagram-design","engineering-loop","agent-harness-guardrails"]);
  assert.match(read("third_party/pstack/LICENSE"),/Copyright \(c\) 2026 Lauren Tan/);
 });
 test("pstack WAVE tool drawer only prepares prompt and never invokes model immediately",()=>{
@@ -82,4 +82,13 @@ test("legacy multi-preset iPhone drafts are repaired locally before agent invoca
  assert.match(source,/Old stacked pstack prompts removed/);
  assert.match(source,/setToolDock\(true\)/);
  assert.ok(source.indexOf("Old stacked pstack prompts removed") < source.indexOf("setSending(true)"));
+});
+
+
+test("curated OGENIC extensions have independent provenance and do not replace canonical P-Stack source",()=>{
+ assert.equal(conf.curated_extensions.integration_state,"LOCAL_OGENIC_ADAPTATIONS");
+ assert.equal(conf.curated_extensions.no_new_runtime_or_database,true);
+ assert.ok(conf.curated_extensions.sources_reviewed.some(x=>x.id==="diagram-design"&&x.license==="MIT"));
+ assert.ok(conf.curated_extensions.sources_reviewed.some(x=>x.id==="claude-mem"&&x.decision.includes("not installed")));
+ assert.match(read("skills/ogenic-pstack/SKILL.md"),/Keep the original 51 numbered P-Stack source manifest/);
 });
