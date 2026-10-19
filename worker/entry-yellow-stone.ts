@@ -8,6 +8,7 @@ import { createOpenAISelfHostApi } from "./openai-selfhost-api";
 import { createCodexLeftArmApi } from "./codex-left-arm-api";
 import { createMcpConfigApi } from "./mcp-config-api";
 import { connectorManifest, normalizeConnectorEnvelope } from "./connector-endpoint-api";
+import { protocolCatalog, normalizeProtocolInvocation } from "./connector-protocol-bridge";
 import { createWhiteDiamondApi } from "./white-diamond-api";
 import { createBlueDiamondApi } from "./blue-diamond-api";
 import { createVioletStoneApi } from "./violet-stone-api";
@@ -488,6 +489,18 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
 export default {
   async fetch(request: Request, env: Bindings, ctx: unknown) {
     const pathname = new URL(request.url).pathname;
+    // Public signed ingress reuses existing HMAC/replay handlers without any new trust boundary.
+    if (pathname.startsWith("/api/connector-endpoint/v1/ingress/")) {
+      const provider = pathname.slice("/api/connector-endpoint/v1/ingress/".length);
+      if (!["line", "meta", "generic", "openai"].includes(provider) ||
+          (request.method !== "POST" && !(provider === "meta" && request.method === "GET"))) {
+        return Response.json({ ok: false, code: "SIGNED_INGRESS_NOT_SUPPORTED" }, { status: 404 });
+      }
+      const target = new URL(request.url);
+      target.pathname = "/hooks/" + provider;
+      // The raw body, signature headers and query stay untouched.
+      return base.fetch(new Request(target.toString(), request), env as never, ctx as never);
+    }
     if (pathname.startsWith("/api/discord/")) {
       return discordApi.fetch(request, env as never, ctx as never);
     }
@@ -509,6 +522,117 @@ export default {
     if (pathname.startsWith("/api/connector-endpoint/v1/")) {
       if (!(await hasOwnerOrOpsAccess(request, env))) {
         return Response.json({ ok: false, code: "REAUTH_REQUIRED" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+      }
+      if (pathname === "/api/connector-endpoint/v1/protocols" && request.method === "GET") {
+        return Response.json({
+          ok: true, environment: "staging", protocols: protocolCatalog,
+          mode_count: protocolCatalog.length, execution_authority: "YELLOW_STONE_ONLY",
+          source_contract_is_not_live_e2e: true,
+          signed_ingress: "/api/connector-endpoint/v1/ingress/{line|meta|generic|openai}",
+        }, { headers: { "Cache-Control": "no-store" } });
+      }
+      if (pathname === "/api/connector-endpoint/v1/operate" && request.method === "POST") {
+        // All 15 adapter categories use this one endpoint. Privileged calls
+        // require the existing signed Owner session, never a raw OPS header.
+        if (!(await hasOwnerSession(request, env))) {
+          return Response.json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, { status: 401 });
+        }
+        const raw = await request.text();
+        if (raw.length > 8000) return Response.json({ ok: false, code: "OPERATION_TOO_LARGE" }, { status: 413 });
+        let parsed: unknown;
+        try { parsed = JSON.parse(raw); } catch { parsed = null; }
+        const checked = normalizeProtocolInvocation(parsed);
+        if (!checked.ok) return Response.json({ ok: false, code: checked.code }, {
+          status: 422, headers: { "Cache-Control": "no-store" },
+        });
+        const op = checked.value;
+        const protocol = protocolCatalog.find(item => item.transport === op.transport);
+        if (op.operation === "inspect") {
+          return Response.json({
+            ok: true, transport: op.transport, protocol,
+            configured_is_not_live_e2e: true,
+            note: "Introspection only. Side effects must use Owner-signed WAVE Command and Runner-1.",
+          }, { headers: { "Cache-Control": "no-store" } });
+        }
+        if (op.operation === "reference") {
+          // Infisical is the values authority; D1 only holds opaque handles.
+          const db = (env as { DB?: {
+            prepare: (sql: string) => { bind: (...args: unknown[]) => {
+              all: <T = Record<string, unknown>>() => Promise<{ results?: T[] }>;
+            } };
+          } }).DB;
+          if (!db) return Response.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 DB" }, { status: 503 });
+          const rows = await db.prepare(
+            "SELECT provider_id, binding_type, status, secret_ref FROM provider_bindings WHERE provider_id = ? AND environment = 'staging' LIMIT 15",
+          ).bind(op.provider).all<{ provider_id: string; binding_type: string; status: string; secret_ref: string | null }>();
+          const bindings = (rows.results ?? []).map(item => ({
+            provider: item.provider_id, kind: item.binding_type, state: item.status,
+            reference_present: Boolean(item.secret_ref), credential_values_exposed: false,
+          }));
+          return Response.json({ ok: true, transport: op.transport, provider: op.provider,
+            bindings, source: "D1_REFERENCE_ONLY", value_export: false, active_session_e2e_proven: false,
+          }, { headers: { "Cache-Control": "no-store" } });
+        }
+        if (op.operation === "probe" && op.transport === "n8n") {
+          const status = await testConnector(env, "n8n");
+          return Response.json({ ok: true, transport: "n8n", probe: status,
+            workflow_execution_proven: false,
+          }, { headers: { "Cache-Control": "no-store" } });
+        }
+        if (op.operation === "discover" && op.transport === "mcp") {
+          const target = new URL(request.url);
+          target.pathname = "/api/mcp-config/discover";
+          target.search = new URLSearchParams({ provider: op.provider }).toString();
+          return mcpConfigApi.fetch(new Request(target.toString(), { method: "GET", headers: request.headers }), env as never, ctx as never);
+        }
+        if (op.operation === "resolve" && op.transport === "api") {
+          const target = new URL(request.url);
+          target.pathname = "/api/capabilities/resolve";
+          return resolverApi.fetch(new Request(target.toString(), {
+            method: "POST", headers: request.headers,
+            body: JSON.stringify({ provider: op.provider, intent: op.command || "inspect available capability" }),
+          }), env as never, ctx as never);
+        }
+        if (op.operation === "invoke_read") {
+          if (op.transport === "mcp") {
+            if (!op.provider) return Response.json({ ok: false, code: "PROVIDER_REQUIRED" }, { status: 422 });
+            const target = new URL(request.url);
+            target.pathname = "/api/mcp-config/read-tool";
+            return mcpConfigApi.fetch(new Request(target.toString(), {
+              method: "POST", headers: request.headers,
+              body: JSON.stringify({ provider: op.provider, tool: op.name, arguments: op.arguments }),
+            }), env as never, ctx as never);
+          }
+          if (!["pr_api", "api", "function_calling"].includes(op.transport) ||
+              (op.transport === "pr_api" && !["github_staging_status", "github_fetch_file"].includes(op.name)) ||
+              !verifiedFunctionTools.some(tool => tool.name === op.name)) {
+            return Response.json({ ok: false, code: "HUMAN_APPROVAL_REQUIRED",
+              command: "/api/connector-endpoint/v1/command" }, { status: 409 });
+          }
+          const result = await executeVerifiedTool(op.name, op.arguments, env as VerifiedToolBindings);
+          return Response.json({ ...result, transport: op.transport, execution_authority: "READ_ONLY" }, {
+            status: result.ok === true ? 200 : 422, headers: { "Cache-Control": "no-store" },
+          });
+        }
+        if (op.operation === "plan" || op.operation === "confirm") {
+          // NPX/npm/SDK are NOT direct shell permissions. They ask the existing
+          // Owner-gated Codex Runner to plan the work within staging scope.
+          const runnerCommand = ["npx", "npm", "sdk"].includes(op.transport);
+          const cmd: Record<string, unknown> = {
+            command: op.command, environment: "staging",
+            mode: op.transport === "a2a" ? "team" : "execute",
+            ...(runnerCommand ? { capability: "codex_selfhost", provider: "openai" } : {}),
+            ...(op.approval ? { approval: op.approval } : {}),
+          };
+          const target = new URL(request.url);
+          target.pathname = "/api/wave/command";
+          return athenaGuardedCommand(new Request(target.toString(), {
+            method: "POST", headers: request.headers, body: JSON.stringify(cmd),
+          }), env, ctx);
+        }
+        return Response.json({ ok: false, code: "PROTOCOL_ADAPTER_UNAVAILABLE" }, {
+          status: 409, headers: { "Cache-Control": "no-store" },
+        });
       }
       if (pathname === "/api/connector-endpoint/v1/manifest" && request.method === "GET") {
         return Response.json(connectorManifest, { headers: { "Cache-Control": "no-store" } });
