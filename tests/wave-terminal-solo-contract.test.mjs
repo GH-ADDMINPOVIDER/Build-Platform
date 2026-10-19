@@ -66,7 +66,7 @@ test("the scope boundary forbids secret outputs and production modifications",()
 test("Codex child environment must not inherit Infisical GitHub or Owner secrets",()=>{
   const consumer=read("scripts/wave-command-consumer.mjs");
   const workflow=read(".github/workflows/wave-command-consumer.yml");
-  assert.doesNotMatch(consumer,/env:\\s*\\{\\s*\\.\\.\\.process\\.env/);
+  assert.doesNotMatch(consumer,/env:\s*\{\s*\.\.\.process\.env/);
   assert.match(consumer,/Object\.fromEntries\(/);
   assert.match(consumer,/OGENIC_EXECUTION_SCOPE/);
   assert.match(workflow,/persist-credentials: false/);
