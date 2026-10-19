@@ -45,6 +45,8 @@ jobs:
           echo "OGE131_EXECUTION_ADAPTER_E2E=NOT_TESTED"
       - name: Install dependencies and typecheck
         run: npm install --no-package-lock --no-audit --no-fund && npm run typecheck
+      - name: Execute real Connector Endpoint TypeScript behavior contract (15 modes)
+        run: node --test tests/wave-connector-behavior.test.mjs
       - name: Build Cloudflare Worker/Frontend bundle (not deploy)
         run: npm run build
       - name: Bounded readiness receipt
