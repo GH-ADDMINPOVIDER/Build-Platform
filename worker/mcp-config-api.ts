@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
+import { hasOwnerOrOpsAccess, hasOwnerSession, type AuthBindings } from "./app-auth";
 
 type D1Result<T = Record<string, unknown>> = { results?: T[]; success?: boolean };
 type D1Prepared = {
@@ -213,6 +213,34 @@ async function readBindings(db: D1) {
   return rows.results ?? [];
 }
 
+// A remote MCP tool may *claim* to be read-only. Never authorize by a name heuristic alone.
+// An Owner-configured exact allowlist is required in the existing binding metadata.
+function configuredReadTools(raw: string | null): string[] {
+  try {
+    const meta = raw ? JSON.parse(raw) as Record<string, unknown> : {};
+    const names = Array.isArray(meta.read_tools_allowlist) ? meta.read_tools_allowlist : [];
+    return names.filter((name): name is string =>
+      typeof name === "string" && /^[a-zA-Z][a-zA-Z0-9_.:-]{0,119}$/.test(name)).slice(0, 30);
+  } catch { return []; }
+}
+
+function sanitizedMcpResponse(value: unknown): unknown {
+  const secret = /(gh[pousr]_[A-Za-z0-9_]{12,}|sk-[A-Za-z0-9_-]{12,}|bearer\\s+[^\\s]+|-----BEGIN [A-Z ]*PRIVATE KEY-----)/gi;
+  const rec = (v: unknown, level: number): unknown => {
+    if (level > 6) return "[TRUNCATED]";
+    if (typeof v === "string") return v.slice(0, 7000).replace(secret, "[REDACTED]");
+    if (Array.isArray(v)) return v.slice(0, 30).map(x => rec(x, level + 1));
+    if (v && typeof v === "object") return Object.fromEntries(
+      Object.entries(v).slice(0, 35).map(([key, child]) => [
+        key, /secret|token|password|cookie|authorization|private.?key|credential/i.test(key)
+          ? "[REDACTED]" : rec(child, level + 1),
+      ]),
+    );
+    return v;
+  };
+  return rec(value, 0);
+}
+
 export function createMcpConfigApi() {
   const api = new Hono<Env>();
 
@@ -262,6 +290,74 @@ export function createMcpConfigApi() {
     }
     const result = await discover(binding, c.env);
     return c.json({ ...result, provider, binding: bindingEnvelope(binding), real_available: result.state === "LIVE" }, result.ok ? 200 : 503, { "Cache-Control": "no-store" });
+  });
+
+  // Read-only child MCP invocation, adapted from lnwjud's mcp_describe/mcp_call split.
+  // Unlike lnwjud local full-bypass, WAVE requires signed Owner session and the
+  // server-side exact tool allowlist. No write/execute child MCP calls from here.
+  api.post("/api/mcp-config/read-tool", async (c) => {
+    if (!(await hasOwnerSession(c.req.raw, c.env))) {
+      return c.json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401);
+    }
+    if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+    const raw = await c.req.text();
+    if (raw.length > 7000) return c.json({ ok: false, code: "TOOL_BODY_TOO_LARGE" }, 413);
+    let body: Record<string, unknown> | null = null;
+    try { body = JSON.parse(raw) as Record<string, unknown>; } catch { /* invalid */ }
+    if (!body || typeof body !== "object" || Array.isArray(body) ||
+        Object.keys(body).some(k => !["provider", "tool", "arguments"].includes(k))) {
+      return c.json({ ok: false, code: "INVALID_MCP_TOOL_CALL" }, 422);
+    }
+    const provider = clean(body.provider, 80).toLowerCase();
+    const tool = clean(body.tool, 120);
+    if (!PROVIDER_ID.test(provider) || !/^[a-zA-Z][a-zA-Z0-9_.:-]{0,119}$/.test(tool) ||
+        !body.arguments || typeof body.arguments !== "object" || Array.isArray(body.arguments)) {
+      return c.json({ ok: false, code: "INVALID_MCP_TOOL_CALL" }, 422);
+    }
+    const argumentsJson = JSON.stringify(body.arguments);
+    if (argumentsJson.length > 6000 || /"[^"]*(?:secret|password|token|private.?key|credential|authorization|cookie)[^"]*"\\s*:/i.test(argumentsJson)) {
+      return c.json({ ok: false, code: "UNSAFE_TOOL_ARGUMENTS" }, 422);
+    }
+    const binding = await c.env.DB.prepare(
+      "SELECT id, provider_id, environment, binding_type, secret_ref, status, last_checked_at, metadata_json, updated_at FROM provider_bindings WHERE provider_id = ? AND environment = 'staging' AND binding_type = 'mcp' LIMIT 1",
+    ).bind(provider).first<BindingRow>();
+    if (!binding || binding.status === "disabled") return c.json({ ok: false, code: "MCP_BINDING_NOT_ENABLED" }, 503);
+    const permitted = configuredReadTools(binding.metadata_json);
+    if (!permitted.includes(tool) || classifyTool(tool) !== "READ") {
+      return c.json({ ok: false, code: "HUMAN_APPROVAL_REQUIRED", authorization: "YELLOW_STONE_ONLY" }, 409);
+    }
+    const meta = parseMetadata(binding.metadata_json);
+    const token = resolveSecret(binding, c.env);
+    if (!meta.endpoint || (binding.secret_ref?.startsWith("env:") && !token)) {
+      return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "MCP_ENDPOINT_OR_AUTH" }, 503);
+    }
+    try {
+      const initial = await jsonRpc(meta.endpoint, "initialize", {
+        protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "OGENIC-WAVE", version: "1" },
+      }, 1, token);
+      if (!initial.ok) return c.json({ ok: false, code: "MCP_INITIALIZE_FAILED" }, 502);
+      const advertised = await jsonRpc(meta.endpoint, "tools/list", {}, 2, token, initial.sessionId);
+      if (!advertised.ok) return c.json({ ok: false, code: "MCP_TOOLS_LIST_FAILED" }, 502);
+      const listed = advertised.body.result && typeof advertised.body.result === "object"
+        ? (advertised.body.result as Record<string, unknown>).tools : [];
+      if (!Array.isArray(listed) || !listed.some(row => row && typeof row === "object" &&
+        (row as Record<string, unknown>).name === tool &&
+        (row as Record<string, unknown>).annotations &&
+        typeof (row as Record<string, unknown>).annotations === "object" &&
+        ((row as Record<string, unknown>).annotations as Record<string, unknown>).readOnlyHint === true)) {
+        return c.json({ ok: false, code: "MCP_READ_ANNOTATION_REQUIRED" }, 409);
+      }
+      const called = await jsonRpc(meta.endpoint, "tools/call", { name: tool, arguments: body.arguments as Record<string, unknown> }, 3, token, advertised.sessionId ?? initial.sessionId);
+      if (!called.ok) return c.json({ ok: false, code: "MCP_TOOL_CALL_FAILED" }, 502);
+      const result = called.body.result && typeof called.body.result === "object"
+        ? called.body.result as Record<string, unknown> : {};
+      return c.json({ ok: result.isError !== true, provider, tool, permission: "READ",
+        execution_authority: "OWNER_SIGNED_READ_ONLY",
+        result: sanitizedMcpResponse(result), live_provider_tool_invoked: true,
+      }, result.isError === true ? 502 : 200, { "Cache-Control": "no-store" });
+    } catch {
+      return c.json({ ok: false, code: "MCP_PROVIDER_UNAVAILABLE" }, 502, { "Cache-Control": "no-store" });
+    }
   });
 
   api.post("/api/mcp-config/action", async (c) => {
