@@ -75,6 +75,7 @@ export const connectorManifest={
   transports:connectorModes,
   aliases:connectorAliases,
   mcp_config:"/api/mcp-config/state",
+  mcp_discover_existing:"/api/mcp-config/discover",
   mcp_discover:"/api/connector-endpoint/v1/mcp/discover",
   connector_status:"/api/connector-endpoint/v1/status",
   functions:"/api/connector-endpoint/v1/functions",
