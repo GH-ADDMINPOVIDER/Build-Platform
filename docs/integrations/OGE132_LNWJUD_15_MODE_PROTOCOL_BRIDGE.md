@@ -74,5 +74,19 @@ Use exact server-generated `approval_id` and `operation:"confirm"` with `approva
 - [ ] Resolve generic repository `Validate and Bundle` failure without rewriting unrelated operational infrastructure.
 - [ ] Preserve owner-main continuity and the single OGE-128 certificate; do not merge or deploy to Production without approval.
 
+## Follow-up OGE-132.1 — MCP Tool Call Contract + Local HTTP Adapter Proof
+
+**GitHub Actions exact code SHA**: `a54c546db08bc6ee9d315d6827ccf5437ff4e845`. [Run 39223594901](https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/39223594901) **SUCCESS** on existing `wave-runner-01`. Source tests: **16 passed, 0 failed**; TypeScript and Worker/Frontend Build PASS; no deployment.
+
+New implementation:
+- Existing `worker/mcp-config-api.ts` now acknowledges successful initialize using MCP JSON-RPC `notifications/initialized` before `tools/list` and `tools/call`, preserving remote session ID and server-side existing Owner/OPS guards.
+- Fixed double-escaped bearer-secret redaction and MCP argument-key detection in the existing MCP read adapter. Raw keys/secrets remain server-side.
+- Added `tests/oge-132-mcp-runtime-bridge.test.mjs`: exercises the bundled **real Hono routing and signed Owner HMAC session**, in-process fixture Provider `initialize → notifications/initialized → tools/list → tools/call`, exact read-only allowlist, provider `readOnlyHint`, dangerous tool rejection, secret-shaped argument rejection, response redaction, and `isError` → HTTP 502. **Fixture/provider mock is not a live upstream connection.**
+- Expanded existing Runner-1 **local Worker HTTP**: existing 15/15 signed-session `inspect` PASS; `/protocols` returns exactly 15 categories; MCP `discover` with `simulated` provider reports `SIMULATED` and `real_available:false`; unknown function → HTTP 409; OPS header without Owner Session → HTTP 401; n8n probe reports truthful health and never reports workflow execution proven.
+- HTTPS staging real MCP adapter, authenticated real provider reads, GS/TS A2A, Runner native NPX/npm/SDK adapters, Owner Sign → Runner → D1 COMMAND_RESULT are **not proven by these tests**. External mTLS E2E remains unverified.
+- General repository `Validate and Bundle OGENIC Phase VI` check remains separately **FAIL**, unchanged under this feature. Do not claim global CI pass.
+
+**Next actionable gate**: inspect/reconcile the existing Provider MCP bindings for a reviewed exact `read_tools_allowlist`, deploy OGE-132 to *staging only* after Owner review and PR stack integration, then issue authenticated live HTTP read receipts. GitHub default-branch workflow consumer registration PR #44 and a real Owner approval remain dependencies for terminal COMMAND_RESULT proof. Do not prompt Owner to recreate historical Certificate, Infisical credentials or known logins.
+
 ## Security and non-goals
 No Owner key, raw credentials, bearer tokens, SSH keys, Infisical secrets, D1 content or private provider responses committed. No `main` change, no new secrets DB, runner, endpoint host, queue, agent, or universal shell. `GET /protocols` describes source contracts, not provider health proof. Existing Certificate facts remain immutable.
