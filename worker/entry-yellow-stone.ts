@@ -575,9 +575,10 @@ export default {
         }
         if (op.operation === "probe" && op.transport === "n8n") {
           const status = await testConnector(env, "n8n");
-          return Response.json({ ok: true, transport: "n8n", probe: status,
+          const healthy = "ok" in status ? status.ok === true : status.state === "LIVE";
+          return Response.json({ ok: healthy, transport: "n8n", probe: status,
             workflow_execution_proven: false,
-          }, { headers: { "Cache-Control": "no-store" } });
+          }, { status: healthy ? 200 : 503, headers: { "Cache-Control": "no-store" } });
         }
         if (op.operation === "discover" && op.transport === "mcp") {
           const target = new URL(request.url);
