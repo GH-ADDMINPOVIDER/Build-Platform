@@ -63,6 +63,43 @@ if(cookie){
     {http_status:read.code,code:read.body?.code||"NONE",
       verification:read.body?.verification?.status||"UNVERIFIED",
       canonical_recorded:read.body?.canonical?.session_line==="1LSS_OWNER_MAIN"});
+  // User's AGENT SIGN RUN route: send commands through the SAME WAVE command API,
+  // not through a connector side channel or direct GitHub dispatch.
+  const signedRead=await jsonPost("/api/wave/command",{
+    command:"agent sign run: read the bounded WAVE command contract on staging",
+    capability:"read_file",provider:"github",environment:"staging",mode:"read",
+    input:{path:"tests/wave-command-contract.test.mjs"}},{cookie});
+  const readOk=signedRead.code===200&&signedRead.body?.verification?.status==="verified"
+    &&signedRead.body?.canonical?.session_line==="1LSS_OWNER_MAIN"
+    &&signedRead.body?.command_handoff?.execution_authority==="YELLOW_STONE_ONLY";
+  summary("AGENT_SIGN_RUN_COMMAND_READ",readOk?"PASS":"FAIL",{
+    http_status:signedRead.code,verification:signedRead.body?.verification?.status||"NOT_VERIFIED",
+    path:"POST /api/wave/command",actual_execution:"READ_ONLY",owner_signature_bypassed:false});
+  const candidate={
+    command:"agent sign run: verify staging command environment and report evidence only",
+    capability:"codex_selfhost",provider:"openai",environment:"staging",mode:"autonomous"
+  };
+  const preview=await jsonPost("/api/wave/command",candidate,{cookie});
+  const previewOk=preview.code===202&&preview.body?.code==="OWNER_APPROVAL_REQUIRED"
+    &&preview.body?.execution?.status==="NOT_STARTED"&&preview.body?.approval?.required===true
+    &&typeof preview.body?.approval?.approval_id==="string"
+    &&preview.body.approval.approval_id.startsWith("wave-approval-");
+  summary("AGENT_SIGN_RUN_OWNER_SIGN_REQUIRED",previewOk?"PASS":"FAIL",{
+    http_status:preview.code,code:preview.body?.code||"UNKNOWN",
+    approval_id_generated:typeof preview.body?.approval?.approval_id==="string",
+    execution_status:preview.body?.execution?.status||"UNKNOWN",dispatch_performed:false});
+  // Negative test uses deliberately incorrect approval id to prove request cannot
+  // self-authorize. Never supply the real approval id or invoke a workflow.
+  if(previewOk){
+    const forged=await jsonPost("/api/wave/command",{
+      ...candidate,approval:{confirmed:true,approval_id:"wave-approval-invalid-oge129-proof"}
+    },{cookie});
+    const rejected=forged.code===409&&forged.body?.code==="APPROVAL_PLAN_MISMATCH"
+      &&forged.body?.verification?.status==="blocked";
+    summary("AGENT_SIGN_RUN_INVALID_SIGN_REJECTED",rejected?"PASS":"FAIL",{
+      http_status:forged.code,code:forged.body?.code||"UNKNOWN",
+      real_approval_id_submitted:false,dispatch_performed:false});
+  }else summary("AGENT_SIGN_RUN_INVALID_SIGN_REJECTED","NOT_TESTED_PREVIEW_FAILED");
   // WAVE owner-approval (first gate): NO owner confirmation sent, NO enqueue or dispatch.
   const prospective=await jsonPost("/api/wave/command",{
     intent:"promote deployment",capability:"deploy_promote",provider:"cloudflare",environment:"staging"
@@ -92,8 +129,10 @@ if(cookie){
     {http_status:n8n.code,reason:n8n.body?.control?.reason||n8n.body?.code||"NOT_RETURNED",
       execution_enabled:false});
 }else{
-  for(const name of ["YELLOW_GITHUB_READ_1LSS","WAVE_OWNER_APPROVAL_GATE",
-    "YELLOW_NONREAD_PERMISSION_GATE","WAVE_N8N_SELFHOST_READINESS"])summary(name,"NOT_TESTED_SESSION_UNAVAILABLE");
+  for(const name of ["YELLOW_GITHUB_READ_1LSS","AGENT_SIGN_RUN_COMMAND_READ",
+    "AGENT_SIGN_RUN_OWNER_SIGN_REQUIRED","AGENT_SIGN_RUN_INVALID_SIGN_REJECTED",
+    "WAVE_OWNER_APPROVAL_GATE","YELLOW_NONREAD_PERMISSION_GATE",
+    "WAVE_N8N_SELFHOST_READINESS"])summary(name,"NOT_TESTED_SESSION_UNAVAILABLE");
 }
 const n8nDirect=await jsonGet("https://n8n-staging-76b7.up.railway.app/healthz");
 summary("N8N_HTTP_HEALTH",n8nDirect.code===200?"PASS":"UNVERIFIED",{http_status:n8nDirect.code});
