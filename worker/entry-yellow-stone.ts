@@ -34,6 +34,7 @@ import { normalizeWaveCommandBody, waveCommandPolicy } from "./wave-command-cont
 import { createDiscordApi } from "./discord-api";
 import { dispatchWaveCommandConsumer } from "./wave-command-dispatch";
 import { createConnectorModesApi } from "./connector-modes-api";
+import { createLocalAgentTeamApi } from "./local-agent-team-api";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
@@ -63,6 +64,7 @@ const capabilityCardStoneApi = createCapabilityCardStoneApi();
 const n8nMigrationApi = createN8nMigrationApi();
 const discordApi = createDiscordApi();
 const connectorModesApi = createConnectorModesApi();
+const localAgentTeamApi = createLocalAgentTeamApi();
 
 const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
@@ -510,6 +512,9 @@ export default {
     }
     if (pathname.startsWith("/api/connector-modes/")) {
       return connectorModesApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/local-agent-team/")) {
+      return localAgentTeamApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/white-diamond/")) {
       return whiteDiamondApi.fetch(request, env as never, ctx as never);

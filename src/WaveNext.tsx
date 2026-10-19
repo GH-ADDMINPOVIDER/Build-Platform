@@ -3,6 +3,7 @@ import McpConfigCenter from "./McpConfigCenter";
 import WhiteDiamondPanel from "./WhiteDiamondPanel";
 import VioletDistributionPanel from "./VioletDistributionPanel";
 import StoneRulePanel from "./StoneRulePanel";
+import LocalAgentTeamPanel from "./LocalAgentTeamPanel";
 
 type SessionState = { authenticated?: boolean; user?: { label?: string; role?: string } | null };
 type IncentivePool = {
@@ -538,6 +539,7 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
       </section>}
 
       {tab === "agent" && <>
+        <LocalAgentTeamPanel />
         <WhiteDiamondPanel />
         <VioletDistributionPanel />
 

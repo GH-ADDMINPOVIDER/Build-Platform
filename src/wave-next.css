@@ -22,6 +22,8 @@
 .wnStatusFacts strong{overflow-wrap:anywhere}
 @media (max-width:760px){.wnStatusGrid{grid-template-columns:1fr}.wnStatusCard{padding:12px}.wnStatusTitle{align-items:flex-start}}
 
+.localTeamPanel{display:grid;gap:14px}.localTeamGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.localTeamForm{display:grid;gap:10px}.localTeamForm label{display:grid;gap:5px;font-size:12px;font-weight:700}.localTeamForm input,.localTeamForm textarea,.localTeamForm select{width:100%;box-sizing:border-box;border:1px solid #33343b;border-radius:8px;background:#17181d;color:inherit;padding:9px;font:inherit;font-weight:400}.localTeamForm textarea{min-height:70px;resize:vertical}.localTeamFormRow{display:grid;grid-template-columns:1fr 150px auto;gap:10px;align-items:end}.localTeamFormRow button{min-height:38px}.localTeamTimelineHead{margin-top:4px}@media (max-width:760px){.localTeamGrid,.localTeamFormRow{grid-template-columns:1fr}.localTeamFormRow button{width:100%}}
+
 
 .wnEvidenceLink{display:inline-flex;margin-top:5px;font-size:11px;font-weight:700;text-decoration:none}
 .wnEvidenceRef{display:block;margin-top:5px;font-size:10px;opacity:.64;overflow-wrap:anywhere;max-width:100%}

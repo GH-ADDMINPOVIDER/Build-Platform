@@ -1,0 +1,276 @@
+import { Hono } from "hono";
+import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
+import { buildWhiteDiamondRegistry } from "./white-diamond-registry";
+
+type D1Prepared = {
+  bind: (...values: unknown[]) => D1Prepared;
+  all: <T = Record<string, unknown>>() => Promise<{ results?: T[] }>;
+  first: <T = Record<string, unknown>>() => Promise<T | null>;
+  run: () => Promise<unknown>;
+};
+type D1Like = { prepare: (query: string) => D1Prepared };
+
+export type LocalAgentTeamBindings = AuthBindings & {
+  DB?: D1Like;
+  OPENAI_API_KEY?: string;
+  OPENAI_EXECUTOR_API_KEY?: string;
+  ANTHROPIC_API_KEY?: string;
+  GEMINI_API_KEY?: string;
+  XAI_API_KEY?: string;
+  OPENCODE_API_KEY?: string;
+  CURSOR_API_KEY?: string;
+  CLINE_API_KEY?: string;
+  OLLAMA_BASE_URL?: string;
+  LM_STUDIO_BASE_URL?: string;
+};
+
+type Env = { Bindings: LocalAgentTeamBindings };
+type TaskRow = {
+  id: string;
+  title: string;
+  capability: string | null;
+  status: string;
+  priority: number;
+  resource_key: string | null;
+  claimed_by: string | null;
+  parent_task_id: string | null;
+  correlation_id: string | null;
+  source_ref: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+};
+type EventRow = {
+  id: string;
+  task_id: string | null;
+  event_type: string;
+  actor: string;
+  correlation_id: string | null;
+  external_ref: string | null;
+  created_at: string;
+};
+
+const ROOM = "launch";
+const OWNER_SESSION = "owner-main/1LSS_OWNER_MAIN";
+const MAX_SUMMARY = 800;
+const TERMINAL = new Set(["DONE", "BLOCKED", "FAILED", "CANCELLED"]);
+const PROVIDERS = [
+  ["codex", "Codex", ["OPENAI_EXECUTOR_API_KEY", "OPENAI_API_KEY"], "wave-runner-01 / existing Codex lane"],
+  ["claude", "Claude Code", ["ANTHROPIC_API_KEY"], "existing runner adapter pending"],
+  ["gemini", "Gemini CLI", ["GEMINI_API_KEY"], "existing runner adapter pending"],
+  ["grok", "Grok", ["XAI_API_KEY"], "existing runner adapter pending"],
+  ["opencode", "OpenCode", ["OPENCODE_API_KEY"], "existing runner adapter pending"],
+  ["cursor", "Cursor", ["CURSOR_API_KEY"], "existing runner adapter pending"],
+  ["cline", "Cline", ["CLINE_API_KEY"], "existing runner adapter pending"],
+  ["ollama", "Ollama", ["OLLAMA_BASE_URL"], "local endpoint; execution host must be verified"],
+  ["lmstudio", "LM Studio", ["LM_STUDIO_BASE_URL"], "local endpoint; execution host must be verified"],
+] as const;
+
+function clean(value: unknown, max: number) {
+  return String(value ?? "").trim().slice(0, max);
+}
+
+function secretLike(value: unknown) {
+  return /(?:sk-[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_]{12,}|xox[baprs]-[A-Za-z0-9-]{12,}|Bearer\s+[A-Za-z0-9._~+/=-]{12,}|BEGIN (?:RSA|OPENSSH|EC) PRIVATE KEY)/i.test(String(value ?? ""));
+}
+
+function safeStatus(status: string, latestEvent?: string | null) {
+  if (latestEvent === "LOCAL_TEAM_APPROVAL_REQUIRED") return "WAITING_APPROVAL";
+  if (status === "QUEUED" || status === "CLAIMED") return "READY";
+  if (status === "RUNNING" || status === "VERIFYING") return "RUNNING";
+  if (status === "DONE") return "DONE";
+  if (status === "FAILED") return "FAILED";
+  return "BLOCKED";
+}
+
+async function digest(value: string) {
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function providerReadiness(env: LocalAgentTeamBindings) {
+  return PROVIDERS.map(([id, label, keys, execution]) => {
+    const configured = keys.every((key) => typeof env[key as keyof LocalAgentTeamBindings] === "string" && String(env[key as keyof LocalAgentTeamBindings]).trim());
+    return {
+      id,
+      label,
+      configuration: configured ? "DETECTED" : "CONFIGURATION_REQUIRED",
+      executable_or_endpoint: configured ? "CONFIGURED_REFERENCE" : "NOT_DETECTED",
+      authentication: configured ? "UNVERIFIED" : "MISSING",
+      execution,
+      smoke_test: "NOT_RUN",
+      evidence: configured ? "binding reference only; no live invocation performed" : `missing ${keys.join(" + ")}`,
+    };
+  });
+}
+
+async function taskById(db: D1Like, id: string) {
+  return db.prepare(
+    `SELECT id, title, capability, status, priority, resource_key, claimed_by,
+            parent_task_id, correlation_id, source_ref, created_at, updated_at, completed_at
+     FROM agent_tasks WHERE id = ? LIMIT 1`,
+  ).bind(id).first<TaskRow>();
+}
+
+async function latestEvent(db: D1Like, taskId: string) {
+  return db.prepare(
+    "SELECT event_type FROM agent_events WHERE task_id = ? ORDER BY created_at DESC LIMIT 1",
+  ).bind(taskId).first<{ event_type: string }>();
+}
+
+function taskView(task: TaskRow, eventType?: string | null) {
+  return {
+    ...task,
+    room: ROOM,
+    owner_session: OWNER_SESSION,
+    agent_state: safeStatus(task.status, eventType),
+    latest_event: eventType ?? null,
+    prompt: undefined,
+  };
+}
+
+export function createLocalAgentTeamApi() {
+  const api = new Hono<Env>();
+
+  api.use("/api/local-agent-team/*", async (c, next) => {
+    if (!(await hasOwnerOrOpsAccess(c.req.raw, c.env))) {
+      return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);
+    }
+    await next();
+  });
+
+  api.get("/api/local-agent-team/providers", (c) => c.json({
+    ok: true,
+    room: ROOM,
+    providers: providerReadiness(c.env),
+    execution_policy: "existing wave-runner-01 only; provider authentication and smoke tests require real runtime evidence",
+  }, 200, { "Cache-Control": "no-store" }));
+
+  api.get("/api/local-agent-team/state", async (c) => {
+    if (!c.env.DB) {
+      return c.json({ ok: true, room: ROOM, canonical_session: OWNER_SESSION, state: "CONFIGURATION_REQUIRED", missing: "D1 binding DB", agents: buildWhiteDiamondRegistry(c.env).map(({ agent_id, label, provider, state, capabilities }) => ({ agent_id, label, provider, state, capabilities })), tasks: [], events: [], providers: providerReadiness(c.env) }, 200, { "Cache-Control": "no-store" });
+    }
+    const [tasks, events, agents] = await Promise.all([
+      c.env.DB.prepare(
+        `SELECT id, title, capability, status, priority, resource_key, claimed_by,
+                parent_task_id, correlation_id, source_ref, created_at, updated_at, completed_at
+         FROM agent_tasks WHERE resource_key LIKE 'local-agent-team:${ROOM}:%'
+         ORDER BY created_at DESC LIMIT 50`,
+      ).all<TaskRow>(),
+      c.env.DB.prepare(
+        `SELECT id, task_id, event_type, actor, correlation_id, external_ref, created_at
+         FROM agent_events WHERE event_type LIKE 'LOCAL_TEAM_%'
+         ORDER BY created_at DESC LIMIT 80`,
+      ).all<EventRow>(),
+      Promise.resolve(buildWhiteDiamondRegistry(c.env).map(({ agent_id, label, provider, state, capabilities, runtime }) => ({ agent_id, label, provider, state, capabilities, runtime }))),
+    ]);
+    const eventRows = events.results ?? [];
+    const eventByTask = new Map(eventRows.map((event) => [event.task_id ?? "", event.event_type]));
+    return c.json({
+      ok: true,
+      room: ROOM,
+      canonical_session: OWNER_SESSION,
+      state: "OBSERVED",
+      agents,
+      providers: providerReadiness(c.env),
+      tasks: (tasks.results ?? []).map((task) => taskView(task, eventByTask.get(task.id))),
+      events: eventRows,
+      recovery: "checkpoint references are stored in canonical agent_checkpoints; interrupted tasks remain inspectable and are never silently replayed",
+    }, 200, { "Cache-Control": "no-store" });
+  });
+
+  api.post("/api/local-agent-team/tasks", async (c) => {
+    if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+    const idempotencyKey = clean(c.req.header("Idempotency-Key"), 240);
+    if (!idempotencyKey) return c.json({ ok: false, code: "IDEMPOTENCY_KEY_REQUIRED" }, 400);
+    const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+    const title = clean(body.title, 180);
+    const description = clean(body.description ?? body.prompt, MAX_SUMMARY);
+    const workspace = clean(body.workspace_ref, 180) || "workspace:staging";
+    const permission = clean(body.permission, 20).toUpperCase() || "READ";
+    const requestedAgent = clean(body.agent_id, 100) || null;
+    if (!title || !description || !["READ", "WRITE", "EXECUTE"].includes(permission)) return c.json({ ok: false, code: "INVALID_REQUEST", message: "title, description, and permission READ|WRITE|EXECUTE are required" }, 400);
+    if ([title, description, workspace, requestedAgent].some(secretLike)) return c.json({ ok: false, code: "SECRET_LIKE_INPUT_REJECTED" }, 400);
+    const identity = await digest(`${ROOM}:${idempotencyKey}`);
+    const taskId = `localteam_${identity}`;
+    const correlationId = `localteam-corr-${identity.slice(0, 40)}`;
+    const resourceKey = `local-agent-team:${ROOM}:${workspace}`;
+    const existing = await taskById(c.env.DB, taskId);
+    if (existing) return c.json({ ok: true, idempotent_replay: true, task: taskView(existing), execution: { state: permission === "READ" ? "READY" : "WAITING_APPROVAL" } }, 200, { "Cache-Control": "no-store" });
+    await c.env.DB.prepare(
+      `INSERT INTO agent_tasks(id, title, capability, status, priority, resource_key, claimed_by,
+        correlation_id, source_ref, attempt_count, created_at, updated_at)
+       VALUES (?, ?, 'local_agent_team', 'QUEUED', 50, ?, NULL, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+    ).bind(taskId, title, resourceKey, correlationId, OWNER_SESSION).run();
+    await c.env.DB.prepare(
+      `INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, correlation_id, external_ref, created_at)
+       VALUES (?, ?, 'LOCAL_TEAM_TASK_CREATED', 'owner-main', ?, ?, CURRENT_TIMESTAMP)`,
+    ).bind(`event-localteam-create-${identity}`, taskId, correlationId, JSON.stringify({ room: ROOM, workspace_ref: workspace, permission, agent_id: requestedAgent, description_sha256: await digest(description) })).run();
+    const saved = await taskById(c.env.DB, taskId);
+    return c.json({ ok: true, idempotent_replay: false, task: saved ? taskView(saved, "LOCAL_TEAM_TASK_CREATED") : null, execution: { state: permission === "READ" ? "READY" : "WAITING_APPROVAL", provider_execution: "NOT_STARTED", receipt: null }, handoff: { next: permission === "READ" ? "SUPERVISOR_ASSIGNMENT" : "OWNER_APPROVAL_REQUIRED" } }, 202, { "Cache-Control": "no-store" });
+  });
+
+  api.post("/api/local-agent-team/tasks/:taskId/handoff", async (c) => {
+    if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+    const taskId = clean(c.req.param("taskId"), 100);
+    const idempotencyKey = clean(c.req.header("Idempotency-Key"), 240);
+    const targetAgent = clean((await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>))).agent_id, 100);
+    if (!idempotencyKey || !targetAgent) return c.json({ ok: false, code: "IDEMPOTENCY_KEY_AND_AGENT_REQUIRED" }, 400);
+    if (secretLike(targetAgent)) return c.json({ ok: false, code: "SECRET_LIKE_INPUT_REJECTED" }, 400);
+    const task = await taskById(c.env.DB, taskId);
+    if (!task) return c.json({ ok: false, code: "TASK_NOT_FOUND" }, 404);
+    if (TERMINAL.has(task.status)) return c.json({ ok: false, code: "TASK_TERMINAL", status: task.status }, 409);
+    const eventId = `event-localteam-handoff-${await digest(`${taskId}:${idempotencyKey}`)}`;
+    if (task.capability !== "local_agent_team") return c.json({ ok: false, code: "TASK_NOT_LOCAL_AGENT_TEAM" }, 409);
+    await c.env.DB.prepare("UPDATE agent_tasks SET claimed_by = ?, status = 'CLAIMED', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status IN ('QUEUED','CLAIMED')").bind(targetAgent, taskId).run();
+    await c.env.DB.prepare(
+      `INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, correlation_id, external_ref, created_at)
+       VALUES (?, ?, 'LOCAL_TEAM_HANDOFF_REQUESTED', 'owner-main', ?, ?, CURRENT_TIMESTAMP)`,
+    ).bind(eventId, taskId, task.correlation_id, JSON.stringify({ target_agent: targetAgent, approval: "required_before_write_or_execute" })).run();
+    const updated = await taskById(c.env.DB, taskId);
+    return c.json({ ok: true, task: updated ? taskView(updated, "LOCAL_TEAM_HANDOFF_REQUESTED") : null, execution: { state: "WAITING_APPROVAL", provider_execution: "NOT_STARTED", receipt: null } }, 202, { "Cache-Control": "no-store" });
+  });
+
+  api.post("/api/local-agent-team/tasks/:taskId/result", async (c) => {
+    if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+    const taskId = clean(c.req.param("taskId"), 100);
+    const idempotencyKey = clean(c.req.header("Idempotency-Key"), 240);
+    const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+    const status = clean(body.status, 30).toUpperCase();
+    const resultRef = clean(body.result_ref, 240);
+    const summary = clean(body.summary, MAX_SUMMARY);
+    if (!idempotencyKey || !["DONE", "BLOCKED", "FAILED"].includes(status) || !resultRef || !summary) return c.json({ ok: false, code: "INVALID_RESULT", message: "Idempotency-Key, terminal status, result_ref, and summary are required" }, 400);
+    if ([resultRef, summary].some(secretLike)) return c.json({ ok: false, code: "SECRET_LIKE_INPUT_REJECTED" }, 400);
+    const task = await taskById(c.env.DB, taskId);
+    if (!task) return c.json({ ok: false, code: "TASK_NOT_FOUND" }, 404);
+    if (TERMINAL.has(task.status)) return c.json({ ok: true, idempotent_replay: true, task: taskView(task) }, 200, { "Cache-Control": "no-store" });
+    await c.env.DB.prepare("UPDATE agent_tasks SET status = ?, completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(status, taskId).run();
+    await c.env.DB.prepare(
+      `INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, correlation_id, external_ref, created_at)
+       VALUES (?, ?, 'LOCAL_TEAM_RESULT_RECORDED', 'owner-main', ?, ?, CURRENT_TIMESTAMP)`,
+    ).bind(`event-localteam-result-${await digest(`${taskId}:${idempotencyKey}`)}`, taskId, task.correlation_id, JSON.stringify({ result_ref: resultRef, summary_sha256: await digest(summary), status })).run();
+    const saved = await taskById(c.env.DB, taskId);
+    return c.json({ ok: true, idempotent_replay: false, task: saved ? taskView(saved, "LOCAL_TEAM_RESULT_RECORDED") : null, receipt: { result_ref: resultRef, status, summary_recorded: true } }, 200, { "Cache-Control": "no-store" });
+  });
+
+  api.post("/api/local-agent-team/tasks/:taskId/checkpoint", async (c) => {
+    if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+    const taskId = clean(c.req.param("taskId"), 100);
+    const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+    const agentId = clean(body.agent_id, 100);
+    const checkpointRef = clean(body.checkpoint_ref, 240);
+    const stateHash = clean(body.state_hash, 128);
+    if (!agentId || !checkpointRef || !stateHash) return c.json({ ok: false, code: "INVALID_CHECKPOINT" }, 400);
+    if ([agentId, checkpointRef, stateHash].some(secretLike)) return c.json({ ok: false, code: "SECRET_LIKE_INPUT_REJECTED" }, 400);
+    const task = await taskById(c.env.DB, taskId);
+    if (!task) return c.json({ ok: false, code: "TASK_NOT_FOUND" }, 404);
+    await c.env.DB.prepare(
+      `INSERT INTO agent_checkpoints(task_id, agent_id, checkpoint_ref, state_hash, updated_at)
+       VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+       ON CONFLICT(task_id, agent_id) DO UPDATE SET checkpoint_ref = excluded.checkpoint_ref, state_hash = excluded.state_hash, updated_at = CURRENT_TIMESTAMP`,
+    ).bind(taskId, agentId, checkpointRef, stateHash).run();
+    return c.json({ ok: true, checkpoint: { task_id: taskId, agent_id: agentId, checkpoint_ref: checkpointRef, state_hash: stateHash, persisted: true } }, 200, { "Cache-Control": "no-store" });
+  });
+
+  return api;
+}

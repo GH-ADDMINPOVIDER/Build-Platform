@@ -11,6 +11,10 @@ export type ConnectorModesBindings = AuthBindings & LiveToolBindings & Connector
   INFISICAL_MACHINE_IDENTITY?: string;
   INFISICAL_PROJECT_ID?: string;
   INFISICAL_ENVIRONMENT?: string;
+  OGENIC_REGISTRY_MCP_URL?: string;
+  OGENIC_GENERIC_HOOK_SECRET?: string;
+  OGENIC_GIT_SHA?: string;
+  CF_VERSION_METADATA?: string;
 };
 
 type ModeState = "SOURCE_READY" | "RUNTIME_PARTIAL" | "LIVE_READ" | "CONFIGURATION_REQUIRED" | "E2E_PENDING";
@@ -46,16 +50,43 @@ function hasValue(env: ConnectorModesBindings, key: string) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function bindingKeysFor(mode: string) {
+  const bindings: Record<string, string[]> = {
+    MCP: ["OGENIC_REGISTRY_MCP_URL"],
+    n8n: ["N8N_BASE_URL", "N8N_API_KEY"],
+    REST_API: ["GITHUB_TOKEN", "LINEAR_API_KEY", "N8N_API_KEY"],
+    TOKEN: ["GITHUB_TOKEN", "LINEAR_API_KEY", "N8N_API_KEY"],
+    SECRET: ["INFISICAL_MACHINE_IDENTITY", "INFISICAL_PROJECT_ID", "INFISICAL_ENVIRONMENT"],
+    CREDENTIAL: ["provider_bindings (D1)"],
+    REPOSITORY_API_PR_API: ["GITHUB_TOKEN"],
+    AGENT_API: ["DB", "OPENAI_API_KEY"],
+    FUNCTION_TOOL_CALLING: ["OPENAI_API_KEY"],
+    NPX_NPX_CLI: ["wave-runner-01"],
+    NPM: ["package-lock.json"],
+    SDK: ["ogenic-registry-mcp dependency"],
+    A2A_AGENT_RELAY: ["relay credentials"],
+    WEBHOOK_EVENT_CALLING: ["OGENIC_GENERIC_HOOK_SECRET"],
+    AGENT_SIGN_COMMAND_RUN: ["OGENIC_OPS_KEY", "DB", "wave-runner-01"],
+  };
+  return bindings[mode] ?? [];
+}
+
 function stateFor(mode: ModeSpec, liveById: Map<string, string>, configured: Set<string>): ModeState {
   if (mode.mode === "n8n" && liveById.get("n8n") === "LIVE") return "LIVE_READ";
   if (mode.mode === "REPOSITORY_API_PR_API" && liveById.get("github") === "LIVE") return "LIVE_READ";
   if (mode.mode === "REST_API" && ["github", "linear", "n8n"].some((id) => liveById.get(id) === "LIVE")) return "RUNTIME_PARTIAL";
-  if (mode.mode === "TOKEN" && configured.size > 0) return "RUNTIME_PARTIAL";
+  if (mode.mode === "TOKEN" && ["GITHUB_TOKEN", "LINEAR_API_KEY", "N8N_API_KEY"].some((key) => configured.has(key))) return "RUNTIME_PARTIAL";
   if (mode.mode === "CREDENTIAL" && configured.has("provider_bindings")) return "RUNTIME_PARTIAL";
-  if (mode.mode === "SECRET" && configured.has("infisical_ci")) return "RUNTIME_PARTIAL";
-  if (mode.mode === "AGENT_API" && configured.has("DB")) return "RUNTIME_PARTIAL";
+  if (mode.mode === "SECRET" && configured.has("INFISICAL_MACHINE_IDENTITY") && configured.has("INFISICAL_PROJECT_ID") && configured.has("INFISICAL_ENVIRONMENT")) return "RUNTIME_PARTIAL";
+  if (mode.mode === "AGENT_API" && configured.has("DB") && configured.has("OPENAI_API_KEY")) return "RUNTIME_PARTIAL";
   if (mode.mode === "FUNCTION_TOOL_CALLING" && configured.has("OPENAI_API_KEY")) return "RUNTIME_PARTIAL";
+  if (mode.mode === "NPM" && configured.has("package-lock.json")) return "SOURCE_READY";
   return mode.execution_verification.includes("NOT_VERIFIED") ? "E2E_PENDING" : "SOURCE_READY";
+}
+
+function liveProbeFor(mode: string, liveTools: Awaited<ReturnType<typeof readLiveTools>>[number][]) {
+  const ids = mode === "n8n" ? ["n8n"] : mode === "REPOSITORY_API_PR_API" ? ["github"] : mode === "REST_API" || mode === "TOKEN" ? ["github", "linear", "n8n"] : [];
+  return liveTools.filter((item) => ids.includes(item.id));
 }
 
 export function createConnectorModesApi() {
@@ -75,6 +106,7 @@ export function createConnectorModesApi() {
       if (hasValue(c.env, key)) configured.add(key);
     }
     if (c.env.DB) configured.add("DB");
+    configured.add("package-lock.json");
 
     let liveById = new Map<string, string>();
     let liveTools: Awaited<ReturnType<typeof readLiveTools>>[number][] = [];
@@ -104,9 +136,21 @@ export function createConnectorModesApi() {
       evidence_class: mode.evidence_class,
       execution_verification: mode.execution_verification,
       state: stateFor(mode, liveById, configured),
-      configured_bindings: mode.missing.filter((key) => configured.has(key)),
-      missing_bindings: mode.missing.filter((key) => !configured.has(key)),
-      live_probe: liveTools.find((item) => item.id === mode.mode.toLowerCase()) ?? null,
+      configured_bindings: bindingKeysFor(mode.mode).filter((key) => configured.has(key) || (key === "provider_bindings (D1)" && configured.has("provider_bindings"))),
+      missing_bindings: bindingKeysFor(mode.mode).filter((key) => !configured.has(key) && !(key === "provider_bindings (D1)" && configured.has("provider_bindings"))),
+      authentication: {
+        configured: bindingKeysFor(mode.mode).some((key) => configured.has(key)),
+        accepted: liveProbeFor(mode.mode, liveTools).some((probe) => probe.state === "LIVE"),
+        values_exposed: false,
+      },
+      source_status: "IMPLEMENTED_OR_REUSED",
+      runtime_status: stateFor(mode, liveById, configured),
+      live_probe: liveProbeFor(mode.mode, liveTools),
+      supported_execution: mode.execution_verification,
+      e2e_evidence: "NO_GENUINE_15_MODE_RECEIPT",
+      evidence_refs: ["tests/connector-modes-api-contract.test.mjs", ".github/workflows/provider-incentive-staging-deploy.yml"],
+      latest_verified_sha: c.env.OGENIC_GIT_SHA ?? null,
+      deployment_ref: c.env.CF_VERSION_METADATA ?? null,
       completion: "PARTIAL_UNTIL_E2E_PROOF",
     }));
 
