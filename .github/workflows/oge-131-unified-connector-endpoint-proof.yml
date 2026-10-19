@@ -1,0 +1,52 @@
+name: OGE-131 Unified Connector Endpoint Proof
+on:
+  push:
+    branches:
+      - feature/oge-131-connector-endpoint-functions-20261019
+    paths:
+      - "worker/connector-endpoint-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "tests/oge-131-unified-connector-endpoint.test.mjs"
+      - ".github/workflows/oge-131-unified-connector-endpoint-proof.yml"
+      - "docs/integrations/OGE131_UNIFIED_CONNECTOR_ENDPOINT_STAGING.md"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: oge131-connector-endpoint-proof
+  cancel-in-progress: false
+jobs:
+  contract-and-build:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Assert isolated feature and existing Runner-1
+        shell: bash
+        run: |
+          test "$GITHUB_REF_NAME" = feature/oge-131-connector-endpoint-functions-20261019
+          test "$RUNNER_NAME" = wave-runner-01
+      - name: Install dependencies for bounded CI
+        run: npm install --no-package-lock --no-audit --no-fund
+      - name: Connector source and authorization boundary tests
+        run: node --test tests/oge-131-unified-connector-endpoint.test.mjs tests/wave-connector-endpoint.test.mjs tests/wave-command-contract.test.mjs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build (NOT deploy)
+        run: npm run build
+      - name: CI receipt (not Runtime E2E)
+        shell: bash
+        run: |
+          echo "OGE131_ENDPOINT_SOURCE_CONTRACT=PASS"
+          echo "OGE131_OWNER_AUTH_BOUNDARY=SOURCE_AND_CONTRACT_VERIFIED"
+          echo "OGE131_CONNECTED_PROVIDER_E2E=NOT_VERIFIED"
+          echo "OGE131_AGENT_SIGN_TO_RUN_D1_E2E=NOT_VERIFIED"
+          echo "OGE131_EXTERNAL_MTLS_E2E=NOT_VERIFIED"
+          echo "OGE131_SECURITY_AUDIT=PARTIAL"
+          echo "OGE131_STAGING_DEPLOYED=FALSE"
+          echo "OGE131_PRODUCTION_MUTATED=FALSE"
