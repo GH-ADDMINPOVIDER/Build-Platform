@@ -19,7 +19,8 @@ for (const [id,url] of checks) {
       signal:AbortSignal.timeout(9000)});
     // Protected endpoints should return 401. That is not proof the PR route is deployed.
     const reachable=r.status>0&&r.status<500;
-    const status=r.status===401||r.status===403?"AUTH_REQUIRED":
+    const status=id==="n8n_registry_mcp" && r.status===404?"GET_404_MCP_RPC_NOT_TESTED":
+      r.status===401||r.status===403?"AUTH_REQUIRED":
       r.status===404?"NOT_REGISTERED_OR_NOT_DEPLOYED":
       r.status===405?"METHOD_REQUIRES_MCP_CLIENT":
       r.status>=300&&r.status<400?"REDIRECT_NOT_FOLLOWED":
