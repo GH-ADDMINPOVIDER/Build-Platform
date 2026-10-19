@@ -157,6 +157,6 @@ export default function Landing() {
       <nav><a href="/">WEB</a><a href="/chat">CHAT</a><a href="/command">COMMAND</a><a href="/agents">AGENTS</a><a href="/overview">OPERATE</a><a href="/app">APP</a></nav>
     </section>
 
-    <footer className="wvFooter"><span>WAVE · OGENIC STONE SYSTEM</span><span>GREEN KEEPS THE THREAD · YELLOW RUNS THE WORK · VIOLET ORCHESTRATES AGENTS</span></footer>
+    <footer className="wvFooter"><span>WAVE · OGENIC STONE SYSTEM</span><span>GREEN KEEPS THE THREAD · YELLOW RUNS THE WORK · VIOLET ORCHESTRATES AGENTS</span><span><a href="/policy.html" aria-label="WAVE Evidence and Execution Policy" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: "4px" }}>EVIDENCE POLICY ↗</a></span></footer>
   </main>;
 }
