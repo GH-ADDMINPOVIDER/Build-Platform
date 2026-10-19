@@ -519,9 +519,9 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
       {surface === "command" && <section className="wnHero wnCommandGlass">
         <div className="wnCommandHeading">
           <div className="wnHeroCopy">
-            <span className="wnKicker">WAVE COMMAND · YELLOW STONE</span>
+            <span className="wnKicker">WAVE COMMAND · AGENT → OWNER SIGN → RUN</span>
             <h2>สั่งงาน WAVE ได้เลย</h2>
-            <p>พิมพ์สิ่งที่อยากให้ทำได้ทันที ไม่ต้องจำ Path, OGE หรือชื่อโหมด ระบบจะส่งผ่านการตรวจสิทธิ์เดิมก่อนรัน</p>
+            <p>Agent วางแผนผ่าน ATHENA → Yellow Stone ตรวจสิทธิ์ → Owner ยืนยันด้วย Signed Session → Terminal Solo รัน → Ruby / D1 รับหลักฐาน · ไม่ต้องจำ Path หรือ OGE</p>
           </div>
           <button type="button" className="wnModeSwitch" aria-pressed={advanced} onClick={toggleAdvanced}>
             {advanced ? "Advanced · ON" : "Simple · ON"} <span aria-hidden="true">⌄</span>
@@ -556,17 +556,17 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
         <div className="wnRunActions">
           <button type="button" className="wnPrimary" onClick={() => void runGuardedCommand()}
             disabled={commandBusy || (!command.trim() && !(advanced && resourcePath.trim()))}>
-            {commandBusy ? "กำลังส่ง…" : "ส่งคำสั่ง →"}
+            {commandBusy ? "กำลังส่ง…" : "Agent Plan →"}
           </button>
           <button type="button" onClick={handoff}>เปิดใน WAVE Chat</button>
           {advanced && <a className="wnButtonLink" href="/agents">Agent controls</a>}
           {advanced && <span className="wnAdvancedAlias">Run guarded command</span>}
         </div>
         {pendingApproval && <section className="wnApprovalBox" role="status" aria-live="polite">
-          <div><b>รอ Owner ยืนยันคำสั่ง</b><p>Yellow Stone สร้างแผนแล้ว แต่ยังไม่ได้สั่ง Runner ทำงาน</p>
+          <div><b>Agent Plan พร้อม · รอ Owner Sign</b><p>Sign คือการยืนยันแผนด้วย Owner Session ไม่ใช่การให้ Agent เซ็นแทน · Runner ยังไม่เริ่ม</p>
             <small>{String(commandResult?.command_plan?.provider || "openai")} · {String(commandResult?.command_plan?.capability || "codex_selfhost")}</small></div>
           <div className="wnRunActions">
-            <button type="button" className="wnPrimary" disabled={commandBusy} onClick={() => void confirmGuardedCommand()}>ยืนยันแล้วส่งเข้าคิว</button>
+            <button type="button" className="wnPrimary" disabled={commandBusy} onClick={() => void confirmGuardedCommand()}>Owner Sign → Queue Runner-1</button>
             <button type="button" disabled={commandBusy} onClick={() => { setPendingApproval(null); setCommandResult(null); }}>ยกเลิก</button>
           </div>
         </section>}
