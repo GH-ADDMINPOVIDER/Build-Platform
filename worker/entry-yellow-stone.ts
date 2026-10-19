@@ -7,6 +7,7 @@ import { createCapabilityExecutionApi } from "./capability-execution-api";
 import { createOpenAISelfHostApi } from "./openai-selfhost-api";
 import { createCodexLeftArmApi } from "./codex-left-arm-api";
 import { createMcpConfigApi } from "./mcp-config-api";
+import { connectorManifest, normalizeConnectorEnvelope } from "./connector-endpoint-api";
 import { createWhiteDiamondApi } from "./white-diamond-api";
 import { createBlueDiamondApi } from "./blue-diamond-api";
 import { createVioletStoneApi } from "./violet-stone-api";
@@ -502,6 +503,49 @@ export default {
     }
     if (pathname === "/api/wave/command") {
       return athenaGuardedCommand(request, env, ctx);
+    }
+    if (pathname.startsWith("/api/connector-endpoint/v1/")) {
+      if (!(await hasOwnerOrOpsAccess(request, env))) {
+        return Response.json({ ok: false, code: "REAUTH_REQUIRED" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+      }
+      if (pathname === "/api/connector-endpoint/v1/manifest" && request.method === "GET") {
+        return Response.json(connectorManifest, { headers: { "Cache-Control": "no-store" } });
+      }
+      if (pathname === "/api/connector-endpoint/v1/status" && request.method === "GET") {
+        const stateUrl = new URL(request.url);
+        stateUrl.pathname = "/api/mcp-config/state";
+        const read = await mcpConfigApi.fetch(new Request(stateUrl.toString(), request), env as never, ctx as never);
+        const state = await read.json().catch(() => ({})) as Record<string, unknown>;
+        return Response.json({
+          ...connectorManifest, registry: state,
+          runtime_command_e2e_proven: false,
+          binding_list_does_not_prove_adapter_execution: true,
+        }, { status: read.status, headers: { "Cache-Control": "no-store" } });
+      }
+      if (pathname === "/api/connector-endpoint/v1/command" && request.method === "POST") {
+        const payload = await request.text();
+        if (payload.length > 12000) {
+          return Response.json({ ok: false, code: "COMMAND_TOO_LARGE" }, { status: 413 });
+        }
+        let data: unknown;
+        try { data = JSON.parse(payload); } catch { data = null; }
+        const connector = normalizeConnectorEnvelope(data);
+        if (!connector.ok) {
+          return Response.json({
+            ok: false, code: connector.code,
+            execution: { status: "NOT_STARTED", consumer_proven: false },
+          }, { status: 422, headers: { "Cache-Control": "no-store" } });
+        }
+        const target = new URL(request.url);
+        target.pathname = "/api/wave/command";
+        const forwarded = new Request(target.toString(), {
+          method: "POST", headers: request.headers,
+          body: JSON.stringify(connector.delegated),
+        });
+        // Same ATHENA/Yellow authority, approval plan, queue, and D1 receipt.
+        return athenaGuardedCommand(forwarded, env, ctx);
+      }
+      return Response.json({ ok: false, code: "CONNECTOR_ENDPOINT_NOT_FOUND" }, { status: 404 });
     }
     if (pathname.startsWith("/api/mcp-config/")) {
       return mcpConfigApi.fetch(request, env as never, ctx as never);
