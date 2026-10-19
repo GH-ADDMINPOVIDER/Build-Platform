@@ -31,7 +31,7 @@ test("engineering and agent guardrail skills preserve approval and evidence rule
   assert.match(read(".agents/skills/engineering-loop/SKILL.md"), /same SHA/);
   assert.match(read(".agents/skills/agent-harness-guardrails/SKILL.md"), /YELLOW \/ MA-OP/);
   assert.match(read(".agents/skills/agent-harness-guardrails/SKILL.md"), /Do not introduce a parallel memory store/);
-  assert.match(read("docs/architecture/EXTERNAL_SKILL_ADOPTIONS.md"), /not installed as a memory backend/);
+  assert.match(read("docs/architecture/EXTERNAL_SKILL_ADOPTIONS.md"), /not added as a second memory backend/);
 });
 
 test("original numbered P-Stack source catalog stays separate from local extensions", () => {

@@ -23,7 +23,7 @@ Treat them as a coordinated map. Update the existing source instead of creating 
 
 1. Start with editable Mermaid or structured data; make HTML/SVG a derived, inspectable output.
 2. Use concise labels, meaningful grouping, a legend where needed, accessible titles and alt text.
-3. For mobile, preserve horizontal pan when labels would otherwise become unreadable.
+3. For mobile, preserve mobile-readable horizontal pan when labels would otherwise become unreadable.
 4. Prefer monochrome by default with an optional light/dark presentation when supported.
 5. For repository changes, update the editable source and machine-readable edges together, then use the existing renderer/build path for derived SVG.
 6. Only produce PNG when an existing renderer is available. Do not claim a file exists until it has been written and inspected.
