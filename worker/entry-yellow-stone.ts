@@ -33,6 +33,7 @@ import { planAthenaCommand } from "./athena-command-planner";
 import { normalizeWaveCommandBody, waveCommandPolicy } from "./wave-command-contract";
 import { createDiscordApi } from "./discord-api";
 import { dispatchWaveCommandConsumer } from "./wave-command-dispatch";
+import { createConnectorModesApi } from "./connector-modes-api";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
@@ -61,6 +62,7 @@ const capabilityCardStoneApi = createCapabilityCardStoneApi();
 // CCS facade route proof trigger
 const n8nMigrationApi = createN8nMigrationApi();
 const discordApi = createDiscordApi();
+const connectorModesApi = createConnectorModesApi();
 
 const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
@@ -505,6 +507,9 @@ export default {
     }
     if (pathname.startsWith("/api/mcp-config/")) {
       return mcpConfigApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/connector-modes/")) {
+      return connectorModesApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/white-diamond/")) {
       return whiteDiamondApi.fetch(request, env as never, ctx as never);
