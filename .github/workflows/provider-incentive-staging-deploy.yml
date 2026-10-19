@@ -10,6 +10,9 @@ on:
       - "index.html"
       - "capacitor.config.ts"
       - "worker/**"
+      - "scripts/infisical-discover-project.sh"
+      - "scripts/infisical-cloudflare-source-select.sh"
+      - "tests/infisical-cloudflare-source.test.mjs"
       - "tests/oge-89-deepseek-yellow-integration.test.mjs"
       - "workflows/**"
       - "database/**"
@@ -39,7 +42,11 @@ env:
   INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
   INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
   INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
-  INFISICAL_ENV_SLUG: ${{ vars.INFISICAL_ENV_SLUG || 'staging' }}
+  INFISICAL_ENV_SLUG: staging
+  INFISICAL_CLOUDFLARE_SOURCE_ENV: staging
+  INFISICAL_CLOUDFLARE_SOURCE_PATH: /
+  INFISICAL_CLOUDFLARE_PROJECT_ID: e8cfba67-ea99-4d79-bc9f-87b862f9129c
+  INFISICAL_CLOUDFLARE_PROJECT_SLUG: ogenic-sio-ti-rv
   N8N_BASE_URL: ${{ vars.N8N_BASE_URL || 'https://ogenic-registry.app.n8n.cloud' }}
 
 jobs:
@@ -106,7 +113,7 @@ jobs:
         with:
           method: oidc
           identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
-          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          project-slug: ${{ steps.infisical_project.outputs.project_slug }}
           env-slug: ${{ steps.infisical_project.outputs.secret_env_slug }}
           secret-path: ${{ steps.infisical_project.outputs.secret_path }}
 
