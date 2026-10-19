@@ -26,3 +26,18 @@ test("local agent team is wired through Yellow Stone and existing Agent Deck", (
   assert.match(ui, /Create task/);
   assert.match(ui, /WAITING_APPROVAL|OWNER_APPROVAL_REQUIRED/);
 });
+
+test("OpenBot Launch Room uses existing Agent Deck and canonical D1 events", () => {
+  assert.match(ui, /Launch Room/);
+  assert.match(ui, /waveLaunchRoom/);
+  assert.match(ui, /\/api\/local-agent-team\/messages/);
+  assert.match(ui, /Persistent conversation/);
+  assert.match(ui, /No verified room adapter available/);
+  assert.match(ui, /Record BLOCKED result/);
+  assert.match(api, /api\.post\("\/api\/local-agent-team\/messages"/);
+  assert.match(api, /LOCAL_TEAM_MESSAGE/);
+  assert.match(api, /agent_checkpoints/);
+  assert.match(api, /target\.kind !== "specialist"/);
+  assert.match(api, /target\.state !== "LIVE"/);
+  assert.match(api, /room_adapter: "UNVERIFIED"/);
+});
