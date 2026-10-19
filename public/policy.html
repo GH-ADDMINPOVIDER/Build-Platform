@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07120b">
+  <meta name="description" content="WAVE Evidence & Execution Policy: กติกาการแสดงสถานะ หลักฐาน การเชื่อมต่อ การอนุมัติ และการรายงานผลของระบบ OGENIC/WAVE">
+  <title>WAVE — Evidence & Execution Policy</title>
+  <style>
+    :root{color-scheme:dark;--bg:#070b09;--panel:#0d1511;--panel2:#111d16;--line:rgba(226,242,233,.13);--text:#edf4ee;--muted:#a0b1a6;--green:#82efb8;--gold:#f1d27b;--red:#ff9292;--blue:#91c7ff;--amber:#ffd88b}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;background:var(--bg)}
+    body{margin:0;background:radial-gradient(circle at 10% 0%,rgba(32,173,121,.12),transparent 28%),radial-gradient(circle at 90% 8%,rgba(185,150,73,.09),transparent 26%),var(--bg);color:var(--text);font:16px/1.68 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    a{color:var(--green);text-underline-offset:4px}
+    a:focus-visible,summary:focus-visible{outline:2px solid var(--gold);outline-offset:4px}
+    .wrap{width:min(1120px,100%);margin:auto;padding:18px clamp(14px,3vw,32px) 64px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 0 22px;border-bottom:1px solid var(--line)}
+    .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-weight:900;letter-spacing:.12em}
+    .gem{width:13px;height:13px;transform:rotate(45deg);border:1px solid var(--green);background:linear-gradient(135deg,#c7ffe0,#176b4b);box-shadow:0 0 22px rgba(130,239,184,.25)}
+    .toplinks{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem}
+    .toplinks a{color:var(--muted)}
+    .hero{padding:44px 0 26px}
+    .eyebrow{color:var(--green);font-size:.75rem;font-weight:850;letter-spacing:.15em;text-transform:uppercase}
+    h1{font-size:clamp(2.1rem,5vw,4.2rem);line-height:1.05;letter-spacing:-.045em;margin:12px 0 16px;max-width:900px}
+    h1 span{color:var(--green)}
+    .lede{font-size:1.07rem;color:#c7d5cb;max-width:840px}
+    .note{padding:15px 17px;border:1px solid rgba(241,210,123,.3);border-radius:14px;background:rgba(241,210,123,.065);margin:22px 0;color:#f5e9bf}
+    .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0}
+    .card{min-width:0;padding:17px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(155deg,rgba(17,29,22,.94),rgba(9,15,11,.94))}
+    .card .label{font-size:.73rem;color:var(--muted);text-transform:uppercase;letter-spacing:.09em}
+    .card strong{display:block;font-size:1.45rem;line-height:1.2;margin:8px 0;color:var(--text)}
+    .card p{margin:0;color:var(--muted);font-size:.9rem}
+    .status{display:inline-flex;align-items:center;gap:7px;padding:4px 9px;border:1px solid var(--line);border-radius:999px;font-size:.72rem;font-weight:850;letter-spacing:.035em;white-space:nowrap}
+    .status:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+    .green{color:var(--green)}.blue{color:var(--blue)}.red{color:var(--red)}.gold{color:var(--gold)}.muted{color:var(--muted)}
+    nav.contents{display:flex;gap:8px;flex-wrap:wrap;padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(8,14,10,.65);margin:24px 0 38px}
+    nav.contents a{font-size:.82rem;text-decoration:none;border:1px solid var(--line);padding:6px 10px;border-radius:999px;color:#d4e1d8}
+    section{scroll-margin-top:20px;margin:34px 0}
+    h2{font-size:clamp(1.45rem,3vw,2rem);line-height:1.2;letter-spacing:-.025em;margin:0 0 13px}
+    h3{font-size:1.08rem;margin:20px 0 8px}
+    p{margin:9px 0}
+    .mutedText{color:var(--muted)}
+    .rule{border:1px solid var(--line);border-radius:16px;padding:18px;background:rgba(13,21,17,.8);margin:12px 0}
+    .rule h3{margin-top:0}
+    ul,ol{padding-left:1.25rem}
+    li{padding-left:3px;margin:6px 0}
+    .tableWrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;margin:14px 0}
+    table{border-collapse:collapse;width:100%;min-width:660px;background:rgba(10,17,12,.7);font-size:.9rem}
+    th,td{text-align:left;vertical-align:top;padding:12px 13px;border-bottom:1px solid var(--line)}
+    th{font-size:.76rem;color:var(--green);letter-spacing:.06em;text-transform:uppercase;background:rgba(130,239,184,.055)}
+    tr:last-child td{border-bottom:0}
+    td:first-child{font-weight:750}
+    code{font: .88em ui-monospace,SFMono-Regular,Menlo,monospace;color:#d8fbe5;background:rgba(130,239,184,.08);padding:2px 5px;border-radius:5px;overflow-wrap:anywhere}
+    .callout{border-left:3px solid var(--green);padding:11px 14px;background:rgba(130,239,184,.055);color:#dbe8df;margin:14px 0}
+    .danger{border-left-color:var(--red);background:rgba(255,146,146,.055)}
+    .footer{border-top:1px solid var(--line);margin-top:52px;padding-top:22px;color:var(--muted);font-size:.82rem;display:flex;gap:18px;justify-content:space-between;flex-wrap:wrap}
+    .back{display:inline-flex;margin-top:18px;text-decoration:none;border:1px solid var(--line);padding:9px 13px;border-radius:999px;color:var(--text)}
+    details{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0;background:rgba(13,21,17,.55)}
+    summary{cursor:pointer;font-weight:750}
+    @media(max-width:760px){.grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}.hero{padding-top:32px}.card strong{font-size:1.35rem}.wrap{padding-bottom:42px}body{font-size:15px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="/" aria-label="กลับหน้าแรก WAVE"><span class="gem" aria-hidden="true"></span><span>WAVE <span class="muted">/ POLICY</span></span></a>
+    <nav class="toplinks" aria-label="หน้าหลัก"><a href="/">หน้าแรก WAVE</a><a href="/chat">Chat</a><a href="/command">Command</a></nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="eyebrow">OGENIC · CONTROLLED OPERATIONS · EVIDENCE FIRST</div>
+      <h1>Evidence &amp; <span>Execution Policy</span></h1>
+      <p class="lede">นโยบายการบันทึกหลักฐาน การตรวจสอบสถานะ การเชื่อมต่อเครื่องมือ การอนุมัติคำสั่ง และการรายงานผลของ WAVE / OGENIC เพื่อไม่ให้ Source, CI, Runtime และการทำงานปลายทางถูกกล่าวอ้างปะปนกัน</p>
+      <div class="note"><strong>ขอบเขตเอกสาร:</strong> นโยบายนี้อ้างอิง Consolidated Operational Evidence Record OGE-128 / OGE-130 ณ วันที่ 19 ตุลาคม 2026 และสรุปเฉพาะข้อมูลที่เหมาะกับการเผยแพร่บนเว็บไซต์ ไม่ใช่ใบรับรอง X.509 ไม่ใช่เอกสารที่รัฐบาลออกให้ ไม่ใช่การรับรองจากหน่วยงานภายนอก และไม่ใช่หลักฐานยืนยันสถานะ Runtime แบบสดในขณะที่เปิดหน้านี้</div>
+    </div>
+
+    <div class="grid" aria-label="ภาพรวมหลักฐาน">
+      <article class="card"><div class="label">Evidence snapshot</div><strong>19 Oct 2026</strong><p>วันที่ของบันทึกหลักฐานที่นำมาสรุป สถานะสดต้องตรวจใหม่จาก Runtime ก่อนใช้อ้างอิง</p></article>
+      <article class="card"><div class="label">Provider registry</div><strong>23 groups</strong><p>จำนวนกลุ่ม Plugin / Provider ใน snapshot ไม่ใช่จำนวนการทดสอบ End-to-End</p></article>
+      <article class="card"><div class="label">Verified read connections</div><strong>18 read APIs</strong><p>ตรวจสอบการเชื่อมต่อระดับอ่านได้ใน snapshot วันที่ 18 ตุลาคม 2026 ไม่ใช่สิทธิ์เขียนหรือสิทธิ์รันคำสั่ง</p></article>
+    </div>
+    <div class="grid">
+      <article class="card"><div class="label">Connection / calling inventory</div><strong>15 categories</strong><p>หมวดหมู่การเชื่อมต่อและเรียกใช้งาน 15 ประเภท แยกจาก 23 Provider groups</p></article>
+      <article class="card"><div class="label">D1 integrity</div><strong><span class="status green">PASS · bounded</span></strong><p>มีหลักฐาน Readback ของ JSON เดียวกันและ SHA-256 ใน Run ที่บันทึกไว้ ไม่ได้แปลว่าตรวจ Runtime ล่าสุดแล้ว</p></article>
+      <article class="card"><div class="label">Owner capability grant</div><strong><span class="status red">NOT GRANTED</span></strong><p>บันทึกระบุว่า signed capability grant ยังเป็น false การเชื่อมต่อไม่สร้างสิทธิ์อัตโนมัติ</p></article>
+    </div>
+
+    <nav class="contents" aria-label="สารบัญนโยบาย">
+      <a href="#purpose">วัตถุประสงค์</a><a href="#notation">สัญลักษณ์และสถานะ</a><a href="#evidence">ระดับหลักฐาน</a><a href="#reporting">การรายงานผล</a><a href="#connectors">Connector inventory</a><a href="#security">ความปลอดภัย</a><a href="#approval">การอนุมัติ</a><a href="#freshness">ความสดใหม่</a><a href="#snapshot">Snapshot</a><a href="#review">การทบทวน</a>
+    </nav>
+
+    <section id="purpose">
+      <h2>1. วัตถุประสงค์และขอบเขต</h2>
+      <p>WAVE ใช้บันทึกหลักฐานที่ตรวจสอบย้อนกลับได้สำหรับการพัฒนา การเชื่อมต่อ Provider การทำงานของ Agent และการเปลี่ยนแปลง Runtime นโยบายนี้มีผลกับข้อความใน Dashboard, Chat, Command, Agent panels, logs, reports, policy pages, pull requests และ handoff ระหว่างผู้ปฏิบัติงานหรือ Agent</p>
+      <div class="rule"><h3>หลักการที่ต้องรักษา</h3>
+        <ol>
+          <li><strong>Evidence before claims:</strong> ทุกคำกล่าวว่า PASS, DONE, CONNECTED หรือ LIVE ต้องมีหลักฐานที่รองรับขอบเขตนั้น</li>
+          <li><strong>Bounded claims:</strong> ผลทดสอบยืนยันได้เฉพาะสิ่งที่ทดสอบจริง ห้ามขยายผลไปยัง Provider, Environment หรือ Execution path อื่น</li>
+          <li><strong>Staging first:</strong> ทดสอบใน Staging ก่อน Production เสมอ การเปลี่ยน Production, Candy website, สิทธิ์, Secret หรือข้อมูลจริงต้องมี Owner approval แยกต่างหาก</li>
+          <li><strong>Least privilege:</strong> การอ่านข้อมูลไม่เท่ากับสิทธิ์เขียน การมี Token หรือการเชื่อมต่อไม่เท่ากับสิทธิ์รันคำสั่ง</li>
+          <li><strong>Append-only history:</strong> หลักฐานเก่าที่เคย PENDING, BLOCKED หรือ FAIL ต้องเก็บเป็นประวัติ ไม่ลบทิ้งเพื่อทำให้รายงานดูเขียว</li>
+          <li><strong>No secret mirroring:</strong> ห้ามนำค่าลับไปคัดลอกไว้ในเอกสาร Policy, GitHub source, D1 evidence JSON, PDF หรือ log</li>
+        </ol>
+      </div>
+      <p class="mutedText">หน้านี้เป็น Public Policy Summary เท่านั้น บันทึกหลักฐานฉบับเต็ม รายละเอียดการตรวจสอบ และข้อมูลภายในที่ไม่จำเป็นต่อการเปิดเผยสาธารณะให้คงอยู่ในพื้นที่ควบคุมสิทธิ์ของ Owner</p>
+    </section>
+
+    <section id="notation">
+      <h2>2. ความหมายของสัญลักษณ์และสถานะ</h2>
+      <p>ระบบต้องใช้คำสถานะตามความหมายต่อไปนี้อย่างสม่ำเสมอ ห้ามตีความตามความรู้สึกหรือความสะดวกในการรายงาน</p>
+      <div class="tableWrap"><table>
+        <thead><tr><th>ค่า</th><th>ความหมายที่ถูกต้อง</th><th>สิ่งที่ห้ามสรุป</th></tr></thead>
+        <tbody>
+          <tr><td><code>-</code></td><td><strong>ข้อมูลซ้ำ (duplicate marker)</strong> ค่าหลักมีอยู่แล้วใน Master field ก่อนหน้า ไม่ใช่ค่าว่าง ไม่ใช่ข้อมูลหาย และไม่ใช่ข้อมูลใหม่ ต้องอ้างค่าหลักเดิมโดยไม่สร้างรายการซ้ำหรือนับซ้ำ</td><td>ห้ามตีความว่า missing, null, failed หรือเป็นหลักฐานอีกชิ้นหนึ่ง หากค่าที่ควรซ้ำไม่ตรงกัน ให้แจ้ง conflict แทนการใช้เครื่องหมายนี้</td></tr>
+          <tr><td><code>PASS</code></td><td>ผ่านการทดสอบที่ระบุ พร้อมหลักฐานและขอบเขตชัดเจน</td><td>ห้ามอ้างว่า Provider ทั้งหมด, Runtime ทั้งหมด หรือ E2E ทั้งระบบผ่าน หากทดสอบเพียงบางขั้น</td></tr>
+          <tr><td><code>NOT VERIFIED</code></td><td>ยังไม่มีหลักฐานเพียงพอที่จะยืนยันผล</td><td>ห้ามยกระดับเป็น PASS, DONE, LIVE หรือเชื่อมต่อสำเร็จ</td></tr>
+          <tr><td><code>PARTIAL</code></td><td>มีหลักฐานบางส่วน แต่ยังไม่ครอบคลุมขอบเขตที่ต้องการ</td><td>ห้ามเรียกว่าผ่านครบหรือ Audit complete</td></tr>
+          <tr><td><code>NOT DEPLOYED</code></td><td>ไม่มีหลักฐานยืนยันว่ารุ่นหรือ Endpoint นั้นถูก Deploy แล้ว</td><td>ห้ามอนุมานจาก Source, Commit, Build หรือการมีไฟล์อยู่ใน Repository</td></tr>
+          <tr><td><code>PENDING</code></td><td>ยังรอขั้นตอน หลักฐาน หรือการอนุมัติที่ระบุ</td><td>ห้ามซ่อนหรือเขียนทับสถานะเดิมเพื่อทำให้ภาพรวมดูสำเร็จ</td></tr>
+          <tr><td><code>BLOCKED</code></td><td>ทำต่อไม่ได้ ต้องระบุ Blocker, สาเหตุ, ผู้รับผิดชอบ และเงื่อนไขปลดล็อก</td><td>ห้ามรายงานเพียงคำว่า blocked โดยไม่บอกวิธีปลดล็อก</td></tr>
+          <tr><td><code>ACTIVE</code></td><td>สถานะที่มีหลักฐานยืนยัน ณ เวลาตรวจสอบและในขอบเขตที่ระบุ</td><td>ห้ามตีความว่าไม่มีวันหมดอายุ ไม่มีวันถูกเพิกถอน หรือยัง Active อยู่ในเวลาปัจจุบันโดยไม่ตรวจใหม่</td></tr>
+          <tr><td><code>ACCEPTED</code></td><td>ระบบปลายทางรับคำขอหรือบันทึก Event แล้ว</td><td>ห้ามเทียบเท่ากับ RUNNING, SUCCEEDED หรือ EXECUTION COMPLETED</td></tr>
+          <tr><td><code>EXECUTION COMPLETED</code></td><td>มีหลักฐานผลลัพธ์สุดท้ายจากการทำงานจริง พร้อม Run ID หรือ Result receipt ที่สัมพันธ์กับคำขอ</td><td>ห้ามอ้างจาก HTTP 200/202, Health check หรือข้อความตอบรับเพียงอย่างเดียว</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout"><strong>กฎของเครื่องหมายขีด:</strong> <code>-</code> คือข้อมูลซ้ำตามที่ Owner ระบุไว้ใน Master record ส่วนสิ่งที่ยังพิสูจน์ไม่ได้ต้องใช้สถานะอย่าง <code>NOT VERIFIED</code>, <code>PARTIAL</code> หรือ <code>NOT DEPLOYED</code> อย่างชัดเจน ห้ามใช้ขีดแทนสถานะที่ยังไม่ทราบ</div>
+    </section>
+
+    <section id="evidence">
+      <h2>3. ระดับหลักฐาน: Source ≠ CI ≠ Runtime ≠ E2E</h2>
+      <p>ผลการตรวจแต่ละระดับเป็นคนละข้อเท็จจริง การผ่านระดับหนึ่งไม่ทำให้ระดับถัดไปผ่านโดยอัตโนมัติ</p>
+      <div class="tableWrap"><table>
+        <thead><tr><th>ระดับ</th><th>หลักฐานขั้นต่ำ</th><th>ข้อความที่อนุญาต</th><th>สิ่งที่ยังไม่พิสูจน์</th></tr></thead>
+        <tbody>
+          <tr><td>Source</td><td>Repository, path, commit SHA, diff และ review ที่เกี่ยวข้อง</td><td>“Source implementation exists” หรือ “Source review PASS”</td><td>ยังไม่ยืนยันว่า Build ผ่าน, Deploy แล้ว หรือ Runtime ใช้งานได้</td></tr>
+          <tr><td>CI / Build</td><td>Run ID, commit SHA, job/step, exit result และ test output</td><td>“CI PASS for the listed workflow steps”</td><td>ไม่ยืนยันว่ารุ่นถูก Deploy, Secret ถูก Bind หรือ External API ทำงานจริง</td></tr>
+          <tr><td>Runtime</td><td>ตรวจ Endpoint/Worker รุ่นที่กำลังให้บริการจริง พร้อมเวลา, response, environment และ version/SHA ถ้าระบุได้</td><td>“Runtime check PASS at [time] for [endpoint/scope]”</td><td>Health check ไม่ได้พิสูจน์ว่าคำสั่งธุรกิจหรือทุก Provider ทำงานได้</td></tr>
+          <tr><td>External End-to-End</td><td>Correlation/Delivery ID, request, target receipt, Run ID และ final result ที่สัมพันธ์กัน</td><td>“E2E PASS for [specific path]”</td><td>ไม่ครอบคลุม Provider, payload, permission หรือเส้นทางอื่นที่ไม่ได้ทดสอบ</td></tr>
+          <tr><td>Authorization</td><td>Owner identity/session, approved plan/capability, scope, expiry/revocation และ audit receipt</td><td>“Authorized for this specific action and scope”</td><td>ไม่สร้างสิทธิ์ถาวรหรือสิทธิ์ทั่วทั้งระบบ</td></tr>
+          <tr><td>D1 integrity</td><td>Record ID เดิม, exact serialized JSON, readback และคำนวณ SHA-256 ซ้ำจากข้อมูลที่อ่านกลับมา</td><td>“GitHub canonical JSON ↔ D1 byte/hash match at the recorded run”</td><td>ไม่พิสูจน์ว่า Infisical มี JSON สำเนาเดียวกัน หรือว่า D1 ยังตรงกันในเวลาปัจจุบัน</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout danger"><strong>ห้ามใช้ CI PASS เพื่ออ้าง Runtime PASS</strong> และห้ามใช้ Source PASS เพื่ออ้างว่า Endpoint ทำงานจริง การตรวจ Health/Readiness เป็นเพียงหลักฐานของ Health/Readiness เท่านั้น</div>
+    </section>
+
+    <section id="reporting">
+      <h2>4. กติกาการรายงานผลและ Traffic Light</h2>
+      <div class="rule"><h3><span class="status green">GREEN · PASS</span></h3><p>ใช้ได้เมื่อมีหลักฐานตรงกับขอบเขตที่กล่าวอ้าง ต้องแสดง Run ID, SHA, test result หรือ Runtime evidence ตามประเภทงาน และระบุเวลาที่ตรวจ</p></div>
+      <div class="rule"><h3><span class="status blue">BLUE · IN PROCESS</span></h3><p>ใช้เมื่องานยังดำเนินอยู่ ต้องระบุขั้นตอนล่าสุด ผู้รับผิดชอบ และขั้นตอนถัดไป ไม่ใช้คำว่า DONE ก่อนมีหลักฐานปิดงาน</p></div>
+      <div class="rule"><h3><span class="status red">RED · BLOCKED</span></h3><p>ใช้เมื่องานติดขัด ต้องระบุ Blocker, สาเหตุ, ผู้รับผิดชอบ และเงื่อนไขปลดล็อกที่ตรวจสอบได้</p></div>
+      <h3>รูปแบบรายงานที่ต้องมี</h3>
+      <ul>
+        <li><strong>RESULT:</strong> ผลที่เกิดขึ้นจริง ไม่ใช่สิ่งที่คาดว่าจะเกิด</li>
+        <li><strong>STATUS:</strong> GREEN / BLUE / RED พร้อมสถานะเฉพาะ เช่น NOT VERIFIED หรือ PARTIAL</li>
+        <li><strong>SCOPE:</strong> Environment, endpoint, provider, action และขอบเขตที่ทดสอบ</li>
+        <li><strong>EVIDENCE:</strong> Commit SHA, Run ID, test output, timestamp, response หรือ receipt ที่เกี่ยวข้อง</li>
+        <li><strong>LIMITATION:</strong> สิ่งที่ผลทดสอบนี้ยังไม่พิสูจน์</li>
+        <li><strong>NEXT:</strong> ขั้นตอนถัดไป ผู้รับผิดชอบ และเงื่อนไขที่จะยกระดับสถานะ</li>
+      </ul>
+      <p>หากหลักฐานขัดแย้งกัน ให้เก็บหลักฐานทั้งสองชุด ระบุเวลาและขอบเขตของแต่ละชุด และเปิดประเด็นตรวจสอบ ห้ามเลือกเฉพาะหลักฐานที่ทำให้สถานะเป็นสีเขียว</p>
+    </section>
+
+    <section id="connectors">
+      <h2>5. Connector / Calling inventory — ขอบเขตที่บันทึกไว้</h2>
+      <p>Snapshot ที่นำมาสรุประบุ 23 Provider/Plugin groups, 18 read-level API connections ที่ผ่านการตรวจใน snapshot วันที่ 18 ตุลาคม 2026 และ 15 หมวดหมู่ Connection/Calling ทั้งสามตัวเลขเป็นคนละประเภทข้อมูล จึงห้ามนำมาบวกกันหรือใช้แทนกัน</p>
+      <div class="tableWrap"><table>
+        <thead><tr><th>#</th><th>หมวดหมู่</th><th>หลักฐานที่มีใน Snapshot</th><th>ขอบเขตที่ยังไม่พิสูจน์</th></tr></thead>
+        <tbody>
+          <tr><td>01</td><td>MCP</td><td>Source และ contract evidence</td><td>Live tool call แยกตาม Provider ยังต้องตรวจ</td></tr>
+          <tr><td>02</td><td>n8n</td><td>Health และ readiness ผ่านใน Run ที่บันทึกไว้</td><td>ผลลัพธ์จากการรัน Workflow จริงยังไม่ยืนยัน</td></tr>
+          <tr><td>03</td><td>REST API</td><td>Source และ bounded READ</td><td>Write-provider E2E ยังไม่ยืนยัน</td></tr>
+          <tr><td>04</td><td>Token</td><td>มี Source ของ server-side binding</td><td>Scope ของแต่ละ Provider ยังต้องตรวจ</td></tr>
+          <tr><td>05</td><td>Secret / identity</td><td>มีหลักฐาน OIDC และ staging D1 workflow ในขอบเขตที่ทดสอบ</td><td>การตรวจ scope ของ Secret ทั้งหมดเป็น PARTIAL</td></tr>
+          <tr><td>06</td><td>Credential</td><td>Owner session และ reference source</td><td>การใช้ binding ของแต่ละ Provider แบบ E2E ยังไม่ยืนยัน</td></tr>
+          <tr><td>07</td><td>Repository / PR API</td><td>GitHub READ ผ่านในขอบเขตที่ตรวจ</td><td>Consumer และ PR-write E2E ยังไม่ยืนยัน</td></tr>
+          <tr><td>08</td><td>Agent API</td><td>มี route implementation</td><td>Per-provider E2E ยังไม่ยืนยัน</td></tr>
+          <tr><td>09</td><td>Function / Tool Calling</td><td>มี READ tools ที่ตรวจยืนยันใน Source จำนวน 7 รายการ</td><td>การเรียกใช้งานทั่วทั้ง Provider registry ยังไม่ยืนยัน</td></tr>
+          <tr><td>10</td><td>NPX / CLI</td><td>มี project script source</td><td>Gateway-to-Runner adapter ยังไม่ยืนยัน</td></tr>
+          <tr><td>11</td><td>npm / package</td><td>CI tests, typecheck และ build ผ่านใน Run ที่บันทึกไว้</td><td>Package-lock hardening ยังรอดำเนินการ</td></tr>
+          <tr><td>12</td><td>SDK</td><td>มีการประกาศ SDK dependency</td><td>WAVE generic SDK runner adapter ยังรอดำเนินการ</td></tr>
+          <tr><td>13</td><td>A2A / Agent Relay</td><td>Contract test ผ่านในขอบเขตที่ระบุ</td><td>Runtime interoperability ระหว่างบัญชี GS ↔ GT ยังไม่ยืนยัน</td></tr>
+          <tr><td>14</td><td>Webhook / Event Calling</td><td>มี HMAC event-handler source</td><td>Live delivery และผลปลายทางยังไม่ยืนยัน</td></tr>
+          <tr><td>15</td><td>Agent Sign / Command / Run</td><td>READ, approval และ forged-plan rejection ผ่านในขอบเขตที่ทดสอบ</td><td>Owner-confirmed command execution จนได้ COMMAND_RESULT ยังไม่ยืนยัน</td></tr>
+        </tbody>
+      </table></div>
+      <div class="callout">การมี Plugin, Provider, SDK, MCP tool, route หรือ script อยู่ใน Source ไม่ได้หมายความว่าทุกเครื่องมือเชื่อมต่อและทำงานจริงได้แล้ว ต้องทดสอบตาม Provider และ action ที่ต้องการใช้งาน</div>
+    </section>
+
+    <section id="security">
+      <h2>6. ความปลอดภัยของ Credential, Secret และ Evidence</h2>
+      <div class="rule"><h3>การแยกหน้าที่ของระบบจัดเก็บ</h3>
+        <ul>
+          <li><strong>GitHub:</strong> Source code, canonical evidence JSON, version history และ CI receipts</li>
+          <li><strong>Cloudflare D1:</strong> Operational evidence JSON, metadata และ digest ที่ใช้ตรวจ integrity ตามขอบเขตที่กำหนด</li>
+          <li><strong>Infisical / approved secret store:</strong> Secret values, machine identity และ certificate lifecycle material ภายใต้ scope ที่อนุญาต</li>
+          <li><strong>1LSS / owner-main:</strong> ตัวอ้างอิง Session continuity ไม่ใช่สำเนา Vault และไม่ใช่การมอบสิทธิ์</li>
+        </ul>
+      </div>
+      <ul>
+        <li>ห้ามบันทึก Password, API token, Bearer token, OAuth code, Cookie, PEM, Private key หรือค่าลับอื่นลงใน Policy page, Source, D1 evidence JSON, PDF, Issue comment หรือ log</li>
+        <li>ห้ามนำค่า Secret จาก Infisical ไป mirror ใน D1 เพื่อทำให้ดูเหมือนข้อมูลตรงกันแบบ 1:1 การตรวจ JSON hash ระหว่าง GitHub กับ D1 ไม่ใช่หลักฐานว่า Infisical มี JSON เหมือนกัน</li>
+        <li>Log และ UI ต้องแสดงเฉพาะสถานะ จำนวน Resource ID ที่จำเป็น ข้อผิดพลาดที่ลบข้อมูลลับแล้ว และ Evidence reference ที่ได้รับอนุญาต</li>
+        <li>การยืนยันตัวตนผ่าน OIDC หรือการอ่าน Secret สำเร็จ ไม่ได้พิสูจน์ว่า Credential ทุกตัวมี scope ถูกต้องหรือใช้งานกับทุก Provider ได้</li>
+        <li>Certificate ที่มีวันหมดอายุและการตั้ง Auto-renew ต้องตรวจทั้งสถานะปัจจุบัน วันหมดอายุ และหลักฐานการต่ออายุจริง ห้ามเรียกการตั้งค่า renewal ว่าต่ออายุสำเร็จแล้ว</li>
+        <li>ผล mTLS ที่ผ่านบน localhost หรือ test environment ไม่ได้ยืนยันว่า External WAVE endpoint ใช้ mTLS สำเร็จ</li>
+      </ul>
+      <div class="callout danger"><strong>Public disclosure:</strong> หน้า Policy นี้ไม่เปิดเผย Secret, Private key, token, internal database identifier, credential path หรือรายละเอียดการเข้าถึงที่ไม่จำเป็น หลักฐานฉบับเต็มยังอยู่ในพื้นที่ควบคุมสิทธิ์ของ Owner</div>
+    </section>
+
+    <section id="approval">
+      <h2>7. Owner approval, Yellow Stone และการเปลี่ยนแปลงระบบ</h2>
+      <p>สิทธิ์ในการอ่านหรือเรียก API ไม่ใช่สิทธิ์อนุมัติให้เกิดผลข้างเคียง ทุกคำสั่งที่เปลี่ยนสถานะหรือทรัพยากรต้องผ่าน Authorization Gate ที่กำหนดสำหรับการกระทำนั้น</p>
+      <div class="tableWrap"><table>
+        <thead><tr><th>การกระทำ</th><th>กติกา</th></tr></thead>
+        <tbody>
+          <tr><td>Read-only inspection</td><td>ใช้สิทธิ์ต่ำสุดและจำกัดขอบเขต แสดงผลเฉพาะข้อมูลที่จำเป็น</td></tr>
+          <tr><td>Write / execute / deploy</td><td>ต้องมีแผนงานที่ระบุ Scope และ Owner approval ตามนโยบายก่อนเริ่ม</td></tr>
+          <tr><td>Production / Candy website</td><td>ห้ามเปลี่ยนแปลงโดยอาศัย Certificate lincenc นี้เพียงอย่างเดียว ต้องได้รับการอนุมัติโดยตรงแยกต่างหาก</td></tr>
+          <tr><td>D1 schema หรือข้อมูลปฏิบัติการ</td><td>การมีบันทึก Certificate ไม่ใช่การอนุมัติให้เปลี่ยน Schema หรือข้อมูล D1 อื่น</td></tr>
+          <tr><td>Runner / Terminal</td><td>ห้ามสร้าง Runner service เพิ่มหรือข้าม Terminal/Yellow Stone gate โดยอนุมานจากสถานะที่เชื่อมต่อแล้ว</td></tr>
+          <tr><td>Provider write permissions</td><td>Read API ที่ผ่านแล้วไม่อนุญาตให้เขียน ส่งข้อความ แก้ไขข้อมูล หรือเรียกเก็บเงินโดยอัตโนมัติ</td></tr>
+          <tr><td>Revocation / expiry</td><td>สิทธิ์ต้องจำกัดตามเวลา Scope และกลไกเพิกถอน การระบุ “permanent” ในบันทึกไม่สามารถลบข้อจำกัดของใบรับรองที่หมดอายุได้</td></tr>
+        </tbody>
+      </table></div>
+      <p>ณ Snapshot ที่สรุปไว้ <code>signed_capability_grant = false</code> จึงห้ามถือว่ามีการมอบสิทธิ์รันคำสั่งแบบลงลายมือชื่อแล้ว การผ่าน READ หรือ Approval challenge ไม่ได้แปลว่ามี Owner-confirmed execution result</p>
+    </section>
+
+    <section id="freshness">
+      <h2>8. ความสดใหม่ของหลักฐานและการหมดอายุ</h2>
+      <ul>
+        <li>ทุก Evidence ต้องระบุเวลาที่เก็บและ Environment ที่ตรวจ</li>
+        <li>สถานะจาก Snapshot วันที่ 19 ตุลาคม 2026 เป็นสถานะ ณ ขอบเขตของหลักฐานที่อ้างถึง ไม่ใช่การยืนยันสถานะปัจจุบันแบบ Real-time</li>
+        <li>ก่อนอ้างว่า Runtime ยังพร้อมใช้งาน ให้ตรวจ Endpoint จริงและระบุเวลาที่ตรวจใหม่</li>
+        <li>ก่อนอ้างว่า Certificate/Leaf ยัง Active ให้ตรวจ Trust chain, Subject, expiry และ revocation/renewal state ที่เกี่ยวข้อง</li>
+        <li>ก่อนอ้างว่า D1 ยังตรงกับ GitHub ให้ทำ Readback ใหม่และคำนวณ digest จากข้อมูลที่อ่านกลับมา ไม่ใช้ Hash เก่าแทนการตรวจล่าสุด</li>
+        <li>เมื่อมี Commit ใหม่ ผล CI เก่าใช้ยืนยันได้เฉพาะ SHA ที่รันจริง ห้ามนำผลของ SHA หนึ่งไปอ้างแทนอีก SHA หนึ่งโดยไม่ตรวจความสัมพันธ์</li>
+        <li>เมื่อมีการเปลี่ยน Endpoint, Secret binding, permission, provider version หรือ execution adapter ต้องทำการทดสอบที่ได้รับผลกระทบซ้ำ</li>
+      </ul>
+    </section>
+
+    <section id="snapshot">
+      <h2>9. สรุปผล Snapshot ของ Certificate lincenc</h2>
+      <p>ส่วนนี้บันทึกขอบเขตของผลที่ปรากฏใน Consolidated Operational Evidence Record โดยไม่ยกระดับผลเกินหลักฐานต้นทาง</p>
+      <div class="tableWrap"><table>
+        <thead><tr><th>รายการ</th><th>สถานะในบันทึก</th><th>ขอบเขต / ข้อจำกัด</th></tr></thead>
+        <tbody>
+          <tr><td>Record identity</td><td><span class="status green">SAME RECORD</span></td><td>ใช้ Certificate ID เดิมและเก็บประวัติ 13 entries ก่อนหน้า พร้อมเพิ่ม inventory event ที่ 14 ไม่ได้ออก Certificate ID ใหม่</td></tr>
+          <tr><td>GitHub canonical JSON ↔ D1</td><td><span class="status green">PASS · recorded run</span></td><td>มี Readback และ SHA-256 recomputation ผ่านใน Run ที่ระบุไว้ในบันทึก ไม่ได้ยืนยันว่า Live D1 ยังเหมือนเดิมหลังเวลานั้น</td></tr>
+          <tr><td>Infisical metadata / staging leaf</td><td><span class="status green">BOUNDED PASS</span></td><td>มีหลักฐานแยกสำหรับ Certificate Manager access, OIDC scope และ staging leaf; ไม่ได้พิสูจน์ว่ามี JSON mirror แบบเดียวกับ D1</td></tr>
+          <tr><td>Local mTLS handshake</td><td><span class="status green">PASS · local test</span></td><td>ยืนยันเฉพาะการทดสอบใน Local test environment</td></tr>
+          <tr><td>External WAVE endpoint mTLS</td><td><span class="status red">NOT VERIFIED</span></td><td>ยังไม่มีหลักฐานเพียงพอสำหรับการยืนยัน handshake ที่ External endpoint</td></tr>
+          <tr><td>Scoped temporary-key cleanup</td><td><span class="status green">PASS · bounded audit</span></td><td>มีหลักฐานการลบ Temporary test keys ในขอบเขตที่ระบุ แต่ไม่ใช่หลักฐาน No-leak ครบทุกประวัติหรือทุกระบบ</td></tr>
+          <tr><td>Agent command READ / approval gate</td><td><span class="status green">PASS · bounded</span></td><td>READ และการปฏิเสธ forged plan ผ่านในขอบเขตที่ทดสอบ ไม่ได้ยืนยัน Full owner-confirmed command-to-D1 result</td></tr>
+          <tr><td>n8n connector</td><td><span class="status green">HEALTH / READINESS PASS</span></td><td>ผล Workflow execution จริงยังไม่ยืนยัน</td></tr>
+          <tr><td>OGE-130 connector source</td><td><span class="status green">CI PASS</span></td><td>Tests, typecheck และ build ผ่านใน Run ที่บันทึกไว้ แต่ไม่ใช่ Universal E2E หรือหลักฐานว่า Endpoint ทุกตัว Deploy แล้ว</td></tr>
+          <tr><td>NPX / Gateway / Runner</td><td><span class="status red">NOT VERIFIED</span></td><td>มี project scripts แต่ Adapter จาก Gateway ไป Runner ยังไม่ยืนยัน</td></tr>
+          <tr><td>GS ↔ GT remote A2A</td><td><span class="status red">PENDING</span></td><td>มี Source/contract evidence แต่การสื่อสาร Runtime ข้ามบัญชียังไม่ยืนยัน</td></tr>
+          <tr><td>Owner signed capability</td><td><span class="status red">FALSE / NOT GRANTED</span></td><td>ไม่มีการสร้าง Signed Owner grant จากบันทึกนี้</td></tr>
+        </tbody>
+      </table></div>
+      <p class="mutedText">ผลแต่ละแถวเป็นข้อเท็จจริงเฉพาะ Scope ของ Evidence ที่บันทึกไว้ ห้ามรวมหลายแถวแล้วสรุปว่า “ระบบทั้งหมดผ่าน” และการแสดงหน้านี้ไม่ถือเป็นการตรวจ Runtime ใหม่</p>
+    </section>
+
+    <section id="review">
+      <h2>10. การตรวจทาน การแก้ไข และการจัดการความขัดแย้ง</h2>
+      <ol>
+        <li>เมื่อแก้ไข Source หรือ Policy ให้สร้าง Version/Commit ใหม่ และเก็บประวัติเดิมไว้</li>
+        <li>เมื่อมีหลักฐานใหม่ ให้เพิ่ม Event หรืออัปเดตสถานะเฉพาะ Scope ที่หลักฐานใหม่ครอบคลุม ห้ามลบข้อจำกัดทางประวัติศาสตร์</li>
+        <li>เมื่อหลักฐานจาก Source, CI, Runtime และ External endpoint ไม่ตรงกัน ให้รายงานแยกตามระดับ ไม่ใช้ระดับหนึ่งกลบอีกระดับ</li>
+        <li>เมื่อค่าในฟิลด์ที่ทำเครื่องหมาย <code>-</code> ไม่ตรงกับ Master value ให้เปลี่ยนเป็นประเด็น Conflict และตรวจต้นทาง ห้ามบังคับนับเป็น Duplicate</li>
+        <li>การเปลี่ยน Policy ที่ส่งผลต่อ Production, credential, permissions, D1 schema หรือ execution authority ต้องผ่าน Owner approval ก่อนดำเนินการ</li>
+        <li>การปิดงานต้องระบุหลักฐานสุดท้ายและข้อจำกัดที่เหลือ หากมีขั้นตอนสำคัญที่ยัง NOT VERIFIED ให้คงสถานะนั้นไว้</li>
+      </ol>
+      <h3>เกณฑ์ขั้นต่ำก่อนใช้คำว่า DONE</h3>
+      <div class="rule">
+        <ul>
+          <li>มี Requirement และ Scope ที่ชัดเจน</li>
+          <li>มี Source SHA และผล CI ที่สัมพันธ์กับ SHA นั้น หากงานมีการเปลี่ยนโค้ด</li>
+          <li>มี Runtime proof เมื่อกล่าวอ้างว่า Deploy หรือใช้งานจริง</li>
+          <li>มี End-to-End receipt และ final result เมื่อกล่าวอ้างว่าการสื่อสารหรือคำสั่งทำงานถึงปลายทาง</li>
+          <li>มี Owner approval เมื่อมี side effect ที่ต้องอนุมัติ</li>
+          <li>ระบุข้อจำกัดที่เหลืออย่างตรงไปตรงมา ไม่มีการใช้ <code>-</code> ซ่อนสถานะที่ยังไม่พิสูจน์</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>11. ข้อจำกัดและคำชี้แจง</h2>
+      <p>นโยบายนี้เป็นแนวทางการควบคุมการทำงานและการรายงานหลักฐานของ WAVE / OGENIC ไม่ใช่คำรับประกันความพร้อมใช้งานอย่างต่อเนื่อง ไม่ใช่การรับรองความปลอดภัยจากผู้ตรวจสอบอิสระ ไม่ใช่ใบรับรองจากหน่วยงานกำกับดูแล และไม่รับประกันว่าบริการของบุคคลที่สามจะพร้อมใช้งาน</p>
+      <p>หากต้องใช้ข้อมูลเพื่อการตัดสินใจที่มีผลกระทบสูง ให้ตรวจหลักฐานฉบับเต็มและสถานะ Runtime ล่าสุดจากแหล่งที่มีสิทธิ์เข้าถึงก่อนเสมอ</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>WAVE · OGENIC · EVIDENCE FIRST</span>
+    <span>Policy snapshot: 19 October 2026 · Public-safe summary · Owner-controlled source of truth</span>
+  </footer>
+  <a class="back" href="/">← กลับหน้าแรก WAVE</a>
+</div>
+</body>
+</html>
