@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx wrangler dev --local --ip 127.0.0.1 --port 8789 >/tmp/oge132-worker.log 2>&1 &
+          npx wrangler dev --local --ip 127.0.0.1 --port 8789 --var OGENIC_OPS_KEY:oge132-fixture-only-owner-key >/tmp/oge132-worker.log 2>&1 &
           worker_pid=$!
           trap 'kill "$worker_pid" 2>/dev/null || true; wait "$worker_pid" 2>/dev/null || true; rm -f /tmp/oge132-worker.log' EXIT
           ready=0
@@ -58,6 +58,43 @@ jobs:
           test "$status" = 401
           hook=$(curl --noproxy '*' -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' --data '{"probe":"unsigned"}' http://127.0.0.1:8789/api/connector-endpoint/v1/ingress/generic)
           if [ "$hook" = 200 ] || [ "$hook" = 201 ] || [ "$hook" = 202 ]; then echo "OGE132_UNSIGNED_WEBHOOK_ACCEPTED"; exit 1; fi
+          node --input-type=module <<'JS'
+          import assert from "node:assert/strict";
+          const base="http://127.0.0.1:8789";
+          const login=await fetch(base+"/api/session",{
+            method:"POST", headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({owner_key:"oge132-fixture-only-owner-key"})
+          });
+          assert.equal(login.status,200,"Fixture Owner session must be issued");
+          const cookie=(login.headers.get("set-cookie")||"").split(";")[0];
+          assert.match(cookie,/^ogenic_owner_session=/);
+          const modes=["mcp","n8n","api","token","secret","credential","pr_api","agent_api",
+            "function_calling","npx","npm","sdk","a2a","webhook","agent_sign_run"];
+          for (const transport of modes) {
+            const response=await fetch(base+"/api/connector-endpoint/v1/operate",{
+              method:"POST",headers:{"Content-Type":"application/json",cookie},
+              body:JSON.stringify({transport,operation:"inspect",environment:"staging"})
+            });
+            const result=await response.json();
+            assert.equal(response.status,200,transport+": "+JSON.stringify(result));
+            assert.equal(result.transport,transport);
+            assert.equal(result.configured_is_not_live_e2e,true);
+          }
+          const bad=await fetch(base+"/api/connector-endpoint/v1/operate",{
+            method:"POST",headers:{"Content-Type":"application/json",cookie},
+            body:JSON.stringify({transport:"api",operation:"inspect",environment:"production"})
+          });
+          assert.equal(bad.status,422,"Production scope rejected");
+          const forged=await fetch(base+"/api/connector-endpoint/v1/operate",{
+            method:"POST",headers:{"Content-Type":"application/json",cookie},
+            body:JSON.stringify({transport:"npx",operation:"confirm",command:"Audit source",
+              approval:{confirmed:true,approval_id:"forged"}})
+          });
+          assert.equal(forged.status,422,"Forged Owner approval rejected");
+          console.log("OGE132_LOCAL_OWNER_SESSION=PASS");
+          console.log("OGE132_LOCAL_15_MODE_INSPECT_HTTP=15/15_PASS");
+          console.log("OGE132_LOCAL_PROD_AND_FORGED_APPROVAL=DENIED");
+          JS
           echo "OGE132_LOCAL_HTTP_UNAUTH_PROTOCOLS=401"
           echo "OGE132_LOCAL_HTTP_UNAUTH_OPERATE=401"
           echo "OGE132_LOCAL_HTTP_UNSIGNED_HOOK=DENIED"
