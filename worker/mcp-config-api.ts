@@ -41,6 +41,8 @@ const CANONICAL_SESSION = "1LSS_OWNER_MAIN";
 const ALLOWED_HOSTS = new Set([
   "api.openai.com",
   "mcp.linear.app",
+  // Owner-registered n8n Registry MCP: exact origin only, never a .n8n.cloud wildcard.
+  "ogenic-registry.app.n8n.cloud",
   "mcp.notion.com",
   "mcp.figma.com",
   "mcp.canva.com",
