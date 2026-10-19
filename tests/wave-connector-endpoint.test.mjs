@@ -12,7 +12,7 @@ test("OGE-131 inventory contains exactly the 15 OGE-130 Certificate categories, 
     "agent_api","function_tool_calling","npx_cli","npm","sdk","a2a_agent_relay",
     "webhook_event_calling","agent_sign_command_run"
   ];
-  const defs=[...api.matchAll(/mode\("([a-z_]+)","(?:TRANSPORT|IDENTITY|RUNNER_TOOL|AGENT_PROTOCOL|EXECUTION_CONTROL)"/g)].map(m=>m[1]);
+  const defs=[...api.matchAll(/mode\("([a-z0-9_]+)","(?:TRANSPORT|IDENTITY|RUNNER_TOOL|AGENT_PROTOCOL|EXECUTION_CONTROL)"/g)].map(m=>m[1]);
   assert.deepEqual(defs,modes);
   assert.match(api,/modes_documented:15/);
   assert.match(api,/registry_evidence:"oge130_connector_modes_repository_inventory_20261019"/);
