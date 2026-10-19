@@ -11,7 +11,7 @@ test("WAVE evidence policy documents status semantics and links from landing", a
   assert.match(policy, /duplicate marker/i);
   assert.match(policy, /NOT VERIFIED/);
   assert.match(policy, /Source ≠ CI ≠ Runtime ≠ E2E/);
-  assert.match(policy, /ไม่ใช่ใบรับรอง X\\.509/);
+  assert.match(policy, /ไม่ใช่ใบรับรอง X\.509/);
   assert.match(policy, /ไม่ใช่เอกสารที่รัฐบาลออกให้/);
   assert.match(policy, /signed_capability_grant = false/);
   assert.match(policy, /External WAVE endpoint mTLS/);
