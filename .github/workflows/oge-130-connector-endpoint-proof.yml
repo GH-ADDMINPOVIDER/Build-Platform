@@ -29,6 +29,20 @@ jobs:
           test "$RUNNER_NAME" = wave-runner-01
           test "$GITHUB_REF_NAME" = feature/wave-liquid-glass-command-ux-20261018
           node --test tests/wave-connector-endpoint.test.mjs tests/wave-command-contract.test.mjs tests/athena-guarded-command-handoff.test.mjs
+      - name: Verify npm and npx CLI are present on Runner without executing external packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v node >/dev/null
+          command -v npm >/dev/null
+          command -v npx >/dev/null
+          echo "OGE131_RUNNER_NPM_PRESENT=PASS"
+          echo "OGE131_RUNNER_NPX_CLI_PRESENT=PASS"
+          echo "OGE131_NODE_VERSION=$(node --version)"
+          echo "OGE131_NPM_VERSION=$(npm --version)"
+          echo "OGE131_NPX_VERSION=$(npx --version)"
+          echo "OGE131_NPX_PACKAGE_EXECUTION=NOT_TESTED"
+          echo "OGE131_EXECUTION_ADAPTER_E2E=NOT_TESTED"
       - name: Install dependencies and typecheck
         run: npm install --no-package-lock --no-audit --no-fund && npm run typecheck
       - name: Build Cloudflare Worker/Frontend bundle (not deploy)
@@ -36,6 +50,8 @@ jobs:
       - name: Bounded readiness receipt
         run: |
           echo "OGE130_CONNECTOR_ENDPOINT_SOURCE=PASS"
+          echo "OGE131_CONNECTOR_INVENTORY_MODES=15"
+          echo "OGE131_NO_NEW_EXECUTION_GATEWAY=TRUE"
           echo "OGE130_OWNER_SIGN_EXISTING_GATE=SOURCE_VERIFIED"
           echo "OGE130_MCP_REMOTE_DISCOVERY=EXISTING_ADAPTER_ONLY"
           echo "OGE130_NPX_SDK_RUNTIME=NOT_VERIFIED"
@@ -45,4 +61,6 @@ jobs:
           echo "OGE130_PRODUCTION_MUTATED=FALSE"
           echo "### OGE-130 / WAVE Connector Endpoint" >> "$GITHUB_STEP_SUMMARY"
           echo "Contract, tests, typecheck and bundle validated; feature-branch only, NOT deployed." >> "$GITHUB_STEP_SUMMARY"
+          echo "15 mode classifications tested. npm/npx versions checked on Runner, no external packages run." >> "$GITHUB_STEP_SUMMARY"
+          echo "Owner Sign/NPX/MCP tools-call/A2A 15-mode live E2E are NOT claimed." >> "$GITHUB_STEP_SUMMARY"
           echo "Owner Sign uses existing Yellow authorization; NPX/SDK remain uninstalled." >> "$GITHUB_STEP_SUMMARY"
