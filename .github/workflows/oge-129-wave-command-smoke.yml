@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
   id-token: write
   issues: write
 jobs:
@@ -42,6 +43,14 @@ jobs:
           env-slug: staging
           secret-path: /
           recursive: true
+      - name: Bind canonical staging D1 read credentials using proven Infisical source
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ steps.discovery.outputs.project_slug }}
+          env-slug: ${{ steps.discovery.outputs.secret_env_slug }}
+          secret-path: ${{ steps.discovery.outputs.secret_path }}
       - name: Check live WAVE and Connector gateway with no workflow dispatch
         run: node scripts/oge129_wave_command_connections_smoke.mjs
       - name: Explain smoke scope
