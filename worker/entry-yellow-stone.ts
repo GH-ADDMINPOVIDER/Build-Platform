@@ -516,8 +516,21 @@ export default {
         stateUrl.pathname = "/api/mcp-config/state";
         const read = await mcpConfigApi.fetch(new Request(stateUrl.toString(), request), env as never, ctx as never);
         const state = await read.json().catch(() => ({})) as Record<string, unknown>;
+        const rows = Array.isArray(state.bindings) ? state.bindings : [];
+        const metadata = rows.map((value: unknown) => {
+          const row = value && typeof value === "object" ? value as Record<string, unknown> : {};
+          return {
+            provider_id: String(row.provider_id ?? "").slice(0, 80),
+            binding_type: String(row.binding_type ?? "").slice(0, 40),
+            environment: String(row.environment ?? "").slice(0, 30),
+            status: String(row.status ?? "").slice(0, 40),
+            credential_reference_present: row.secret_ref_present === true,
+            runtime_execution_verified: false,
+          };
+        });
         return Response.json({
-          ...connectorManifest, registry: state,
+          ...connectorManifest,
+          registry: { ok: state.ok === true, bindings: metadata, count: metadata.length },
           runtime_command_e2e_proven: false,
           binding_list_does_not_prove_adapter_execution: true,
         }, { status: read.status, headers: { "Cache-Control": "no-store" } });
