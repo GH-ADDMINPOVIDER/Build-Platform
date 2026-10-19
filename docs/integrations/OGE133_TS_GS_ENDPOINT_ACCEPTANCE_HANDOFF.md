@@ -63,6 +63,27 @@ Updated: 2026-10-19. Scope: OGENIC/WAVE STAGING ONLY. Target: **TS reviewer**, G
 
 **Safe public-only evidence:** run `node scripts/oge133-ts-endpoint-public-audit.mjs` on the existing Runner-1; JSON `oge133-ts-endpoint-public-proof.json` includes status codes **without secrets or response bodies**. Public GET output is **NOT** evidence of authenticated provider execution. Never use `POST /command` or dispatch until real Owner approval.
 
+## Runner-1 live public HTTP evidence — 2026-10-19
+
+A bounded test ran on existing self-hosted `wave-runner-01`:
+[Run 39230533940](https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/39230533940), source SHA `38426dbfd4adda9aba61bb688e04217d6ed45a9e`. **17/17 source tests PASS, Typecheck PASS, build PASS, local signed Owner fixture 15/15 PASS.** Artifact: `oge133-ts-public-endpoint-proof` (sanitized public-only HTTP statuses, no response bodies or credentials).
+
+Read-only public HTTP from Runner-1:
+- `GET https://wave.ogenicchocolate.com/api/session` → HTTP **200**; this proves the session route responds, **not** Owner login/authenticated access.
+- `GET https://wave.ogenicchocolate.com/api/connector-endpoint/v1/manifest` → HTTP **404**.
+- `GET https://wave.ogenicchocolate.com/api/connector-endpoint/v1/protocols` → HTTP **404**.
+- `GET https://wave.ogenicchocolate.com/api/connector-endpoint/v1/status` → HTTP **404**.
+- `GET https://wave.ogenicchocolate.com/api/white-diamond/status` → HTTP **401** (auth required, not proof of auth success).
+- `GET https://n8n-staging-76b7.up.railway.app/healthz` → HTTP **200** (HTTP health only, not workflow execution).
+- `GET https://ogenic-registry.app.n8n.cloud/mcp-server/http` → HTTP **404**. **MCP requires appropriate protocol client/method/auth. A GET 404 by itself is NOT proof that the MCP server does not work or its URL is wrong.**
+- `GET https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/actions/workflows/wave-command-consumer.yml` → HTTP **404**; the GitHub Actions consumer is not registered on the default branch.
+
+**TS acceptance conclusion:** WAVE origin is correct, 15-mode feature still **BLOCKED_DEPLOY** (the live Worker returned HTTP 404 on its new routes). The default-branch Consumer is **BLOCKED_CONSUMER** until Owner-authorized PR #44 integration. The n8n self-host is **HEALTH_RESPONDING**, distinct from execution. MCP Registry is **RPC_NOT_TESTED**; do not change the URL or mark the MCP binding failed just from GET. The historical local and mTLS/Credential proofs remain intact; they do not override the missing live receipts.
+
+OGE-133 exact MCP URL allowlist added in `worker/mcp-config-api.ts`, with `tests/oge-133-ts-endpoint-urls.test.mjs` proving registration accepts the Owner-specified hostname and rejects the Railway URL, sibling n8n subdomains, HTTP, credentials-in-URL and nonstandard port. Test fake D1 only; no production binding changed.
+
+**Remaining blockers, prioritized (do not create extra systems):** (1) review/merge PR stack into staging under existing deployment policy; verify actual deployed version SHA and retest authenticated `GET /manifest /protocols /status`. (2) inspect registered MCP binding in D1 and exact owner-approved provider secret references, then invoke safe `initialize/tools/list/tools/call` with a real MCP client. (3) resolve default-branch workflow registration via PR #44 with Owner approval; then real Owner-signed Runner-1 command receipt. (4) test n8n actual workflow execution and 1LSS receipt; (5) TS/GS cross-account access and per-Agent identity/CCS scope. No key value export, no direct sudo or root bypass, no merge to main/production here.
+
 ## Deployment and code ownership
 
 Working feature: `feature/oge-132-lnwjud-connector-protocol-bridge-20261019` on Draft PR #49, source-only. Original staging branch: `phase-vi-provider-incentive-metering`. Default workflow registration: separate Draft PR #44 to `main`, not merged. Do not merge, modify prod/Candy, rotate Owner keys, read Private/PAM keys from chat, or create a second Gateway/Runner/D1. TS returns review findings as source/evidence pointers for the next scoped PR update.
