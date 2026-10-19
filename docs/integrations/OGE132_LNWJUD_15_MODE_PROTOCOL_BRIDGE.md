@@ -50,12 +50,29 @@ Use exact server-generated `approval_id` and `operation:"confirm"` with `approva
 
 **No end-to-end claim** until an authenticated deployed staging HTTP trace and real approved Command RESULT receipt are observed. An approval-required response is NOT a completed execution.
 
-## Verification
-- [ ] OGE-132 bounded source tests + typecheck + build on exact feature SHA using **existing** `wave-runner-01` (CI not deployment).
-- [ ] Local Worker HTTP unauthenticated tests: `GET /protocols` / `POST /operate` must return 401; signed webhook invalid HMAC must fail.
-- [ ] Authenticated staging read tests for all 15 `inspect` modes plus real provider probes; only call MCP read tool when Owner-reviewed binding has exact allowlist.
-- [ ] Owner Sign → Runner-1 → D1 `COMMAND_RESULT` readback with Run ID and SHA (PR #44 consumer default-branch registration must be reviewed first).
-- [ ] Retain PR #42/#48 stacked base; no merge or Production deployment under OGE-132.
+## Verified checkpoint — 2026-10-19 (retrieve this FIRST after a chat/session reset)
+
+**Canonical recovery, not a new certificate or memory store:**
+- Repository: `Ogenicchocolate21debug/Build-Platform`. Feature branch: `feature/oge-132-lnwjud-connector-protocol-bridge-20261019`; Draft PR [#49](https://github.com/Ogenicchocolate21debug/Build-Platform/pull/49), stacked on OGE-131 PR #48 and WAVE Command UI PR #42. DO NOT mistake the feature branch for deployed staging.
+- Existing canonical staging branch: `phase-vi-provider-incentive-metering`; original OGE-128 certificate ID: `oge-128-wave-runner-01-baseline-20261018`. Certificate remains authoritative for older PASS receipts and connection inventory.
+- Existing canonical memory: D1 `ogenic-phase-vi-staging`, conversation `owner-main`, line `1LSS_OWNER_MAIN`; to retrieve real runtime state use existing authenticated session recovery instead of inventing an LLM memory claim.
+- **Last code-only checkpoint before this documentation update:** `757dfe91953792eb968171c2c3c4507fd6a8ff26`; OGE-132 verified [Run 39220800389](https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/39220800389), successful on original `wave-runner-01`.
+- Evidence: 15 tests PASS / 0 FAIL; TypeScript typecheck PASS; frontend/Worker build PASS; 15/15 **authenticated localhost HTTP `inspect`** routes PASS with isolated test-only owner credential. No-auth GET /protocols and POST /operate => HTTP 401. Unsigned generic webhook denied. Forged approval and production scope denied.
+- OGE-131 original Endpoint proof [Run 39208961419](https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/39208961419) PASS; OGE-128 D1 certificate SHA readback [Run 39202417749](https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/39202417749) PASS. These *historical* proofs do not become false when the chat resets.
+- The repository-wide `Validate and Bundle OGENIC Phase VI` workflow still FAILS separately from the bounded OGE-132 tests; avoid saying all CI green.
+- **DO NOT CLAIM**: 15 live external Provider E2E; deployed OGE-132 staging; native NPX/npm/SDK external adapter; GS/TS cross-account A2A; mTLS full verification; Agent → Owner Sign → Runner-1 → D1 `COMMAND_RESULT` completed. Those are still pending evidence.
+
+**Resume sequence after new chat:** Read OGE-128 certificate + this file + latest PR #49 head/CI → read `worker/connector-protocol-bridge.ts`, `worker/mcp-config-api.ts`, `worker/entry-yellow-stone.ts` → choose the smallest unresolved adapter gap → implement on the existing PR branch and verify with original Runner-1 → append only new truthful receipts. Preserve single Yellow Stone authority, Owner Key, existing Infisical OIDC and D1/1LSS; do not issue new credentials or require the Owner to re-enter already-proven logins.
+
+## Verification checklist
+- [x] OGE-132 bounded tests, exact SHA typecheck and build on `wave-runner-01` — Run 39220800389.
+- [x] Local Worker signed Owner fixture: 15/15 `inspect` paths, no-auth 401, unsigned generic hook deny, fake approval deny — same Run.
+- [ ] Existing real provider HTTP adapter proof: MCP `initialize → tools/list → tools/call` for an Owner-allowlisted READ tool with evidence (not a simulated mock).
+- [ ] Real n8n health and existing webhook/Function/REST live provider receipts from deployed staging.
+- [ ] Real authenticated deployed staging `GET /protocols`, `POST /operate` and read adapter receipts with SHA.
+- [ ] Owner Sign → Runner-1 → D1 `COMMAND_RESULT` readback with task ID and evidence SHA (PR #44 default-branch workflow registration requires review).
+- [ ] Resolve generic repository `Validate and Bundle` failure without rewriting unrelated operational infrastructure.
+- [ ] Preserve owner-main continuity and the single OGE-128 certificate; do not merge or deploy to Production without approval.
 
 ## Security and non-goals
 No Owner key, raw credentials, bearer tokens, SSH keys, Infisical secrets, D1 content or private provider responses committed. No `main` change, no new secrets DB, runner, endpoint host, queue, agent, or universal shell. `GET /protocols` describes source contracts, not provider health proof. Existing Certificate facts remain immutable.
