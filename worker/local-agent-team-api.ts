@@ -222,6 +222,11 @@ export function createLocalAgentTeamApi() {
     if (TERMINAL.has(task.status)) return c.json({ ok: false, code: "TASK_TERMINAL", status: task.status }, 409);
     const eventId = `event-localteam-handoff-${await digest(`${taskId}:${idempotencyKey}`)}`;
     if (task.capability !== "local_agent_team") return c.json({ ok: false, code: "TASK_NOT_LOCAL_AGENT_TEAM" }, 409);
+    const target = buildWhiteDiamondRegistry(c.env).find((agent) => agent.agent_id === targetAgent);
+    if (!target) return c.json({ ok: false, code: "AGENT_NOT_REGISTERED", agent_id: targetAgent }, 404);
+    if (["CONFIGURATION_REQUIRED", "OFFLINE"].includes(target.state)) {
+      return c.json({ ok: false, code: "AGENT_UNAVAILABLE", agent_id: targetAgent, state: target.state, missing: target.auth_ref ?? "runtime adapter" }, 409);
+    }
     await c.env.DB.prepare("UPDATE agent_tasks SET claimed_by = ?, status = 'CLAIMED', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status IN ('QUEUED','CLAIMED')").bind(targetAgent, taskId).run();
     await c.env.DB.prepare(
       `INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, correlation_id, external_ref, created_at)
