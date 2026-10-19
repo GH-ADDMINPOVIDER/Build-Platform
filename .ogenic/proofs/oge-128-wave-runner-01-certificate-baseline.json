@@ -257,6 +257,118 @@
       "production_mutated": false,
       "infisical_leaf_mutated": false,
       "timestamp_utc": "2026-10-18T20:46:06+00:00"
+    },
+    {
+      "event": "oge130_connector_modes_repository_inventory_20261019",
+      "status": "SOURCE_INVENTORY_VERIFIED_RUNTIME_PARTIAL",
+      "environment": "staging",
+      "scope": "Repo-wide inventory, NOT universal live adapter certification",
+      "modes_documented": 15,
+      "modes": [
+        {
+          "mode": "MCP",
+          "source": "worker/mcp-config-api.ts,PR21,ogenic-registry-mcp",
+          "evidence_class": "SOURCE+CONTRACT",
+          "execution_verification": "PER_PROVIDER_E2E_PENDING"
+        },
+        {
+          "mode": "n8n",
+          "source": "worker/connector-runtime.ts,OGE129-RUN39185359617",
+          "evidence_class": "RUNTIME_HEALTH_PASS",
+          "execution_verification": "WORKFLOW_EXECUTION_PENDING"
+        },
+        {
+          "mode": "REST_API",
+          "source": "worker/live-tools.ts,worker/connector-runtime.ts",
+          "evidence_class": "SOURCE+READ_PROOF",
+          "execution_verification": "WRITE_PROVIDER_E2E_PENDING"
+        },
+        {
+          "mode": "TOKEN",
+          "source": "config/providers.json,worker/live-tools.ts",
+          "evidence_class": "SOURCE_AUTH_BINDING",
+          "execution_verification": "SCOPE_PER_PROVIDER_PENDING"
+        },
+        {
+          "mode": "SECRET",
+          "source": "Infisical OIDC,RUN39164763118",
+          "evidence_class": "OIDC+D1_RUNTIME_PASS",
+          "execution_verification": "FULL_SCOPE_AUDIT_PARTIAL"
+        },
+        {
+          "mode": "CREDENTIAL",
+          "source": "worker/mcp-config-api.ts,provider_bindings,Owner Session",
+          "evidence_class": "SOURCE+OWNER_AUTH",
+          "execution_verification": "EACH_CREDENTIAL_E2E_PENDING"
+        },
+        {
+          "mode": "REPOSITORY_API_PR_API",
+          "source": "worker/verified-function-tools.ts",
+          "evidence_class": "GITHUB_READ_PASS",
+          "execution_verification": "CONSUMER_WORKFLOW_NOT_REGISTERED"
+        },
+        {
+          "mode": "AGENT_API",
+          "source": "worker/connector-app-api.ts:/api/chat/agent",
+          "evidence_class": "SOURCE_ROUTE",
+          "execution_verification": "PER_PROVIDER_E2E_PENDING"
+        },
+        {
+          "mode": "FUNCTION_TOOL_CALLING",
+          "source": "worker/verified-function-tools.ts,worker/connector-app-api.ts:/api/chat/functions",
+          "evidence_class": "SOURCE_SEVEN_READ_TOOLS",
+          "execution_verification": "ALL_PROVIDER_TOOLS_NOT_VERIFIED"
+        },
+        {
+          "mode": "NPX_NPX_CLI",
+          "source": "package.json:npx cap,worker/connector-endpoint-api.ts",
+          "evidence_class": "NPM_SCRIPT_PRESENT",
+          "execution_verification": "RUNNER_NPX_CONNECTOR_ADAPTER_NOT_VERIFIED"
+        },
+        {
+          "mode": "NPM",
+          "source": "package.json,OGE130-RUN39199805747",
+          "evidence_class": "CI_TEST_TYPECHECK_BUILD_PASS",
+          "execution_verification": "LOCKFILE_HARDENING_PENDING"
+        },
+        {
+          "mode": "SDK",
+          "source": "ogenic-registry-mcp:package.json:@modelcontextprotocol/sdk",
+          "evidence_class": "SDK_DECLARED",
+          "execution_verification": "WAVE_RUNNER_SDK_ADAPTER_PENDING"
+        },
+        {
+          "mode": "A2A_AGENT_RELAY",
+          "source": "PR22:worker/agent-relay-tools.ts,RUN38386700150",
+          "evidence_class": "SOURCE+CONTRACT_PASS",
+          "execution_verification": "GS_GT_LIVE_CROSS_ACCOUNT_PENDING"
+        },
+        {
+          "mode": "WEBHOOK_EVENT_CALLING",
+          "source": "worker/connector-runtime.ts:/hooks/generic",
+          "evidence_class": "SOURCE_HMAC_HANDLER",
+          "execution_verification": "ALL_PROVIDERS_E2E_PENDING"
+        },
+        {
+          "mode": "AGENT_SIGN_COMMAND_RUN",
+          "source": "worker/entry-yellow-stone.ts,PR42,PR44,RUN39186105154",
+          "evidence_class": "READ+PLAN+FAKE_SIGN_REJECTED_PASS",
+          "execution_verification": "OWNER_SIGN_RUN_TO_D1_PENDING"
+        }
+      ],
+      "source_refs": [
+        "github-actions:39199805747",
+        "github-actions:38386700150",
+        "github-actions:39186105154",
+        "Build-Platform:phase-vi-provider-incentive-metering",
+        "Build-Platform:feature/wave-liquid-glass-command-ux-20261018",
+        "Build-Platform:feature/oge-agent-relay-collision-lab",
+        "Ogenicchocolate21debug/ogenic-registry-mcp:main"
+      ],
+      "full_e2e_proven": false,
+      "signed_capability_grant_changed": false,
+      "raw_credential_values_included": false,
+      "production_mutated": false
     }
   ],
   "secret_contract": {
