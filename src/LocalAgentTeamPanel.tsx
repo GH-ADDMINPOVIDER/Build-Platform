@@ -1,4 +1,5 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import "./local-agent-team.css";
 
 type TeamState = {
   room?: string;
