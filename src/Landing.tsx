@@ -108,7 +108,7 @@ export default function Landing() {
         <a href="/agents">AGENTS</a>
         <a href="/overview">OPERATE</a>
         <a href="#stones">STONES</a>
-        <a href="/app">APP</a>
+        <a href="/app">APP</a><a href="/policy">POLICY</a>
       </nav>
       <a className="wvPrimary" href="/command">OPEN COMMAND <span>↗</span></a>
     </header>
@@ -173,9 +173,9 @@ export default function Landing() {
 
     <section className="wvDock" aria-label="WAVE quick launch">
       <div><span className="wvDot" /><b>WAVE</b><small>ONE CONTEXT · MANY AGENTS · REAL TOOLS · VERIFIED ACTIONS</small></div>
-      <nav><a href="/">WEB</a><a href="/chat">CHAT</a><a href="/command">COMMAND</a><a href="/agents">AGENTS</a><a href="/overview">OPERATE</a><a href="/app">APP</a></nav>
+      <nav><a href="/">WEB</a><a href="/chat">CHAT</a><a href="/command">COMMAND</a><a href="/agents">AGENTS</a><a href="/overview">OPERATE</a><a href="/app">APP</a><a href="/policy">POLICY</a></nav>
     </section>
 
-    <footer className="wvFooter"><span>WAVE · OGENIC STONE SYSTEM</span><span>GREEN KEEPS THE THREAD · YELLOW RUNS THE WORK · VIOLET ORCHESTRATES AGENTS</span></footer>
+    <footer className="wvFooter"><span>WAVE · OGENIC STONE SYSTEM</span><a href="/policy">POLICY · SECURITY · VERIFICATION</a><span>GREEN KEEPS THE THREAD · YELLOW RUNS THE WORK · VIOLET ORCHESTRATES AGENTS</span></footer>
   </main>;
 }
