@@ -171,6 +171,30 @@ async function jsonRpc(endpoint: string, method: string, params: Record<string, 
   }
 }
 
+// MCP 2025-06-18 lifecycle: successful initialize must be acknowledged
+// before tools/list or tools/call. Do not send a JSON-RPC request id for a notification.
+async function notifyMcpInitialized(endpoint: string, token: string, sessionId?: string) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json, text/event-stream",
+    "MCP-Protocol-Version": "2025-06-18",
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (sessionId) headers["Mcp-Session-Id"] = sessionId;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8_000);
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST", headers,
+      body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }),
+      signal: controller.signal,
+    });
+    return response.ok;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function discover(binding: BindingRow, env: McpConfigBindings) {
   const meta = parseMetadata(binding.metadata_json);
   if (!meta.endpoint) {
@@ -188,6 +212,9 @@ async function discover(binding: BindingRow, env: McpConfigBindings) {
     }, 1, token);
     if (!initialized.ok) {
       return { ok: false, state: "DEGRADED", code: `MCP_INITIALIZE_HTTP_${initialized.status}`, tools: [] as ToolSummary[] };
+    }
+    if (!(await notifyMcpInitialized(meta.endpoint, token, initialized.sessionId))) {
+      return { ok: false, state: "DEGRADED", code: "MCP_INITIALIZED_NOTIFICATION_FAILED", tools: [] as ToolSummary[] };
     }
     const listed = await jsonRpc(meta.endpoint, "tools/list", {}, 2, token, initialized.sessionId);
     const result = listed.body.result && typeof listed.body.result === "object" ? listed.body.result as Record<string, unknown> : {};
@@ -225,7 +252,7 @@ function configuredReadTools(raw: string | null): string[] {
 }
 
 function sanitizedMcpResponse(value: unknown): unknown {
-  const secret = /(gh[pousr]_[A-Za-z0-9_]{12,}|sk-[A-Za-z0-9_-]{12,}|bearer\\s+[^\\s]+|-----BEGIN [A-Z ]*PRIVATE KEY-----)/gi;
+  const secret = /(gh[pousr]_[A-Za-z0-9_]{12,}|sk-[A-Za-z0-9_-]{12,}|bearer\s+[^\s]+|-----BEGIN [A-Z ]*PRIVATE KEY-----)/gi;
   const rec = (v: unknown, level: number): unknown => {
     if (level > 6) return "[TRUNCATED]";
     if (typeof v === "string") return v.slice(0, 7000).replace(secret, "[REDACTED]");
@@ -315,7 +342,7 @@ export function createMcpConfigApi() {
       return c.json({ ok: false, code: "INVALID_MCP_TOOL_CALL" }, 422);
     }
     const argumentsJson = JSON.stringify(body.arguments);
-    if (argumentsJson.length > 6000 || /"[^"]*(?:secret|password|token|private.?key|credential|authorization|cookie)[^"]*"\\s*:/i.test(argumentsJson)) {
+    if (argumentsJson.length > 6000 || /"[^"]*(?:secret|password|token|private.?key|credential|authorization|cookie)[^"]*"\s*:/i.test(argumentsJson)) {
       return c.json({ ok: false, code: "UNSAFE_TOOL_ARGUMENTS" }, 422);
     }
     const binding = await c.env.DB.prepare(
@@ -336,6 +363,9 @@ export function createMcpConfigApi() {
         protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "OGENIC-WAVE", version: "1" },
       }, 1, token);
       if (!initial.ok) return c.json({ ok: false, code: "MCP_INITIALIZE_FAILED" }, 502);
+      if (!(await notifyMcpInitialized(meta.endpoint, token, initial.sessionId))) {
+        return c.json({ ok: false, code: "MCP_INITIALIZED_NOTIFICATION_FAILED" }, 502);
+      }
       const advertised = await jsonRpc(meta.endpoint, "tools/list", {}, 2, token, initial.sessionId);
       if (!advertised.ok) return c.json({ ok: false, code: "MCP_TOOLS_LIST_FAILED" }, 502);
       const listed = advertised.body.result && typeof advertised.body.result === "object"
