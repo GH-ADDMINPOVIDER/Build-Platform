@@ -99,6 +99,9 @@ function providerReadiness(env: LocalAgentTeamBindings) {
       authentication: configured ? "UNVERIFIED" : "MISSING",
       execution,
       smoke_test: "NOT_RUN",
+      dispatchable: false,
+      room_adapter: "UNVERIFIED",
+      billing: "NO_PROVIDER_CALL_FROM_ROOM",
       evidence: configured ? "binding reference only; no live invocation performed" : `missing ${keys.join(" + ")}`,
     };
   });
@@ -150,7 +153,7 @@ export function createLocalAgentTeamApi() {
     if (!c.env.DB) {
       return c.json({ ok: true, room: ROOM, canonical_session: OWNER_SESSION, state: "CONFIGURATION_REQUIRED", missing: "D1 binding DB", agents: buildWhiteDiamondRegistry(c.env).map(({ agent_id, label, provider, state, capabilities }) => ({ agent_id, label, provider, state, capabilities })), tasks: [], events: [], providers: providerReadiness(c.env) }, 200, { "Cache-Control": "no-store" });
     }
-    const [tasks, events, agents] = await Promise.all([
+    const [tasks, events, checkpoints, agents] = await Promise.all([
       c.env.DB.prepare(
         `SELECT id, title, capability, status, priority, resource_key, claimed_by,
                 parent_task_id, correlation_id, source_ref, created_at, updated_at, completed_at
@@ -160,12 +163,22 @@ export function createLocalAgentTeamApi() {
       c.env.DB.prepare(
         `SELECT id, task_id, event_type, actor, correlation_id, external_ref, created_at
          FROM agent_events WHERE event_type LIKE 'LOCAL_TEAM_%'
-         ORDER BY created_at DESC LIMIT 80`,
+         ORDER BY created_at DESC, id DESC LIMIT 120`,
       ).all<EventRow>(),
+      c.env.DB.prepare("SELECT task_id, agent_id, checkpoint_ref, state_hash, updated_at FROM agent_checkpoints WHERE task_id LIKE 'localteam_%' ORDER BY updated_at DESC LIMIT 80").all<{ task_id: string; agent_id: string; checkpoint_ref: string; state_hash: string; updated_at: string }>(),
       Promise.resolve(buildWhiteDiamondRegistry(c.env).map(({ agent_id, label, provider, state, capabilities, runtime }) => ({ agent_id, label, provider, state, capabilities, runtime }))),
     ]);
     const eventRows = events.results ?? [];
-    const eventByTask = new Map(eventRows.map((event) => [event.task_id ?? "", event.event_type]));
+    const eventByTask = new Map<string, string>();
+    for (const event of eventRows) {
+      if (event.task_id && !eventByTask.has(event.task_id)) eventByTask.set(event.task_id, event.event_type);
+    }
+    const messages = eventRows.filter((event) => event.event_type === "LOCAL_TEAM_MESSAGE").map((event) => {
+      let text = "";
+      try { text = clean((JSON.parse(event.external_ref || "{}") as { text?: unknown }).text, MAX_SUMMARY); }
+      catch { text = "[invalid message metadata]"; }
+      return { id: event.id, task_id: event.task_id, actor: event.actor, text, created_at: event.created_at };
+    }).reverse();
     return c.json({
       ok: true,
       room: ROOM,
@@ -174,9 +187,35 @@ export function createLocalAgentTeamApi() {
       agents,
       providers: providerReadiness(c.env),
       tasks: (tasks.results ?? []).map((task) => taskView(task, eventByTask.get(task.id))),
-      events: eventRows,
+      events: eventRows.map(({ external_ref, ...event }) => event),
+      messages,
+      checkpoints: checkpoints.results ?? [],
+      storage: { canonical: "Cloudflare D1 / agent_tasks + agent_events + agent_checkpoints", local_only: false },
       recovery: "checkpoint references are stored in canonical agent_checkpoints; interrupted tasks remain inspectable and are never silently replayed",
     }, 200, { "Cache-Control": "no-store" });
+  });
+
+  api.post("/api/local-agent-team/messages", async (c) => {
+    if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+    const origin = c.req.header("Origin");
+    if (origin && origin !== new URL(c.req.url).origin) return c.json({ ok: false, code: "ORIGIN_DENIED" }, 403);
+    const idempotencyKey = clean(c.req.header("Idempotency-Key"), 240);
+    if (!idempotencyKey) return c.json({ ok: false, code: "IDEMPOTENCY_KEY_REQUIRED" }, 400);
+    const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+    const content = clean(body.text, MAX_SUMMARY);
+    const taskId = clean(body.task_id, 100);
+    if (!content || secretLike(content)) return c.json({ ok: false, code: "INVALID_OR_SECRET_LIKE_MESSAGE" }, 400);
+    if (taskId) {
+      const task = await taskById(c.env.DB, taskId);
+      if (!task || task.capability !== "local_agent_team" || !task.resource_key?.startsWith("local-agent-team:" + ROOM + ":")) {
+        return c.json({ ok: false, code: "ROOM_TASK_NOT_FOUND" }, 404);
+      }
+    }
+    const identity = await digest(ROOM + ":message:" + idempotencyKey);
+    const eventId = "event-localteam-message-" + identity;
+    await c.env.DB.prepare("INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, correlation_id, external_ref, created_at) VALUES (?, ?, 'LOCAL_TEAM_MESSAGE', 'owner-main', ?, ?, CURRENT_TIMESTAMP)")
+      .bind(eventId, taskId || null, "localteam-chat-" + identity.slice(0, 32), JSON.stringify({ room: ROOM, text: content, owner_session: OWNER_SESSION })).run();
+    return c.json({ ok: true, message_id: eventId, persisted: "agent_events", canonical_session: OWNER_SESSION, provider_execution: "NOT_STARTED" }, 202, { "Cache-Control": "no-store" });
   });
 
   api.post("/api/local-agent-team/tasks", async (c) => {
@@ -224,8 +263,8 @@ export function createLocalAgentTeamApi() {
     if (task.capability !== "local_agent_team") return c.json({ ok: false, code: "TASK_NOT_LOCAL_AGENT_TEAM" }, 409);
     const target = buildWhiteDiamondRegistry(c.env).find((agent) => agent.agent_id === targetAgent);
     if (!target) return c.json({ ok: false, code: "AGENT_NOT_REGISTERED", agent_id: targetAgent }, 404);
-    if (["CONFIGURATION_REQUIRED", "OFFLINE"].includes(target.state)) {
-      return c.json({ ok: false, code: "AGENT_UNAVAILABLE", agent_id: targetAgent, state: target.state, missing: target.auth_ref ?? "runtime adapter" }, 409);
+    if (target.kind !== "specialist" || target.state !== "LIVE" || !target.auth_ref) {
+      return c.json({ ok: false, code: "AGENT_UNAVAILABLE", agent_id: targetAgent, state: target.state, missing: "verified room runtime adapter and authenticated execution receipt" }, 409);
     }
     await c.env.DB.prepare("UPDATE agent_tasks SET claimed_by = ?, status = 'CLAIMED', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status IN ('QUEUED','CLAIMED')").bind(targetAgent, taskId).run();
     await c.env.DB.prepare(
