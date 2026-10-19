@@ -581,8 +581,9 @@ export default {
         const result = await testConnector(env, body.connector);
         // This probes an existing provider adapter. CONFIGURED is NOT a write
         // permission, and read health must not be reported as full E2E.
-        return Response.json({ ok: result.ok === true, test: result, full_e2e_proven: false }, {
-          status: result.ok === true ? 200 : 503, headers: { "Cache-Control": "no-store" },
+        const probePassed = "ok" in result ? result.ok === true : result.state === "LIVE";
+        return Response.json({ ok: probePassed, test: result, full_e2e_proven: false }, {
+          status: probePassed ? 200 : 503, headers: { "Cache-Control": "no-store" },
         });
       }
       if (pathname === "/api/connector-endpoint/v1/events" && request.method === "GET") {
