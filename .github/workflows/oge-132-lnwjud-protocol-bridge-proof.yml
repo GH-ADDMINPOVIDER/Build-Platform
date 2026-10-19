@@ -1,0 +1,74 @@
+name: OGE-132 lnwjud Protocol Bridge Proof
+on:
+  push:
+    branches:
+      - feature/oge-132-lnwjud-connector-protocol-bridge-20261019
+    paths:
+      - "worker/connector-protocol-bridge.ts"
+      - "worker/mcp-config-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "tests/oge-132-lnwjud-protocol-bridge.test.mjs"
+      - ".github/workflows/oge-132-lnwjud-protocol-bridge-proof.yml"
+      - "docs/integrations/OGE132_LNWJUD_15_MODE_PROTOCOL_BRIDGE.md"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: oge132-protocol-bridge-proof
+  cancel-in-progress: false
+jobs:
+  protocol-contract-and-local-http:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify exact feature scope and original Runner-1
+        shell: bash
+        run: |
+          test "$GITHUB_REF_NAME" = feature/oge-132-lnwjud-connector-protocol-bridge-20261019
+          test "$RUNNER_NAME" = wave-runner-01
+      - name: Install dependencies for bounded verification
+        run: npm install --no-package-lock --no-audit --no-fund
+      - name: Test all 15 protocols and original command/Owner guards
+        run: node --test tests/oge-132-lnwjud-protocol-bridge.test.mjs tests/oge-131-unified-connector-endpoint.test.mjs tests/wave-connector-endpoint.test.mjs tests/wave-command-contract.test.mjs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build (NOT deploy)
+        run: npm run build
+      - name: Local Worker HTTP admission smoke (NO secrets, NO deployment)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler dev --local --ip 127.0.0.1 --port 8789 >/tmp/oge132-worker.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true; wait "$worker_pid" 2>/dev/null || true; rm -f /tmp/oge132-worker.log' EXIT
+          ready=0
+          for i in $(seq 1 24); do
+            status=$(curl --noproxy '*' -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8789/api/connector-endpoint/v1/protocols || true)
+            if [ "$status" = 401 ]; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" != 1 ]; then echo "OGE132_LOCAL_WORKER_NOT_READY"; exit 1; fi
+          status=$(curl --noproxy '*' -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' --data '{"transport":"mcp","operation":"invoke_read"}' http://127.0.0.1:8789/api/connector-endpoint/v1/operate)
+          test "$status" = 401
+          hook=$(curl --noproxy '*' -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' --data '{"probe":"unsigned"}' http://127.0.0.1:8789/api/connector-endpoint/v1/ingress/generic)
+          if [ "$hook" = 200 ] || [ "$hook" = 201 ] || [ "$hook" = 202 ]; then echo "OGE132_UNSIGNED_WEBHOOK_ACCEPTED"; exit 1; fi
+          echo "OGE132_LOCAL_HTTP_UNAUTH_PROTOCOLS=401"
+          echo "OGE132_LOCAL_HTTP_UNAUTH_OPERATE=401"
+          echo "OGE132_LOCAL_HTTP_UNSIGNED_HOOK=DENIED"
+      - name: CI scope receipt
+        shell: bash
+        run: |
+          echo "OGE132_15_MODE_SOURCE_CONTRACT=PASS"
+          echo "OGE132_LOCAL_HTTP=PASS"
+          echo "OGE132_LIVE_STAGING_PROVIDER_E2E=NOT_VERIFIED"
+          echo "OGE132_MCP_READ_PROVIDER_CALL=REQUIRES_OWNER_READ_ALLOWLIST"
+          echo "OGE132_RUNNER_NATIVE_NPX_NPM_SDK_ADAPTER=NOT_VERIFIED"
+          echo "OGE132_AGENT_OWNER_SIGN_RUN_D1_E2E=NOT_VERIFIED"
+          echo "OGE132_INFISICAL_D1_MIRROR=NOT_VERIFIED"
+          echo "OGE132_PRODUCTION_MUTATED=FALSE"
