@@ -4,9 +4,9 @@
 import { connectorModes, connectorAliases } from "./connector-endpoint-api";
 
 export const protocolActions: Record<string, readonly string[]> = {
-  mcp: ["inspect", "discover", "invoke_read"],
-  n8n: ["inspect", "probe"],
-  api: ["inspect", "resolve", "plan", "confirm"],
+  mcp: ["inspect", "discover", "invoke_read", "plan", "confirm"],
+  n8n: ["inspect", "probe", "plan", "confirm"],
+  api: ["inspect", "resolve", "invoke_read", "plan", "confirm"],
   token: ["inspect", "reference"],
   secret: ["inspect", "reference"],
   credential: ["inspect", "reference"],
