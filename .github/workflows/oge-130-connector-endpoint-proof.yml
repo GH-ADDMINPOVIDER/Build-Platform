@@ -1,0 +1,48 @@
+name: OGE-130 Connector Endpoint Contract Proof
+on:
+  push:
+    branches: [feature/wave-liquid-glass-command-ux-20261018]
+    paths:
+      - ".github/workflows/oge-130-connector-endpoint-proof.yml"
+      - "worker/connector-endpoint-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "tests/wave-connector-endpoint.test.mjs"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: oge130-connector-endpoint-feature
+  cancel-in-progress: false
+jobs:
+  prove:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Guard staging feature and no execution
+        run: |
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$GITHUB_REF_NAME" = feature/wave-liquid-glass-command-ux-20261018
+          node --test tests/wave-connector-endpoint.test.mjs tests/wave-command-contract.test.mjs tests/athena-guarded-command-handoff.test.mjs
+      - name: Install dependencies and typecheck
+        run: npm ci && npm run typecheck
+      - name: Build Cloudflare Worker/Frontend bundle (not deploy)
+        run: npm run build
+      - name: Bounded readiness receipt
+        run: |
+          echo "OGE130_CONNECTOR_ENDPOINT_SOURCE=PASS"
+          echo "OGE130_OWNER_SIGN_EXISTING_GATE=SOURCE_VERIFIED"
+          echo "OGE130_MCP_REMOTE_DISCOVERY=EXISTING_ADAPTER_ONLY"
+          echo "OGE130_NPX_SDK_RUNTIME=NOT_VERIFIED"
+          echo "OGE130_CREDENTIAL_VALUES_EXPORTED=FALSE"
+          echo "OGE130_ENDPOINT_DEPLOYED=FALSE"
+          echo "OGE130_AGENT_COMMAND_E2E=NOT_TESTED"
+          echo "OGE130_PRODUCTION_MUTATED=FALSE"
+          echo "### OGE-130 / WAVE Connector Endpoint" >> "$GITHUB_STEP_SUMMARY"
+          echo "Contract, tests, typecheck and bundle validated; feature-branch only, NOT deployed." >> "$GITHUB_STEP_SUMMARY"
+          echo "Owner Sign uses existing Yellow authorization; NPX/SDK remain uninstalled." >> "$GITHUB_STEP_SUMMARY"
