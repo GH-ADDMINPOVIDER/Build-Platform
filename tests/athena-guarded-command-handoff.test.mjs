@@ -82,7 +82,7 @@ test("chat command routes arbitrary owner text to the bounded Codex self-host qu
   assert.match(ui, /capability:\s*"codex_selfhost"/);
   assert.match(ui, /provider:\s*"openai"/);
   assert.match(entry, /YELLOW_STONE_CODEX_SELFHOST/);
-  assert.match(entry, /completion requires COMMAND_RESULT event/);
+  assert.match(entry, /Completion requires COMMAND_RESULT event/);
 });
 
 
