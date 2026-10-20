@@ -531,8 +531,10 @@ jobs:
           ' >/dev/null
           echo "OGE-69 n8n self-host readiness + inactive 95-node inventory PASS."
 
-      # OGE-70 canonical cutover proof: n8n is eligible, but EXECUTE still fails closed without approval.
-      - name: OGE-70 Yellow resolver admits n8n but execution remains approval-gated
+      # OGE-70: resolving an executable descriptor never implies an adapter exists.
+      # Machine Ops key cannot sign as Owner. A signed Owner session is final
+      # authorization, but missing n8n execution adapter still fails closed.
+      - name: OGE-70 Yellow n8n resolver and signed Owner adapter gate
         shell: bash
         run: |
           set -euo pipefail
@@ -550,19 +552,28 @@ jobs:
             .descriptor.executable == true
           ' >/dev/null
 
-          HTTP_STATUS="$(curl --silent --show-error             -o /tmp/oge70-n8n-execute.json             -w '%{http_code}'             -H 'content-type: application/json'             -H "$AUTH_HEADER"             --data "$REQUEST"             "${STAGING_URL}/api/capabilities/execute")"
-          test "$HTTP_STATUS" = "409" || { echo "::error::expected Yellow approval gate HTTP 409, got $HTTP_STATUS"; exit 1; }
+          OPS_HTTP="$(curl --silent --show-error -o /tmp/oge70-ops-only.json -w '%{http_code}'             -H 'content-type: application/json' -H "$AUTH_HEADER" --data "$REQUEST"             "${STAGING_URL}/api/capabilities/execute")"
+          test "$OPS_HTTP" = "401" || { echo "::error::OGE-70 Ops-only call must not receive Owner authority; got HTTP $OPS_HTTP"; exit 1; }
+          jq -e '.ok == false and .code == "REAUTH_REQUIRED"' /tmp/oge70-ops-only.json >/dev/null
+
+          # Reuse the existing owner login flow; never print token or secret.
+          LOGIN_PAYLOAD="$(jq -nc --arg key "$OGENIC_OPS_KEY" '{owner_key:$key}')"
+          SESSION_JSON="$(curl --fail --silent --show-error -H 'content-type: application/json'             -H 'x-ogenic-client: native' --data "$LOGIN_PAYLOAD"             "${STAGING_URL}/api/session")"
+          OWNER_TOKEN="$(printf '%s' "$SESSION_JSON" | jq -r '.session_token // empty')"
+          test -n "$OWNER_TOKEN" || { echo "::error::OGE-70 signed Owner session unavailable"; exit 1; }
+          echo "::add-mask::$OWNER_TOKEN"
+
+          HTTP_STATUS="$(curl --silent --show-error -o /tmp/oge70-owner-signed.json -w '%{http_code}'             -H 'content-type: application/json' -H "authorization: Bearer $OWNER_TOKEN"             --data "$REQUEST" "${STAGING_URL}/api/capabilities/execute")"
+          test "$HTTP_STATUS" = "501" || { echo "::error::OGE-70 expected unsupported n8n adapter HTTP 501, got $HTTP_STATUS"; exit 1; }
           jq -e '
             .ok == false and
-            .code == "HUMAN_APPROVAL_REQUIRED" and
-            .approval.required == true and
-            .approval.permission_class == "EXECUTE" and
-            .approval.provider_id == "n8n" and
-            .approval.capability_id == "workflow_run" and
-            .verification.status == "blocked"
-          ' /tmp/oge70-n8n-execute.json >/dev/null
-
-          echo "OGE-70 n8n capability: RESOLVED + YELLOW APPROVAL GATE PASS."
+            .code == "ADAPTER_NOT_IMPLEMENTED" and
+            .approval.required == false and
+            .approval.authority == "SIGNED_OWNER_SESSION" and
+            .verification.status == "blocked" and
+            .verification.reason == "NO_IMPLEMENTED_NON_READ_ADAPTER"
+          ' /tmp/oge70-owner-signed.json >/dev/null
+          echo "OGE-70 PASS: Ops-only denied; signed Owner authorized; unimplemented adapter blocked."
 
       - name: OGE-57 live staging task inbox roundtrip
         if: steps.scope.outputs.ui_only != 'true'

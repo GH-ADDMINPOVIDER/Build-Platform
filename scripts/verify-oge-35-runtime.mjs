@@ -79,15 +79,17 @@ const gatedResponse = await fetch(`${base}/api/wave/command`, {
   method: "POST",
   headers: { "content-type": "application/json", cookie },
   body: JSON.stringify({
-    intent: "promote deployment",
-    capability: "deploy_promote",
-    provider: "cloudflare",
+    // A registry-backed non-READ capability; staging deployment promotion
+    // is not registered and correctly yields RESOLVER_UNAVAILABLE (404).
+    intent: "run staging n8n workflow",
+    capability: "workflow_run",
+    provider: "n8n",
     environment: "staging",
   }),
 });
 const gatedBody = await json(gatedResponse);
-// A verified Owner Session is final authorization. Unsupported write adapters
-// fail with 501; they must not create a second confirmation prompt.
+// A verified Owner Session is final authorization. A resolved n8n EXECUTE
+// descriptor without an implementation fails with 501, not a second prompt.
 assert.equal(gatedResponse.status, 501, `non-read adapter status: ${gatedBody?.code || "unknown"}`);
 assert.equal(gatedBody?.ok, false);
 assert.equal(gatedBody?.code, "ADAPTER_NOT_IMPLEMENTED");
