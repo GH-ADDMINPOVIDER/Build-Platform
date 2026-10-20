@@ -369,6 +369,18 @@
       "signed_capability_grant_changed": false,
       "raw_credential_values_included": false,
       "production_mutated": false
+    },
+    {
+      "event": "owner_correction_gh_accounts_and_ts_name_20261020",
+      "status": "OWNER_CORRECTION_APPENDED_AND_GITHUB_PROFILES_VERIFIED",
+      "correction_ref": "OGE128-OWNER-IDENTITY-CORRECTION-20261020",
+      "github_first": "Tawatchai / gh-runner1 / Ogenicchocolate21debug / repository admin / requested connector scopes incomplete",
+      "github_second": "Tomload21 / gh-runner-2 / Wave-Runner-2 / repository write / owner selected all connector permissions",
+      "codex_second": "TS, not GT",
+      "scope_notes": "Repository permission is different from plugin OAuth scope and separate WAVE-Worker dispatch credential permissions",
+      "current_full_four_account_e2e": "NOT_VERIFIED",
+      "previous_events_preserved": true,
+      "no_raw_credentials": true
     }
   ],
   "secret_contract": {
@@ -728,12 +740,19 @@
       "github_primary": {
         "account": "Ogenicchocolate21debug",
         "repository_permission": "admin",
-        "state": "READ_API_VERIFIED"
+        "state": "READ_API_VERIFIED",
+        "owner_label": "Tawatchai",
+        "runtime_role": "gh-runner1",
+        "oauth_scope_owner_report": "INCOMPLETE_FOR_REQUIRED_WORKFLOWS"
       },
       "github_secondary": {
         "account": "Wave-Runner-2",
         "repository_permission": "write",
-        "state": "READ_API_VERIFIED"
+        "state": "READ_API_VERIFIED",
+        "owner_label": "Tomload21",
+        "runtime_role": "gh-runner-2",
+        "oauth_scope_owner_report": "ALL_AVAILABLE_PERMISSIONS_SELECTED",
+        "oauth_scope_live_verification": "NOT_INSPECTED"
       },
       "digitalocean": {
         "droplet": "wave-runner-01",
@@ -743,6 +762,19 @@
       "statsig": {
         "project": "Ogenic-Registry",
         "connection": "READ_API_VERIFIED"
+      },
+      "codex_gs": {
+        "account": "GPT_GS_CODEX",
+        "runtime_profile": "/home/wave/.codex",
+        "state": "HISTORIC_SIGNED_IN_CURRENT_E2E_UNVERIFIED"
+      },
+      "codex_ts": {
+        "account": "GPT_TS_CODEX",
+        "previous_typo": "GT",
+        "correct_name": "TS",
+        "runtime_profile": "/root/.codex",
+        "historical_execute_proof": "github-actions:39124078680/job/117665435544",
+        "state": "HISTORIC_EXEC_PASS_CURRENT_WAVE_E2E_UNVERIFIED"
       }
     },
     "separately_named_skills": [
@@ -781,7 +813,9 @@
         "first_live_verified_run": "github-actions:39137196276/job/117704016011",
         "first_live_verified_sha256": "09d8f471b65feafc546bc941203d6043eee719591699023293197ef905b7b14f",
         "first_live_verified_at_utc": "2026-10-18T14:42:53Z",
-        "original_cert_file_history_retained": true
+        "original_cert_file_history_retained": true,
+        "latest_amendment": "OWNER_IDENTITY_CORRECTION_20261020_PENDING_RUNTIME_READBACK",
+        "previous_verified_write_preserved": true
       },
       "infisical": {
         "certificate_manager_project": "-",
@@ -796,5 +830,78 @@
       "no_second_runner_host": true,
       "owner_marker": "-Ow NOT_AUTHORIZED_BY_BARE_TEXT"
     }
+  },
+  "owner_identity_correction_20261020": {
+    "correction_id": "OGE128-OWNER-IDENTITY-CORRECTION-20261020",
+    "effective_from": "2026-10-20",
+    "authority": "OWNER_EXPLICIT_CORRECTION",
+    "applies_to": "AI_CROSS_ACCOUNT_IDENTITY_LABELS_AND_CONNECTOR_SCOPE_FACTS",
+    "rule": "PRESERVE_ALL_PREVIOUS_EVIDENCE; APPEND_OWNER_CORRECTION; DO_NOT_AUTOMATICALLY_RENAME_HISTORICAL_GIT_BRANCHES",
+    "account_roles": {
+      "github_1": {
+        "owner_label": "Tawatchai",
+        "runtime_role": "gh-runner1",
+        "connected_github_login": "Ogenicchocolate21debug",
+        "connector_profile_id": "306097555",
+        "repo_permission_verified": "admin",
+        "oauth_or_connector_scope_completeness": "OWNER_REPORTS_INSUFFICIENT_FOR_DESIRED_WAVE_WORKFLOWS",
+        "distinction": "Repository admin does not prove that the connector/Worker dispatch token has Actions:write or all required OAuth scopes.",
+        "github_actions_runner_host_count_claim": "NOT_A_NEW_HOST"
+      },
+      "github_2": {
+        "owner_label": "Tomload21",
+        "runtime_role": "gh-runner-2",
+        "connected_github_login": "Wave-Runner-2",
+        "connector_profile_id": "342175560",
+        "repo_permission_verified": "write",
+        "oauth_or_connector_scope_owner_setting": "OWNER_REPORTS_ALL_AVAILABLE_PERMISSIONS_SELECTED",
+        "oauth_or_connector_scope_live_verification": "NOT_INSPECTED",
+        "distinction": "Owner-selected full connector permissions and repository write level are separate authorization dimensions; neither is proof of WAVE Worker dispatch access.",
+        "github_actions_runner_host_count_claim": "NOT_A_SECOND_SELF_HOSTED_MACHINE"
+      },
+      "codex_gs": {
+        "canonical_identity": "GPT_GS_CODEX",
+        "runtime_profile": "/home/wave/.codex",
+        "latest_stated_status": "SIGNED_IN_HISTORICALLY; CURRENT_COMMAND_E2E_UNVERIFIED"
+      },
+      "codex_ts": {
+        "canonical_identity": "GPT_TS_CODEX",
+        "incorrect_label_in_todays_second_side_discussion": "GT",
+        "correct_label": "TS",
+        "historical_original_profile": "/root/.codex",
+        "historical_execution_proof": "github-actions:39124078680/job/117665435544",
+        "historical_result": "TS_CODEX_EXEC=SUCCESS",
+        "current_host_e2e": "NOT_VERIFIED_IN_CURRENT_WAVE_COMMAND_CHAIN"
+      }
+    },
+    "typo_scope": "GT WAS A TYPO FOR TS IN THE OWNER'S REFERENCED SECOND-SIDE CONTEXT; DO NOT MASS-RENAME DISTINCT GT PROJECT ACTOR RECORDS",
+    "host_mapping": {
+      "one_self_hosted_server": "wave-runner-01",
+      "digitalocean_droplet_id": "604432491",
+      "github_account_2_is_not_a_second_droplet": true,
+      "both_codex_profiles_on_same_host_historical_evidence": true
+    },
+    "distinction_by_evidence": {
+      "owner_assertions": [
+        "Tawatchai is GH first/gh-runner1, its desired permission coverage is incomplete",
+        "Tomload21 is GH second/gh-runner-2, full connector permissions were selected",
+        "Other Codex/account side is TS, not GT"
+      ],
+      "verified_this_turn": [
+        "Github connection 1 login Ogenicchocolate21debug/profile_id 306097555",
+        "Github connection 2 login Wave-Runner-2/profile_id 342175560",
+        "Repository permission primary admin and secondary write",
+        "Certificate lincenc existing JSON read from GitHub task branch"
+      ],
+      "not_verified_this_turn": [
+        "Actual OAuth token scopes",
+        "GitHub Actions dispatch Actions:write privilege",
+        "Active Codex TS execution on current host and cross-channel E2E",
+        "Cloudflare D1 replication of this particular amendment"
+      ]
+    },
+    "security_controls": "Identity labels and owner scope intent alone confer no connector token scopes, no runner host access, and no authorization bypass",
+    "production_mutated": false,
+    "credentials_included": false
   }
 }
