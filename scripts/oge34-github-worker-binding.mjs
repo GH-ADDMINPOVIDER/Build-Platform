@@ -83,6 +83,45 @@ async function verifyOwnerRead() {
   }
   throw new Error("OGE34_WAVE_GITHUB_ENDPOINT_NOT_VERIFIED_HTTP_"+last+"_CODE_"+lastCode);
 }
+// Reuse GitHub auth that the Owner already configured for the `wave` host user.
+// Do not touch /root, switch accounts, prompt OAuth, or reveal credentials in logs.
+export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
+  if (env.RUNNER_NAME !== "wave-runner-01") return [];
+  const localEnv = { ...env, GIT_TERMINAL_PROMPT: "0", GCM_INTERACTIVE: "never" };
+  for (const name of ["GH_TOKEN", "GITHUB_TOKEN", "GH_PAT", "GITHUB_PAT",
+    "GIT_ASKPASS", "SSH_ASKPASS", "GITHUB_ACCESS_TOKEN"]) delete localEnv[name];
+  const opts = { encoding: "utf8", timeout: 7000, maxBuffer: 4096, env: localEnv };
+  const found = [];
+  try {
+    const result = run("gh", ["auth", "token", "--hostname", "github.com"], opts);
+    const candidate = String(result.stdout || "").trim();
+    if (result.status === 0 && inspectTokenFormat(candidate))
+      found.push({ key: "RUNNER_WAVE_GH_CLI_AUTH", raw: candidate });
+  } catch { /* gh CLI not configured for the existing wave user */ }
+  try {
+    const result = run("git", ["credential", "fill"], {
+      ...opts, input: "protocol=https\\nhost=github.com\\n\\n",
+    });
+    const password = String(result.stdout || "").split(/\\r?\\n/).find(line => line.startsWith("password="));
+    const candidate = password?.slice("password=".length) ?? "";
+    if (result.status === 0 && inspectTokenFormat(candidate))
+      found.push({ key: "RUNNER_WAVE_GIT_CREDENTIAL_HELPER", raw: candidate });
+  } catch { /* no noninteractive credential helper configured */ }
+  return found;
+}
+async function verifyExistingHostGitHubPrincipal(token) {
+  const response = await fetch("https://api.github.com/user", {
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Accept": "application/vnd.github+json",
+      "User-Agent": "ogenic-oge34-existing-host-auth",
+    },
+    redirect: "error", signal: AbortSignal.timeout(15000),
+  }).catch(() => null);
+  const payload = response?.status === 200 ? await responseJson(response) : {};
+  return ["ogenicchocolate21debug", "wave_runner-2"].includes(String(payload.login || "").toLowerCase());
+}
+
 export async function main() {
   requireStaging();
   // Check only pre-existing Infisical staging GitHub credential bindings.
@@ -97,10 +136,19 @@ export async function main() {
     Object.prototype.hasOwnProperty.call(process.env,k) && String(process.env[k]||"").length>0
   ).slice(0,24);
   console.log("OGE34_INFISICAL_GITHUB_CANDIDATE_KEYS="+JSON.stringify(keys));
+  const local = existingHostAuthCandidates();
+  console.log("OGE34_RUNNER_EXISTING_GITHUB_AUTH_CANDIDATES="+JSON.stringify(local.map(row => row.key)));
+  const candidates = [
+    ...keys.map(key => ({ key, raw: String(process.env[key] || ""), hostLocal: false })),
+    ...local.map(row => ({ ...row, hostLocal: true })),
+  ];
   const seen=new Set();
   const authorized=[];
-  for(const key of keys){
-    const raw=String(process.env[key]||"");
+  for(const {key, raw, hostLocal} of candidates){
+    if (hostLocal && !(await verifyExistingHostGitHubPrincipal(raw))) {
+      console.log("OGE34_CANDIDATE_"+key+"_OWNER_PRINCIPAL_UNVERIFIED");
+      continue;
+    }
     const variants=[{type:"EXACT",value:raw}];
     // OGE-40 proved the canonical value contains control characters. Check
     // whether it is merely line-wrapped; do not overwrite Infisical or guess
