@@ -22,7 +22,7 @@ test("OGE placement keeps MA-OP/Yellow authoritative and n8n as execution fabric
   assert.equal(placement.canonical.verification, "RUBY_STONE");
   assert.equal(placement.canonical.retention, "GREEN_1LSS");
   assert.equal(placement.canonical.n8n_role, "WORKFLOW_EXECUTION_FABRIC_NOT_CONTROL_PLANE");
-  assert.ok(placement.rules.includes("WRITE_EXECUTE_DANGEROUS_REQUIRES_YELLOW_APPROVAL"));
+  assert.ok(placement.rules.includes("WRITE_EXECUTE_DANGEROUS_REQUIRES_SIGNED_OWNER_SESSION_AND_IMPLEMENTED_ADAPTER"));
 });
 
 test("workflow-native OGE lanes are placed in n8n while ingress/provider authority stays direct", () => {

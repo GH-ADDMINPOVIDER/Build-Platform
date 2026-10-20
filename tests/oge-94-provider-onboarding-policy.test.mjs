@@ -22,7 +22,8 @@ test("OGE-94 one 4-stage admission policy applies to future providers and never 
   assert.equal(onboarding.live_proof.requires_owner_authorization_for_paid_smoke, true);
   assert.equal(onboarding.hard_gates.forbid_auto_promote_on_key_only, true);
   assert.equal(onboarding.hard_gates.require_implemented_adapter, true);
-  assert.equal(onboarding.hard_gates.non_read_requires_explicit_approval, true);
+  assert.equal(onboarding.hard_gates.non_read_requires_explicit_approval, false);
+  assert.equal(onboarding.hard_gates.non_read_requires_signed_owner_session, true);
   assert.equal(onboarding.hard_gates.retention_requires_ruby_verification, true);
   assert.equal(onboarding.context_policy, "config/agent-context-policy.json");
   assert.equal(context.budgets.research_read_chars, 12000);

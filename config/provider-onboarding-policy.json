@@ -39,7 +39,8 @@
     "require_evidence_sha_http_200": true,
     "require_implemented_adapter": true,
     "no_unapproved_metered_auto_route": true,
-    "non_read_requires_explicit_approval": true,
+    "non_read_requires_explicit_approval": false,
+    "non_read_requires_signed_owner_session": true,
     "retention_requires_ruby_verification": true,
     "secrets_in_infisical_only": true,
     "no_second_1lss_memory": true
