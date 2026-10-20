@@ -86,13 +86,19 @@ const gatedResponse = await fetch(`${base}/api/wave/command`, {
   }),
 });
 const gatedBody = await json(gatedResponse);
-assert.equal(gatedResponse.status, 409, `non-read approval gate HTTP status: ${gatedBody?.code || "unknown"}`);
+// The WAVE command entrypoint returns an owner-confirmation proposal (HTTP 202).
+// This is NOT execution or a bypass: no task may be queued without the matching
+// second confirmation and approval_id. The capability execution API's separate
+// 409 HUMAN_APPROVAL_REQUIRED contract is tested in its own suite.
+assert.equal(gatedResponse.status, 202, `non-read approval gate HTTP status: ${gatedBody?.code || "unknown"}`);
 assert.equal(gatedBody?.ok, false);
-assert.equal(gatedBody?.code, "HUMAN_APPROVAL_REQUIRED");
+assert.equal(gatedBody?.code, "OWNER_APPROVAL_REQUIRED");
 assert.equal(gatedBody?.approval?.required, true);
-assert.ok(["WRITE", "EXECUTE", "DANGEROUS"].includes(gatedBody?.approval?.permission_class));
-assert.equal(gatedBody?.verification?.status, "blocked");
-assert.equal(gatedBody?.verification?.reason, "NON_READ_CAPABILITY_REQUIRES_DETERMINISTIC_APPROVAL");
+assert.equal(gatedBody?.approval?.action, "CONFIRM_AND_QUEUE");
+assert.equal(gatedBody?.approval?.environment, "staging");
+assert.ok(typeof gatedBody?.approval?.approval_id === "string" && gatedBody.approval.approval_id.length > 0);
+assert.equal(gatedBody?.execution?.status, "NOT_STARTED");
+assert.equal(gatedBody?.execution?.consumer_proven, false);
 assert.equal(gatedBody?.command_handoff?.admission, "BLUE_DIAMOND_ATHENA");
 assert.equal(gatedBody?.command_handoff?.execution_authority, "YELLOW_STONE_ONLY");
 assert.equal(gatedBody?.command_handoff?.direct_execution_bypass, false);
