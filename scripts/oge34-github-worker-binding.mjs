@@ -12,6 +12,34 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 export function inspectTokenFormat(value) {
   return typeof value === "string" && /^[\x21-\x7e]+$/.test(value);
 }
+// Owner-defined credentials for the SECOND GitHub account. The labels are not
+// interchangeable, and the bytes must never be logged or copied between names.
+export const RUNNER_TWO_PAT_BINDINGS = Object.freeze({
+  "GH-ID-TOMLOAD-RUNNER-2": { type: "CLASSIC_PAT", prefix: "ghp_" },
+  "GIT_HUB_RUNNER-2": { type: "FINE_GRAINED_PAT", prefix: "github_pat_" },
+  // Alternate environment key spellings only; the Infisical names above remain canonical.
+  "GH_ID_TOMLOAD_RUNNER_2": { type: "CLASSIC_PAT", prefix: "ghp_" },
+  "GIT_HUB_RUNNER_2": { type: "FINE_GRAINED_PAT", prefix: "github_pat_" },
+});
+export function inspectRunnerTwoCredential(name, raw) {
+  const binding = RUNNER_TWO_PAT_BINDINGS[name];
+  if (!binding) return { recognized: false, type: "UNMAPPED", valid: false };
+  return {
+    recognized: true,
+    type: binding.type,
+    valid: inspectTokenFormat(raw) && raw.startsWith(binding.prefix),
+  };
+}
+export function selectRunnerTwoAuthorizedCredential(authorized) {
+  // Only choose after a real GitHub principal check and Actions-write canary.
+  // Fine-grained PAT is narrower; Classic is a distinct fallback if proven.
+  const candidates = authorized.filter(x => x.principal === "wave_runner-2");
+  const fine = candidates.find(x => x.type === "FINE_GRAINED_PAT");
+  if (fine) return fine;
+  const classic = candidates.find(x => x.type === "CLASSIC_PAT");
+  if (classic) return classic;
+  return null;
+}
 export function classifyDispatchProbe(http) {
   if (http === 422) return "AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN";
   if (http === 403) return "ACTIONS_WRITE_DENIED";
@@ -109,7 +137,7 @@ export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
   } catch { /* no noninteractive credential helper configured */ }
   return found;
 }
-async function verifyExistingHostGitHubPrincipal(token) {
+async function verifyExistingHostGitHubPrincipal(token, runnerTwoOnly = false) {
   const response = await fetch("https://api.github.com/user", {
     headers: {
       "Authorization": "Bearer " + token,
@@ -119,7 +147,9 @@ async function verifyExistingHostGitHubPrincipal(token) {
     redirect: "error", signal: AbortSignal.timeout(15000),
   }).catch(() => null);
   const payload = response?.status === 200 ? await responseJson(response) : {};
-  return ["ogenicchocolate21debug", "wave_runner-2"].includes(String(payload.login || "").toLowerCase());
+  const principal = String(payload.login || "").toLowerCase();
+  return runnerTwoOnly ? principal === "wave_runner-2" :
+    ["ogenicchocolate21debug", "wave_runner-2"].includes(principal);
 }
 
 export async function main() {
@@ -127,15 +157,25 @@ export async function main() {
   // Check only pre-existing Infisical staging GitHub credential bindings.
   // Select a single token proven for Actions WRITE; never print token bytes,
   // persist test tokens or substitute GitHub Actions' ephemeral github.token.
-  const primaryNames=["GITHUB_TOKEN_OGE34","GIBHUB_TOKEN_OGE34","GITHUB_TOKEN",
+  const primaryNames=["GH-ID-TOMLOAD-RUNNER-2","GIT_HUB_RUNNER-2",
+    "GH_ID_TOMLOAD_RUNNER_2","GIT_HUB_RUNNER_2",
+    "GITHUB_TOKEN_OGE34","GIBHUB_TOKEN_OGE34","GITHUB_TOKEN",
     "GITHUB_PAT","GITHUB_ACCESS_TOKEN","GH_TOKEN","GH_PAT","WAVE_GITHUB_TOKEN"];
   const discovered=Object.keys(process.env).filter((k) =>
     (/GITHUB/.test(k) && /(?:^|_)(?:TOKEN|PAT|AUTH|CREDENTIAL)(?:_|$)/.test(k)) ||
-    /^(GH_TOKEN|GH_PAT)$/.test(k));
+    /^(GH_TOKEN|GH_PAT|GH-ID-TOMLOAD-RUNNER-2|GIT_HUB_RUNNER-2|GH_ID_TOMLOAD_RUNNER_2|GIT_HUB_RUNNER_2)$/.test(k));
   const keys=[...new Set([...primaryNames,...discovered])].filter((k) =>
     Object.prototype.hasOwnProperty.call(process.env,k) && String(process.env[k]||"").length>0
   ).slice(0,24);
+  // Metadata only. Does not print token contents, fragments, hashes or prefixes.
   console.log("OGE34_INFISICAL_GITHUB_CANDIDATE_KEYS="+JSON.stringify(keys));
+  console.log("OGE34_RUNNER2_CREDENTIAL_BINDINGS="+JSON.stringify(
+    Object.keys(RUNNER_TWO_PAT_BINDINGS).filter(key => keys.includes(key)).map(key => ({
+      name: key,
+      type: RUNNER_TWO_PAT_BINDINGS[key].type,
+      format: inspectRunnerTwoCredential(key, process.env[key]).valid ? "MATCH" : "MISMATCH",
+    }))
+  ));
   const local = existingHostAuthCandidates();
   console.log("OGE34_RUNNER_EXISTING_GITHUB_AUTH_CANDIDATES="+JSON.stringify(local.map(row => row.key)));
   const candidates = [
@@ -145,6 +185,15 @@ export async function main() {
   const seen=new Set();
   const authorized=[];
   for(const {key, raw, hostLocal} of candidates){
+    const recognized = inspectRunnerTwoCredential(key, raw);
+    if (recognized.recognized && !recognized.valid) {
+      console.log("OGE34_CANDIDATE_"+key+"_FORMAT_MISMATCH="+recognized.type);
+      continue;
+    }
+    if (recognized.recognized && !(await verifyExistingHostGitHubPrincipal(raw, true))) {
+      console.log("OGE34_CANDIDATE_"+key+"_RUNNER2_PRINCIPAL_UNVERIFIED");
+      continue;
+    }
     if (hostLocal && !(await verifyExistingHostGitHubPrincipal(raw))) {
       console.log("OGE34_CANDIDATE_"+key+"_OWNER_PRINCIPAL_UNVERIFIED");
       continue;
@@ -190,13 +239,23 @@ export async function main() {
       if(permissionHeader && /^[A-Za-z0-9,=; _-]{1,150}$/.test(permissionHeader)){
         console.log("OGE34_CANDIDATE_"+label+"_REQUIRED_PERMISSION="+permissionHeader);
       }
-      if(result==="AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN")authorized.push({key:label,token:candidate});
+      if(result==="AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN")authorized.push({
+        key:label, token:candidate, type:recognized.recognized ? recognized.type : "LEGACY",
+        principal:recognized.recognized ? "wave_runner-2" : "UNVERIFIED_LEGACY",
+      });
     }
   }
   if(authorized.length===0)throw new Error("STAGING_SECRET_NOT_CHANGED_ACTIONS_WRITE_DENIED_ALL_EXISTING_GITHUB_CANDIDATES");
-  if(authorized.length!==1)throw new Error("STAGING_SECRET_NOT_CHANGED_MULTIPLE_AUTHORIZED_GITHUB_TOKENS_REQUIRE_EXPLICIT_SOURCE");
-  const token=authorized[0].token;
-  console.log("OGE34_VERIFIED_TOKEN_SOURCE="+authorized[0].key);
+  // Do not merge Classic and fine-grained PATs, or treat Runner-1 as Runner-2.
+  // Prefer a verified fine-grained Runner-2 PAT; separately verified Classic PAT
+  // is eligible only when fine-grained cannot dispatch. Ambiguous legacy tokens
+  // fail closed as before.
+  const chosen=selectRunnerTwoAuthorizedCredential(authorized) ??
+    (authorized.length===1 ? authorized[0] : null);
+  if (!chosen) throw new Error("STAGING_SECRET_NOT_CHANGED_MULTIPLE_AUTHORIZED_GITHUB_TOKENS_REQUIRE_EXPLICIT_SOURCE");
+  const token=chosen.token;
+  console.log("OGE34_VERIFIED_TOKEN_SOURCE="+chosen.key);
+  console.log("OGE34_VERIFIED_TOKEN_TYPE="+chosen.type);
   console.log("OGE34_DISPATCH_SCOPE=AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN");
   if(!process.env.CLOUDFLARE_API_TOKEN||!process.env.CLOUDFLARE_ACCOUNT_ID){
     throw new Error("CLOUDFLARE_STAGING_CREDENTIALS_MISSING");
