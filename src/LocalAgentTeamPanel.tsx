@@ -94,7 +94,7 @@ export default function LocalAgentTeamPanel() {
         body: JSON.stringify({ agent_id: targetAgent }),
       });
       const payload = await response.json().catch(() => ({}));
-      setMessage(response.ok ? "Handoff requested; approval and real runner evidence still required" : String(payload.code ?? "HANDOFF_FAILED"));
+      setMessage(response.ok ? "Owner-signed handoff recorded; a verified runtime adapter is still required" : String(payload.code ?? "HANDOFF_FAILED"));
       if (response.ok) await load();
     } finally { setBusy(false); }
   }
@@ -119,7 +119,7 @@ export default function LocalAgentTeamPanel() {
     <div className="wnCardHead localRoomHeader"><div><span className="wnKicker">LOCAL AGENT TEAM · OPENBOT MODE</span><h3>{state.room ?? "launch"} room</h3></div><State value={state.state} />
       <button type="button" className="wnPrimary" aria-expanded={roomOpen} aria-controls="waveLaunchRoom" onClick={() => setRoomOpen(value => !value)}>{roomOpen ? "Close Launch Room" : "Launch Room →"}</button>
     </div>
-    <p className="wnBody">Persistent tasks use the existing D1 agent queue and {state.canonical_session ?? "owner-main / 1LSS_OWNER_MAIN"}. Provider setup, launch, command execution, and verified results remain separate states; WRITE and EXECUTE tasks stay WAITING_APPROVAL until the existing owner gate is satisfied.</p>
+    <p className="wnBody">Persistent tasks use the existing D1 agent queue and {state.canonical_session ?? "owner-main / 1LSS_OWNER_MAIN"}. Provider setup, launch, command execution, and verified results remain separate states; WRITE and EXECUTE requests use the signed Owner Session; execution still requires a verified adapter and real runner receipt.</p>
     <div className="localTeamLocation">Canonical data: <strong>{state.storage?.canonical ?? "Cloudflare D1 / agent_tasks, agent_events, agent_checkpoints"}</strong>. This is not local-only storage.</div>
     {roomOpen && <section id="waveLaunchRoom" className="localLaunchRoom" aria-label="OpenBot Launch Room">
       <div className="localRoomBar"><strong>Launch Room · owner-main / 1LSS_OWNER_MAIN</strong><button type="button" onClick={() => void load()} disabled={busy}>Refresh</button><a href="/chat">WAVE Chat</a></div>

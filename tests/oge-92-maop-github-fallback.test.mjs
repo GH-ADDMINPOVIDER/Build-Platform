@@ -21,7 +21,8 @@ test("OGE-92 allows only the existing GitHub read_file compatibility fallback wi
 test("OGE-92 does not promote disabled permission classes or bypass Yellow auth and Green verification", () => {
   assert.match(executor, /hasOwnerOrOpsAccess/);
   assert.match(executor, /descriptor\.permission_class !== "READ"/);
-  assert.match(executor, /HUMAN_APPROVAL_REQUIRED/);
+  assert.match(executor, /hasOwnerSession/);
+  assert.match(executor, /NO_IMPLEMENTED_NON_READ_ADAPTER/);
   assert.match(executor, /appendCanonicalEvidence/);
   assert.match(maop, /createCapabilityExecutionApi/);
   assert.match(maop, /provider: "github"/);

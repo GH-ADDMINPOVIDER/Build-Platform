@@ -90,7 +90,7 @@ export function waveCommandPolicy(modeValue: WaveCommandMode) {
     planner: "ATHENA",
     execution_authority: "YELLOW_STONE_ONLY",
     canonical_memory: "owner-main / 1LSS_OWNER_MAIN",
-    non_read_behavior: "HUMAN_APPROVAL_REQUIRED",
+    non_read_behavior: "OWNER_SESSION_DIRECT_WHEN_ADAPTER_AVAILABLE",
     direct_execution_bypass: false,
   } as const;
 }

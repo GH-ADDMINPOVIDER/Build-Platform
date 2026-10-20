@@ -25,7 +25,8 @@ test("Violet keeps execution under Yellow and canonical state under Green", () =
   assert.match(violet, /direct_execution_bypass: false/);
   assert.match(violet, /CANONICAL_CONVERSATION = "owner-main"/);
   assert.match(violet, /CANONICAL_SESSION = "1LSS_OWNER_MAIN"/);
-  assert.match(violet, /HUMAN_APPROVAL_REQUIRED/);
+  assert.match(violet, /owner_authorization: "SIGNED_OWNER_SESSION"/);
+  assert.match(violet, /adapter_verified: false/);
 });
 
 test("Violet forms deterministic parallel or sequential graphs and evidence merge", () => {

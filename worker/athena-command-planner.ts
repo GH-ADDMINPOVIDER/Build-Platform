@@ -12,7 +12,7 @@ export type AthenaCommandPlan = {
   input?: { path?: string; prompt?: string };
   reason?: string;
   requires_yellow_stone: true;
-  approval_authority: "YELLOW_STONE";
+  approval_authority: "SIGNED_OWNER_SESSION";
   direct_execution_bypass: false;
 };
 
@@ -41,7 +41,7 @@ function basePlan(intent: string): Pick<AthenaCommandPlan,
     normalized_intent: intent,
     environment: "staging",
     requires_yellow_stone: true,
-    approval_authority: "YELLOW_STONE",
+    approval_authority: "SIGNED_OWNER_SESSION",
     direct_execution_bypass: false,
   };
 }

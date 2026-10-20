@@ -3,14 +3,15 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 const read = (path) => fs.readFileSync(new URL("../" + path, import.meta.url), "utf8");
 
-test("command simple mode accepts natural text with no path and queues only behind owner approval", () => {
+test("simple mode authorizes one Owner session request without a second prompt", () => {
   const ui = read("src/WaveNext.tsx");
   assert.match(ui, /const path = advanced \? resourcePath\.trim\(\) : ""/);
   assert.match(ui, /requestBody\.capability = "codex_selfhost"/);
   assert.match(ui, /requestBody\.provider = "openai"/);
-  assert.match(ui, /response\.status === 202 && body\.code === "OWNER_APPROVAL_REQUIRED"/);
-  assert.match(ui, /body\.approval\?\.approval_id/);
-  assert.match(ui, /approval: \{ confirmed: true, approval_id: approved\.id \}/);
+  assert.match(ui, /fetch\("\/api\/wave\/command"/);
+  assert.doesNotMatch(ui, /setPendingApproval/);
+  assert.doesNotMatch(ui, /confirmGuardedCommand/);
+  assert.match(ui, /Sign & Run/);
   assert.match(ui, /QUEUED ไม่ใช่ DONE/);
 });
 
@@ -82,7 +83,7 @@ test("terminal special environment keeps OpenCode with SSH and IDEs, outside the
   assert.match(circuit, /OPC · OpenCode/);
   assert.match(circuit, /SSH/);
   assert.match(circuit, /IDEs/);
-  assert.match(circuit, /Yellow Stone Policy \/ Owner Approval/);
+  assert.match(circuit, /Yellow Stone Policy \/ Owner Authorization/);
   assert.match(styles, /\.scTerminalTools/);
   assert.match(styles, /grid-template-columns:1fr/);
 });

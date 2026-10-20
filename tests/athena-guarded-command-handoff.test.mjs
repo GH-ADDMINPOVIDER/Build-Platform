@@ -23,7 +23,7 @@ test("guarded command does not implement a second resolver or provider adapter",
   assert.doesNotMatch(entry, /api\.github\.com/);
   assert.match(execution, /resolveCapability\(request, candidates\)/);
   assert.match(execution, /descriptor\.permission_class !== "READ"/);
-  assert.match(execution, /HUMAN_APPROVAL_REQUIRED/);
+  assert.match(execution, /NO_IMPLEMENTED_NON_READ_ADAPTER/);
   assert.match(execution, /ADAPTER_NOT_IMPLEMENTED/);
 });
 
@@ -42,8 +42,8 @@ test("WAVE Run surface invokes guarded command and renders precise approval or v
   const ui = read("src/WaveNext.tsx");
   assert.match(ui, /fetch\("\/api\/wave\/command"/);
   assert.match(ui, /Run guarded command/);
-  assert.match(ui, /Owner approval required/);
-  assert.match(ui, /No side effect executed/);
+  assert.match(ui, /Signed Owner Session/);
+  assert.match(ui, /commandResult.code === "ADAPTER_NOT_IMPLEMENTED"/);
   assert.match(ui, /Optional GitHub file path for verified READ/);
   assert.match(ui, /capability = "read_file"/);
   assert.match(ui, /provider = "github"/);
@@ -58,20 +58,23 @@ test("guarded command preserves canonical 1LSS through existing Yellow Stone evi
 });
 
 
-test("WAVE command requires a matching second owner confirmation before queueing", () => {
+test("signed Owner Session submits a staging command with no second confirmation", () => {
   const entry = read("worker/entry-yellow-stone.ts");
   const ui = read("src/UnifiedChat.tsx");
-  assert.match(entry, /OWNER_APPROVAL_REQUIRED/);
-  assert.match(entry, /APPROVAL_PLAN_MISMATCH/);
+  const auth = read("worker/app-auth.ts");
+  assert.match(entry, /hasOwnerSession\(request, env\)/);
+  assert.match(entry, /ORIGIN_DENIED/);
+  assert.doesNotMatch(entry, /code: "OWNER_APPROVAL_REQUIRED"/);
+  assert.doesNotMatch(entry, /code: "APPROVAL_PLAN_MISMATCH"/);
   assert.match(entry, /OWNER_APPROVED_COMMAND_QUEUED/);
+  assert.match(entry, /authorization: "SIGNED_OWNER_SESSION"/);
   assert.match(entry, /INSERT INTO agent_tasks/);
   assert.match(entry, /consumer_proven:\s*false/);
+  assert.match(auth, /validSignedToken/);
   assert.match(ui, /WAVE Command/);
-  assert.match(ui, /confirmWaveCommand/);
-  assert.match(ui, /ยืนยันและเข้าคิว/);
-  assert.match(ui, /Runner-1 กำลังรับงาน/);
+  assert.doesNotMatch(ui, /confirmWaveCommand/);
+  assert.match(ui, /รอ Runner-1 และ COMMAND_RESULT/);
 });
-
 
 test("chat command routes arbitrary owner text to the bounded Codex self-host queue contract", () => {
   const entry = read("worker/entry-yellow-stone.ts");

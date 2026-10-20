@@ -18,11 +18,12 @@ test("Terminal Solo is a special SSH IDEs OPC environment, not an eighth stone o
   assert.doesNotMatch(canonical,/OPC|OpenCode|IDEs/);
 });
 
-test("ATHENA and Yellow Stone gate the existing staging WAVE task with owner approval",()=>{
+test("ATHENA and Yellow Stone accept signed Owner Session without second confirmation",()=>{
   const entry=read("worker/entry-yellow-stone.ts");
   const consumer=read("scripts/wave-command-consumer.mjs");
   assert.match(entry,/hasOwnerOrOpsAccess\(request, env\)/);
-  assert.match(entry,/OWNER_APPROVAL_REQUIRED/);
+  assert.match(entry,/hasOwnerSession\(request, env\)/);
+  assert.doesNotMatch(entry,/code: "OWNER_APPROVAL_REQUIRED"/);
   assert.match(entry,/OWNER_APPROVED_COMMAND_QUEUED/);
   assert.match(entry,/capability = 'codex_selfhost'/);
   assert.match(entry,/COMMAND_CONSUMER_STARTED/);

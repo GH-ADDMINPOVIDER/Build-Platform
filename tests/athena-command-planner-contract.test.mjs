@@ -11,7 +11,7 @@ test("ATHENA planner is bounded to staging and Yellow Stone authority", () => {
   assert.match(planner, /plan_version:\s*"ATHENA_COMMAND_PLAN_V1"/);
   assert.match(planner, /environment:\s*"staging"/);
   assert.match(planner, /requires_yellow_stone:\s*true/);
-  assert.match(planner, /approval_authority:\s*"YELLOW_STONE"/);
+  assert.match(planner, /approval_authority:\s*"SIGNED_OWNER_SESSION"/);
   assert.match(planner, /direct_execution_bypass:\s*false/);
 });
 

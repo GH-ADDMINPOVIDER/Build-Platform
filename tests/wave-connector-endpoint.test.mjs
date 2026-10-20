@@ -40,7 +40,7 @@ test("NPX npm SDK A2A cannot run through Cloudflare without proved runner adapte
   assert.match(api,/execution_route: "WAVE_YELLOW_READ" \| "WAVE_OWNER_SIGN"/);
 });
 
-test("admission uses bounded transport-capability pairing plus the original Yellow/Owner gate",()=>{
+test("admission uses bounded transport-capability pairing and signed Owner Session",()=>{
   assert.match(api,/executable=new Set\(/);
   assert.match(api,/capability==="read_file"&&provider==="github"/);
   assert.match(api,/capability==="codex_selfhost"&&provider==="openai"/);
@@ -51,8 +51,9 @@ test("admission uses bounded transport-capability pairing plus the original Yell
   assert.match(entry,/normalizeConnectorEnvelope\(data\)/);
   assert.match(entry,/target\.pathname = "\/api\/wave\/command"/);
   assert.match(entry,/return athenaGuardedCommand\(forwarded, env, ctx\)/);
-  assert.match(entry,/OWNER_APPROVAL_REQUIRED/);
-  assert.match(entry,/APPROVAL_PLAN_MISMATCH/);
+  assert.match(entry,/hasOwnerSession\(request, env\)/);
+  assert.match(entry,/ORIGIN_DENIED/);
+  assert.doesNotMatch(entry,/code: "OWNER_APPROVAL_REQUIRED"/);
 });
 
 test("safe remote MCP initialize/tools/list and n8n health probes use EXISTING adapter, never execute tools/call",()=>{

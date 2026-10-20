@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { wrapCapabilityAsUseCard } from "./use-card-policy";
 import { boundedReadPrompt } from "./agent-context-policy";
-import { hasOwnerOrOpsAccess } from "./app-auth";
+import { hasOwnerSession, hasOwnerOrOpsAccess } from "./app-auth";
 import {
   normalizeResolverRequest,
   readResolverCandidates,
@@ -337,21 +337,16 @@ export function createCapabilityExecutionApi() {
     const useCard = wrapCapabilityAsUseCard(descriptor, "yellow-stone");
     const runId = makeId("ys_run");
     if (descriptor.permission_class !== "READ") {
+      // Owner controls authorization, but unimplemented effects cannot execute.
+      if (!(await hasOwnerSession(c.req.raw, c.env))) {
+        return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);
+      }
       return c.json({
-        ok: false,
-        code: "HUMAN_APPROVAL_REQUIRED",
-        run_id: runId,
-        resolver: resolved,
-        use_card: useCard,
-        approval: {
-          required: true,
-          permission_class: descriptor.permission_class,
-          capability_id: descriptor.capability_id,
-          provider_id: descriptor.provider_id,
-          environment: descriptor.environment,
-        },
-        verification: verification("blocked", { reason: "NON_READ_CAPABILITY_REQUIRES_DETERMINISTIC_APPROVAL" }),
-      }, 409, { "Cache-Control": "no-store" });
+        ok: false, code: "ADAPTER_NOT_IMPLEMENTED", run_id: runId,
+        resolver: resolved, use_card: useCard,
+        approval: { required: false, authority: "SIGNED_OWNER_SESSION" },
+        verification: verification("blocked", { reason: "NO_IMPLEMENTED_NON_READ_ADAPTER" }),
+      }, 501, { "Cache-Control": "no-store" });
     }
 
     if (descriptor.provider_id === "gemini" && descriptor.capability_id === "context_load") {

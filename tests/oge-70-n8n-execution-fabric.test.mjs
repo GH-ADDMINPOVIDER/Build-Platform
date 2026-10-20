@@ -22,7 +22,7 @@ test("OGE placement keeps MA-OP/Yellow authoritative and n8n as execution fabric
   assert.equal(placement.canonical.verification, "RUBY_STONE");
   assert.equal(placement.canonical.retention, "GREEN_1LSS");
   assert.equal(placement.canonical.n8n_role, "WORKFLOW_EXECUTION_FABRIC_NOT_CONTROL_PLANE");
-  assert.ok(placement.rules.includes("WRITE_EXECUTE_DANGEROUS_REQUIRES_YELLOW_APPROVAL"));
+  assert.ok(placement.rules.includes("WRITE_EXECUTE_DANGEROUS_REQUIRES_SIGNED_OWNER_SESSION_AND_IMPLEMENTED_ADAPTER"));
 });
 
 test("workflow-native OGE lanes are placed in n8n while ingress/provider authority stays direct", () => {
@@ -88,12 +88,13 @@ test("verified self-host n8n is active in provider metadata without schema chang
   assert.doesNotMatch(reconcile, /\b(?:CREATE|ALTER|DROP)\s+(?:TABLE|INDEX|TRIGGER|VIEW)\b/i);
 });
 
-test("Yellow keeps n8n workflow_run approval-gated as EXECUTE", () => {
+test("Yellow keeps n8n EXECUTE blocked until an adapter exists without repeated owner approval", () => {
   const execution = read("worker/capability-execution-api.ts");
   const migration = read("database/migrations/0002_canonical_operating_state.sql");
   assert.match(migration, /\('workflow_run','execution','EXECUTE'/);
   assert.match(execution, /descriptor\.permission_class !== "READ"/);
-  assert.match(execution, /HUMAN_APPROVAL_REQUIRED/);
+  assert.match(execution, /ADAPTER_NOT_IMPLEMENTED/);
+  assert.match(execution, /NO_IMPLEMENTED_NON_READ_ADAPTER/);
 });
 
 test("MA-OP Web Lab exposes placement and self-host inventory without enabling execution", () => {
