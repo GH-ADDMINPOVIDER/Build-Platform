@@ -83,5 +83,36 @@ await api("/api/wave/command/result", {
   git_sha: gitSha,
   evidence_ref: evidenceRef,
 });
+// A success is accepted only after the SAME D1 receipt has been read back
+// through an authenticated signed Owner Session; submitting a result is not proof.
+if (proofReadOnly && status === "DONE") {
+  const signed = await fetch(waveUrl + "/api/session", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-ogenic-client": "native" },
+    body: JSON.stringify({ owner_key: opsKey }),
+    redirect: "error",
+  }).catch(() => null);
+  const session = signed?.status === 200 ? await signed.json().catch(() => ({})) : {};
+  const token = typeof session.session_token === "string" && session.authenticated === true ? session.session_token : "";
+  if (!token) fail("OWNER_SIGNED_RESULT_READBACK_AUTH_FAILED");
+  let readbackProven = false;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const response = await fetch(waveUrl + "/api/wave/command/status?task_id=" + encodeURIComponent(taskId), {
+      headers: { authorization: "Bearer " + token }, redirect: "error",
+    }).catch(() => null);
+    const receipt = response?.status === 200 ? await response.json().catch(() => ({})) : {};
+    const evidence = receipt.evidence || {};
+    if (receipt.ok === true && receipt.task?.status === "DONE" &&
+        receipt.execution?.consumer_proven === true && receipt.last_event === "COMMAND_RESULT_DONE" &&
+        evidence.result_sha256 === resultHash && evidence.git_sha === gitSha &&
+        evidence.evidence_ref === evidenceRef) {
+      readbackProven = true;
+      break;
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  if (!readbackProven) fail("D1_COMMAND_RESULT_DONE_READBACK_UNVERIFIED");
+  process.stdout.write("OGE129_SIGNED_OWNER_TO_RUNNER_CODEX_D1_E2E=PASS\\n".replace("\\n","\n"));
+}
 process.stdout.write(JSON.stringify({ ok: status === "DONE", task_id: taskId, status, result_sha256: resultHash, git_sha: gitSha }) + "\n");
 if (status !== "DONE") process.exit(1);
