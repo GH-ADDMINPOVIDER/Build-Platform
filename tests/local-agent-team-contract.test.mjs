@@ -24,7 +24,8 @@ test("local agent team is wired through Yellow Stone and existing Agent Deck", (
   assert.match(entry, /pathname\.startsWith\("\/api\/local-agent-team\/"\)/);
   assert.match(wave, /LocalAgentTeamPanel/);
   assert.match(ui, /Create task/);
-  assert.match(ui, /WAITING_APPROVAL|OWNER_APPROVAL_REQUIRED/);
+  assert.match(api, /hasOwnerSession/);
+  assert.match(ui, /signed Owner Session/);
 });
 
 test("OpenBot Launch Room uses existing Agent Deck and canonical D1 events", () => {
