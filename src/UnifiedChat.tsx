@@ -83,7 +83,6 @@ type BridgeStatus = {
   surfaces?: BridgeSurface[];
 };
 
-type PendingCommand = { intent: string; approval_id: string; capability?: string; provider?: string };
 
 type Props = { surface: Surface };
 
@@ -203,7 +202,6 @@ export default function UnifiedChat({ surface }: Props) {
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus | null>(null);
   const [activeMessageMenu, setActiveMessageMenu] = useState<string | null>(null);
   const [speakingMessage, setSpeakingMessage] = useState<string | null>(null);
-  const [pendingCommand, setPendingCommand] = useState<PendingCommand | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const composerInput = useRef<HTMLTextAreaElement | null>(null);
   const chatEnd = useRef<HTMLDivElement | null>(null);
@@ -588,62 +586,22 @@ export default function UnifiedChat({ surface }: Props) {
     const response = await fetch("/api/wave/command", {
       method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        command: prompt,
-        mode: "autonomous",
-        environment: "staging",
-        capability: "codex_selfhost",
-        provider: "openai",
+        command: prompt, mode: "autonomous", environment: "staging",
+        capability: "codex_selfhost", provider: "openai",
       }),
     });
     const body = await response.json().catch(() => ({})) as {
-      code?: string; message?: string;
-      approval?: { approval_id?: string };
-      command_plan?: { capability?: string; provider?: string };
+      ok?: boolean; code?: string; message?: string;
+      task?: { id?: string; status?: string };
+      run_id?: string; verification?: { status?: string };
     };
-    if (response.status === 202 && body.code === "OWNER_APPROVAL_REQUIRED" && body.approval?.approval_id) {
-      const next = { intent: prompt, approval_id: body.approval.approval_id, capability: body.command_plan?.capability, provider: body.command_plan?.provider };
-      setPendingCommand(next);
-      setMessages((rows) => [...rows, {
-        id: crypto.randomUUID(), role: "assistant",
-        text: `แผนพร้อมให้ยืนยัน · ${next.provider || "Yellow Stone"} / ${next.capability || "command"} · ยังไม่ได้รัน`,
-        created_at: Date.now(),
-      }]);
-      return;
-    }
-    throw new Error(body.message || body.code || `HTTP_${response.status}`);
-  }
-
-  async function confirmWaveCommand() {
-    if (!pendingCommand || sending) return;
-    const approved = pendingCommand;
-    setSending(true);
-    setInlineNotice("");
-    try {
-      const response = await fetch("/api/wave/command", {
-        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          command: approved.intent, mode: "autonomous", environment: "staging",
-          capability: "codex_selfhost", provider: "openai",
-          approval: { confirmed: true, approval_id: approved.approval_id },
-        }),
-      });
-      const body = await response.json().catch(() => ({})) as {
-        ok?: boolean; code?: string; message?: string;
-        task?: { id?: string; status?: string };
-        run_id?: string; verification?: { status?: string };
-      };
-      if (!response.ok || !body.ok) throw new Error(body.message || body.code || `HTTP_${response.status}`);
-      const dispatched = body.code === "COMMAND_DISPATCHED" || body.code === "COMMAND_ALREADY_QUEUED";
-      const text = dispatched
-        ? `ยืนยันแล้ว · ${body.code === "COMMAND_DISPATCHED" ? "DISPATCHED" : "QUEUED"} · task ${body.task?.id || "unknown"} · Runner-1 กำลังรับงาน`
-        : `ยืนยันแล้ว · ${body.verification?.status || "executed"} · run ${body.run_id || "n/a"}`;
-      setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "assistant", text, created_at: Date.now() }]);
-      setPendingCommand(null);
-      setInlineNotice(dispatched ? "ส่งงานไป Runner-1 แล้ว · รอ COMMAND_RESULT ก่อนแสดง DONE" : "คำสั่ง READ ทำงานผ่าน Yellow Stone แล้ว");
-      await loadRuntime();
-    } catch (error) {
-      setInlineNotice(error instanceof Error ? error.message : "Confirm failed");
-    } finally { setSending(false); }
+    if (!response.ok || !body.ok) throw new Error(body.message || body.code || `HTTP_${response.status}`);
+    const dispatched = body.code === "COMMAND_DISPATCHED" || body.code === "COMMAND_ALREADY_QUEUED";
+    const text = dispatched
+      ? `Owner Session authorized · ${body.code === "COMMAND_DISPATCHED" ? "DISPATCHED" : "QUEUED"} · task ${body.task?.id || "unknown"} · รอ Runner-1 และ COMMAND_RESULT`
+      : `Owner Session authorized · ${body.verification?.status || "verified"} · run ${body.run_id || "n/a"}`;
+    setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "assistant", text, created_at: Date.now() }]);
+    setInlineNotice(dispatched ? "ส่งงานแล้ว · ยังไม่ใช่ DONE · รอ COMMAND_RESULT" : "คำสั่งสำเร็จผ่าน Yellow Stone");
   }
 
   async function runChat(prompt: string) {
@@ -905,7 +863,7 @@ export default function UnifiedChat({ surface }: Props) {
   if (!session.authenticated) return <main className="ucAuth"><section><img src="/assets/wave-logo.webp" alt="" /><small>OWNER ACCESS</small><h1>WAVE — SAME MIND</h1><p>One clean chat · one canonical line.</p><input type="password" value={ownerKey} onChange={(event) => setOwnerKey(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void signIn(); }} placeholder="Owner access key" /><button onClick={() => void signIn()}>Continue</button>{authError && <em>{authError}</em>}</section></main>;
 
   const toolRows: Array<{ id: ToolMode; label: string; sub: string; live: boolean; state: string }> = [
-    { id: "command", label: "WAVE Command", sub: "Plan → owner confirm → Yellow queue", live: true, state: "GUARDED" },
+    { id: "command", label: "WAVE Command", sub: "Signed Owner Session → Yellow → Runner-1", live: true, state: "GUARDED" },
     { id: "web", label: "Web search", sub: "Fresh web sources", live: toolLive(platformTools.get("web_search")?.state), state: String(platformTools.get("web_search")?.state || "NOT_MEASURED") },
     { id: "rag", label: "RAG memory", sub: "OGENIC HARNESS · D1 canonical · 1LSS", live: toolLive(platformTools.get("d1_canonical")?.state) || toolLive(platformTools.get("file_search")?.state), state: String(platformTools.get("d1_canonical")?.state || platformTools.get("file_search")?.state || "NOT_MEASURED") },
     { id: "github", label: "GitHub", sub: liveTools.get("github")?.summary || "Repository + CI", live: toolLive(liveTools.get("github")?.state), state: String(liveTools.get("github")?.state || "NOT_MEASURED") },
@@ -1017,13 +975,12 @@ export default function UnifiedChat({ surface }: Props) {
       <ComposerAttachments rows={attachments} store={composerDraft.store} disabled={sending} />
       {composerDraft.persistenceError && <div className="ucNotice" role="alert">{composerDraft.persistenceError}</div>}
       {inlineNotice && <div className="ucNotice" role="status" aria-live="polite">{inlineNotice}</div>}
-      {pendingCommand && <div className="ucQuotaWarn" role="status"><b>ยืนยันคำสั่ง WAVE</b><span>{pendingCommand.provider || "Yellow Stone"} · {pendingCommand.capability || "command"} · ยังไม่รัน</span><button disabled={sending} onClick={() => void confirmWaveCommand()}>ยืนยันและเข้าคิว</button><button disabled={sending} onClick={() => setPendingCommand(null)}>ยกเลิก</button></div>}
       {quotaBlocked && <div className="ucQuotaWarn"><b>Guarded quota หมด</b><span>Paid fallback ปิดอยู่ กูจะไม่ข้าม guard เอง</span><button onClick={() => setAllowPaidFallback(true)}>Allow paid fallback</button></div>}
       <div className="ucExperience" role="group" aria-label="Chat mode">
         {EXPERIENCE_MODES.map((item) => <button key={item.id} className={experienceMode === item.id ? "active" : ""} aria-pressed={experienceMode === item.id} onClick={() => selectExperience(item.id)}><b>{item.label}</b><small>{item.state}</small></button>)}
       </div>
       <section className="ucComposer">
-        <textarea ref={composerInput} rows={1} disabled={!composerDraft.ready} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={selectedPstackPreset ? "พิมพ์โจทย์งานให้ pstack หนึ่งงาน…" : toolMode === "command" ? "พิมพ์คำสั่ง แล้วกดยืนยันก่อนเข้าคิว…" : toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message WAVE…"} />
+        <textarea ref={composerInput} rows={1} disabled={!composerDraft.ready} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={selectedPstackPreset ? "พิมพ์โจทย์งานให้ pstack หนึ่งงาน…" : toolMode === "command" ? "พิมพ์คำสั่งแล้วส่งได้เลย · Signed Owner Session…" : toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message WAVE…"} />
         <div className="ucComposerBar">
           <button className="ucRound" onClick={() => { setToolDock((value) => !value); setModelDock(false); }}>＋</button>
           <button className="ucModel" onClick={() => { setModelDock((value) => !value); setToolDock(false); }}><i /> <b>{selectedModel.label}</b><small>{EFFORTS.find((row) => row.id === chatConfig.effort)?.label} · ×{chatConfig.boost}</small>⌄</button>
