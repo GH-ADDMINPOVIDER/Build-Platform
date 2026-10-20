@@ -4,6 +4,8 @@ on:
     branches: [task/oge-128-runtime-certificate-20261018]
     paths:
       - ".github/workflows/oge-128-certificate-lincenc-d1.yml"
+      - "scripts/infisical-discover-project.sh"
+      - "scripts/infisical-cloudflare-source-select.sh"
       - ".ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json"
   workflow_dispatch:
 permissions:
@@ -18,6 +20,10 @@ env:
   INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
   INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
   INFISICAL_ENV_SLUG: staging
+  INFISICAL_CLOUDFLARE_SOURCE_ENV: staging
+  INFISICAL_CLOUDFLARE_SOURCE_PATH: /
+  INFISICAL_CLOUDFLARE_PROJECT_ID: e8cfba67-ea99-4d79-bc9f-87b862f9129c
+  INFISICAL_CLOUDFLARE_PROJECT_SLUG: ogenic-sio-ti-rv
 jobs:
   certificate-lincenc-d1:
     if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && contains(fromJSON('["Ogenicchocolate21debug","Wave-Runner-2"]'), github.actor)
