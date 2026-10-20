@@ -48,6 +48,10 @@ test("terminal solo wrapper is a host-stable lock and executes only approved con
   assert.match(workflow,/runs-on: \[self-hosted, linux, x64, wave\]/);
   assert.match(workflow,/Infisical\/secrets-action/);
   assert.match(workflow,/cancel-in-progress: false/);
+  assert.match(workflow,/env:\\n\\s+WAVE_TASK_ID: \\$\\{\\{ inputs\\.task_id \\}\\}/);
+  assert.match(workflow,/\\[\\[ "\\$WAVE_TASK_ID" =~ \\^wavecmd_/);
+  const validateBlock = workflow.split("- name: Validate task scope")[1].split("- name: Discover Infisical project")[0];
+  assert.doesNotMatch(validateBlock,/\\[\\[ "\\$\\{\\{ inputs\\.task_id/);
 });
 
 test("the scope boundary forbids secret outputs and production modifications",()=>{
