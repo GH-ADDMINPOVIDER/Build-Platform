@@ -43,7 +43,7 @@ test("WAVE Run surface invokes guarded command and renders precise approval or v
   assert.match(ui, /fetch\("\/api\/wave\/command"/);
   assert.match(ui, /Run guarded command/);
   assert.match(ui, /Signed Owner Session/);
-  assert.match(ui, /No side effect executed/);
+  assert.match(ui, /commandResult.code === "ADAPTER_NOT_IMPLEMENTED"/);
   assert.match(ui, /Optional GitHub file path for verified READ/);
   assert.match(ui, /capability = "read_file"/);
   assert.match(ui, /provider = "github"/);
