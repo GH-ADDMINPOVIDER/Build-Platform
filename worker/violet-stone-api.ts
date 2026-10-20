@@ -3,7 +3,7 @@ import pstackFullCatalog from "../config/pstack-full-catalog.json";
 import pstackTaxonomy from "../config/pstack-task-taxonomy.json";
 import { classifyPstackIntent, numberPstackSkills, choosePstackCategoryStack } from "./violet-pstack-taxonomy";
 import { selectPstackSkillStack, planSkillLearning } from "./violet-pstack-selector";
-import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
+import { hasOwnerSession, hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { buildWhiteDiamondRegistry, type RegistryEnv, type WhiteDiamondAgent } from "./white-diamond-registry";
 import { buildBlueDiamondRegistry } from "./blue-diamond-registry";
 import { planVioletDistribution, type DistributionInput, type ActiveClaim } from "./violet-distribution-planner";
@@ -398,7 +398,7 @@ function createHandoff(body: HandoffBody, agents: VioletIdentity[]) {
   const envelope = {
     run_id: clean(body.run_id, 120) || null,
     agent: { ...target, visible_identity: `${target.app} • Agent • ${target.rank}` },
-    status: requestedPermission === "READ" && !executeRequested ? "planning" : "waiting_approval",
+    status: requestedPermission === "READ" && !executeRequested ? "planning" : "adapter_pending",
     intent: clean(body.intent, 1600),
     capability: clean(body.capability, 160) || undefined,
     provider: clean(body.provider, 120) || undefined,
@@ -409,10 +409,12 @@ function createHandoff(body: HandoffBody, agents: VioletIdentity[]) {
     pstack_skill_stack:selectPstackSkillStack(clean(body.intent,1600),pstackFullCatalog.skills),
     full_skill_source_read_by_provider:false,
   };
-  if (requestedPermission !== "READ" || executeRequested) {
-    return { status: 409 as const, body: { ok: false, code: "HUMAN_APPROVAL_REQUIRED", handoff: envelope } };
-  }
-  return { status: 200 as const, body: { ok: true, code: "READY_FOR_YELLOW_STONE", handoff: envelope } };
+  // Owner's signed request needs no extra approval; provider execution is NOT implied.
+  return { status: 200 as const, body: {
+    ok: true, code: "READY_FOR_YELLOW_STONE", handoff: envelope,
+    owner_authorization: "SIGNED_OWNER_SESSION",
+    execution_dispatched: false, adapter_verified: false,
+  } };
 }
 
 function merge(body: MergeBody, agents: VioletIdentity[]) {
@@ -654,7 +656,7 @@ export function createVioletStoneApi() {
       const eventId = "violet-claim-" + await digest(taskId + ":" + agentId);
       await c.env.DB.prepare(
         `INSERT OR IGNORE INTO agent_events(id,task_id,event_type,actor,external_ref,created_at)
-         VALUES(?,?,'VIOLET_CLAIM_PENDING_YELLOW',?,'YELLOW_APPROVAL_REQUIRED',CURRENT_TIMESTAMP)`,
+         VALUES(?,?,'VIOLET_CLAIM_PENDING_YELLOW',?,'RUNTIME_EXECUTION_NOT_DISPATCHED',CURRENT_TIMESTAMP)`,
       ).bind(eventId,taskId,agentId).run();
       return c.json({ok:true,replayed:false,task_id:taskId,agent_id:agentId,
         status:"CLAIMED",execution_dispatched:false,
@@ -673,6 +675,7 @@ export function createVioletStoneApi() {
   });
 
   api.post("/api/violet/handoff", async (c) => {
+    if (!(await hasOwnerSession(c.req.raw, c.env))) return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);
     const body = await c.req.json<HandoffBody>().catch(() => ({} as HandoffBody));
     const result = createHandoff(body, buildVioletAgentRegistry(c.env));
     return c.json(result.body, result.status, { "Cache-Control": "no-store" });
