@@ -6,6 +6,7 @@ on:
       - ".github/workflows/oge-129-wave-command-smoke.yml"
       - "scripts/oge129_wave_command_connections_smoke.mjs"
       - "scripts/oge129_owner_live_e2e.mjs"
+      - "scripts/verify-openbot-launchroom-staging.mjs"
   workflow_dispatch:
 permissions:
   contents: read
@@ -108,7 +109,15 @@ jobs:
           env-slug: staging
           secret-path: /
           recursive: true
-      - name: Submit or reuse the read-only Owner command then release Runner-1
+      - name: Prove real OpenBot Launch Room through existing Codex and D1
+        if: contains(github.event.head_commit.message, 'openbot')
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/verify-openbot-launchroom-staging.mjs
+          node scripts/verify-openbot-launchroom-staging.mjs
+      - name: Submit or reuse the original read-only Owner command
+        if: ${{ !contains(github.event.head_commit.message, 'openbot') }}
         shell: bash
         run: |
           set -euo pipefail

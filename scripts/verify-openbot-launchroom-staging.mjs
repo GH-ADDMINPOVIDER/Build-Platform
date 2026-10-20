@@ -38,14 +38,30 @@ const task = await call("/api/local-agent-team/tasks", {
   method: "POST",
   headers: { "Idempotency-Key": "openbot-room-" + sha },
   body: JSON.stringify({
-    title: "Read-only inspect current WAVE staging architecture and summarize system boundaries",
-    description: "Read-only inspect existing staging source and report findings. No file modification, no production.",
+    title: "Read package.json and report only the package name and npm script names",
+    description: "Inspect package.json only. Report the package name and npm script names. Do not read any other file, print its contents, install tools, or change files.",
     permission: "READ", workspace_ref: "workspace:staging",
   }),
 });
 assert.ok(task.http === 202 || task.http === 200, "ROOM_TASK_CREATE_HTTP_" + task.http);
 const taskId = String(task.payload.task?.id || "");
 assert.match(taskId, /^localteam_[a-f0-9]{64}$/, "ROOM_TASK_ID_MISSING");
+
+// Persist a bounded Owner note so the Launch Room conversation is proven too.
+const note = await call("/api/local-agent-team/messages", {
+  method: "POST",
+  headers: { "Idempotency-Key": "openbot-room-message-" + sha },
+  body: JSON.stringify({
+    text: "Read-only verification of package.json: package name and npm script names only.",
+    task_id: taskId,
+  }),
+});
+assert.equal(note.http, 202, "ROOM_MESSAGE_WRITE_FAILED_" + note.http);
+const conversation = await call("/api/local-agent-team/state");
+assert.equal(conversation.http, 200, "ROOM_CONVERSATION_READ_FAILED");
+assert.ok((conversation.payload.messages || []).some(row => row.task_id === taskId &&
+  row.text === "Read-only verification of package.json: package name and npm script names only."),
+  "ROOM_MESSAGE_D1_READBACK_MISSING");
 
 const dispatch = await call("/api/local-agent-team/tasks/" + encodeURIComponent(taskId) + "/dispatch", {
   method: "POST", body: JSON.stringify({ agent_id: "codex" }),
@@ -65,6 +81,7 @@ assert.equal(roomTask.command_task_id, commandTaskId, "ROOM_WAVE_TASK_LINK_NOT_R
 
 console.log("OPENBOT_LAUNCHROOM_OWNER_SESSION=PASS");
 console.log("OPENBOT_LAUNCHROOM_TASK_D1_READBACK=PASS");
+console.log("OPENBOT_LAUNCHROOM_CONVERSATION_D1_READBACK=PASS");
 console.log("OPENBOT_LAUNCHROOM_CODEX_READONLY_DISPATCH=PASS");
 console.log("OPENBOT_LAUNCHROOM_ROOM_TASK=" + taskId);
 console.log("OPENBOT_LAUNCHROOM_WAVE_TASK=" + commandTaskId);
