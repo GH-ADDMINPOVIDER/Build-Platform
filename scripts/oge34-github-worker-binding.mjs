@@ -148,8 +148,15 @@ async function verifyExistingHostGitHubPrincipal(token, runnerTwoOnly = false) {
   }).catch(() => null);
   const payload = response?.status === 200 ? await responseJson(response) : {};
   const principal = String(payload.login || "").toLowerCase();
-  return runnerTwoOnly ? principal === "wave_runner-2" :
-    ["ogenicchocolate21debug", "wave_runner-2"].includes(principal);
+  if (runnerTwoOnly) {
+    // Both identifiers are Owner-provided for GH Runner-2. An HTTP 200 with
+    // a different GitHub login must not be silently treated as this account.
+    const matched = ["wave_runner-2", "tomload21"].includes(principal);
+    console.log("OGE34_RUNNER2_PRINCIPAL_HTTP="+String(response?.status ?? "NETWORK_ERROR"));
+    console.log("OGE34_RUNNER2_PRINCIPAL_MATCH="+(matched ? "YES" : "NO"));
+    return matched;
+  }
+  return ["ogenicchocolate21debug", "wave_runner-2", "tomload21"].includes(principal);
 }
 
 export async function main() {
