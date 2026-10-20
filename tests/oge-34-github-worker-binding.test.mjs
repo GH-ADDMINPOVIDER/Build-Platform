@@ -101,8 +101,18 @@ test("legacy OGE token is explicitly primary; Runner-2 PAT principal always veri
   const src=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
   assert.match(src,/key === "GITHUB_TOKEN_OGE34".*?\? "runner1"/s);
   assert.match(src,/recognized\.recognized \? "runner2"/);
-  assert.match(src,/await verifyExistingHostGitHubPrincipal\(raw, expectedPrincipal\)/);
+  assert.match(src,/await verifyExistingHostGitHubPrincipal\(candidate, expectedPrincipal\)/);
   assert.match(src,/principal: verifiedPrincipal === "runner2"/);
   assert.match(src,/wave-runner-2/);
   assert.doesNotMatch(src,/\["wave_runner-2", "tomload21"\]/);
+});
+
+test("identity verification occurs on control-character normalized candidate, not raw OGE secret",()=>{
+  const src=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
+  assert.match(src,/REMOVE_CRLF_LINEBREAKS/);
+  assert.match(src,/await verifyExistingHostGitHubPrincipal\(candidate, expectedPrincipal\)/);
+  const variantIndex=src.indexOf("for(const variant of variants)");
+  const principalIndex=src.indexOf("const verifiedPrincipal = await verifyExistingHostGitHubPrincipal(candidate, expectedPrincipal)");
+  assert.ok(variantIndex > 0 && principalIndex > variantIndex);
+  assert.doesNotMatch(src,/verifyExistingHostGitHubPrincipal\(raw, expectedPrincipal\)/);
 });
