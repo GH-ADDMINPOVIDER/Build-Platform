@@ -114,7 +114,6 @@ type Props = { initialTab?: Tab; surface?: Surface };
 
 const HANDOFF_DRAFT_KEY = "ogenic.wave-next.handoff.v1";
 const COMMAND_VIEW_KEY = "ogenic.wave.command.view.v1";
-type PendingCommandApproval = { id: string; request: Record<string, unknown> };
 const MENTION_PRESETS = [
   { label: "ATHENA", detail: "วางแผนและส่งต่อคำสั่ง" },
   { label: "Codex-TS", detail: "ตัวตน Codex TS ที่ Runner-1" },
@@ -294,7 +293,6 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
   const [advanced, setAdvanced] = useState(() => {
     try { return localStorage.getItem(COMMAND_VIEW_KEY) === "advanced"; } catch { return false; }
   });
-  const [pendingApproval, setPendingApproval] = useState<PendingCommandApproval | null>(null);
   const [commandBusy, setCommandBusy] = useState(false);
   const [commandResult, setCommandResult] = useState<CommandResult | null>(null);
   const [dashboard, setDashboard] = useState<Dashboard>({});
@@ -419,7 +417,6 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
     if (!intent && !path) return;
     setCommandBusy(true);
     setCommandResult(null);
-    setPendingApproval(null);
     try {
       // Simple mode routes natural language to the existing guarded Codex queue.
       // Advanced explicit path is the existing Yellow Stone verified READ lane.
@@ -443,36 +440,9 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
       });
       const body = await response.json().catch(() => ({ ok: false, code: `HTTP_${response.status}` })) as CommandResult;
       setCommandResult(body);
-      if (response.status === 202 && body.code === "OWNER_APPROVAL_REQUIRED" && body.approval?.approval_id) {
-        setPendingApproval({ id: body.approval.approval_id, request: requestBody });
-      }
       if (body.canonical?.sequence) void load();
     } catch (cause) {
       setCommandResult({ ok: false, code: cause instanceof Error ? cause.message : "COMMAND_UNAVAILABLE" });
-    } finally {
-      setCommandBusy(false);
-    }
-  }
-
-  async function confirmGuardedCommand() {
-    if (!pendingApproval || commandBusy) return;
-    const approved = pendingApproval;
-    setCommandBusy(true);
-    try {
-      const response = await fetch("/api/wave/command", {
-        method: "POST", credentials: "same-origin", cache: "no-store",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...approved.request,
-          approval: { confirmed: true, approval_id: approved.id },
-        }),
-      });
-      const body = await response.json().catch(() => ({ ok: false, code: `HTTP_${response.status}` })) as CommandResult;
-      setCommandResult(body);
-      if (response.ok && body.ok) setPendingApproval(null);
-      if (body.canonical?.sequence) void load();
-    } catch (cause) {
-      setCommandResult({ ok: false, code: cause instanceof Error ? cause.message : "APPROVAL_UNAVAILABLE" });
     } finally {
       setCommandBusy(false);
     }
@@ -520,9 +490,9 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
       {surface === "command" && <section className="wnHero wnCommandGlass">
         <div className="wnCommandHeading">
           <div className="wnHeroCopy">
-            <span className="wnKicker">WAVE COMMAND · AGENT → OWNER SIGN → RUN</span>
+            <span className="wnKicker">WAVE COMMAND · SIGNED OWNER SESSION → RUN</span>
             <h2>สั่งงาน WAVE ได้เลย</h2>
-            <p>Agent วางแผนผ่าน ATHENA → Yellow Stone ตรวจสิทธิ์ → Owner ยืนยันด้วย Signed Session → Terminal Solo รัน → Ruby / D1 รับหลักฐาน · ไม่ต้องจำ Path หรือ OGE</p>
+            <p>Owner ที่ล็อกอินแล้วส่งคำสั่งได้ทันที → Yellow Stone ตรวจสิทธิ์และ Adapter → Runner-1 ทำงาน → Ruby / D1 เก็บหลักฐาน · ไม่ต้องกดยืนยันซ้ำ</p>
           </div>
           <button type="button" className="wnModeSwitch" aria-pressed={advanced} onClick={toggleAdvanced}>
             {advanced ? "Advanced · ON" : "Simple · ON"} <span aria-hidden="true">⌄</span>
@@ -545,7 +515,7 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
             </button>)}
           </div>}
         </div>
-        <div className="wnMentionHint"><span>พิมพ์ <b>@</b> เพื่อเลือกเอเจ้น ทีม สกิล หรือเครื่องมือ</span><span>Owner approval เฉพาะงานที่ต้องอนุมัติ</span></div>
+        <div className="wnMentionHint"><span>พิมพ์ <b>@</b> เพื่อเลือกเอเจ้น ทีม สกิล หรือเครื่องมือ</span><span>Signed Owner Session คือสิทธิ์สั่งงาน · ไม่ต้องยืนยันซ้ำ</span></div>
         {advanced && <section className="wnAdvancedOptions" aria-label="Advanced command options">
           <span className="wnKicker">ADVANCED OPTIONS · OPTIONAL</span>
           <p>เลือกเฉพาะเมื่อจำเป็น เช่น อ่านไฟล์ GitHub แบบเจาะจง โดยไม่ต้องส่งงานให้ Codex</p>
@@ -557,24 +527,16 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
         <div className="wnRunActions">
           <button type="button" className="wnPrimary" onClick={() => void runGuardedCommand()}
             disabled={commandBusy || (!command.trim() && !(advanced && resourcePath.trim()))}>
-            {commandBusy ? "กำลังส่ง…" : "Agent Plan →"}
+            {commandBusy ? "กำลังส่ง…" : "Sign & Run →"}
           </button>
           <button type="button" onClick={handoff}>เปิดใน WAVE Chat</button>
           {advanced && <a className="wnButtonLink" href="/agents">Agent controls</a>}
           {advanced && <span className="wnAdvancedAlias">Run guarded command</span>}
         </div>
-        {pendingApproval && <section className="wnApprovalBox" role="status" aria-live="polite">
-          <div><b>Agent Plan พร้อม · รอ Owner Sign</b><p>Sign คือการยืนยันแผนด้วย Owner Session ไม่ใช่การให้ Agent เซ็นแทน · Runner ยังไม่เริ่ม</p>
-            <small>{String(commandResult?.command_plan?.provider || "openai")} · {String(commandResult?.command_plan?.capability || "codex_selfhost")}</small></div>
-          <div className="wnRunActions">
-            <button type="button" className="wnPrimary" disabled={commandBusy} onClick={() => void confirmGuardedCommand()}>Owner Sign → Queue Runner-1</button>
-            <button type="button" disabled={commandBusy} onClick={() => { setPendingApproval(null); setCommandResult(null); }}>ยกเลิก</button>
-          </div>
-        </section>}
         {commandResult && <article className="wnCard wnCommandReceipt">
           <div className="wnCardHead">
             <div><span className="wnKicker">COMMAND RECEIPT</span>
-              <h3>{pendingApproval ? "รอการยืนยัน" : commandResult.ok ? "ระบบรับคำสั่งแล้ว" : "ระบบหยุดตามนโยบาย"}</h3>
+              <h3>{commandResult.ok ? "ระบบรับคำสั่งแล้ว" : "ไม่สามารถดำเนินคำสั่งได้"}</h3>
             </div>
             <State value={commandResult.execution?.status || commandResult.verification?.status || commandResult.code || "PENDING"} />
           </div>
@@ -585,7 +547,7 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
             <div><dt>Task / Run</dt><dd>{commandResult.task?.id || commandResult.run_id || "—"}</dd></div>
             <div><dt>1LSS</dt><dd>{commandResult.canonical?.sequence ? `#${commandResult.canonical.sequence}` : commandResult.code || commandResult.verification?.reason || "no new evidence"}</dd></div>
           </dl>
-          {commandResult.approval?.required && <div className="wnPolicy">Owner approval required · No side effect executed.</div>}
+          {commandResult.code === "ADAPTER_NOT_IMPLEMENTED" && <div className="wnPolicy">ไม่มี Adapter สำหรับคำสั่งนี้ · ไม่ต้องขออนุมัติใหม่</div>}
           {commandResult.execution?.status === "QUEUED" && <div className="wnPolicy">Runner-1 กำลังรับงาน · QUEUED ไม่ใช่ DONE · รอ COMMAND_RESULT</div>}
           {commandResult.result?.path && <div className="wnPolicy">Verified READ · {commandResult.result.path} · {commandResult.result.sha || "sha unavailable"}</div>}
         </article>}
@@ -749,8 +711,8 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
       </>}
 
       {tab === "approvals" && <section className="wnCard">
-        <div className="wnCardHead"><div><span className="wnKicker">POLICY</span><h3>Approvals</h3></div><State value="HUMAN_APPROVAL_REQUIRED" /></div>
-        <p className="wnBody">Consequential execution stays approval-gated. This view does not auto-approve SSH, deploy, delete, secret, billing, or production actions.</p>
+        <div className="wnCardHead"><div><span className="wnKicker">POLICY</span><h3>Owner authority</h3></div><State value="OWNER_SESSION_REQUIRED" /></div>
+        <p className="wnBody">Signed Owner Session is final authorization for staging commands. Missing adapters, invalid credentials, unsupported destinations and Production remain blocked.</p>
         <dl className="wnFacts"><div><dt>Self-host policy</dt><dd>{selfHost?.policy || "—"}</dd></div><div><dt>Executor workflow</dt><dd>{selfHost?.executor_workflow || "—"}</dd></div></dl>
       </section>}
 
