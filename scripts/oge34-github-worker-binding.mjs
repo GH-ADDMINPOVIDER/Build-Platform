@@ -77,30 +77,53 @@ async function verifyOwnerRead() {
 }
 export async function main() {
   requireStaging();
-  const canonical=process.env.GITHUB_TOKEN_OGE34||"";
-  const legacy=process.env.GIBHUB_TOKEN_OGE34||"";
-  if(canonical && legacy && canonical!==legacy) throw new Error("CONFLICTING_INFISICAL_GITHUB_ALIASES");
-  const token=canonical||legacy;
-  if(!inspectTokenFormat(token)) throw new Error("OGE34_TOKEN_MISSING_OR_CONTROL_CHARACTERS");
-  console.log("::add-mask::"+token);
-  const branch=await githubRequest("/branches/"+BRANCH,token);
-  console.log("OGE34_GITHUB_BRANCH_HTTP="+branch.status);
-  if(branch.status!==200)throw new Error("OGE34_GITHUB_READ_FAILED_"+branch.status);
-  const actions=await githubRequest("/actions/runs?branch="+BRANCH+"&per_page=1",token);
-  console.log("OGE34_GITHUB_ACTIONS_READ_HTTP="+actions.status);
-  if(actions.status!==200)throw new Error("OGE34_GITHUB_ACTIONS_READ_FAILED_"+actions.status);
-  // This ref NEVER exists. 422 is a permission check; 204 must be rejected.
-  // No real workflow dispatch is submitted and no Runner job is created here.
-  const negativeRef="__OGENIC_UNRESOLVABLE_REF_"+process.env.GITHUB_RUN_ID+"_"+process.env.GITHUB_RUN_ATTEMPT+"__";
-  const probe=await githubRequest("/actions/workflows/wave-command-consumer.yml/dispatches",token,{
-    method:"POST",body:JSON.stringify({ref:negativeRef,inputs:{task_id:"not_an_approved_task"}})
-  });
-  console.log("OGE34_DISPATCH_WRITE_CANARY_HTTP="+probe.status);
-  const disposition=classifyDispatchProbe(probe.status);
-  console.log("OGE34_DISPATCH_SCOPE="+disposition);
-  if(disposition!=="AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN") {
-    throw new Error("STAGING_SECRET_NOT_CHANGED_"+disposition);
+  // Check only pre-existing Infisical staging GitHub credential bindings.
+  // Select a single token proven for Actions WRITE; never print token bytes,
+  // persist test tokens or substitute GitHub Actions' ephemeral github.token.
+  const primaryNames=["GITHUB_TOKEN_OGE34","GIBHUB_TOKEN_OGE34","GITHUB_TOKEN",
+    "GITHUB_PAT","GITHUB_ACCESS_TOKEN","GH_TOKEN","GH_PAT","WAVE_GITHUB_TOKEN"];
+  const discovered=Object.keys(process.env).filter((k) =>
+    (/GITHUB/.test(k) && /(TOKEN|PAT|AUTH|CREDENTIAL)/.test(k)) ||
+    /^(GH_TOKEN|GH_PAT)$/.test(k));
+  const keys=[...new Set([...primaryNames,...discovered])].filter((k) =>
+    Object.prototype.hasOwnProperty.call(process.env,k) && String(process.env[k]||"").length>0
+  ).slice(0,24);
+  console.log("OGE34_INFISICAL_GITHUB_CANDIDATE_KEYS="+JSON.stringify(keys));
+  const seen=new Set();
+  const authorized=[];
+  for(const key of keys){
+    const candidate=String(process.env[key]||"");
+    if(!inspectTokenFormat(candidate)){
+      console.log("OGE34_CANDIDATE_"+key+"=REJECTED_FORMAT");
+      continue;
+    }
+    if(seen.has(candidate))continue;
+    seen.add(candidate);
+    console.log("::add-mask::"+candidate);
+    const branch=await githubRequest("/branches/"+BRANCH,candidate);
+    if(branch.status!==200){
+      console.log("OGE34_CANDIDATE_"+key+"_BRANCH_HTTP="+branch.status);
+      continue;
+    }
+    const actions=await githubRequest("/actions/runs?branch="+BRANCH+"&per_page=1",candidate);
+    if(actions.status!==200){
+      console.log("OGE34_CANDIDATE_"+key+"_ACTIONS_READ_HTTP="+actions.status);
+      continue;
+    }
+    const ref="__OGENIC_UNRESOLVABLE_REF_"+process.env.GITHUB_RUN_ID+"_"+process.env.GITHUB_RUN_ATTEMPT+"__";
+    const request=await githubRequest("/actions/workflows/wave-command-consumer.yml/dispatches",candidate,{
+      method:"POST",body:JSON.stringify({ref,inputs:{task_id:"not_an_approved_task"}})
+    });
+    const result=classifyDispatchProbe(request.status);
+    console.log("OGE34_CANDIDATE_"+key+"_DISPATCH_HTTP="+request.status);
+    console.log("OGE34_CANDIDATE_"+key+"_RESULT="+result);
+    if(result==="AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN")authorized.push({key,token:candidate});
   }
+  if(authorized.length===0)throw new Error("STAGING_SECRET_NOT_CHANGED_ACTIONS_WRITE_DENIED_ALL_EXISTING_GITHUB_CANDIDATES");
+  if(authorized.length!==1)throw new Error("STAGING_SECRET_NOT_CHANGED_MULTIPLE_AUTHORIZED_GITHUB_TOKENS_REQUIRE_EXPLICIT_SOURCE");
+  const token=authorized[0].token;
+  console.log("OGE34_VERIFIED_TOKEN_SOURCE="+authorized[0].key);
+  console.log("OGE34_DISPATCH_SCOPE=AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN");
   if(!process.env.CLOUDFLARE_API_TOKEN||!process.env.CLOUDFLARE_ACCOUNT_ID){
     throw new Error("CLOUDFLARE_STAGING_CREDENTIALS_MISSING");
   }

@@ -20,6 +20,8 @@ test("staging secret binding cannot use GitHub ephemeral token or dev sources",(
   assert.match(wf,/node scripts\/oge34-github-worker-binding\.mjs/);
   const src=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
   assert.match(src,/GITHUB_TOKEN_OGE34/);
+  assert.match(src,/GITHUB_CANDIDATE_KEYS/);
+  assert.match(src,/MULTIPLE_AUTHORIZED_GITHUB_TOKENS/);
   assert.match(src,/STAGING_SECRET_NOT_CHANGED_/);
   assert.match(src,/UNRESOLVABLE_REF_/);
   assert.match(src,/wrangler","secret","put","GITHUB_TOKEN"/);
