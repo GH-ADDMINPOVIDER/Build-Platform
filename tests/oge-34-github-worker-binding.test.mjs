@@ -34,7 +34,7 @@ test("reuses only existing wave-host CLI and git credential helper without inher
   const calls=[];
   const fake=(exe,args,opt)=>{
     calls.push({exe,args,opt});
-    if(exe==="gh")return {status:0,stdout:"ghu_testExistingAuth12345\\n"};
+    if(exe==="gh")return {status:0,stdout:"ghu_testExistingAuth12345\n"};
     if(exe==="git")return {status:0,stdout:"protocol=https\nhost=github.com\npassword=ghu_testExistingAuth12345\n"};
     return {status:1,stdout:""};
   };
@@ -48,7 +48,7 @@ test("only known owner GitHub principals can use local host credentials for Acti
  const src=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
  assert.match(src,/verifyExistingHostGitHubPrincipal/);
  assert.match(src,/OWNER_PRINCIPAL_UNVERIFIED/);
- assert.match(src,/github.com\\/user/);
+ assert.ok(src.includes('"https://api.github.com/user"'));
  assert.match(src,/AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN/);
  assert.match(src,/wrangler","secret","put","GITHUB_TOKEN"/);
 });
