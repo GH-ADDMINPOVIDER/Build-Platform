@@ -220,12 +220,6 @@ export async function main() {
     // Never conflate repository roles with token scope or assume email=login.
     const expectedPrincipal = recognized.recognized ? "runner2"
       : (key === "GITHUB_TOKEN_OGE34" || key === "GIBHUB_TOKEN_OGE34") ? "runner1" : "either";
-    const verifiedPrincipal = await verifyExistingHostGitHubPrincipal(raw, expectedPrincipal);
-    if (!verifiedPrincipal) {
-      console.log("OGE34_CANDIDATE_"+key+(expectedPrincipal === "runner2"
-        ? "_RUNNER2_PRINCIPAL_UNVERIFIED" : "_OWNER_PRINCIPAL_UNVERIFIED"));
-      continue;
-    }
     const variants=[{type:"EXACT",value:raw}];
     // OGE-40 proved the canonical value contains control characters. Check
     // whether it is merely line-wrapped; do not overwrite Infisical or guess
@@ -246,6 +240,14 @@ export async function main() {
       seen.add(candidate);
       console.log("::add-mask::"+candidate);
       const label=key+"_"+variant.type;
+      // The old OGE token may contain CR/LF. Verify identity only AFTER
+      // selecting a strictly valid, bounded normalization candidate.
+      const verifiedPrincipal = await verifyExistingHostGitHubPrincipal(candidate, expectedPrincipal);
+      if (!verifiedPrincipal) {
+        console.log("OGE34_CANDIDATE_"+label+(expectedPrincipal === "runner2"
+          ? "_RUNNER2_PRINCIPAL_UNVERIFIED" : "_OWNER_PRINCIPAL_UNVERIFIED"));
+        continue;
+      }
       const branch=await githubRequest("/branches/"+BRANCH,candidate);
       if(branch.status!==200){
         console.log("OGE34_CANDIDATE_"+label+"_BRANCH_HTTP="+branch.status);
