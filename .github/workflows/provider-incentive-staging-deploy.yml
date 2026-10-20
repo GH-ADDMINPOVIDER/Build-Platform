@@ -11,6 +11,8 @@ on:
       - "capacitor.config.ts"
       - "worker/**"
       - "scripts/infisical-discover-project.sh"
+      - "scripts/oge34-github-worker-binding.mjs"
+      - ".github/workflows/oge-36-staging-cloud-fallback.yml"
       - "scripts/infisical-cloudflare-source-select.sh"
       - "tests/infisical-cloudflare-source.test.mjs"
       - "tests/oge-89-deepseek-yellow-integration.test.mjs"

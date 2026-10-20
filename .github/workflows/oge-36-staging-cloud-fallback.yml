@@ -15,7 +15,12 @@ env:
   INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
   INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
   INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
-  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_PROJECT_SLUG: ogenic-sio-ti-rv
+  INFISICAL_ENV_SLUG: staging
+  INFISICAL_CLOUDFLARE_SOURCE_ENV: staging
+  INFISICAL_CLOUDFLARE_SOURCE_PATH: /
+  INFISICAL_CLOUDFLARE_PROJECT_ID: e8cfba67-ea99-4d79-bc9f-87b862f9129c
+  INFISICAL_CLOUDFLARE_PROJECT_SLUG: ogenic-sio-ti-rv
   N8N_BASE_URL: ${{ vars.N8N_BASE_URL || 'https://ogenic-registry.app.n8n.cloud' }}
 
 jobs:
@@ -53,6 +58,18 @@ jobs:
           secret-path: /
           recursive: true
 
+      - name: Verify GH-2 primary Actions-write and export protected staging runtime binding
+        # Reuse OGE-34 on wave-runner-01; fail closed on GH-2 auth errors.
+        shell: bash
+        env:
+          OGE34_EXPORT_CANONICAL: "1"
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test "$GITHUB_REF_NAME" = "phase-vi-provider-incentive-metering"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node scripts/oge34-github-worker-binding.mjs
+
       - name: Normalize canonical runtime secret names
         shell: bash
         run: |
@@ -66,16 +83,11 @@ jobs:
           normalized = 0
           with open(env_file, 'a', encoding='utf-8') as output:
               for canonical, aliases in manifest.get('aliases', {}).items():
-                  # OGE-40 regression isolation proved the staging GITHUB_TOKEN
-                  # binding can be malformed while the established OGE34 alias is healthy.
-                  # Preserve the last-known-good authoritative GitHub READ binding without
-                  # exposing or mutating the secret at rest.
+                  # GH-2 is operational primary. Do not restore GH-1 READ alias.
                   if canonical == 'GITHUB_TOKEN':
-                      proven_github = os.environ.get('GITHUB_TOKEN_OGE34')
-                      if proven_github:
-                          output.write(f'{canonical}={proven_github}\n')
-                          normalized += 1
-                          continue
+                      if os.environ.get('OGE34_GH2_PRIMARY_BOUND') != '1' or not os.environ.get('GITHUB_TOKEN'):
+                          raise SystemExit('CONFIGURATION_REQUIRED: GH-2 Actions write was not verified')
+                      continue
                   if os.environ.get(canonical):
                       continue
                   for alias in aliases:

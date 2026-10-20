@@ -56,11 +56,15 @@ test("both staging deploy paths use the same secret manifest and verify configur
     assert.match(workflow, /SERVER_SIDE_REFERENCE_PRESENT/);
     assert.match(workflow, /values not printed/);
     assert.match(workflow, /canonical == 'GITHUB_TOKEN'/);
-    assert.match(workflow, /GITHUB_TOKEN_OGE34/);
-    assert.match(workflow, /proven_github/);
+    assert.match(workflow, /OGE34_EXPORT_CANONICAL: "1"/);
+    assert.match(workflow, /node scripts\/oge34-github-worker-binding\.mjs/);
+    assert.match(workflow, /OGE34_GH2_PRIMARY_BOUND/);
+    assert.doesNotMatch(workflow, /proven_github = os\.environ\.get\('GITHUB_TOKEN_OGE34'\)/);
   }
   assert.match(fallback, /Deploy staging Worker without D1 schema changes/);
   assert.doesNotMatch(fallback, /wrangler d1 migrations apply/);
+  assert.match(fallback, /INFISICAL_CLOUDFLARE_SOURCE_ENV: staging/);
+  assert.match(fallback, /INFISICAL_CLOUDFLARE_PROJECT_ID: e8cfba67-ea99-4d79-bc9f-87b862f9129c/);
   assert.match(primary, /db_changed/);
   assert.match(primary, /if: steps\.scope\.outputs\.db_changed == 'true'/);
   assert.match(primary, /Apply D1 migrations only for database changes/);
