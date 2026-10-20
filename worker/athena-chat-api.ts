@@ -60,6 +60,7 @@ const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
 const MODELS = new Set(["gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-4.1-mini", "gpt-6-astra"]);
 const EFFORTS = new Set(["low", "medium", "high", "xhigh", "max"]);
 const BOOSTS = new Set([1, 10, 20]);
+const MAX_TOOL_ROUNDS = 4;
 
 const clean = (value: unknown, max = 500) => String(value ?? "").trim().slice(0, max);
 
@@ -182,7 +183,10 @@ export function createAthenaChatApi() {
     const requestKey = clean(c.req.header("idempotency-key") || `athena_${crypto.randomUUID()}`, 160);
     let loopExhausted = false;
 
-    for (let round = 0; round < 4; round += 1) {
+    // Allow four bounded tool-call rounds, then make one tool-free synthesis
+    // request so the final tool outputs always become a user-facing answer.
+    for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
+      const canCallTools = round < MAX_TOOL_ROUNDS;
       const requestBody: Record<string, unknown> = {
         model,
         instructions:
@@ -196,13 +200,15 @@ export function createAthenaChatApi() {
           `CANONICAL 1LSS ${CONVERSATION_ID} / ${SESSION_LINE} (oldest to newest):\n${history || "No prior persisted turns."}\n\n` +
           `CANONICAL D1 + LIVE RUNTIME EVIDENCE:\n${d1Context.text}`,
         input,
-        tools: verifiedFunctionTools,
-        tool_choice: "auto",
-        parallel_tool_calls: true,
-        max_tool_calls: 6,
         max_output_tokens: Math.min(12_000, 1_800 * boost),
         store: false,
       };
+      if (canCallTools) {
+        requestBody.tools = verifiedFunctionTools;
+        requestBody.tool_choice = "auto";
+        requestBody.parallel_tool_calls = true;
+        requestBody.max_tool_calls = 6;
+      }
       if (model !== "gpt-4.1-mini") requestBody.reasoning = { effort };
 
       const response = await fetch("https://api.openai.com/v1/responses", {
@@ -227,7 +233,10 @@ export function createAthenaChatApi() {
 
       const functionCalls = (final.output ?? []).filter((item) => item.type === "function_call" && item.name && item.call_id);
       if (!functionCalls.length) break;
-      if (round === 3) loopExhausted = true;
+      if (!canCallTools) {
+        loopExhausted = true;
+        break;
+      }
 
       const toolOutputs: Array<Record<string, unknown>> = [];
       for (const call of functionCalls) {
