@@ -95,7 +95,7 @@ async function verifyOwnerRead() {
     if (!cookie.startsWith("ogenic_owner_session=")) throw new Error("OWNER_SESSION_COOKIE_MISSING");
     const read=await fetch(WAVE+"/api/wave/command",{
       method:"POST",headers:{"content-type":"application/json","cookie":cookie},
-      body:JSON.stringify({intent:"Validate staging GitHub endpoint credential binding via verified READ",
+      body:JSON.stringify({intent:"Read the staging repository manifest",
         capability:"read_file",provider:"github",environment:"staging",input:{path:"package.json"}}),
       redirect:"error",signal:AbortSignal.timeout(15000)
     });
