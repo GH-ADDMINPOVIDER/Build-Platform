@@ -37,6 +37,33 @@ const authorization={authorization:"Bearer "+session};
 const verified=await request("/api/session",{headers:authorization});
 assert.equal(verified.body?.authenticated,true,"SIGNED_OWNER_SESSION_NOT_VERIFIED");
 console.log("OGE129_SIGNED_OWNER_SESSION=PASS");
+// One self-hosted Runner-1 can run only one job: never poll here while its
+// consumer job is queued on the SAME host. Reuse an existing queued consumer.
+const ghToken=String(process.env.GH_TOKEN||"").trim();
+if(!ghToken)throw new Error("GITHUB_READ_AUTH_MISSING_FOR_QUEUE_CHECK");
+const activeResponse=await fetch(
+  "https://api.github.com/repos/"+repo+"/actions/workflows/wave-command-consumer.yml/runs?branch="+
+  encodeURIComponent(branch)+"&per_page=20",
+  {headers:{Authorization:"Bearer "+ghToken,Accept:"application/vnd.github+json",
+    "User-Agent":"ogenic-oge129-queue-check"},redirect:"error",
+    signal:AbortSignal.timeout(20000)}
+).catch(()=>null);
+const activeData=activeResponse?.status===200 ? await activeResponse.json().catch(()=>({})) : {};
+if(!Array.isArray(activeData.workflow_runs))throw new Error("GITHUB_CONSUMER_QUEUE_READ_UNVERIFIED");
+const pending=activeData.workflow_runs.find(run=>
+  ["queued","in_progress","waiting","pending"].includes(String(run.status)) &&
+  run.head_branch===branch &&
+  Number.isFinite(Date.parse(run.created_at)) &&
+  Date.now()-Date.parse(run.created_at)<60*60*1000);
+if(pending){
+  console.log("OGE129_EXISTING_CONSUMER_RUN_ID="+String(pending.id));
+  console.log("OGE129_DISPATCH=REUSED_EXISTING_NO_SECOND_CODEX_CALL");
+  if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+    "### OGE-129 existing command recovered\n\nConsumer run "+
+    String(pending.html_url||pending.id)+" already queued; no duplicate command sent. "+
+    "Runner-1 released for actual Codex result and D1 verification.\n");
+  process.exit(0);
+}
 const intent="OGE129 READONLY PROOF: Inspect the staging checkout package.json and report the package name and script names. Do not change files, install tools, access the network, or alter Git state.";
 const dispatched=await request("/api/wave/command",{
   method:"POST",headers:{...authorization,"Idempotency-Key":randomUUID()},
@@ -58,38 +85,10 @@ if(dispatched.body?.approval?.authority!=="SIGNED_OWNER_SESSION"||dispatched.bod
   throw new Error("OWNER_AUTHORITY_NOT_VERIFIED");
 }
 console.log("OGE129_ACTIONS_DISPATCH=PASS");
-const until=Date.now()+16*60*1000;
-let last="AWAITING_RUNNER";
-let completed=false;
-while(Date.now()<until){
-  await delay(9000);
-  const status=await request("/api/wave/command/status?task_id="+encodeURIComponent(taskId),{headers:authorization});
-  if(status.http!==200||status.body?.ok!==true){last="STATUS_HTTP_"+status.http;continue}
-  const body=status.body;
-  last=String(body.execution?.status||"UNKNOWN")+"_"+String(body.last_event||"NO_EVENT");
-  if(body.execution?.status==="DONE"){
-    if(body.last_event!=="COMMAND_RESULT_DONE"||body.execution?.consumer_proven!==true)throw new Error("DONE_WITHOUT_PROOF");
-    assert.match(String(body.evidence?.result_sha256||""),/^[a-f0-9]{64}$/,"RESULT_HASH");
-    assert.match(String(body.evidence?.git_sha||""),/^[a-f0-9]{40}$/,"CONSUMER_SHA");
-    assert.match(String(body.evidence?.evidence_ref||""),/^https:\/\/github\.com\/Ogenicchocolate21debug\/Build-Platform\/actions\/runs\/\d+$/,"EVIDENCE_URL");
-    if(body.evidence.git_sha!==process.env.GITHUB_SHA)throw new Error("CONSUMER_SOURCE_MISMATCH");
-    console.log("OGE129_CODEX_RUNTIME_EXECUTION=PASS");
-    console.log("OGE129_COMMAND_RESULT_DONE=PASS");
-    console.log("OGE129_CONSUMER_RUN_URL="+body.evidence.evidence_ref);
-    console.log("OGE129_RESULT_SHA256="+body.evidence.result_sha256);
-    if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-      "### OGE-129 E2E — Signed Owner → GH-2 Dispatch → Runner-1 → Codex → D1\n\n"+
-      "- **PASS**: actual read-only Codex run and authenticated D1 RESULT_DONE readback\n"+
-      "- Task: "+taskId+"\n- Consumer: "+body.evidence.evidence_ref+
-      "\n- Source SHA: "+body.evidence.git_sha+
-      "\n- Result SHA256: "+body.evidence.result_sha256+"\n",{encoding:"utf8"});
-    completed=true;
-    break;
-  }
-  if(["FAILED","BLOCKED","CANCELLED"].includes(String(body.execution?.status))){
-    console.log("OGE129_FAILED_STATE="+last.slice(0,100));
-    throw new Error("EXECUTION_RESULT_NOT_DONE");
-  }
-}
-if(!completed)throw new Error("D1_RESULT_NOT_CONFIRMED_"+last.slice(0,100));
-console.log("OGE129_OWNER_TO_D1_E2E=PASS");
+console.log("OGE129_EXECUTION=WAIT_FOR_CONSUMER_RESULT_NOT_DONE");
+if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+  "### OGE-129 WAVE live command dispatch\n\n"+
+  "- Owner Session validated\n"+
+  "- One read-only Codex command dispatched to the existing Runner-1\n"+
+  "- Task ID: "+taskId+"\n"+
+  "- **E2E is pending** until WAVE Command Consumer verifies a D1 COMMAND_RESULT_DONE receipt\n");
