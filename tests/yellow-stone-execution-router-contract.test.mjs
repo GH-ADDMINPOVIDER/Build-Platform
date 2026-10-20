@@ -13,11 +13,12 @@ test("Yellow Stone execution endpoint reuses deterministic resolver and owner/op
   assert.doesNotMatch(source, /new URL\(.*body/i);
 });
 
-test("only safe READ execution auto-runs and all higher-risk classes fail closed", () => {
+test("safe READ runs; unsupported non-read adapters are explicit with no approval prompt", () => {
   const source = read("worker/capability-execution-api.ts");
   assert.match(source, /descriptor\.permission_class !== "READ"/);
-  assert.match(source, /HUMAN_APPROVAL_REQUIRED/);
-  assert.match(source, /NON_READ_CAPABILITY_REQUIRES_DETERMINISTIC_APPROVAL/);
+  assert.match(source, /ADAPTER_NOT_IMPLEMENTED/);
+  assert.match(source, /NO_IMPLEMENTED_NON_READ_ADAPTER/);
+  assert.match(source, /hasOwnerSession\(c\.req\.raw, c\.env\)/);
   assert.match(source, /ADAPTER_NOT_IMPLEMENTED/);
   assert.match(source, /NO_SAFE_READ_ADAPTER_FOR_RESOLVED_CAPABILITY/);
 });
