@@ -29,7 +29,7 @@ import { createMaopLabApi } from "./maop-lab-api";
 import { createUseCardApi } from "./use-card-api";
 import { createCapabilityCardStoneApi } from "./capability-card-stone-api";
 import { createN8nMigrationApi } from "./n8n-migration-api";
-import { hasOwnerOrOpsAccess } from "./app-auth";
+import { hasOwnerOrOpsAccess, hasOwnerSession } from "./app-auth";
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { planAthenaCommand } from "./athena-command-planner";
 import { normalizeWaveCommandBody, waveCommandPolicy } from "./wave-command-contract";
@@ -81,7 +81,6 @@ type WaveCommandBody = {
   mode?: unknown;
   command_mode?: unknown;
   input?: { path?: unknown; prompt?: unknown };
-  approval?: { confirmed?: unknown; approval_id?: unknown };
 };
 
 type D1Prepared = {
@@ -133,7 +132,7 @@ async function queueApprovedCommand(db: CommandQueueDb, plan: Record<string, unk
     `event-owner-approved-${approvalId.slice(-48)}`,
     taskId,
     correlationId,
-    JSON.stringify({ approval_id: approvalId, provider, capability, environment: "staging", intent, execution_authority: EXECUTION_AUTHORITY }),
+    JSON.stringify({ approval_id: approvalId, provider, capability, environment: "staging", intent, execution_authority: EXECUTION_AUTHORITY, authorization: "SIGNED_OWNER_SESSION", second_confirmation_required: false }),
   ).run();
 
   const task = await db.prepare(
@@ -262,7 +261,13 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
   if (request.method !== "POST") {
     return Response.json({ ok: false, code: "METHOD_NOT_ALLOWED", allowed: ["POST"] }, { status: 405 });
   }
-  if (!(await hasOwnerOrOpsAccess(request, env))) {
+  // Signed Owner Session is the sole authorization for a staging command.
+  // Reject forged origins and Ops-key-only callers; no second confirmation.
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin) {
+    return Response.json({ ok: false, code: "ORIGIN_DENIED" }, { status: 403 });
+  }
+  if (!(await hasOwnerSession(request, env))) {
     return Response.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, { status: 401 });
   }
 
@@ -326,7 +331,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
       environment: "staging",
       input: inputPath || inputPrompt ? { path: inputPath || undefined, prompt: inputPrompt || undefined } : undefined,
       requires_yellow_stone: true,
-      approval_authority: "YELLOW_STONE",
+      approval_authority: "SIGNED_OWNER_SESSION",
       direct_execution_bypass: false,
     };
     delegatedBody = {
@@ -363,42 +368,8 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
     };
   }
 
+  // Existing command idempotency and consumer receipts are preserved.
   const approvalId = await approvalIdFor(commandPlan);
-  const approvalConfirmed = body?.approval?.confirmed === true;
-  const suppliedApprovalId = compact(body?.approval?.approval_id, 160);
-  // Explicit GitHub file reads are already resolved and enforced as READ by
-  // capabilityExecutionApi. Keep them auto-allowed; every queued or mutating
-  // command still requires the matching second owner confirmation below.
-  const safeExplicitRead =
-    explicitStructured &&
-    explicitCapability === "read_file" &&
-    explicitProvider === "github";
-  if (!safeExplicitRead && !approvalConfirmed) {
-    return Response.json({
-      ok: false,
-      code: "OWNER_APPROVAL_REQUIRED",
-      command_plan: commandPlan,
-      command_policy: commandPolicy,
-      approval: {
-        required: true,
-        approval_id: approvalId,
-        action: "CONFIRM_AND_QUEUE",
-        environment: "staging",
-        effect: "Queues the approved command for the existing Yellow Stone / self-host consumer.",
-      },
-      execution: { status: "NOT_STARTED", consumer_proven: false },
-      command_handoff: handoffMetadata(athena),
-    }, { status: 202, headers: { "Cache-Control": "no-store" } });
-  }
-  if (!safeExplicitRead && (!suppliedApprovalId || suppliedApprovalId !== approvalId)) {
-    return Response.json({
-      ok: false,
-      code: "APPROVAL_PLAN_MISMATCH",
-      verification: { status: "blocked", reason: "APPROVAL_ID_MUST_MATCH_CURRENT_PLAN" },
-      command_handoff: handoffMetadata(athena),
-    }, { status: 409, headers: { "Cache-Control": "no-store" } });
-  }
-
   if (explicitStructured && explicitCapability === "codex_selfhost" && explicitProvider === "openai") {
     const db = (env as { DB?: CommandQueueDb }).DB;
     if (!db) {
@@ -417,7 +388,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
         return Response.json({
           ok: false, code: dispatched.code, missing: "missing" in dispatched ? dispatched.missing : undefined,
           task: { ...queued.task, status: "BLOCKED" },
-          approval: { required: false, approval_id: approvalId, confirmed: true },
+          approval: { required: false, authority: "SIGNED_OWNER_SESSION", approval_id: approvalId },
           execution: { status: "BLOCKED", consumer_proven: false, route: "YELLOW_STONE_CODEX_SELFHOST" },
           command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
         }, { status: 503, headers: { "Cache-Control": "no-store" } });
@@ -426,7 +397,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
     return Response.json({
       ok: true, code: queued.replayed ? "COMMAND_ALREADY_QUEUED" : "COMMAND_DISPATCHED",
       task: queued.task, idempotent_replay: queued.replayed,
-      approval: { required: false, approval_id: approvalId, confirmed: true },
+      approval: { required: false, authority: "SIGNED_OWNER_SESSION", approval_id: approvalId },
       execution: {
         status: queued.replayed ? compact(queued.task?.status, 40) : "DISPATCHED",
         consumer_proven: false,
@@ -454,27 +425,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
   if (!contentType.includes("application/json")) return response;
 
   const payload = await response.clone().json().catch(() => ({})) as Record<string, unknown>;
-  if (response.status === 409 && payload.code === "HUMAN_APPROVAL_REQUIRED") {
-    const db = (env as { DB?: CommandQueueDb }).DB;
-    if (!db) {
-      return Response.json({
-        ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB",
-        approval: { required: false, approval_id: approvalId, confirmed: true },
-        execution: { status: "NOT_QUEUED", consumer_proven: false },
-        command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
-      }, { status: 503, headers: { "Cache-Control": "no-store" } });
-    }
-    const queued = await queueApprovedCommand(db, commandPlan, approvalId);
-    return Response.json({
-      ok: true, code: "COMMAND_QUEUED", task: queued.task, idempotent_replay: queued.replayed,
-      approval: { required: false, approval_id: approvalId, confirmed: true },
-      execution: {
-        status: "QUEUED", consumer_proven: false,
-        note: "Queued in existing agent_tasks; runtime completion requires a real consumer receipt in agent_events.",
-      },
-      command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
-    }, { status: queued.replayed ? 200 : 202, headers: { "Cache-Control": "no-store" } });
-  }
+  // Unsupported non-READ adapters must remain unavailable, never queued as fake work.
   const responseHeaders = new Headers(response.headers);
   responseHeaders.set("Cache-Control", "no-store");
   return new Response(JSON.stringify({
