@@ -6,8 +6,8 @@ type TeamState = {
   canonical_session?: string;
   state?: string;
   agents?: Array<{ agent_id: string; label?: string; provider?: string; state?: string; runtime?: string }>;
-  providers?: Array<{ id: string; label: string; configuration: string; authentication: string; smoke_test: string; evidence: string }>;
-  tasks?: Array<{ id: string; title: string; status: string; agent_state?: string; claimed_by?: string | null; updated_at?: string; latest_event?: string | null }>;
+  providers?: Array<{ id: string; label: string; configuration: string; authentication: string; smoke_test: string; evidence: string; dispatchable?: boolean; room_adapter?: string; billing?: string }>;
+  tasks?: Array<{ id: string; title: string; status: string; permission?: string; command_task_id?: string | null; runtime_receipt?: { status: string; result_ref?: string } | null; agent_state?: string; claimed_by?: string | null; updated_at?: string; latest_event?: string | null }>;
   events?: Array<{ id: string; event_type: string; task_id?: string | null; created_at?: string }>;
   messages?: Array<{ id: string; actor: string; text: string; task_id?: string | null; created_at?: string }>;
   checkpoints?: Array<{ task_id: string; agent_id: string; checkpoint_ref: string; state_hash: string; updated_at?: string }>;
@@ -37,7 +37,13 @@ export default function LocalAgentTeamPanel() {
   const [targetAgent, setTargetAgent] = useState("");
   const [resultRef, setResultRef] = useState("");
   const [resultSummary, setResultSummary] = useState("");
-  const verifiedRoomAgents: Array<{agent_id: string;label: string}> = []; // no room adapter proven at this time
+  const verifiedRoomAgents: Array<{ agent_id: string; label: string }> = [];
+  // Only the existing, D1-proven Codex READ adapter can dispatch today.
+  const codexReady = state.providers?.some((item) => item.id === "codex" &&
+    item.dispatchable === true && item.smoke_test === "READONLY_E2E_PASS") === true;
+  const roomTask = (state.tasks ?? []).find((item) => item.id === selectedTask);
+  const readonlyEligible = codexReady && roomTask?.permission === "READ" &&
+    roomTask.status === "QUEUED" && !roomTask.command_task_id;
 
   const load = useCallback(async () => {
     const response = await fetch("/api/local-agent-team/state", { credentials: "same-origin", cache: "no-store" });
@@ -99,6 +105,28 @@ export default function LocalAgentTeamPanel() {
     } finally { setBusy(false); }
   }
 
+  async function runCodexReadOnly() {
+    if (!selectedTask || !readonlyEligible || busy) return;
+    setBusy(true); setMessage("");
+    try {
+      const response = await fetch("/api/local-agent-team/tasks/" + encodeURIComponent(selectedTask) + "/dispatch", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent_id: "codex" }),
+      });
+      const data = await response.json().catch(() => ({})) as {
+        code?: string; command_task_id?: string; completion_url?: string;
+      };
+      if (!response.ok) {
+        setMessage(data.code ?? `DISPATCH_HTTP_${response.status}`);
+      } else {
+        setMessage(`${data.code ?? "QUEUED"} · ${data.command_task_id ?? "pending"} · QUEUED ≠ DONE; await D1 receipt`);
+        await load();
+      }
+    } catch { setMessage("ROOM_DISPATCH_UNAVAILABLE"); }
+    finally { setBusy(false); }
+  }
+
   async function recordBlockedResult(event: FormEvent) {
     event.preventDefault();
     if (!selectedTask || !resultRef.trim() || !resultSummary.trim()) return;
@@ -142,9 +170,9 @@ export default function LocalAgentTeamPanel() {
           <h4>Agents · binding truth</h4>
           <div className="wnRows">{(state.providers ?? []).map(provider => <div className="wnRow" key={provider.id}><div>
             <strong>{provider.label}</strong><span>{provider.authentication} · {provider.smoke_test}</span>
-            <span>No room adapter execution verified · current task: {(state.tasks ?? []).find(task => task.claimed_by === provider.id)?.title ?? "none"}</span>
-            </div><State value="NOT_VERIFIED"/></div>)}</div>
-          <p className="localRoomNotice">Providers including Codex, Claude, Gemini, Grok, OpenCode, Cursor, Cline, Ollama and LM Studio are displayed only as configured references until a real runner adapter and session is verified. No paid provider call is initiated by this room.</p>
+            <span>{provider.room_adapter === "CODEX_READONLY_EXISTING_WAVE" ? "Existing Codex CLI · read-only E2E receipt present" : "No room adapter execution verified"} · current task: {(state.tasks ?? []).find(task => task.claimed_by === provider.id)?.title ?? "none"}</span>
+            </div><State value={provider.dispatchable ? "READ_READY" : "NOT_VERIFIED"}/></div>)}</div>
+          <p className="localRoomNotice">Codex uses the existing Runner-1 CLI for READ-only tasks when a signed E2E receipt is found in D1. Claude, Gemini, Grok, OpenCode, Cursor, Cline, Ollama and LM Studio stay disabled until independently verified. No extra provider API purchase.</p>
         </div>
       </div>
       <div className="localRoomColumns">
@@ -160,7 +188,19 @@ export default function LocalAgentTeamPanel() {
             </select></label>
             <button disabled={busy || !selectedTask || !targetAgent || !verifiedRoomAgents.length} type="submit">Request handoff</button>
           </form>
-          <p className="localRoomNotice">Handoff is disabled until a verified room runtime adapter exists. Existing Codex CLI evidence is not a Launch Room binding.</p>
+          <div className="localRoomCodexAction">
+              <strong>Codex · Runner-1 · Read-only</strong>
+              <p>Runs the selected READ task title through the existing signed Owner → Yellow → GitHub Actions → Codex → D1 route. No host writes.</p>
+              <button type="button" className="wnPrimary" onClick={() => void runCodexReadOnly()} disabled={busy || !readonlyEligible}>
+                {busy ? "Dispatching…" : "Run Codex read-only →"}
+              </button>
+              <small>{!codexReady ? "Existing Codex runtime E2E receipt or dispatch credentials not confirmed." : !selectedTask ? "Select a READ task above." : roomTask?.permission !== "READ" ? "This task is not READ; no write/execute room adapter." : roomTask.command_task_id ? "Command already linked. Check its receipt below." : "Ready for bounded read-only dispatch."}</small>
+              {roomTask?.command_task_id && <a href={"/command?task_id=" + encodeURIComponent(roomTask.command_task_id)}>Command {roomTask.command_task_id.slice(0, 23)}…</a>}
+              {roomTask?.runtime_receipt?.result_ref?.startsWith("https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/") &&
+                <a href={roomTask.runtime_receipt.result_ref} target="_blank" rel="noopener noreferrer">Verified Runner evidence</a>}
+              {roomTask?.runtime_receipt && <State value={roomTask.runtime_receipt.status} />}
+            </div>
+            <p className="localRoomNotice">Other providers remain disabled until their own runtime adapters produce evidence. READ-only E2E proof for Codex does not mean every provider is ready.</p>
           {selectedTask && <form className="localRoomMessageForm" onSubmit={recordBlockedResult}>
             <label>Blocked-result evidence reference<input maxLength={240} required value={resultRef} onChange={event => setResultRef(event.target.value)}/></label>
             <label>Explanation<input maxLength={800} required value={resultSummary} onChange={event => setResultSummary(event.target.value)}/></label>
@@ -188,6 +228,6 @@ export default function LocalAgentTeamPanel() {
     </form>
     {message && <div className="wnPolicy" role="status">{message}</div>}
     <div className="wnCardHead localTeamTimelineHead"><div><span className="wnKicker">TASK TIMELINE</span><h3>Resumable queue</h3></div><span className="wnCount">{state.tasks?.length ?? 0}</span></div>
-    <div className="wnRows">{(state.tasks ?? []).slice(0, 8).map((task) => <div className="wnRow" key={task.id}><div><strong>{task.title}</strong><span>{task.id} · {task.claimed_by ?? "unassigned"} · {task.latest_event ?? "no event"}</span></div><State value={task.agent_state ?? task.status} /></div>)}{!state.tasks?.length && <div className="wnEmpty">No local team tasks yet.</div>}</div>
+    <div className="wnRows">{(state.tasks ?? []).slice(0, 8).map((task) => <div className="wnRow" key={task.id}><div><strong>{task.title}</strong><span>{task.id} · {task.permission ?? "UNKNOWN"} · {task.claimed_by ?? "unassigned"} · {task.latest_event ?? "no event"}</span></div><State value={task.agent_state ?? task.status} /></div>)}{!state.tasks?.length && <div className="wnEmpty">No local team tasks yet.</div>}</div>
   </section>;
 }

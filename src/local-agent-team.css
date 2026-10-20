@@ -25,3 +25,11 @@
 .localRoomNotice{margin-top:10px}
 .localLaunchRoom button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:720px){.localRoomColumns{grid-template-columns:1fr}.localRoomHeader{display:grid}.localRoomHeader button{width:100%}.localLaunchRoom{padding:9px}.localRoomConversation,.localRoomTeammates{padding:10px}}
+
+/* Read-only operational adapter in the existing iPhone-friendly Agent Deck. */
+.localRoomCodexAction{margin-top:14px;display:grid;gap:8px;padding:13px;border-radius:13px;border:1px solid rgba(58,161,119,.38);background:rgba(72,153,112,.065);min-width:0;}
+.localRoomCodexAction strong{font-size:12px}
+.localRoomCodexAction p,.localRoomCodexAction small{margin:0;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.localRoomCodexAction a{color:inherit;overflow-wrap:anywhere;font-size:11px}
+.localRoomCodexAction button{min-height:44px;padding:10px 12px;font-weight:750;border-radius:10px}
+.localRoomCodexAction button:disabled{opacity:.5;cursor:not-allowed}

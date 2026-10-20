@@ -66,7 +66,9 @@ const capabilityCardStoneApi = createCapabilityCardStoneApi();
 const n8nMigrationApi = createN8nMigrationApi();
 const discordApi = createDiscordApi();
 const connectorModesApi = createConnectorModesApi();
-const localAgentTeamApi = createLocalAgentTeamApi();
+const localAgentTeamApi = createLocalAgentTeamApi(
+  (request, bindings, ctx) => athenaGuardedCommand(request, bindings as Bindings, ctx),
+);
 
 const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
@@ -283,6 +285,26 @@ async function commandConsumerResult(request: Request, env: Bindings) {
     `INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, external_ref, created_at)
      VALUES (?, ?, ?, 'codex-selfhost:wave-runner-01', ?, CURRENT_TIMESTAMP)`,
   ).bind(`event-consumer-result-${taskId}`, taskId, `COMMAND_RESULT_${status}`, external).run();
+
+  // Reconcile an OpenBot Launch Room task only when it is explicitly linked
+  // to THIS authenticated Runner-1 command result. No new D1 schema.
+  const link = await db.prepare(
+    "SELECT task_id FROM agent_events WHERE event_type = 'LOCAL_TEAM_COMMAND_LINKED' AND correlation_id = ? LIMIT 1",
+  ).bind(taskId).first<{ task_id?: string }>();
+  const roomTaskId = typeof link?.task_id === "string" ? link.task_id : "";
+  if (/^localteam_[a-f0-9]{64}$/.test(roomTaskId)) {
+    await db.prepare(
+      "UPDATE agent_tasks SET status = ?, claimed_by = 'codex-selfhost:wave-runner-01', updated_at = CURRENT_TIMESTAMP, completed_at = CURRENT_TIMESTAMP WHERE id = ? AND capability = 'local_agent_team' AND status IN ('QUEUED','RUNNING','CLAIMED','VERIFYING')",
+    ).bind(status, roomTaskId).run();
+    await db.prepare(
+      "INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, correlation_id, external_ref, created_at) VALUES (?, ?, 'LOCAL_TEAM_RESULT_VERIFIED', 'codex-selfhost:wave-runner-01', ?, ?, CURRENT_TIMESTAMP)",
+    ).bind("event-localteam-result-codex-" + taskId, roomTaskId, taskId,
+      JSON.stringify({ command_task_id: taskId, status, result_sha256: resultSha, git_sha: gitSha,
+        evidence_ref: evidenceRef || null, consumer_proven: status === "DONE" })).run();
+    await db.prepare(
+      "INSERT INTO agent_checkpoints(task_id, agent_id, checkpoint_ref, state_hash, updated_at) VALUES (?, 'codex-selfhost:wave-runner-01', ?, ?, CURRENT_TIMESTAMP) ON CONFLICT(task_id, agent_id) DO UPDATE SET checkpoint_ref = excluded.checkpoint_ref, state_hash = excluded.state_hash, updated_at = CURRENT_TIMESTAMP",
+    ).bind(roomTaskId, evidenceRef || "wave-command:" + taskId, resultSha).run();
+  }
   return Response.json({ ok: true, task, evidence: { result_sha256: resultSha, git_sha: gitSha, evidence_ref: evidenceRef || null } }, {
     status: 200,
     headers: { "Cache-Control": "no-store" },

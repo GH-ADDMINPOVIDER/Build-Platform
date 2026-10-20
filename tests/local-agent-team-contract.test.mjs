@@ -42,3 +42,31 @@ test("OpenBot Launch Room uses existing Agent Deck and canonical D1 events", () 
   assert.match(api, /target\.state !== "LIVE"/);
   assert.match(api, /room_adapter: "UNVERIFIED"/);
 });
+
+test("OpenBot read-only Codex dispatch connects existing Owner Yellow command and Runner-1 receipt", () => {
+  assert.match(api, /ExistingWaveDispatcher/);
+  assert.match(entry, /createLocalAgentTeamApi\(/);
+  assert.match(entry, /athenaGuardedCommand\(request, bindings as Bindings, ctx\)/);
+  assert.match(api, /\/api\/local-agent-team\/tasks\/:taskId\/dispatch/);
+  assert.match(api, /provider: "openai", mode: "read"/);
+  assert.match(api, /OGE129 READONLY PROOF:/);
+  assert.match(api, /READ_ONLY_ADAPTER_SCOPE/);
+  assert.match(api, /CODEX_READONLY_RUNTIME_UNVERIFIED/);
+  assert.match(api, /LOCAL_TEAM_COMMAND_LINKED/);
+  assert.match(entry, /LOCAL_TEAM_RESULT_VERIFIED/);
+  assert.match(entry, /INSERT INTO agent_checkpoints/);
+  assert.match(api, /COMMAND_RESULT_DONE/);
+  assert.match(ui, /Run Codex read-only/);
+  assert.match(ui, /readonlyEligible/);
+  assert.match(ui, /QUEUED ≠ DONE/);
+  assert.doesNotMatch(api, /CREATE TABLE/);
+});
+test("OpenBot reports absent external adapters and forbids room WRITE execution", () => {
+  assert.match(api, /agentId !== "codex"/);
+  assert.match(api, /permission !== "READ"/);
+  assert.match(api, /hasOwnerSession/);
+  assert.match(api, /ORIGIN_DENIED/);
+  assert.match(api, /ROOM_TASK_NOT_FOUND/);
+  assert.match(api, /NO_PROVIDER_CALL_FROM_ROOM/);
+  assert.match(ui, /No verified room adapter available/);
+});

@@ -12,6 +12,7 @@ type D1Like = { prepare: (query: string) => D1Prepared };
 
 export type LocalAgentTeamBindings = AuthBindings & {
   DB?: D1Like;
+  GITHUB_TOKEN?: string;
   OPENAI_API_KEY?: string;
   OPENAI_EXECUTOR_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
@@ -25,6 +26,8 @@ export type LocalAgentTeamBindings = AuthBindings & {
 };
 
 type Env = { Bindings: LocalAgentTeamBindings };
+type ExistingWaveDispatcher = (request: Request, env: LocalAgentTeamBindings, ctx: unknown) => Promise<Response>;
+type ProofRow = { task_id?: string; event_type?: string; external_ref?: string; created_at?: string };
 type TaskRow = {
   id: string;
   title: string;
@@ -88,8 +91,25 @@ async function digest(value: string) {
   return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function providerReadiness(env: LocalAgentTeamBindings) {
+function providerReadiness(env: LocalAgentTeamBindings, proof: ProofRow | null = null) {
+  const claim = proof?.event_type === "COMMAND_RESULT_DONE" && typeof proof.external_ref === "string";
+  let receipt: Record<string, unknown> = {};
+  try { receipt = JSON.parse(proof?.external_ref ?? "{}") as Record<string, unknown>; } catch { /* invalid receipt */ }
+  const evidenced = claim &&
+    /^[a-f0-9]{64}$/.test(String(receipt.result_sha256 ?? "")) &&
+    /^https:\/\/github\.com\/Ogenicchocolate21debug\/Build-Platform\/actions\/runs\/\d+$/.test(String(receipt.evidence_ref ?? ""));
+  const codexAvailable = Boolean(evidenced && env.DB && env.GITHUB_TOKEN && env.OGENIC_OPS_KEY);
   return PROVIDERS.map(([id, label, keys, execution]) => {
+    // Codex runs through the existing signed CLI login on Runner-1, not an API key.
+    if (id === "codex") return {
+      id, label, configuration: evidenced ? "CLI_E2E_PREVIOUSLY_PROVEN" : "RUNTIME_PROOF_REQUIRED",
+      executable_or_endpoint: "WAVE_COMMAND_CONSUMER_EXISTING",
+      authentication: evidenced ? "CLI_EXISTING_LOGIN_EVIDENCED" : "UNVERIFIED",
+      execution, smoke_test: evidenced ? "READONLY_E2E_PASS" : "NOT_RUN",
+      dispatchable: codexAvailable, room_adapter: codexAvailable ? "CODEX_READONLY_EXISTING_WAVE" : "UNVERIFIED",
+      billing: "EXISTING_CLI_SUBSCRIPTION_NO_NEW_PROVIDER_API_KEY",
+      evidence: evidenced ? String(receipt.evidence_ref) : "No D1 COMMAND_RESULT_DONE receipt",
+    };
     const configured = keys.every((key) => typeof env[key as keyof LocalAgentTeamBindings] === "string" && String(env[key as keyof LocalAgentTeamBindings]).trim());
     return {
       id,
@@ -132,7 +152,7 @@ function taskView(task: TaskRow, eventType?: string | null) {
   };
 }
 
-export function createLocalAgentTeamApi() {
+export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispatcher) {
   const api = new Hono<Env>();
 
   api.use("/api/local-agent-team/*", async (c, next) => {
@@ -146,18 +166,25 @@ export function createLocalAgentTeamApi() {
     await next();
   });
 
-  api.get("/api/local-agent-team/providers", (c) => c.json({
+  async function lastVerifiedCodexReceipt(db?: D1Like): Promise<ProofRow | null> {
+    if (!db) return null;
+    return db.prepare(
+      "SELECT task_id, event_type, external_ref, created_at FROM agent_events WHERE event_type = 'COMMAND_RESULT_DONE' AND actor = 'codex-selfhost:wave-runner-01' ORDER BY created_at DESC LIMIT 1",
+    ).first<ProofRow>();
+  }
+
+  api.get("/api/local-agent-team/providers", async (c) => c.json({
     ok: true,
     room: ROOM,
-    providers: providerReadiness(c.env),
-    execution_policy: "existing wave-runner-01 only; provider authentication and smoke tests require real runtime evidence",
+    providers: providerReadiness(c.env, await lastVerifiedCodexReceipt(c.env.DB)),
+    execution_policy: "existing wave-runner-01 only; provider authorization is read-only and requires a live D1 receipt",
   }, 200, { "Cache-Control": "no-store" }));
 
   api.get("/api/local-agent-team/state", async (c) => {
     if (!c.env.DB) {
       return c.json({ ok: true, room: ROOM, canonical_session: OWNER_SESSION, state: "CONFIGURATION_REQUIRED", missing: "D1 binding DB", agents: buildWhiteDiamondRegistry(c.env).map(({ agent_id, label, provider, state, capabilities }) => ({ agent_id, label, provider, state, capabilities })), tasks: [], events: [], providers: providerReadiness(c.env) }, 200, { "Cache-Control": "no-store" });
     }
-    const [tasks, events, checkpoints, agents] = await Promise.all([
+    const [tasks, events, checkpoints, agents, codexProof] = await Promise.all([
       c.env.DB.prepare(
         `SELECT id, title, capability, status, priority, resource_key, claimed_by,
                 parent_task_id, correlation_id, source_ref, created_at, updated_at, completed_at
@@ -171,11 +198,32 @@ export function createLocalAgentTeamApi() {
       ).all<EventRow>(),
       c.env.DB.prepare("SELECT task_id, agent_id, checkpoint_ref, state_hash, updated_at FROM agent_checkpoints WHERE task_id LIKE 'localteam_%' ORDER BY updated_at DESC LIMIT 80").all<{ task_id: string; agent_id: string; checkpoint_ref: string; state_hash: string; updated_at: string }>(),
       Promise.resolve(buildWhiteDiamondRegistry(c.env).map(({ agent_id, label, provider, state, capabilities, runtime }) => ({ agent_id, label, provider, state, capabilities, runtime }))),
+      lastVerifiedCodexReceipt(c.env.DB),
     ]);
     const eventRows = events.results ?? [];
     const eventByTask = new Map<string, string>();
     for (const event of eventRows) {
       if (event.task_id && !eventByTask.has(event.task_id)) eventByTask.set(event.task_id, event.event_type);
+    }
+    const taskPermissions = new Map<string, string>();
+    const commandLinks = new Map<string, string>();
+    const taskEvidence = new Map<string, { status: string; result_ref?: string }>();
+    for (const event of eventRows) {
+      if (!event.task_id) continue;
+      try {
+        const data = JSON.parse(event.external_ref ?? "{}") as Record<string, unknown>;
+        if (event.event_type === "LOCAL_TEAM_TASK_CREATED") {
+          taskPermissions.set(event.task_id, String(data.permission ?? "READ").toUpperCase());
+        } else if (event.event_type === "LOCAL_TEAM_COMMAND_LINKED") {
+          const id = String(data.command_task_id ?? "");
+          if (/^wavecmd_[a-f0-9]{64}$/.test(id)) commandLinks.set(event.task_id, id);
+        } else if (event.event_type === "LOCAL_TEAM_RESULT_VERIFIED") {
+          taskEvidence.set(event.task_id, {
+            status: String(data.status ?? "NOT_VERIFIED"),
+            result_ref: String(data.evidence_ref ?? ""),
+          });
+        }
+      } catch { /* malformed metadata cannot authorize dispatch */ }
     }
     const messages = eventRows.filter((event) => event.event_type === "LOCAL_TEAM_MESSAGE").map((event) => {
       let text = "";
@@ -189,8 +237,13 @@ export function createLocalAgentTeamApi() {
       canonical_session: OWNER_SESSION,
       state: "OBSERVED",
       agents,
-      providers: providerReadiness(c.env),
-      tasks: (tasks.results ?? []).map((task) => taskView(task, eventByTask.get(task.id))),
+      providers: providerReadiness(c.env, codexProof),
+      tasks: (tasks.results ?? []).map((task) => ({
+        ...taskView(task, eventByTask.get(task.id)),
+        permission: taskPermissions.get(task.id) || "UNKNOWN",
+        command_task_id: commandLinks.get(task.id) || null,
+        runtime_receipt: taskEvidence.get(task.id) || null,
+      })),
       events: eventRows.map(({ external_ref, ...event }) => event),
       messages,
       checkpoints: checkpoints.results ?? [],
@@ -251,6 +304,96 @@ export function createLocalAgentTeamApi() {
     ).bind(`event-localteam-create-${identity}`, taskId, correlationId, JSON.stringify({ room: ROOM, workspace_ref: workspace, permission, agent_id: requestedAgent, description_sha256: await digest(description) })).run();
     const saved = await taskById(c.env.DB, taskId);
     return c.json({ ok: true, idempotent_replay: false, task: saved ? taskView(saved, "LOCAL_TEAM_TASK_CREATED") : null, execution: { state: permission === "READ" ? "READY" : "ADAPTER_BINDING_REQUIRED", provider_execution: "NOT_STARTED", receipt: null }, handoff: { next: permission === "READ" ? "SUPERVISOR_ASSIGNMENT" : "ADAPTER_BINDING_REQUIRED" } }, 202, { "Cache-Control": "no-store" });
+  });
+
+
+  // Local OpenBot-mode tasks reuse the SAME Yellow/ATHENA WAVE command and
+  // Runner-1 Codex lane. They do not install the external OpenBot app.
+  // The first operational adapter is deliberately READ-only; every other
+  // provider remains non-dispatchable until a real runtime receipt exists.
+  api.post("/api/local-agent-team/tasks/:taskId/dispatch", async (c) => {
+    if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
+    const origin = c.req.header("Origin");
+    if (origin && origin !== new URL(c.req.url).origin) return c.json({ ok: false, code: "ORIGIN_DENIED" }, 403);
+    if (!dispatchExistingWave) return c.json({ ok: false, code: "RUNTIME_ADAPTER_UNAVAILABLE" }, 503);
+    const taskId = clean(c.req.param("taskId"), 100);
+    if (!/^localteam_[a-f0-9]{64}$/.test(taskId)) return c.json({ ok: false, code: "INVALID_TASK_ID" }, 400);
+    const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+    const agentId = clean(body.agent_id, 48);
+    if (agentId !== "codex") return c.json({ ok: false, code: "RUNTIME_ADAPTER_UNAVAILABLE", agent_id: agentId }, 422);
+    const task = await taskById(c.env.DB, taskId);
+    if (!task || task.capability !== "local_agent_team" || !task.resource_key?.startsWith("local-agent-team:" + ROOM + ":")) {
+      return c.json({ ok: false, code: "ROOM_TASK_NOT_FOUND" }, 404);
+    }
+    if (TERMINAL.has(task.status)) return c.json({ ok: false, code: "TASK_TERMINAL", status: task.status }, 409);
+    const created = await c.env.DB.prepare(
+      "SELECT external_ref FROM agent_events WHERE task_id = ? AND event_type = 'LOCAL_TEAM_TASK_CREATED' LIMIT 1",
+    ).bind(taskId).first<{ external_ref?: string }>();
+    let permission = "";
+    try { permission = String((JSON.parse(created?.external_ref || "{}") as Record<string, unknown>).permission || ""); }
+    catch { /* untrusted metadata */ }
+    if (permission !== "READ") {
+      return c.json({ ok: false, code: "READ_ONLY_ADAPTER_SCOPE", requested_permission: permission }, 409);
+    }
+    const proof = await lastVerifiedCodexReceipt(c.env.DB);
+    if (!providerReadiness(c.env, proof).some((p) => p.id === "codex" && p.dispatchable === true)) {
+      return c.json({ ok: false, code: "CODEX_READONLY_RUNTIME_UNVERIFIED" }, 503);
+    }
+    const linked = await c.env.DB.prepare(
+      "SELECT external_ref FROM agent_events WHERE task_id = ? AND event_type = 'LOCAL_TEAM_COMMAND_LINKED' LIMIT 1",
+    ).bind(taskId).first<{ external_ref?: string }>();
+    if (linked) {
+      let previous = "";
+      try { previous = String((JSON.parse(linked.external_ref || "{}") as Record<string, unknown>).command_task_id || ""); }
+      catch { /* refuse malformed recorded link */ }
+      if (!/^wavecmd_[a-f0-9]{64}$/.test(previous)) return c.json({ ok: false, code: "INVALID_EXISTING_COMMAND_LINK" }, 409);
+      return c.json({ ok: true, code: "COMMAND_ALREADY_LINKED", command_task_id: previous,
+        execution: { status: "PENDING_RECEIPT", consumer_proven: false }, idempotent_replay: true }, 200);
+    }
+
+    // Stable idempotency key per room task even after browser reloads or retries.
+    const hash = await digest("openbot-room-codex-readonly:" + taskId);
+    const idempotencyKey = [hash.slice(0, 8), hash.slice(8, 12), "4" + hash.slice(13, 16),
+      "8" + hash.slice(17, 20), hash.slice(20, 32)].join("-");
+    const commandUrl = new URL(c.req.url);
+    commandUrl.pathname = "/api/wave/command";
+    const headers = new Headers(c.req.raw.headers);
+    headers.set("Content-Type", "application/json");
+    headers.set("Idempotency-Key", idempotencyKey);
+    const delegated = new Request(commandUrl.toString(), {
+      method: "POST", headers,
+      body: JSON.stringify({
+        intent: "OGE129 READONLY PROOF: OpenBot Launch Room " + taskId + " — " + clean(task.title, 140),
+        capability: "codex_selfhost", provider: "openai", mode: "read", environment: "staging",
+      }),
+    });
+    const response = await dispatchExistingWave(delegated, c.env, c.executionCtx);
+    const command = await response.json().catch(() => ({})) as {
+      ok?: boolean; code?: string; task?: { id?: string }; execution?: { status?: string };
+    };
+    const commandId = String(command.task?.id || "");
+    const recognized = ["COMMAND_DISPATCHED", "COMMAND_ALREADY_QUEUED", "COMMAND_MANUAL_DISPATCH_REQUIRED", "COMMAND_ALREADY_DONE"];
+    if (!command.ok || !recognized.includes(String(command.code)) || !/^wavecmd_[a-f0-9]{64}$/.test(commandId)) {
+      return c.json({ ok: false, code: command.code || "WAVE_COMMAND_FAILED",
+        execution: { status: "NOT_STARTED", consumer_proven: false } }, response.status >= 400 ? response.status as 400 : 503);
+    }
+    const realDispatch = command.code === "COMMAND_DISPATCHED" || command.code === "COMMAND_ALREADY_QUEUED";
+    await c.env.DB.prepare(
+      "INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, correlation_id, external_ref, created_at) VALUES (?, ?, 'LOCAL_TEAM_COMMAND_LINKED', 'owner-main', ?, ?, CURRENT_TIMESTAMP)",
+    ).bind("event-localteam-command-" + hash, taskId, commandId,
+      JSON.stringify({ command_task_id: commandId, agent_id: "codex", permission: "READ",
+        dispatch_status: command.code, consumer_proven: false })).run();
+    if (realDispatch) {
+      await c.env.DB.prepare(
+        "UPDATE agent_tasks SET status = 'RUNNING', claimed_by = 'codex-selfhost:wave-runner-01', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'QUEUED'",
+      ).bind(taskId).run();
+    }
+    return c.json({
+      ok: true, code: command.code, room_task_id: taskId, command_task_id: commandId,
+      execution: { status: realDispatch ? "DISPATCHED_AWAITING_RESULT" : "AWAITING_DISPATCH", consumer_proven: false },
+      completion_url: "/api/wave/command/status?task_id=" + commandId,
+      billing: "EXISTING_CLI_LOGIN", canonical_session: OWNER_SESSION,
+    }, 202, { "Cache-Control": "no-store" });
   });
 
   api.post("/api/local-agent-team/tasks/:taskId/handoff", async (c) => {
