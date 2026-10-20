@@ -83,7 +83,7 @@ export async function main() {
   const primaryNames=["GITHUB_TOKEN_OGE34","GIBHUB_TOKEN_OGE34","GITHUB_TOKEN",
     "GITHUB_PAT","GITHUB_ACCESS_TOKEN","GH_TOKEN","GH_PAT","WAVE_GITHUB_TOKEN"];
   const discovered=Object.keys(process.env).filter((k) =>
-    (/GITHUB/.test(k) && /(TOKEN|PAT|AUTH|CREDENTIAL)/.test(k)) ||
+    (/GITHUB/.test(k) && /(?:^|_)(?:TOKEN|PAT|AUTH|CREDENTIAL)(?:_|$)/.test(k)) ||
     /^(GH_TOKEN|GH_PAT)$/.test(k));
   const keys=[...new Set([...primaryNames,...discovered])].filter((k) =>
     Object.prototype.hasOwnProperty.call(process.env,k) && String(process.env[k]||"").length>0
@@ -92,32 +92,50 @@ export async function main() {
   const seen=new Set();
   const authorized=[];
   for(const key of keys){
-    const candidate=String(process.env[key]||"");
-    if(!inspectTokenFormat(candidate)){
+    const raw=String(process.env[key]||"");
+    const variants=[{type:"EXACT",value:raw}];
+    // OGE-40 proved the canonical value contains control characters. Check
+    // whether it is merely line-wrapped; do not overwrite Infisical or guess
+    // any character other than removable CR/LF whitespace.
+    if(!inspectTokenFormat(raw)){
+      const trim=raw.trim();
+      const unwrapped=raw.replace(/[\r\n]/g,"").trim();
+      if(inspectTokenFormat(trim))variants.push({type:"TRIM_OUTER_WHITESPACE",value:trim});
+      if(inspectTokenFormat(unwrapped)&&unwrapped!==trim)variants.push({type:"REMOVE_CRLF_LINEBREAKS",value:unwrapped});
+    }
+    if(variants.every(v=>!inspectTokenFormat(v.value))){
       console.log("OGE34_CANDIDATE_"+key+"=REJECTED_FORMAT");
       continue;
     }
-    if(seen.has(candidate))continue;
-    seen.add(candidate);
-    console.log("::add-mask::"+candidate);
-    const branch=await githubRequest("/branches/"+BRANCH,candidate);
-    if(branch.status!==200){
-      console.log("OGE34_CANDIDATE_"+key+"_BRANCH_HTTP="+branch.status);
-      continue;
+    for(const variant of variants){
+      const candidate=variant.value;
+      if(!inspectTokenFormat(candidate)||seen.has(candidate))continue;
+      seen.add(candidate);
+      console.log("::add-mask::"+candidate);
+      const label=key+"_"+variant.type;
+      const branch=await githubRequest("/branches/"+BRANCH,candidate);
+      if(branch.status!==200){
+        console.log("OGE34_CANDIDATE_"+label+"_BRANCH_HTTP="+branch.status);
+        continue;
+      }
+      const actions=await githubRequest("/actions/runs?branch="+BRANCH+"&per_page=1",candidate);
+      if(actions.status!==200){
+        console.log("OGE34_CANDIDATE_"+label+"_ACTIONS_READ_HTTP="+actions.status);
+        continue;
+      }
+      const ref="__OGENIC_UNRESOLVABLE_REF_"+process.env.GITHUB_RUN_ID+"_"+process.env.GITHUB_RUN_ATTEMPT+"__";
+      const request=await githubRequest("/actions/workflows/wave-command-consumer.yml/dispatches",candidate,{
+        method:"POST",body:JSON.stringify({ref,inputs:{task_id:"not_an_approved_task"}})
+      });
+      const result=classifyDispatchProbe(request.status);
+      console.log("OGE34_CANDIDATE_"+label+"_DISPATCH_HTTP="+request.status);
+      console.log("OGE34_CANDIDATE_"+label+"_RESULT="+result);
+      const permissionHeader=request.headers.get("x-accepted-github-permissions");
+      if(permissionHeader && /^[A-Za-z0-9,=; _-]{1,150}$/.test(permissionHeader)){
+        console.log("OGE34_CANDIDATE_"+label+"_REQUIRED_PERMISSION="+permissionHeader);
+      }
+      if(result==="AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN")authorized.push({key:label,token:candidate});
     }
-    const actions=await githubRequest("/actions/runs?branch="+BRANCH+"&per_page=1",candidate);
-    if(actions.status!==200){
-      console.log("OGE34_CANDIDATE_"+key+"_ACTIONS_READ_HTTP="+actions.status);
-      continue;
-    }
-    const ref="__OGENIC_UNRESOLVABLE_REF_"+process.env.GITHUB_RUN_ID+"_"+process.env.GITHUB_RUN_ATTEMPT+"__";
-    const request=await githubRequest("/actions/workflows/wave-command-consumer.yml/dispatches",candidate,{
-      method:"POST",body:JSON.stringify({ref,inputs:{task_id:"not_an_approved_task"}})
-    });
-    const result=classifyDispatchProbe(request.status);
-    console.log("OGE34_CANDIDATE_"+key+"_DISPATCH_HTTP="+request.status);
-    console.log("OGE34_CANDIDATE_"+key+"_RESULT="+result);
-    if(result==="AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN")authorized.push({key,token:candidate});
   }
   if(authorized.length===0)throw new Error("STAGING_SECRET_NOT_CHANGED_ACTIONS_WRITE_DENIED_ALL_EXISTING_GITHUB_CANDIDATES");
   if(authorized.length!==1)throw new Error("STAGING_SECRET_NOT_CHANGED_MULTIPLE_AUTHORIZED_GITHUB_TOKENS_REQUIRE_EXPLICIT_SOURCE");
