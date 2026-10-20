@@ -34,9 +34,11 @@ jobs:
           fetch-depth: 0
       - name: Verify task scope and secure Terminal Solo availability
         shell: bash
+        env:
+          WAVE_TASK_ID: ${{ inputs.task_id }}
         run: |
           set -euo pipefail
-          [[ "${{ inputs.task_id }}" =~ ^wavecmd_[a-f0-9]{64}$ ]]
+          [[ "$WAVE_TASK_ID" =~ ^wavecmd_[a-f0-9]{64}$ ]]
           test "$RUNNER_NAME" = wave-runner-01
           test "$(git branch --show-current)" = phase-vi-provider-incentive-metering
           test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
