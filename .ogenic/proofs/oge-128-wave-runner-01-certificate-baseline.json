@@ -381,6 +381,16 @@
       "current_full_four_account_e2e": "NOT_VERIFIED",
       "previous_events_preserved": true,
       "no_raw_credentials": true
+    },
+    {
+      "event": "owner_correction_ts_gh_account_identity_staging_d1_readback_20261020",
+      "status": "PREVIOUS_REVISION_D1_READBACK_PASS",
+      "proof": "github-actions:39412623014/job/118593855071",
+      "source_sha": "4436f13e4ec017103a974812df39066c9ae73974",
+      "d1_digest": "bbee6d3034f6d6b74e70d04cc58465ebbfd4638ea15f7da38cccc2f9f3677d0c",
+      "staging_only": true,
+      "owner_identity_correction_ref": "OGE128-OWNER-IDENTITY-CORRECTION-20261020",
+      "this_revision_requires_independent_sync": true
     }
   ],
   "secret_contract": {
@@ -402,7 +412,7 @@
   },
   "canonical_storage": {
     "authoritative_evidence_file": "Ogenicchocolate21debug/Build-Platform:task/oge-128-runtime-certificate-20261018:.ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json",
-    "github_write": "THIS_REVISION_PENDING",
+    "github_write": "COMMITTED_VERIFIED_BY_GITHUB_FILE_READBACK",
     "infisical_certificate_manager": {
       "project": "cert-manager-89-qe",
       "api_access": "HTTP_200_VERIFIED",
@@ -414,7 +424,7 @@
       "d1_database": "ogenic-phase-vi-staging",
       "evidence_record_written": "VERIFIED_IN_ISOLATED_STAGING_D1_TABLE",
       "automatic_infisical_to_cloudflare_certificate_replication": "NOT_VERIFIED",
-      "note": "Configured D1 is a runtime/memory store. No actual certificate row or sync receipt has been retrieved.",
+      "note": "Certificate lincenc isolated staging D1 table has a verified write/readback. Each later revision requires its own D1 readback receipt; no automatic Infisical-to-Cloudflare certificate replication is asserted.",
       "original_status": "NOT_VERIFIED",
       "evidence_ref": "github-actions:39137196276/job/117704016011"
     },
@@ -814,8 +824,10 @@
         "first_live_verified_sha256": "09d8f471b65feafc546bc941203d6043eee719591699023293197ef905b7b14f",
         "first_live_verified_at_utc": "2026-10-18T14:42:53Z",
         "original_cert_file_history_retained": true,
-        "latest_amendment": "OWNER_IDENTITY_CORRECTION_20261020_PENDING_RUNTIME_READBACK",
-        "previous_verified_write_preserved": true
+        "latest_amendment": "OWNER_IDENTITY_CORRECTION_20261020_PREVIOUS_REVISION_D1_READBACK_PASS",
+        "previous_verified_write_preserved": true,
+        "latest_readback_run": "github-actions:39412623014/job/118593855071",
+        "last_verified_document_sha256": "bbee6d3034f6d6b74e70d04cc58465ebbfd4638ea15f7da38cccc2f9f3677d0c"
       },
       "infisical": {
         "certificate_manager_project": "-",
@@ -902,6 +914,19 @@
     },
     "security_controls": "Identity labels and owner scope intent alone confer no connector token scopes, no runner host access, and no authorization bypass",
     "production_mutated": false,
-    "credentials_included": false
+    "credentials_included": false,
+    "d1_sync_proof": {
+      "status": "PREVIOUS_CORRECTED_RECORD_WRITTEN_AND_READBACK_SHA256_VERIFIED",
+      "proof_run": "github-actions:39412623014/job/118593855071",
+      "source_branch_revision": "4436f13e4ec017103a974812df39066c9ae73974",
+      "previous_document_sha256": "bbee6d3034f6d6b74e70d04cc58465ebbfd4638ea15f7da38cccc2f9f3677d0c",
+      "staging_credential_source": "infisical staging /",
+      "database": "ogenic-phase-vi-staging",
+      "isolated_table": "certificate_lincenc",
+      "plugin_groups": 23,
+      "connected_verified": 18,
+      "seven_stones_tables_mutated": false,
+      "note": "This embedded proof references the preceding successful D1 readback. The current amendment revision will independently sync and generate its own run receipt."
+    }
   }
 }
