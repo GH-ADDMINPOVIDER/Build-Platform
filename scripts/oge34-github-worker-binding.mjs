@@ -100,9 +100,9 @@ export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
   } catch { /* gh CLI not configured for the existing wave user */ }
   try {
     const result = run("git", ["credential", "fill"], {
-      ...opts, input: "protocol=https\\nhost=github.com\\n\\n",
+      ...opts, input: "protocol=https\nhost=github.com\n\n",
     });
-    const password = String(result.stdout || "").split(/\\r?\\n/).find(line => line.startsWith("password="));
+    const password = String(result.stdout || "").split(/\r?\n/).find(line => line.startsWith("password="));
     const candidate = password?.slice("password=".length) ?? "";
     if (result.status === 0 && inspectTokenFormat(candidate))
       found.push({ key: "RUNNER_WAVE_GIT_CREDENTIAL_HELPER", raw: candidate });

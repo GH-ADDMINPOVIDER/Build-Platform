@@ -35,14 +35,14 @@ test("reuses only existing wave-host CLI and git credential helper without inher
   const fake=(exe,args,opt)=>{
     calls.push({exe,args,opt});
     if(exe==="gh")return {status:0,stdout:"ghu_testExistingAuth12345\\n"};
-    if(exe==="git")return {status:0,stdout:"protocol=https\\nhost=github.com\\npassword=ghu_testExistingAuth12345\\n"};
+    if(exe==="git")return {status:0,stdout:"protocol=https\nhost=github.com\npassword=ghu_testExistingAuth12345\n"};
     return {status:1,stdout:""};
   };
   assert.deepEqual(existingHostAuthCandidates(fake,{RUNNER_NAME:"other"}),[]);
   const rows=existingHostAuthCandidates(fake,{RUNNER_NAME:"wave-runner-01",GH_TOKEN:"do_not_reuse_gh_token",GITHUB_TOKEN:"do_not_reuse_actions_token"});
   assert.deepEqual(rows.map(x=>x.key),["RUNNER_WAVE_GH_CLI_AUTH","RUNNER_WAVE_GIT_CREDENTIAL_HELPER"]);
   for(const c of calls){assert.equal(c.opt.env.GH_TOKEN,undefined);assert.equal(c.opt.env.GITHUB_TOKEN,undefined);}
-  assert.equal(calls[1].opt.input,"protocol=https\\nhost=github.com\\n\\n");
+  assert.equal(calls[1].opt.input,"protocol=https\nhost=github.com\n\n");
 });
 test("only known owner GitHub principals can use local host credentials for Actions-write canary",()=>{
  const src=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
