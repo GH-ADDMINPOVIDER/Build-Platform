@@ -98,3 +98,17 @@ test("Terminal Solo still keeps three functional tools but does not claim OpenCo
   assert.match(diagram, /CLI ยังไม่ได้ติดตั้ง/);
   assert.match(diagram, /Serial Queue/);
 });
+
+test("manual GH workflow fallback is actionable and never calls a deferred command DONE", () => {
+  const wave = read("src/WaveNext.tsx");
+  const chat = read("src/UnifiedChat.tsx");
+  assert.match(wave, /COMMAND_MANUAL_DISPATCH_REQUIRED/);
+  assert.match(wave, /Copy Task ID/);
+  assert.match(wave, /GitHub Actions API/);
+  assert.match(wave, /api\/wave\/command\/status/);
+  assert.match(wave, /Idempotency-Key/);
+  assert.match(chat, /COMMAND_MANUAL_DISPATCH_REQUIRED/);
+  assert.match(chat, /Copy Task ID/);
+  assert.match(chat, /Idempotency-Key/);
+  assert.match(chat, /ยังไม่ใช่ DONE/);
+});

@@ -98,8 +98,10 @@ async function sha256Hex(value: string) {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function approvalIdFor(plan: Record<string, unknown>) {
-  return `wave-approval-${await sha256Hex(JSON.stringify(plan))}`;
+async function approvalIdFor(plan: Record<string, unknown>, requestId = "") {
+  // New owner clicks receive independent task IDs. A repeated request with
+  // the same Idempotency-Key remains one task; legacy callers keep old IDs.
+  return `wave-approval-${await sha256Hex(JSON.stringify(requestId ? { plan, request_id: requestId } : plan))}`;
 }
 
 async function queueApprovedCommand(db: CommandQueueDb, plan: Record<string, unknown>, approvalId: string) {
@@ -141,14 +143,57 @@ async function queueApprovedCommand(db: CommandQueueDb, plan: Record<string, unk
   return { task, replayed: false };
 }
 
-async function markDispatchFailure(db: CommandQueueDb, taskId: string, code: string) {
-  await db.prepare(
-    "UPDATE agent_tasks SET status = 'BLOCKED', updated_at = CURRENT_TIMESTAMP, completed_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'QUEUED'",
-  ).bind(taskId).run();
+const MANUAL_WORKFLOW = "https://github.com/Ogenicchocolate21debug/Build-Platform/actions/workflows/wave-command-consumer.yml";
+function manualDispatchDetails(taskId: string, code: string) {
+  return {
+    mode: "GITHUB_OWNER_MANUAL",
+    workflow_url: MANUAL_WORKFLOW,
+    branch: "phase-vi-provider-incentive-metering",
+    task_id: taskId,
+    automatic_dispatch_error: code,
+  };
+}
+async function noteDeferredDispatch(db: CommandQueueDb, taskId: string, code: string) {
+  // Keep the authenticated Owner task claimable by the existing Runner-1 workflow.
+  // A failed Actions:write token must never strand it as BLOCKED forever.
   await db.prepare(
     `INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, external_ref, created_at)
-     VALUES (?, ?, 'COMMAND_DISPATCH_BLOCKED', 'yellow-stone', ?, CURRENT_TIMESTAMP)`,
-  ).bind(`event-dispatch-blocked-${taskId}`, taskId, code).run();
+     VALUES (?, ?, 'COMMAND_DISPATCH_DEFERRED', 'yellow-stone', ?, CURRENT_TIMESTAMP)`,
+  ).bind(`event-dispatch-deferred-${taskId}`, taskId, code).run();
+}
+
+async function commandConsumerStatus(request: Request, env: Bindings) {
+  if (request.method !== "GET") return Response.json({ ok: false, code: "METHOD_NOT_ALLOWED" }, { status: 405 });
+  if (!(await hasOwnerSession(request, env))) return Response.json({ ok: false, code: "REAUTH_REQUIRED" }, { status: 401 });
+  const db = (env as { DB?: CommandQueueDb }).DB;
+  if (!db) return Response.json({ ok: false, code: "CONFIGURATION_REQUIRED" }, { status: 503 });
+  const taskId = compact(new URL(request.url).searchParams.get("task_id"), 180);
+  if (!/^wavecmd_[a-f0-9]{64}$/.test(taskId)) return Response.json({ ok: false, code: "INVALID_TASK_ID" }, { status: 400 });
+  const task = await db.prepare(
+    "SELECT id, status, capability, claimed_by, updated_at FROM agent_tasks WHERE id = ? AND capability = 'codex_selfhost' LIMIT 1",
+  ).bind(taskId).first<Record<string, unknown>>();
+  if (!task) return Response.json({ ok: false, code: "TASK_NOT_FOUND" }, { status: 404 });
+  const receipt = await db.prepare(
+    "SELECT event_type, external_ref, created_at FROM agent_events WHERE task_id = ? AND event_type LIKE 'COMMAND_RESULT_%' ORDER BY created_at DESC LIMIT 1",
+  ).bind(taskId).first<Record<string, unknown>>();
+  const raw = typeof receipt?.external_ref === "string" ? receipt.external_ref : "{}";
+  let metadata: Record<string, unknown> = {};
+  try { metadata = JSON.parse(raw) as Record<string, unknown>; } catch { /* malformed evidence remains unverified */ }
+  const resultSha = compact(metadata.result_sha256, 64);
+  const gitSha = compact(metadata.git_sha, 40);
+  const evidence = {
+    result_sha256: /^[a-f0-9]{64}$/.test(resultSha) ? resultSha : null,
+    git_sha: /^[a-f0-9]{40}$/.test(gitSha) ? gitSha : null,
+    evidence_ref: typeof metadata.evidence_ref === "string"
+      && /^https:\/\/github\.com\/Ogenicchocolate21debug\/Build-Platform\/actions\/runs\/\d+$/.test(metadata.evidence_ref)
+      ? metadata.evidence_ref : null,
+  };
+  const proven = Boolean(task.status === "DONE" && receipt?.event_type === "COMMAND_RESULT_DONE"
+    && evidence.result_sha256 && evidence.git_sha);
+  return Response.json({
+    ok: true, task, execution: { status: task.status, consumer_proven: proven },
+    evidence, last_event: receipt?.event_type ?? null, canonical_session: "owner-main/1LSS_OWNER_MAIN",
+  }, { status: 200, headers: { "Cache-Control": "no-store" } });
 }
 
 async function commandConsumerClaim(request: Request, env: Bindings) {
@@ -368,8 +413,12 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
     };
   }
 
-  // Existing command idempotency and consumer receipts are preserved.
-  const approvalId = await approvalIdFor(commandPlan);
+  // Signed Owner creates one task per action; retries reusing the same key remain idempotent.
+  const requestId = compact(request.headers.get("Idempotency-Key"), 80);
+  if (requestId && !/^[0-9a-f-]{36}$/i.test(requestId)) {
+    return Response.json({ ok: false, code: "INVALID_IDEMPOTENCY_KEY" }, { status: 400 });
+  }
+  const approvalId = await approvalIdFor(commandPlan, requestId);
   if (explicitStructured && explicitCapability === "codex_selfhost" && explicitProvider === "openai") {
     const db = (env as { DB?: CommandQueueDb }).DB;
     if (!db) {
@@ -381,17 +430,42 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
     }
     const queued = await queueApprovedCommand(db, commandPlan, approvalId);
     const taskId = compact(queued.task?.id, 180);
+    const existingStatus = compact(queued.task?.status, 30);
+    if (queued.replayed && existingStatus !== "QUEUED") {
+      const alreadyDone = existingStatus === "DONE";
+      return Response.json({
+        ok: alreadyDone, code: alreadyDone ? "COMMAND_ALREADY_DONE" : "COMMAND_PREVIOUS_ATTEMPT_" + existingStatus,
+        task: queued.task, idempotent_replay: true,
+        execution: { status: existingStatus, consumer_proven: false },
+        command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
+      }, { status: alreadyDone ? 200 : 409, headers: { "Cache-Control": "no-store" } });
+    }
+    if (queued.replayed) {
+      const deferred = await db.prepare(
+        "SELECT id FROM agent_events WHERE task_id = ? AND event_type = 'COMMAND_DISPATCH_DEFERRED' LIMIT 1",
+      ).bind(taskId).first<{ id: string }>();
+      if (deferred) {
+        return Response.json({
+          ok: true, code: "COMMAND_MANUAL_DISPATCH_REQUIRED",
+          task: queued.task, idempotent_replay: true,
+          dispatch: manualDispatchDetails(taskId, "PREVIOUS_DISPATCH_DEFERRED"),
+          execution: { status: "AWAITING_DISPATCH", consumer_proven: false },
+          command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
+        }, { status: 202, headers: { "Cache-Control": "no-store" } });
+      }
+    }
     if (!queued.replayed) {
       const dispatched = await dispatchWaveCommandConsumer(env, taskId);
       if (!dispatched.ok) {
-        await markDispatchFailure(db, taskId, dispatched.code);
+        await noteDeferredDispatch(db, taskId, dispatched.code);
         return Response.json({
-          ok: false, code: dispatched.code, missing: "missing" in dispatched ? dispatched.missing : undefined,
-          task: { ...queued.task, status: "BLOCKED" },
+          ok: true, code: "COMMAND_MANUAL_DISPATCH_REQUIRED",
+          task: { ...queued.task, status: "QUEUED" },
           approval: { required: false, authority: "SIGNED_OWNER_SESSION", approval_id: approvalId },
-          execution: { status: "BLOCKED", consumer_proven: false, route: "YELLOW_STONE_CODEX_SELFHOST" },
+          dispatch: manualDispatchDetails(taskId, dispatched.code),
+          execution: { status: "AWAITING_DISPATCH", consumer_proven: false, route: "YELLOW_STONE_CODEX_SELFHOST" },
           command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
-        }, { status: 503, headers: { "Cache-Control": "no-store" } });
+        }, { status: 202, headers: { "Cache-Control": "no-store" } });
       }
     }
     return Response.json({
@@ -399,10 +473,10 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
       task: queued.task, idempotent_replay: queued.replayed,
       approval: { required: false, authority: "SIGNED_OWNER_SESSION", approval_id: approvalId },
       execution: {
-        status: queued.replayed ? compact(queued.task?.status, 40) : "DISPATCHED",
+        status: queued.replayed ? existingStatus : "DISPATCHED",
         consumer_proven: false,
         route: "YELLOW_STONE_CODEX_SELFHOST",
-        note: "GitHub Actions dispatched to Runner-1; completion requires COMMAND_RESULT event.",
+        note: "Completion requires COMMAND_RESULT event; QUEUED and DISPATCHED are not DONE.",
       },
       command_plan: commandPlan, command_policy: commandPolicy, command_handoff: handoffMetadata(athena),
     }, { status: 202, headers: { "Cache-Control": "no-store" } });
@@ -450,6 +524,9 @@ export default {
     }
     if (pathname === "/api/capabilities/execute") {
       return executionApi.fetch(request, env, ctx as never);
+    }
+    if (pathname === "/api/wave/command/status") {
+      return commandConsumerStatus(request, env);
     }
     if (pathname === "/api/wave/command/claim") {
       return commandConsumerClaim(request, env);

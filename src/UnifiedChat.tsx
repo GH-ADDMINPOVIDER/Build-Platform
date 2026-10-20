@@ -199,6 +199,7 @@ export default function UnifiedChat({ surface }: Props) {
   const [allowPaidFallback, setAllowPaidFallback] = useState(() => readBool(PAID_FALLBACK_KEY, false));
   const [chatConfig, setChatConfig] = useState<ChatConfig>(() => readJson(CHAT_CONFIG_KEY, DEFAULT_CONFIG));
   const [inlineNotice, setInlineNotice] = useState("");
+  const [manualDispatch, setManualDispatch] = useState<{ taskId: string; url: string } | null>(null);
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus | null>(null);
   const [activeMessageMenu, setActiveMessageMenu] = useState<string | null>(null);
   const [speakingMessage, setSpeakingMessage] = useState<string | null>(null);
@@ -584,7 +585,9 @@ export default function UnifiedChat({ surface }: Props) {
 
   async function runWaveCommand(prompt: string) {
     const response = await fetch("/api/wave/command", {
-      method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+      method: "POST", credentials: "same-origin", headers: {
+        "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID(),
+      },
       body: JSON.stringify({
         command: prompt, mode: "autonomous", environment: "staging",
         capability: "codex_selfhost", provider: "openai",
@@ -593,9 +596,19 @@ export default function UnifiedChat({ surface }: Props) {
     const body = await response.json().catch(() => ({})) as {
       ok?: boolean; code?: string; message?: string;
       task?: { id?: string; status?: string };
+      dispatch?: { task_id?: string; workflow_url?: string };
       run_id?: string; verification?: { status?: string };
     };
     if (!response.ok || !body.ok) throw new Error(body.message || body.code || `HTTP_${response.status}`);
+    if (body.code === "COMMAND_MANUAL_DISPATCH_REQUIRED" && body.dispatch?.task_id && body.dispatch?.workflow_url) {
+      setManualDispatch({ taskId: body.dispatch.task_id, url: body.dispatch.workflow_url });
+      setMessages(rows => [...rows, { id: crypto.randomUUID(), role: "assistant",
+        text: "งานบันทึกใน D1 แล้ว แต่การเรียก GitHub Actions อัตโนมัติถูกปฏิเสธ · เปิด Workflow แล้วเลือก Staging พร้อม Task ID · รอผล Runner-1 จริง",
+        created_at: Date.now() }]);
+      setInlineNotice("รอ GitHub Workflow Dispatch · ยังไม่ใช่ DONE");
+      return;
+    }
+    setManualDispatch(null);
     const dispatched = body.code === "COMMAND_DISPATCHED" || body.code === "COMMAND_ALREADY_QUEUED";
     const text = dispatched
       ? `Owner Session authorized · ${body.code === "COMMAND_DISPATCHED" ? "DISPATCHED" : "QUEUED"} · task ${body.task?.id || "unknown"} · รอ Runner-1 และ COMMAND_RESULT`
@@ -975,6 +988,12 @@ export default function UnifiedChat({ surface }: Props) {
       <ComposerAttachments rows={attachments} store={composerDraft.store} disabled={sending} />
       {composerDraft.persistenceError && <div className="ucNotice" role="alert">{composerDraft.persistenceError}</div>}
       {inlineNotice && <div className="ucNotice" role="status" aria-live="polite">{inlineNotice}</div>}
+      {manualDispatch && <div className="ucQuotaWarn" role="status">
+        <b>GitHub Runner-1 · เรียกด้วย Owner</b>
+        <span>Staging Workflow ต้องใส่ Task ID: {manualDispatch.taskId}</span>
+        <a href={manualDispatch.url} target="_blank" rel="noreferrer">เปิด GitHub Actions →</a>
+        <button type="button" onClick={() => void navigator.clipboard?.writeText(manualDispatch.taskId).catch(() => {})}>Copy Task ID</button>
+      </div>}
       {quotaBlocked && <div className="ucQuotaWarn"><b>Guarded quota หมด</b><span>Paid fallback ปิดอยู่ กูจะไม่ข้าม guard เอง</span><button onClick={() => setAllowPaidFallback(true)}>Allow paid fallback</button></div>}
       <div className="ucExperience" role="group" aria-label="Chat mode">
         {EXPERIENCE_MODES.map((item) => <button key={item.id} className={experienceMode === item.id ? "active" : ""} aria-pressed={experienceMode === item.id} onClick={() => selectExperience(item.id)}><b>{item.label}</b><small>{item.state}</small></button>)}

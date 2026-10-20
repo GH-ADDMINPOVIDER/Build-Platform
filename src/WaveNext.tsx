@@ -97,6 +97,8 @@ type CommandResult = {
   code?: string;
   run_id?: string;
   task?: { id?: string; status?: string };
+  dispatch?: { workflow_url?: string; branch?: string; task_id?: string; automatic_dispatch_error?: string };
+  evidence?: { result_sha256?: string | null; git_sha?: string | null; evidence_ref?: string | null };
   execution?: { status?: string; consumer_proven?: boolean };
   command_plan?: { capability?: string; provider?: string };
   policy?: string;
@@ -295,6 +297,32 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
   });
   const [commandBusy, setCommandBusy] = useState(false);
   const [commandResult, setCommandResult] = useState<CommandResult | null>(null);
+  useEffect(() => {
+    const taskId = commandResult?.task?.id;
+    const state = commandResult?.execution?.status;
+    if (!taskId || !["DISPATCHED", "AWAITING_DISPATCH", "QUEUED", "RUNNING"].includes(String(state))) return;
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const response = await fetch("/api/wave/command/status?task_id=" + encodeURIComponent(taskId), {
+          credentials: "same-origin", cache: "no-store",
+        });
+        if (response.status === 401) {
+          if (!cancelled) setCommandResult(old => old?.task?.id === taskId
+            ? { ...old, execution: { status: "REAUTH_REQUIRED", consumer_proven: false } } : old);
+          return;
+        }
+        if (!response.ok) return;
+        const body = await response.json() as Pick<CommandResult, "task" | "execution" | "evidence">;
+        if (!cancelled && body.task?.id === taskId) setCommandResult(old =>
+          old?.task?.id === taskId ? { ...old, task: body.task, execution: body.execution, evidence: body.evidence } : old);
+      } catch { /* keep last observed status */ }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 8000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [commandResult?.task?.id, commandResult?.execution?.status]);
+
   const [dashboard, setDashboard] = useState<Dashboard>({});
   const [connectors, setConnectors] = useState<Connector[]>([]);
   const [selfHost, setSelfHost] = useState<SelfHost | null>(null);
@@ -435,7 +463,7 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
       }
       const response = await fetch("/api/wave/command", {
         method: "POST", credentials: "same-origin", cache: "no-store",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
         body: JSON.stringify(requestBody),
       });
       const body = await response.json().catch(() => ({ ok: false, code: `HTTP_${response.status}` })) as CommandResult;
@@ -548,6 +576,19 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
             <div><dt>1LSS</dt><dd>{commandResult.canonical?.sequence ? `#${commandResult.canonical.sequence}` : commandResult.code || commandResult.verification?.reason || "no new evidence"}</dd></div>
           </dl>
           {commandResult.code === "ADAPTER_NOT_IMPLEMENTED" && <div className="wnPolicy">ไม่มี Adapter สำหรับคำสั่งนี้ · ไม่ต้องขออนุมัติใหม่</div>}
+          {commandResult.code === "COMMAND_MANUAL_DISPATCH_REQUIRED" && commandResult.dispatch && <div className="wnPolicy">
+            <strong>ส่งงานเก็บใน D1 แล้ว · GitHub Actions API ยังไม่มีสิทธิ์ Dispatch</strong>
+            <p>เปิด Workflow ด้วยบัญชี GitHub Owner → เลือก Staging → Run workflow → วาง Task ID ด้านล่าง ระบบจะส่งผลกลับ D1 โดยอัตโนมัติ</p>
+            <div className="wnRunActions">
+              <a className="wnButtonLink" href={commandResult.dispatch.workflow_url} target="_blank" rel="noreferrer">เปิด Workflow บน GitHub →</a>
+              <button type="button" onClick={() => {
+                void navigator.clipboard?.writeText(commandResult.dispatch?.task_id || "").catch(() => {});
+              }}>Copy Task ID</button>
+            </div>
+            <code>{commandResult.dispatch.task_id}</code>
+          </div>}
+          {commandResult.execution?.consumer_proven && <div className="wnPolicy">COMMAND_RESULT_DONE · Runner-1 ส่ง SHA-256 กลับ D1 สำเร็จ</div>}
+          {commandResult.evidence?.evidence_ref && <a href={commandResult.evidence.evidence_ref} target="_blank" rel="noreferrer">ดูหลักฐาน Runner-1</a>}
           {commandResult.execution?.status === "QUEUED" && <div className="wnPolicy">Runner-1 กำลังรับงาน · QUEUED ไม่ใช่ DONE · รอ COMMAND_RESULT</div>}
           {commandResult.result?.path && <div className="wnPolicy">Verified READ · {commandResult.result.path} · {commandResult.result.sha || "sha unavailable"}</div>}
         </article>}

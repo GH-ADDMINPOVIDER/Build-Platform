@@ -101,3 +101,19 @@ test("approved Codex command dispatches Runner-1 consumer and records terminal e
   assert.match(consumer, /spawnSync\("codex", \["exec"/);
   assert.match(consumer, /\/api\/wave\/command\/result/);
 });
+
+test("WAVE retains claimable Owner task on Actions-write denial with usable manual GH dispatch", () => {
+  const src = read("worker/entry-yellow-stone.ts");
+  assert.match(src, /COMMAND_MANUAL_DISPATCH_REQUIRED/);
+  assert.match(src, /COMMAND_DISPATCH_DEFERRED/);
+  assert.match(src, /manualDispatchDetails/);
+  assert.doesNotMatch(src, /async function markDispatchFailure/);
+  assert.match(src, /workflow_url: MANUAL_WORKFLOW/);
+  assert.match(src, /status: "AWAITING_DISPATCH"/);
+  assert.match(src, /hasOwnerSession\(request, env\)/);
+  assert.match(src, /pathname === "\/api\/wave\/command\/status"/);
+  assert.match(src, /event_type LIKE 'COMMAND_RESULT_%'/);
+  assert.match(src, /COMMAND_RESULT_DONE/);
+  assert.match(src, /request_id: requestId/);
+  assert.match(src, /INVALID_IDEMPOTENCY_KEY/);
+});
