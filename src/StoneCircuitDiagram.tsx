@@ -184,7 +184,7 @@ export default function StoneCircuitDiagram() {
       <div className="scTerminalHeading">
         <div><small>ONE SPECIAL ENVIRONMENT · EXISTING RUNNER-1</small>
           <h4>TERMINAL ENVIRONMENT · SOLO</h4>
-          <p>หนึ่ง Session / หนึ่งคำสั่งที่กำลังรัน · แยกจาก Agent Environment · รันหลัง Yellow Stone Policy / Owner Approval</p>
+          <p>หนึ่ง Session / หนึ่งคำสั่งที่กำลังรัน · แยกจาก Agent Environment · รันหลัง Yellow Stone Policy / Owner Authorization</p>
         </div>
         <span className="scTerminalFlag">SOLO · NOT MULTI-AGENT · SEPARATE FROM AGENT REGISTRY</span>
       </div>
