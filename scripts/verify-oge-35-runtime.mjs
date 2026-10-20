@@ -86,19 +86,15 @@ const gatedResponse = await fetch(`${base}/api/wave/command`, {
   }),
 });
 const gatedBody = await json(gatedResponse);
-// The WAVE command entrypoint returns an owner-confirmation proposal (HTTP 202).
-// This is NOT execution or a bypass: no task may be queued without the matching
-// second confirmation and approval_id. The capability execution API's separate
-// 409 HUMAN_APPROVAL_REQUIRED contract is tested in its own suite.
-assert.equal(gatedResponse.status, 202, `non-read approval gate HTTP status: ${gatedBody?.code || "unknown"}`);
+// A verified Owner Session is final authorization. Unsupported write adapters
+// fail with 501; they must not create a second confirmation prompt.
+assert.equal(gatedResponse.status, 501, `non-read adapter status: ${gatedBody?.code || "unknown"}`);
 assert.equal(gatedBody?.ok, false);
-assert.equal(gatedBody?.code, "OWNER_APPROVAL_REQUIRED");
-assert.equal(gatedBody?.approval?.required, true);
-assert.equal(gatedBody?.approval?.action, "CONFIRM_AND_QUEUE");
-assert.equal(gatedBody?.approval?.environment, "staging");
-assert.ok(typeof gatedBody?.approval?.approval_id === "string" && gatedBody.approval.approval_id.length > 0);
-assert.equal(gatedBody?.execution?.status, "NOT_STARTED");
-assert.equal(gatedBody?.execution?.consumer_proven, false);
+assert.equal(gatedBody?.code, "ADAPTER_NOT_IMPLEMENTED");
+assert.equal(gatedBody?.approval?.required, false);
+assert.equal(gatedBody?.approval?.authority, "SIGNED_OWNER_SESSION");
+assert.equal(gatedBody?.verification?.status, "blocked");
+assert.equal(gatedBody?.verification?.reason, "NO_IMPLEMENTED_NON_READ_ADAPTER");
 assert.equal(gatedBody?.command_handoff?.admission, "BLUE_DIAMOND_ATHENA");
 assert.equal(gatedBody?.command_handoff?.execution_authority, "YELLOW_STONE_ONLY");
 assert.equal(gatedBody?.command_handoff?.direct_execution_bypass, false);
