@@ -31,18 +31,26 @@ function requireStaging() {
   assert.equal(process.env.INFISICAL_SECRET_PATH, "/", "INFISICAL_SECRET_PATH_SCOPE");
 }
 async function githubRequest(path, token, options={}) {
-  return fetch(GITHUB_API + path, {
-    ...options,
-    headers: {
-      "Authorization": "Bearer " + token,
-      "Accept": "application/vnd.github+json",
-      "Content-Type": "application/json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "ogenic-oge34-staging-binding",
-    },
-    redirect: "error",
-    signal: AbortSignal.timeout(20000),
-  });
+  const url=GITHUB_API + path;
+  for(let attempt=1;attempt<=3;attempt++){
+    try{
+      return await fetch(url,{
+        ...options,
+        headers:{
+          "Authorization":"Bearer "+token,
+          "Accept":"application/vnd.github+json",
+          "Content-Type":"application/json",
+          "X-GitHub-Api-Version":"2022-11-28",
+          "User-Agent":"ogenic-oge34-staging-binding",
+        },
+        redirect:"error", signal:AbortSignal.timeout(15000),
+      });
+    }catch(error){
+      if(attempt===3)throw new Error("GITHUB_NETWORK_UNAVAILABLE_AFTER_RETRIES");
+      await delay(1000*attempt);
+    }
+  }
+  throw new Error("GITHUB_NETWORK_UNAVAILABLE");
 }
 async function verifyOwnerRead() {
   const ownerKey=process.env.OGENIC_OPS_KEY || "";
