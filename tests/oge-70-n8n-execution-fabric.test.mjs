@@ -88,12 +88,13 @@ test("verified self-host n8n is active in provider metadata without schema chang
   assert.doesNotMatch(reconcile, /\b(?:CREATE|ALTER|DROP)\s+(?:TABLE|INDEX|TRIGGER|VIEW)\b/i);
 });
 
-test("Yellow keeps n8n workflow_run approval-gated as EXECUTE", () => {
+test("Yellow keeps n8n EXECUTE blocked until an adapter exists without repeated owner approval", () => {
   const execution = read("worker/capability-execution-api.ts");
   const migration = read("database/migrations/0002_canonical_operating_state.sql");
   assert.match(migration, /\('workflow_run','execution','EXECUTE'/);
   assert.match(execution, /descriptor\.permission_class !== "READ"/);
-  assert.match(execution, /HUMAN_APPROVAL_REQUIRED/);
+  assert.match(execution, /ADAPTER_NOT_IMPLEMENTED/);
+  assert.match(execution, /NO_IMPLEMENTED_NON_READ_ADAPTER/);
 });
 
 test("MA-OP Web Lab exposes placement and self-host inventory without enabling execution", () => {
