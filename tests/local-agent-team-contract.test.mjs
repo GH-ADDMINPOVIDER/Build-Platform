@@ -82,3 +82,17 @@ test("OpenBot runtime proof releases Runner-1 before the existing consumer and v
   assert.match(consumer, /OPENBOT_LAUNCHROOM_CODEX_D1_E2E=PASS/);
   assert.match(consumer, /OPENBOT_ROOM_D1_RESULT_CHECKPOINT_READBACK_FAILED/);
 });
+
+
+test("OpenBot one-prompt Owner command reuses canonical task, conversation and Codex dispatch", () => {
+  assert.match(ui, /quickSendToCodex/);
+  assert.match(ui, /openbot-quick-task/);
+  assert.match(ui, /Send to Codex/);
+  assert.match(ui, /permission: "READ"/);
+  assert.match(ui, /"\/api\/local-agent-team\/tasks"/);
+  assert.match(ui, /"\/api\/local-agent-team\/messages"/);
+  assert.match(ui, /"\/dispatch"/);
+  assert.match(ui, /!codexReady/);
+  assert.match(ui, /quickKey \+ "-message"/);
+  assert.match(ui, /await load\(\)/);
+});

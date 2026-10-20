@@ -33,6 +33,8 @@ export default function LocalAgentTeamPanel() {
   const [message, setMessage] = useState("");
   const [roomOpen, setRoomOpen] = useState(() => new URLSearchParams(window.location.search).get("room") === "launch");
   const [draft, setDraft] = useState("");
+  const [quickPrompt, setQuickPrompt] = useState("");
+  const [quickKey, setQuickKey] = useState(() => globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
   const [selectedTask, setSelectedTask] = useState("");
   const [targetAgent, setTargetAgent] = useState("");
   const [resultRef, setResultRef] = useState("");
@@ -71,6 +73,55 @@ export default function LocalAgentTeamPanel() {
       setMessage(response.ok ? `Task ${body.task?.id ?? "queued"} · ${body.execution?.state ?? "READY"}` : String(body.code ?? "REQUEST_FAILED"));
       if (response.ok) { setTitle(""); setDescription(""); await load(); }
     } finally { setBusy(false); }
+  }
+
+  // One-prompt Owner command: existing D1 task + conversation + Yellow/Codex dispatch.
+  // Keep the request key stable until successful dispatch for safe network retries.
+  async function quickSendToCodex(event: FormEvent) {
+    event.preventDefault();
+    if (busy || !codexReady || !quickPrompt.trim()) return;
+    setBusy(true); setMessage("");
+    const prompt = quickPrompt.trim();
+    try {
+      const created = await fetch("/api/local-agent-team/tasks", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": quickKey },
+        body: JSON.stringify({
+          title: prompt.slice(0, 160), description: prompt.slice(0, 800),
+          workspace_ref: "workspace:staging", permission: "READ",
+        }),
+      });
+      const record = await created.json().catch(() => ({})) as { code?: string; task?: { id?: string } };
+      const id = String(record.task?.id || "");
+      if (!created.ok || !/^localteam_[a-f0-9]{64}$/.test(id)) {
+        throw new Error(record.code || "ROOM_TASK_NOT_SAVED");
+      }
+      setSelectedTask(id);
+      const response = await fetch("/api/local-agent-team/messages", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": quickKey + "-message" },
+        body: JSON.stringify({ text: prompt.slice(0, 800), task_id: id }),
+      });
+      const roomMessage = await response.json().catch(() => ({})) as { code?: string };
+      if (!response.ok) throw new Error(roomMessage.code || "ROOM_MESSAGE_NOT_SAVED");
+      const dispatched = await fetch("/api/local-agent-team/tasks/" + encodeURIComponent(id) + "/dispatch", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent_id: "codex" }),
+      });
+      const receipt = await dispatched.json().catch(() => ({})) as { code?: string; command_task_id?: string };
+      if (!dispatched.ok) throw new Error(receipt.code || "ROOM_CODEX_DISPATCH_FAILED");
+      setMessage("Codex READ dispatched · " + (receipt.command_task_id || "pending") +
+        " · awaiting verified Runner-1 / D1 receipt (not DONE)");
+      setQuickPrompt("");
+      setQuickKey(globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
+      await load();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "ROOM_QUICK_COMMAND_FAILED");
+      await load();
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function sendRoomMessage(event: FormEvent) {
@@ -151,6 +202,19 @@ export default function LocalAgentTeamPanel() {
     <div className="localTeamLocation">Canonical data: <strong>{state.storage?.canonical ?? "Cloudflare D1 / agent_tasks, agent_events, agent_checkpoints"}</strong>. This is not local-only storage.</div>
     {roomOpen && <section id="waveLaunchRoom" className="localLaunchRoom" aria-label="OpenBot Launch Room">
       <div className="localRoomBar"><strong>Launch Room · owner-main / 1LSS_OWNER_MAIN</strong><button type="button" onClick={() => void load()} disabled={busy}>Refresh</button><a href="/chat">WAVE Chat</a></div>
+      <form className="localRoomQuickRun" onSubmit={quickSendToCodex} aria-label="OpenBot one-prompt Codex read-only task">
+        <label htmlFor="openbot-quick-task"><strong>Quick command · Codex on Runner-1</strong></label>
+        <textarea id="openbot-quick-task" value={quickPrompt}
+          onChange={(event) => setQuickPrompt(event.target.value)} maxLength={800} rows={3}
+          placeholder="พิมพ์สิ่งที่ต้องการให้ Codex ตรวจบน Staging แล้วกดส่งได้เลย…" />
+        <div className="localRoomQuickActions">
+          <span>{codexReady ? "READ-only · Signed Owner Session · D1 checkpoint + real receipt"
+            : "Codex Runtime ยังไม่ยืนยัน · ไม่เรียก API เสียเงินแทน"}</span>
+          <button type="submit" className="wnPrimary" disabled={busy || !codexReady || !quickPrompt.trim()}>
+            {busy ? "Sending…" : "Send to Codex →"}
+          </button>
+        </div>
+      </form>
       <div className="localRoomColumns">
         <div className="localRoomConversation">
           <h4>Persistent conversation</h4>
