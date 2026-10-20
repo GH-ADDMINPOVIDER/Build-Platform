@@ -63,7 +63,8 @@ test("OGE-94 returns actionable no-cost admission diagnostics without new routes
 test("OGE-94 does not weaken execution or storage controls", () => {
   const executor = source("worker/capability-execution-api.ts");
   assert.match(executor, /descriptor\.permission_class !== "READ"/);
-  assert.match(executor, /HUMAN_APPROVAL_REQUIRED/);
+  assert.match(executor, /hasOwnerSession/);
+  assert.match(executor, /NO_IMPLEMENTED_NON_READ_ADAPTER/);
   assert.match(executor, /retention_eligible: false/);
   assert.match(executor, /semantic_verification_required: "RUBY_STONE"/);
   assert.equal(onboarding.hard_gates.no_unapproved_metered_auto_route, true);
