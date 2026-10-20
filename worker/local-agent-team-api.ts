@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
+import { hasOwnerSession, hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { buildWhiteDiamondRegistry } from "./white-diamond-registry";
 
 type D1Prepared = {
@@ -75,7 +75,7 @@ function secretLike(value: unknown) {
 }
 
 function safeStatus(status: string, latestEvent?: string | null) {
-  if (latestEvent === "LOCAL_TEAM_APPROVAL_REQUIRED") return "WAITING_APPROVAL";
+  if (latestEvent === "LOCAL_TEAM_APPROVAL_REQUIRED") return "ADAPTER_BINDING_REQUIRED";
   if (status === "QUEUED" || status === "CLAIMED") return "READY";
   if (status === "RUNNING" || status === "VERIFYING") return "RUNNING";
   if (status === "DONE") return "DONE";
@@ -138,6 +138,10 @@ export function createLocalAgentTeamApi() {
   api.use("/api/local-agent-team/*", async (c, next) => {
     if (!(await hasOwnerOrOpsAccess(c.req.raw, c.env))) {
       return c.json({ ok: false, code: "REAUTH_REQUIRED", role: "owner" }, 401);
+    }
+    // Ops can inspect existing state. Only a signed Owner Session may submit changes.
+    if (c.req.method !== "GET" && !(await hasOwnerSession(c.req.raw, c.env))) {
+      return c.json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 401);
     }
     await next();
   });
@@ -235,7 +239,7 @@ export function createLocalAgentTeamApi() {
     const correlationId = `localteam-corr-${identity.slice(0, 40)}`;
     const resourceKey = `local-agent-team:${ROOM}:${workspace}`;
     const existing = await taskById(c.env.DB, taskId);
-    if (existing) return c.json({ ok: true, idempotent_replay: true, task: taskView(existing), execution: { state: permission === "READ" ? "READY" : "WAITING_APPROVAL" } }, 200, { "Cache-Control": "no-store" });
+    if (existing) return c.json({ ok: true, idempotent_replay: true, task: taskView(existing), execution: { state: permission === "READ" ? "READY" : "ADAPTER_BINDING_REQUIRED" } }, 200, { "Cache-Control": "no-store" });
     await c.env.DB.prepare(
       `INSERT INTO agent_tasks(id, title, capability, status, priority, resource_key, claimed_by,
         correlation_id, source_ref, attempt_count, created_at, updated_at)
@@ -246,7 +250,7 @@ export function createLocalAgentTeamApi() {
        VALUES (?, ?, 'LOCAL_TEAM_TASK_CREATED', 'owner-main', ?, ?, CURRENT_TIMESTAMP)`,
     ).bind(`event-localteam-create-${identity}`, taskId, correlationId, JSON.stringify({ room: ROOM, workspace_ref: workspace, permission, agent_id: requestedAgent, description_sha256: await digest(description) })).run();
     const saved = await taskById(c.env.DB, taskId);
-    return c.json({ ok: true, idempotent_replay: false, task: saved ? taskView(saved, "LOCAL_TEAM_TASK_CREATED") : null, execution: { state: permission === "READ" ? "READY" : "WAITING_APPROVAL", provider_execution: "NOT_STARTED", receipt: null }, handoff: { next: permission === "READ" ? "SUPERVISOR_ASSIGNMENT" : "OWNER_APPROVAL_REQUIRED" } }, 202, { "Cache-Control": "no-store" });
+    return c.json({ ok: true, idempotent_replay: false, task: saved ? taskView(saved, "LOCAL_TEAM_TASK_CREATED") : null, execution: { state: permission === "READ" ? "READY" : "ADAPTER_BINDING_REQUIRED", provider_execution: "NOT_STARTED", receipt: null }, handoff: { next: permission === "READ" ? "SUPERVISOR_ASSIGNMENT" : "ADAPTER_BINDING_REQUIRED" } }, 202, { "Cache-Control": "no-store" });
   });
 
   api.post("/api/local-agent-team/tasks/:taskId/handoff", async (c) => {
@@ -270,9 +274,9 @@ export function createLocalAgentTeamApi() {
     await c.env.DB.prepare(
       `INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, correlation_id, external_ref, created_at)
        VALUES (?, ?, 'LOCAL_TEAM_HANDOFF_REQUESTED', 'owner-main', ?, ?, CURRENT_TIMESTAMP)`,
-    ).bind(eventId, taskId, task.correlation_id, JSON.stringify({ target_agent: targetAgent, approval: "required_before_write_or_execute" })).run();
+    ).bind(eventId, taskId, task.correlation_id, JSON.stringify({ target_agent: targetAgent, authorization: "SIGNED_OWNER_SESSION", execution: "ADAPTER_BINDING_REQUIRED" })).run();
     const updated = await taskById(c.env.DB, taskId);
-    return c.json({ ok: true, task: updated ? taskView(updated, "LOCAL_TEAM_HANDOFF_REQUESTED") : null, execution: { state: "WAITING_APPROVAL", provider_execution: "NOT_STARTED", receipt: null } }, 202, { "Cache-Control": "no-store" });
+    return c.json({ ok: true, task: updated ? taskView(updated, "LOCAL_TEAM_HANDOFF_REQUESTED") : null, execution: { state: "ADAPTER_BINDING_REQUIRED", provider_execution: "NOT_STARTED", receipt: null } }, 202, { "Cache-Control": "no-store" });
   });
 
   api.post("/api/local-agent-team/tasks/:taskId/result", async (c) => {
