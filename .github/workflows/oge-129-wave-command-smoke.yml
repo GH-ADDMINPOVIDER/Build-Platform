@@ -7,6 +7,7 @@ on:
       - "scripts/oge129_wave_command_connections_smoke.mjs"
       - "scripts/oge129_owner_live_e2e.mjs"
       - "scripts/verify-openbot-launchroom-staging.mjs"
+      - "scripts/wave-command-consumer.mjs"
   workflow_dispatch:
 permissions:
   contents: read

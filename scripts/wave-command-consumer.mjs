@@ -71,8 +71,22 @@ const run = spawnSync("codex", ["exec", "--sandbox", sandboxMode, "--skip-git-re
   maxBuffer: 1024 * 1024,
 });
 const combined = String(run.stdout || "") + "\n" + String(run.stderr || "");
-const secretLike = /(sk-[a-z0-9_-]{12,}|gh[pousr]_[a-z0-9_]{12,}|bearer\s+[a-z0-9._~+/=-]{12,}|BEGIN (?:RSA|OPENSSH|EC) PRIVATE KEY)/i;
-const status = run.status === 0 && !secretLike.test(combined) ? "DONE" : secretLike.test(combined) ? "BLOCKED" : "FAILED";
+// Reject actual credential patterns, not ordinary words ending in "sk-" such
+// as "task-identifiers". Never print matched text or protected CLI output.
+const protectedMarkers = [
+  ["openai_key", /(?:^|[^a-z0-9_])sk-[a-z0-9_-]{12,}/i],
+  ["github_token", /(?:^|[^a-z0-9_])gh[pousr]_[a-z0-9_]{12,}/i],
+  ["bearer_token", /(?:^|[^a-z0-9_])bearer\s+[a-z0-9._~+/=-]{12,}/i],
+  ["pem_private_key", /BEGIN (?:RSA|OPENSSH|EC) PRIVATE KEY/i],
+];
+const guardClasses = protectedMarkers.filter(([, expression]) => expression.test(combined)).map(([label]) => label);
+const guarded = guardClasses.length !== 0;
+const status = guarded ? "BLOCKED" : run.status === 0 ? "DONE" : "FAILED";
+if (status !== "DONE") {
+  // Only category and numeric exit status are safe to expose as diagnostics.
+  process.stderr.write("WAVE_CONSUMER_SAFE_FAILURE=" +
+    JSON.stringify({ code: run.status, signal: run.signal, guard_classes: guardClasses }) + "\n");
+}
 const resultHash = createHash("sha256").update(combined.slice(0, 1_000_000)).digest("hex");
 const git = spawnSync("git", ["rev-parse", "HEAD"], { cwd: workspace, encoding: "utf8" });
 const gitSha = String(git.stdout || "").trim();
