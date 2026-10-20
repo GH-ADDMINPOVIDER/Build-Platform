@@ -70,3 +70,15 @@ test("OpenBot reports absent external adapters and forbids room WRITE execution"
   assert.match(api, /NO_PROVIDER_CALL_FROM_ROOM/);
   assert.match(ui, /No verified room adapter available/);
 });
+
+test("OpenBot runtime proof releases Runner-1 before the existing consumer and verifies final D1 checkpoint", () => {
+  const check = fs.readFileSync(new URL("../scripts/verify-openbot-launchroom-staging.mjs", import.meta.url), "utf8");
+  const workflow = fs.readFileSync(new URL("../.github/workflows/provider-incentive-staging-deploy.yml", import.meta.url), "utf8");
+  const consumer = fs.readFileSync(new URL("../scripts/wave-command-consumer.mjs", import.meta.url), "utf8");
+  assert.match(workflow, /node scripts\/verify-openbot-launchroom-staging\.mjs/);
+  assert.match(workflow, /contains\(github\.event\.head_commit\.message, 'openbot'\)/);
+  assert.match(check, /OPENBOT_LAUNCHROOM_CODEX_READONLY_DISPATCH=PASS/);
+  assert.match(check, /ROOM_WAVE_TASK_LINK_NOT_READBACK/);
+  assert.match(consumer, /OPENBOT_LAUNCHROOM_CODEX_D1_E2E=PASS/);
+  assert.match(consumer, /OPENBOT_ROOM_D1_RESULT_CHECKPOINT_READBACK_FAILED/);
+});

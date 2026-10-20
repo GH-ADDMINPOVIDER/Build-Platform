@@ -112,6 +112,30 @@ if (proofReadOnly && status === "DONE") {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   if (!readbackProven) fail("D1_COMMAND_RESULT_DONE_READBACK_UNVERIFIED");
+  // Existing Wave Command consumer is the only executor. Verify a linked
+  // OpenBot-mode task returned all the way to the EXISTING D1 room records.
+  const roomMatch = /^OGE129 READONLY PROOF: OpenBot Launch Room (localteam_[a-f0-9]{64})/.exec(intent);
+  if (roomMatch) {
+    let roomProven = false;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const response = await fetch(waveUrl + "/api/local-agent-team/state", {
+        headers: { authorization: "Bearer " + token }, redirect: "error",
+      }).catch(() => null);
+      const room = response?.status === 200 ? await response.json().catch(() => ({})) : {};
+      const task = (room.tasks || []).find(x => x.id === roomMatch[1]);
+      const checkpoint = (room.checkpoints || []).find(x => x.task_id === roomMatch[1] &&
+        x.agent_id === "codex-selfhost:wave-runner-01" && x.state_hash === resultHash &&
+        x.checkpoint_ref === evidenceRef);
+      if (task?.status === "DONE" && task?.command_task_id === taskId &&
+          task?.runtime_receipt?.status === "DONE" && checkpoint) {
+        roomProven = true;
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    if (!roomProven) fail("OPENBOT_ROOM_D1_RESULT_CHECKPOINT_READBACK_FAILED");
+    process.stdout.write("OPENBOT_LAUNCHROOM_CODEX_D1_E2E=PASS\n");
+  }
   process.stdout.write("OGE129_SIGNED_OWNER_TO_RUNNER_CODEX_D1_E2E=PASS\\n".replace("\\n","\n"));
 }
 process.stdout.write(JSON.stringify({ ok: status === "DONE", task_id: taskId, status, result_sha256: resultHash, git_sha: gitSha }) + "\n");
