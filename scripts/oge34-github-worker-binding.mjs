@@ -33,7 +33,7 @@ export function inspectRunnerTwoCredential(name, raw) {
 export function selectRunnerTwoAuthorizedCredential(authorized) {
   // Only choose after a real GitHub principal check and Actions-write canary.
   // Fine-grained PAT is narrower; Classic is a distinct fallback if proven.
-  const candidates = authorized.filter(x => x.principal === "wave_runner-2");
+  const candidates = authorized.filter(x => x.principal === "wave-runner-2");
   const fine = candidates.find(x => x.type === "FINE_GRAINED_PAT");
   if (fine) return fine;
   const classic = candidates.find(x => x.type === "CLASSIC_PAT");
@@ -137,7 +137,25 @@ export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
   } catch { /* no noninteractive credential helper configured */ }
   return found;
 }
-async function verifyExistingHostGitHubPrincipal(token, runnerTwoOnly = false) {
+// Stable GitHub numeric IDs are more reliable than emails, display names
+// or guessed GitHub login spellings. Primary = Tawatchai; secondary = Tomload21.
+// A 200 from /user proves token validity, NOT the expected GitHub identity.
+export const OWNER_GITHUB_IDENTITIES = Object.freeze({
+  runner1: { id: 306097555, login: "ogenicchocolate21debug" },
+  runner2: { id: 342175560, login: "wave-runner-2" },
+});
+export function classifyOwnerPrincipal(payload, expected = "either") {
+  const id = Number(payload?.id);
+  const login = String(payload?.login ?? "").toLowerCase();
+  const one = OWNER_GITHUB_IDENTITIES.runner1;
+  const two = OWNER_GITHUB_IDENTITIES.runner2;
+  const first = id === one.id && login === one.login;
+  const second = id === two.id && login === two.login;
+  if (expected === "runner1") return first ? "runner1" : null;
+  if (expected === "runner2") return second ? "runner2" : null;
+  return first ? "runner1" : second ? "runner2" : null;
+}
+async function verifyExistingHostGitHubPrincipal(token, expected = "either") {
   const response = await fetch("https://api.github.com/user", {
     headers: {
       "Authorization": "Bearer " + token,
@@ -147,16 +165,16 @@ async function verifyExistingHostGitHubPrincipal(token, runnerTwoOnly = false) {
     redirect: "error", signal: AbortSignal.timeout(15000),
   }).catch(() => null);
   const payload = response?.status === 200 ? await responseJson(response) : {};
-  const principal = String(payload.login || "").toLowerCase();
-  if (runnerTwoOnly) {
-    // Both identifiers are Owner-provided for GH Runner-2. An HTTP 200 with
-    // a different GitHub login must not be silently treated as this account.
-    const matched = ["wave_runner-2", "tomload21"].includes(principal);
+  const matched = classifyOwnerPrincipal(payload, expected);
+  // Metadata only. Never print token bytes, response headers or personal emails.
+  console.log("OGE34_PRINCIPAL_EXPECTED="+expected);
+  console.log("OGE34_PRINCIPAL_HTTP="+String(response?.status ?? "NETWORK_ERROR"));
+  console.log("OGE34_PRINCIPAL_MATCH="+(matched ? "YES" : "NO"));
+  if (expected === "runner2") {
     console.log("OGE34_RUNNER2_PRINCIPAL_HTTP="+String(response?.status ?? "NETWORK_ERROR"));
     console.log("OGE34_RUNNER2_PRINCIPAL_MATCH="+(matched ? "YES" : "NO"));
-    return matched;
   }
-  return ["ogenicchocolate21debug", "wave_runner-2", "tomload21"].includes(principal);
+  return matched;
 }
 
 export async function main() {
@@ -197,12 +215,15 @@ export async function main() {
       console.log("OGE34_CANDIDATE_"+key+"_FORMAT_MISMATCH="+recognized.type);
       continue;
     }
-    if (recognized.recognized && !(await verifyExistingHostGitHubPrincipal(raw, true))) {
-      console.log("OGE34_CANDIDATE_"+key+"_RUNNER2_PRINCIPAL_UNVERIFIED");
-      continue;
-    }
-    if (hostLocal && !(await verifyExistingHostGitHubPrincipal(raw))) {
-      console.log("OGE34_CANDIDATE_"+key+"_OWNER_PRINCIPAL_UNVERIFIED");
+    // GITHUB_TOKEN_OGE34 is the PRIMARY account (Tawatchai / Runner-1).
+    // GH-ID-TOMLOAD-RUNNER-2 and GIT_HUB_RUNNER-2 are SECONDARY account.
+    // Never conflate repository roles with token scope or assume email=login.
+    const expectedPrincipal = recognized.recognized ? "runner2"
+      : (key === "GITHUB_TOKEN_OGE34" || key === "GIBHUB_TOKEN_OGE34") ? "runner1" : "either";
+    const verifiedPrincipal = await verifyExistingHostGitHubPrincipal(raw, expectedPrincipal);
+    if (!verifiedPrincipal) {
+      console.log("OGE34_CANDIDATE_"+key+(expectedPrincipal === "runner2"
+        ? "_RUNNER2_PRINCIPAL_UNVERIFIED" : "_OWNER_PRINCIPAL_UNVERIFIED"));
       continue;
     }
     const variants=[{type:"EXACT",value:raw}];
@@ -248,7 +269,7 @@ export async function main() {
       }
       if(result==="AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN")authorized.push({
         key:label, token:candidate, type:recognized.recognized ? recognized.type : "LEGACY",
-        principal:recognized.recognized ? "wave_runner-2" : "UNVERIFIED_LEGACY",
+        principal: verifiedPrincipal === "runner2" ? "wave-runner-2" : "ogenicchocolate21debug",
       });
     }
   }

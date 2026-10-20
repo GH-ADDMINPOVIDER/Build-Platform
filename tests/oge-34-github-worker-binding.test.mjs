@@ -66,8 +66,8 @@ test("Runner-2 Classic and fine-grained PAT remain separate, strictly typed cred
 });
 test("Fine-grained Runner-2 PAT preferred; Classic Runner-2 PAT is a distinct fallback only when verified",()=>{
   const {selectRunnerTwoAuthorizedCredential: select}=hostAuth;
-  const fine={key:"GIT_HUB_RUNNER-2_EXACT",token:"github_pat_test",type:"FINE_GRAINED_PAT",principal:"wave_runner-2"};
-  const classic={key:"GH-ID-TOMLOAD-RUNNER-2_EXACT",token:"ghp_test",type:"CLASSIC_PAT",principal:"wave_runner-2"};
+  const fine={key:"GIT_HUB_RUNNER-2_EXACT",token:"github_pat_test",type:"FINE_GRAINED_PAT",principal:"wave-runner-2"};
+  const classic={key:"GH-ID-TOMLOAD-RUNNER-2_EXACT",token:"ghp_test",type:"CLASSIC_PAT",principal:"wave-runner-2"};
   const other={key:"GITHUB_TOKEN_OGE34_EXACT",token:"ghp_other",type:"LEGACY",principal:"ogenicchocolate21debug"};
   assert.equal(select([classic,fine]),fine);
   assert.equal(select([classic]),classic);
@@ -81,4 +81,28 @@ test("only Runner-2 PAT keys have explicitly matched prefixes; no bytes logged o
   assert.match(src,/GIT_HUB_RUNNER-2/);
   assert.match(src,/OGE34_VERIFIED_TOKEN_TYPE/);
   assert.doesNotMatch(src,/\.replace\(\/github_pat_/);
+});
+
+test("OGE34 belongs to Tawatchai primary, Tomload21 PATs belong to Wave-Runner-2",()=>{
+  const { OWNER_GITHUB_IDENTITIES, classifyOwnerPrincipal } = hostAuth;
+  assert.equal(OWNER_GITHUB_IDENTITIES.runner1.id,306097555);
+  assert.equal(OWNER_GITHUB_IDENTITIES.runner2.id,342175560);
+  const tawatchai={ id:306097555, login:"Ogenicchocolate21debug" };
+  const tomload={ id:342175560, login:"Wave-Runner-2" };
+  assert.equal(classifyOwnerPrincipal(tawatchai,"runner1"),"runner1");
+  assert.equal(classifyOwnerPrincipal(tawatchai,"runner2"),null);
+  assert.equal(classifyOwnerPrincipal(tomload,"runner2"),"runner2");
+  assert.equal(classifyOwnerPrincipal(tomload,"runner1"),null);
+  assert.equal(classifyOwnerPrincipal({id:342175560,login:"wave_runner-2"},"runner2"),null);
+  assert.equal(classifyOwnerPrincipal({id:306097555,login:"Wave-Runner-2"},"either"),null);
+  assert.equal(classifyOwnerPrincipal({id:342175560,login:"tomload21"},"runner2"),null);
+});
+test("legacy OGE token is explicitly primary; Runner-2 PAT principal always verified before dispatch",()=>{
+  const src=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
+  assert.match(src,/key === "GITHUB_TOKEN_OGE34".*?\? "runner1"/s);
+  assert.match(src,/recognized\.recognized \? "runner2"/);
+  assert.match(src,/await verifyExistingHostGitHubPrincipal\(raw, expectedPrincipal\)/);
+  assert.match(src,/principal: verifiedPrincipal === "runner2"/);
+  assert.match(src,/wave-runner-2/);
+  assert.doesNotMatch(src,/\["wave_runner-2", "tomload21"\]/);
 });
