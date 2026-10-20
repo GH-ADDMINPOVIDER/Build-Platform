@@ -42,8 +42,11 @@ const claim = await api("/api/wave/command/claim", { task_id: taskId });
 const intent = String(claim.task?.intent || "").trim();
 if (!intent) fail("APPROVED_INTENT_UNAVAILABLE");
 
+const proofReadOnly = intent.startsWith("OGE129 READONLY PROOF:");
+const sandboxMode = proofReadOnly ? "read-only" : "workspace-write";
 const guard = [
   "Operate only in the current OGENIC staging checkout.",
+  ...(proofReadOnly ? ["This is a read-only proof. Never modify any files, run installation commands, or change Git state."] : []),
   "Never touch main, production, Candy, D1 schema, billing, authentication, or secret values.",
   "Do not print environment variables or credentials.",
   "Make the smallest reversible change; run relevant tests; report exact evidence.",
@@ -51,7 +54,8 @@ const guard = [
   intent,
 ].join("\n");
 
-const run = spawnSync("codex", ["exec", "--sandbox", "workspace-write", "--skip-git-repo-check", guard], {
+if (proofReadOnly) process.stdout.write("WAVE_CONSUMER_READ_ONLY_SANDBOX=ENFORCED\n");
+const run = spawnSync("codex", ["exec", "--sandbox", sandboxMode, "--skip-git-repo-check", guard], {
   cwd: workspace,
   // Do not leak Infisical/GitHub/Cloudflare/Owner credentials to the coding child.
   // Parent alone retains OGENIC_OPS_KEY to submit the command result receipt.
