@@ -116,3 +116,10 @@ test("identity verification occurs on control-character normalized candidate, no
   assert.ok(variantIndex > 0 && principalIndex > variantIndex);
   assert.doesNotMatch(src,/verifyExistingHostGitHubPrincipal\(raw, expectedPrincipal\)/);
 });
+
+test("WAVE safe READ smoke uses ordinary file intent, not a blocked credential-like phrase",()=>{
+  const source=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
+  assert.match(source,/Read the staging repository manifest/);
+  assert.doesNotMatch(source,/Validate staging GitHub endpoint credential binding via verified READ/);
+  assert.match(source,/capability:"read_file",provider:"github",environment:"staging"/);
+});
