@@ -189,6 +189,17 @@ jobs:
           report("verified", f"Bot username: {username}; bot ID: {bot_id}.")
           PY
 
+      - name: Verify GH-2 primary Actions-write and export protected staging runtime binding
+        # Uses existing Infisical staging OIDC from the previous steps.
+        # Rejects GH-1 PAT fallback, incorrect principal, missing branch and
+        # Actions 403 before deploying. No new PAT, secret or gateway.
+        shell: bash
+        env:
+          OGE34_EXPORT_CANONICAL: "1"
+        run: |
+          set -euo pipefail
+          node scripts/oge34-github-worker-binding.mjs
+
       - name: Normalize canonical runtime secret names
         shell: bash
         run: |
@@ -201,16 +212,13 @@ jobs:
           normalized = 0
           with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
               for canonical, aliases in manifest.get('aliases', {}).items():
-                  # OGE-40 regression isolation proved the staging GITHUB_TOKEN
-                  # binding can be malformed while the established OGE34 alias is healthy.
-                  # Preserve the last-known-good authoritative GitHub READ binding without
-                  # exposing or mutating the secret at rest.
+                  # Never overwrite a GH-2 dispatch PAT with the GH-1 OGE34 READ alias.
+                  # The previous step verifies GH-2 identity and Actions write before
+                  # exporting GITHUB_TOKEN into the protected staging job environment.
                   if canonical == 'GITHUB_TOKEN':
-                      proven_github = os.environ.get('GITHUB_TOKEN_OGE34')
-                      if proven_github:
-                          output.write(f'{canonical}={proven_github}\n')
-                          normalized += 1
-                          continue
+                      if os.environ.get('OGE34_GH2_PRIMARY_BOUND') != '1' or not os.environ.get('GITHUB_TOKEN'):
+                          raise SystemExit('CONFIGURATION_REQUIRED: GH-2 Actions write was not verified')
+                      continue
                   if os.environ.get(canonical):
                       continue
                   for alias in aliases:

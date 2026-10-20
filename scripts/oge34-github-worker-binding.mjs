@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const REPO = "Ogenicchocolate21debug/Build-Platform";
@@ -138,7 +139,8 @@ export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
   return found;
 }
 // Stable GitHub numeric IDs are more reliable than emails, display names
-// or guessed GitHub login spellings. Primary = Tawatchai; secondary = Tomload21.
+// or guessed GitHub login spellings. GH-1 retains repository admin and Cloudflare
+// credential custody; GH-2 is the primary WAVE Actions dispatch principal.
 // A 200 from /user proves token validity, NOT the expected GitHub identity.
 export const OWNER_GITHUB_IDENTITIES = Object.freeze({
   runner1: { id: 306097555, login: "ogenicchocolate21debug" },
@@ -215,8 +217,8 @@ export async function main() {
       console.log("OGE34_CANDIDATE_"+key+"_FORMAT_MISMATCH="+recognized.type);
       continue;
     }
-    // GITHUB_TOKEN_OGE34 is the PRIMARY account (Tawatchai / Runner-1).
-    // GH-ID-TOMLOAD-RUNNER-2 and GIT_HUB_RUNNER-2 are SECONDARY account.
+    // GITHUB_TOKEN_OGE34 is GH-1 (Tawatchai, admin), not the dispatch primary.
+    // GH-ID-TOMLOAD-RUNNER-2 and GIT_HUB_RUNNER-2 belong to primary GH-2 (Tomload21).
     // Never conflate repository roles with token scope or assume email=login.
     const expectedPrincipal = recognized.recognized ? "runner2"
       : (key === "GITHUB_TOKEN_OGE34" || key === "GIBHUB_TOKEN_OGE34") ? "runner1" : "either";
@@ -280,13 +282,25 @@ export async function main() {
   // Prefer a verified fine-grained Runner-2 PAT; separately verified Classic PAT
   // is eligible only when fine-grained cannot dispatch. Ambiguous legacy tokens
   // fail closed as before.
-  const chosen=selectRunnerTwoAuthorizedCredential(authorized) ??
-    (authorized.length===1 ? authorized[0] : null);
-  if (!chosen) throw new Error("STAGING_SECRET_NOT_CHANGED_MULTIPLE_AUTHORIZED_GITHUB_TOKENS_REQUIRE_EXPLICIT_SOURCE");
+  // GH-2 is the operational primary for WAVE Actions dispatch. GH-1
+  // admin/Cloudflare credentials must not silently become the runtime PAT.
+  const chosen=selectRunnerTwoAuthorizedCredential(authorized);
+  if (!chosen) throw new Error("STAGING_SECRET_NOT_CHANGED_GH2_ACTIONS_WRITE_NOT_VERIFIED");
   const token=chosen.token;
   console.log("OGE34_VERIFIED_TOKEN_SOURCE="+chosen.key);
   console.log("OGE34_VERIFIED_TOKEN_TYPE="+chosen.type);
   console.log("OGE34_DISPATCH_SCOPE=AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN");
+  // Called by the EXISTING staging deploy workflow. Verify GH-2's numeric
+  // principal + Actions-write canary, then export the vetted PAT to GitHub's
+  // transient job environment; its protected runtime bundle carries the secret.
+  // Do not expose the token in logs, source, D1 or artifacts.
+  if (process.env.OGE34_EXPORT_CANONICAL === "1") {
+    const envFile = String(process.env.GITHUB_ENV || "");
+    if (!envFile) throw new Error("STAGING_GITHUB_ENV_FILE_MISSING");
+    appendFileSync(envFile, "GITHUB_TOKEN=" + token + "\nOGE34_GH2_PRIMARY_BOUND=1\n", { mode: 0o600 });
+    console.log("OGE34_GH2_PRIMARY_FOR_STAGING_DEPLOY=VERIFIED_ACTIONS_WRITE");
+    return;
+  }
   if(!process.env.CLOUDFLARE_API_TOKEN||!process.env.CLOUDFLARE_ACCOUNT_ID){
     throw new Error("CLOUDFLARE_STAGING_CREDENTIALS_MISSING");
   }

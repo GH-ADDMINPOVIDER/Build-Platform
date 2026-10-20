@@ -83,7 +83,7 @@ test("only Runner-2 PAT keys have explicitly matched prefixes; no bytes logged o
   assert.doesNotMatch(src,/\.replace\(\/github_pat_/);
 });
 
-test("OGE34 belongs to Tawatchai primary, Tomload21 PATs belong to Wave-Runner-2",()=>{
+test("GH-1 remains admin identity and GH-2 is the operational Actions principal",()=>{
   const { OWNER_GITHUB_IDENTITIES, classifyOwnerPrincipal } = hostAuth;
   assert.equal(OWNER_GITHUB_IDENTITIES.runner1.id,306097555);
   assert.equal(OWNER_GITHUB_IDENTITIES.runner2.id,342175560);
@@ -97,7 +97,7 @@ test("OGE34 belongs to Tawatchai primary, Tomload21 PATs belong to Wave-Runner-2
   assert.equal(classifyOwnerPrincipal({id:306097555,login:"Wave-Runner-2"},"either"),null);
   assert.equal(classifyOwnerPrincipal({id:342175560,login:"tomload21"},"runner2"),null);
 });
-test("legacy OGE token is explicitly primary; Runner-2 PAT principal always verified before dispatch",()=>{
+test("legacy OGE token belongs to GH-1 while GH-2 PAT is principal-verified before dispatch",()=>{
   const src=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
   assert.match(src,/key === "GITHUB_TOKEN_OGE34".*?\? "runner1"/s);
   assert.match(src,/recognized\.recognized \? "runner2"/);
@@ -122,4 +122,32 @@ test("WAVE safe READ smoke uses ordinary file intent, not a blocked credential-l
   assert.match(source,/Read the staging repository manifest/);
   assert.doesNotMatch(source,/Validate staging GitHub endpoint credential binding via verified READ/);
   assert.match(source,/capability:"read_file",provider:"github",environment:"staging"/);
+});
+
+test("WAVE staging deploy must preserve GH-2 as the primary GitHub Actions credential", () => {
+  const deploy=readFileSync(".github/workflows/provider-incentive-staging-deploy.yml","utf8");
+  const script=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
+  const selection=deploy.indexOf('name: Verify GH-2 primary Actions-write');
+  const runtime=deploy.indexOf('name: Prepare protected runtime secret bundle');
+  const deployment=deploy.indexOf('name: Deploy staging Worker with protected bindings');
+  assert.ok(selection > 0 && runtime > selection && deployment > runtime);
+  assert.match(deploy, /OGE34_EXPORT_CANONICAL: "1"/);
+  assert.match(deploy, /OGE34_GH2_PRIMARY_BOUND/);
+  assert.doesNotMatch(deploy, /proven_github = os.environ.get\('GITHUB_TOKEN_OGE34'\)/);
+  assert.match(script, /selectRunnerTwoAuthorizedCredential\(authorized\)/);
+  assert.doesNotMatch(script, /authorized.length===1 \? authorized\[0\]/);
+  assert.match(script, /STAGING_SECRET_NOT_CHANGED_GH2_ACTIONS_WRITE_NOT_VERIFIED/);
+  assert.match(script, /appendFileSync\(envFile/);
+  assert.match(script, /OGE34_GH2_PRIMARY_FOR_STAGING_DEPLOY=VERIFIED_ACTIONS_WRITE/);
+  assert.match(script, /AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN/);
+  assert.match(deploy, /INFISICAL_CLOUDFLARE_SOURCE_ENV: staging/);
+  assert.match(deploy, /wrangler deploy --config .*--secrets-file/);
+});
+
+test("GH-1 Cloudflare custody and GH-2 operational write are not conflated", () => {
+  const script=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
+  assert.match(script, /runner1: \{ id: 306097555/);
+  assert.match(script, /runner2: \{ id: 342175560/);
+  assert.match(script, /verifyExistingHostGitHubPrincipal\(candidate, expectedPrincipal\)/);
+  assert.match(script, /GH-1.*Cloudflare/);
 });
