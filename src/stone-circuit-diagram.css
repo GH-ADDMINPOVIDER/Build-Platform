@@ -1,0 +1,90 @@
+/* OGENIC/WAVE Circuit Logic v1 — standalone visual layer, zero runtime writes. */
+.scRoot {
+  box-sizing:border-box;color:#ecf7f0;max-width:100%;overflow:hidden;border-radius:20px;
+  background:linear-gradient(145deg,rgba(10,25,19,.94),rgba(5,13,10,.95));
+  border:1px solid rgba(151,205,178,.3);box-shadow:0 18px 55px rgba(1,14,8,.24);
+  -webkit-backdrop-filter:blur(25px) saturate(160%);backdrop-filter:blur(25px) saturate(160%);
+}
+.scRoot *{box-sizing:border-box}
+.scHeader{padding:19px 20px 12px;display:flex;justify-content:space-between;align-items:start;gap:15px}
+.scHeader h3{margin:7px 0;font-size:clamp(17px,2.3vw,26px);line-height:1.23;letter-spacing:-.035em}
+.scHeader p{margin:0;color:#9dbbae;font-size:11px;line-height:1.6;max-width:700px}
+.scEyebrow{font:800 10px/1.4 ui-monospace,SFMono-Regular,monospace;letter-spacing:.12em;color:#79d9b4}
+.scLiveChip{flex-shrink:0;display:flex;gap:8px;align-items:center;font:750 9px/1.2 ui-monospace,monospace;letter-spacing:.08em;color:#e3bf81;padding:8px 10px;border:1px solid #6d5739;border-radius:999px;background:rgba(111,70,26,.18)}
+.scLiveChip i{width:7px;height:7px;border-radius:50%;background:#e8ba69;box-shadow:0 0 7px #e8ba69}
+.scControls{display:flex;flex-wrap:wrap;gap:8px;padding:12px 20px;border-top:1px solid rgba(210,242,225,.08);border-bottom:1px solid rgba(210,242,225,.09)}
+.scControls button,.scSpeed select,.scDetailsToggle{min-height:38px;padding:0 12px;border-radius:10px;background:rgba(255,255,255,.075);color:#f0f9f3;border:1px solid rgba(255,255,255,.2);font:750 11px Inter,system-ui,sans-serif;cursor:pointer}
+.scControls button:hover,.scControls button:focus-visible,.scDetailsToggle:focus-visible{border-color:#b1eacc;outline-offset:2px}
+.scControls button[aria-pressed="true"]{background:rgba(84,182,126,.25);border-color:#62d1a5}
+.scSpeed{display:flex;align-items:center;gap:8px;margin-left:auto;font:750 11px Inter,system-ui,sans-serif;color:#aaccba}
+.scSpeed select{min-height:38px}
+.scBoardScroll{margin:13px 14px 0;overflow-x:auto;overflow-y:hidden;border:1px solid rgba(162,200,174,.17);border-radius:14px;background:#09130f;scrollbar-color:#406357 #09130f}
+.scBoard{display:block;width:100%;height:auto;min-width:720px}
+.scTrace{animation:scWires 1.05s linear infinite}
+.scRoot[data-playing="false"] .scTrace{animation-play-state:paused}
+@keyframes scWires {to{stroke-dashoffset:-30}}
+.scCircuitNode{outline:none;transition:opacity .2s}
+.scCircuitNode:focus-visible rect,.scCircuitNode.selected rect{filter:drop-shadow(0 0 9px rgba(150,224,184,.35))}
+.scCircuitNode:hover rect{filter:drop-shadow(0 0 8px rgba(150,224,184,.35))}
+.scCircuitNode:focus-visible{outline:2px solid #7ee0ba}
+.scFooter{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:12px;padding:15px 20px 18px}
+.scFooter>div:first-child{min-width:0}
+.scFooter small{display:block;margin-bottom:5px;color:#81b79f;font:800 9px/1.3 ui-monospace,monospace;letter-spacing:.12em}
+.scFooter strong{font-size:15px}
+.scFooter p{font-size:12px;margin:5px 0 0;color:#a6bfb1;line-height:1.45}
+.scFlowNotes{width:100%;border:1px solid rgba(154,200,174,.23);background:rgba(255,255,255,.03);border-radius:10px;padding:12px}
+.scFlowNotes p{margin:2px 0 8px}
+.scFlowNotes p:last-child{margin-bottom:0}
+.scMobileRail{display:none}
+.scGem{display:block;width:100%;height:100%;filter:drop-shadow(0 5px 6px rgba(0,0,0,.3))}
+@media (max-width:720px){
+  .scRoot{border-radius:15px}
+  .scHeader{padding:16px 14px 13px;display:block}
+  .scLiveChip{display:inline-flex;margin-top:10px}
+  .scControls{padding:10px 12px;gap:6px}
+  .scControls button{padding:0 10px}
+  .scSpeed{margin-left:0;flex:1;justify-content:flex-end}
+  .scBoardScroll{display:none}
+  .scMobileRail{display:grid;gap:6px;padding:13px 12px 5px}
+  .scMobileAthena{display:grid;place-items:center;gap:7px;min-height:76px;padding:14px;border:1px solid rgba(234,245,242,.46);border-radius:14px;background:rgba(255,255,255,.075)}
+  .scMobileAthena b{font-size:13px;text-align:center;letter-spacing:.03em}
+  .scMobileAthena span{font:700 9px/1.3 ui-monospace,monospace;color:#bfdfd0;letter-spacing:.05em}
+  .scMobileStone{position:relative;display:flex;align-items:center;gap:10px;width:100%;text-align:left;min-height:79px;padding:8px 11px;border-radius:12px;border:1px solid rgba(153,182,168,.23);border-inline-start-width:4px;background:rgba(255,255,255,.045);color:#f4faf6;cursor:pointer}
+  .scMobileStone.selected{background:rgba(111,179,137,.15);border-block-color:rgba(168,233,193,.55)}
+  .scMobileStone .scGemSmall{width:48px;height:50px;flex:none}
+  .scMobileStone>span{display:grid;gap:3px;min-width:0}
+  .scMobileStone small{font:750 9px/1.1 ui-monospace,monospace;letter-spacing:.05em;color:#9fbaa9}
+  .scMobileStone b{font-size:13px;line-height:1.2}
+  .scMobileStone em{font:700 9px/1.2 ui-monospace,monospace;font-style:normal;color:#aac9b6}
+  .scMobileSignal{width:7px;height:7px;border-radius:50%;position:absolute;right:14px;top:50%;opacity:.9;box-shadow:0 0 13px currentColor}
+  .scRoot[data-playing="true"] .scMobileSignal{animation:scMobilePulse 1.6s ease-in-out infinite alternate}
+  @keyframes scMobilePulse{from{transform:translateY(-13px) scale(.55);opacity:.22}to{transform:translateY(13px) scale(1.7);opacity:1}}
+  .scFooter{padding:13px}
+}
+@media(prefers-reduced-motion:reduce){
+  .scTrace,.scMobileSignal{animation:none!important}
+}
+
+
+/* Terminal Block is an execution environment; not a new stone or agent registry. */
+.scTerminalEnvironment{margin:14px 16px 6px;padding:16px;border:1px solid rgba(174,212,203,.3);border-radius:16px;background:linear-gradient(115deg,rgba(22,35,38,.86),rgba(15,27,28,.95))}
+.scTerminalHeading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.scTerminalHeading small{font:800 10px/1.2 ui-monospace,SFMono-Regular,monospace;letter-spacing:.08em;color:#8fe1c1}
+.scTerminalHeading h4{margin:6px 0 4px;font-size:16px;letter-spacing:.02em;color:#f3faf8}
+.scTerminalHeading p{margin:0;color:#b9cec8;font-size:11px;line-height:1.65}
+.scTerminalFlag{flex-shrink:0;padding:7px 9px;border:1px solid rgba(166,199,197,.32);border-radius:999px;color:#bfd5d2;font:800 9px/1.25 ui-monospace,monospace;letter-spacing:.04em}
+.scTerminalTools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}
+.scTerminalTool{display:flex;align-items:center;gap:10px;min-width:0;padding:12px;border:1px solid rgba(181,211,204,.23);border-radius:12px;background:rgba(255,255,255,.045)}
+.scTerminalGlyph{flex:none;display:grid;place-items:center;width:36px;height:36px;border:1px solid rgba(196,230,213,.32);border-radius:10px;color:#bcf4d7;background:rgba(163,232,204,.09);font-size:22px}
+.scTerminalTool strong{display:block;color:#f5fbf8;font-size:13px}
+.scTerminalTool small{display:block;margin:4px 0;font:800 9px/1.3 ui-monospace,monospace;letter-spacing:.03em;color:#86e3bf}
+.scTerminalTool p{margin:0;color:#aabeb7;font-size:10px;line-height:1.45}
+.scTerminalBoundary{margin:0;padding-top:9px;border-top:1px solid rgba(173,217,197,.14);color:#a6bdb4;font-size:10.5px;line-height:1.6}
+.scTerminalBoundary b{color:#d7eee3}
+@media(max-width:720px){
+  .scTerminalEnvironment{margin:12px;padding:13px}
+  .scTerminalHeading{display:block}
+  .scTerminalFlag{display:inline-block;margin-top:10px}
+  .scTerminalTools{grid-template-columns:1fr}
+  .scTerminalTool{min-height:60px}
+}

@@ -7,6 +7,8 @@ import { createCapabilityExecutionApi } from "./capability-execution-api";
 import { createOpenAISelfHostApi } from "./openai-selfhost-api";
 import { createCodexLeftArmApi } from "./codex-left-arm-api";
 import { createMcpConfigApi } from "./mcp-config-api";
+import { connectorManifest, connectorModes, normalizeConnectorMode, normalizeConnectorEnvelope } from "./connector-endpoint-api";
+import { inspectN8n } from "./connector-runtime";
 import { createWhiteDiamondApi } from "./white-diamond-api";
 import { createBlueDiamondApi } from "./blue-diamond-api";
 import { createVioletStoneApi } from "./violet-stone-api";
@@ -506,6 +508,100 @@ export default {
     }
     if (pathname === "/api/wave/command") {
       return athenaGuardedCommand(request, env, ctx);
+    }
+    if (pathname.startsWith("/api/connector-endpoint/v1/")) {
+      if (!(await hasOwnerOrOpsAccess(request, env))) {
+        return Response.json({ ok: false, code: "REAUTH_REQUIRED" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+      }
+      if (pathname === "/api/connector-endpoint/v1/manifest" && request.method === "GET") {
+        return Response.json(connectorManifest, { headers: { "Cache-Control": "no-store" } });
+      }
+      if (pathname === "/api/connector-endpoint/v1/probe" && request.method === "GET") {
+        const url = new URL(request.url);
+        const mode = normalizeConnectorMode(url.searchParams.get("mode"));
+        if (!mode) return Response.json({ ok: false, code: "TRANSPORT_UNKNOWN" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+        if (mode === "mcp") {
+          const provider = url.searchParams.get("provider") ?? "";
+          if (!/^[a-z0-9][a-z0-9_-]{0,79}$/.test(provider) || provider === "simulated") {
+            return Response.json({ ok: false, code: "REAL_REGISTERED_MCP_PROVIDER_REQUIRED" },
+              { status: 422, headers: { "Cache-Control": "no-store" } });
+          }
+          const target = new URL(request.url);
+          target.pathname = "/api/mcp-config/discover";
+          target.search = new URLSearchParams({ provider }).toString();
+          // Existing auth-bound MCP initialize/tools/list; it never invokes tools/call.
+          return mcpConfigApi.fetch(new Request(target.toString(), request), env as never, ctx as never);
+        }
+        if (mode === "n8n") {
+          // Existing n8n API health check; no workflow is started.
+          const result = await inspectN8n(env as never);
+          return Response.json({
+            ok: result.state === "LIVE",
+            mode, runtime_probe: true, execution_tested: false,
+            state: result.state, route_mode: result.route_mode,
+            http_health_status: result.last_error ?? null,
+          }, { status: result.state === "LIVE" ? 200 : 503,
+               headers: { "Cache-Control": "no-store" } });
+        }
+        return Response.json({ ok: false, code: "NO_SAFE_RUNTIME_PROBE",
+          mode, runtime_execution_verified: false,
+          note: "Use mode-specific existing adapter or Runner-1 staged workflow; no arbitrary command execution." },
+          { status: 422, headers: { "Cache-Control": "no-store" } });
+      }
+      if (pathname === "/api/connector-endpoint/v1/status" && request.method === "GET") {
+        const stateUrl = new URL(request.url);
+        stateUrl.pathname = "/api/mcp-config/state";
+        const read = await mcpConfigApi.fetch(new Request(stateUrl.toString(), request), env as never, ctx as never);
+        const state = await read.json().catch(() => ({})) as Record<string, unknown>;
+        const rows = Array.isArray(state.bindings) ? state.bindings : [];
+        const metadata = rows.map((value: unknown) => {
+          const row = value && typeof value === "object" ? value as Record<string, unknown> : {};
+          return {
+            provider_id: String(row.provider_id ?? "").slice(0, 80),
+            binding_type: String(row.binding_type ?? "").slice(0, 40),
+            environment: String(row.environment ?? "").slice(0, 30),
+            status: String(row.status ?? "").slice(0, 40),
+            credential_reference_present: row.secret_ref_present === true,
+            runtime_execution_verified: false,
+          };
+        });
+        return Response.json({
+          ...connectorManifest,
+          registry: { ok: state.ok === true, bindings: metadata, count: metadata.length },
+          modes: connectorModes.map(item => ({
+            id: item.id, kind: item.kind, integration: item.integration,
+            execution_route: item.execution_route, runtime_e2e_proven: false,
+            adapter_verification_required: true,
+          })),
+          source_modes_count: connectorModes.length,
+          runtime_command_e2e_proven: false,
+          binding_list_does_not_prove_adapter_execution: true,
+        }, { status: read.status, headers: { "Cache-Control": "no-store" } });
+      }
+      if (pathname === "/api/connector-endpoint/v1/command" && request.method === "POST") {
+        const payload = await request.text();
+        if (payload.length > 12000) {
+          return Response.json({ ok: false, code: "COMMAND_TOO_LARGE" }, { status: 413 });
+        }
+        let data: unknown;
+        try { data = JSON.parse(payload); } catch { data = null; }
+        const connector = normalizeConnectorEnvelope(data);
+        if (!connector.ok) {
+          return Response.json({
+            ok: false, code: connector.code,
+            execution: { status: "NOT_STARTED", consumer_proven: false },
+          }, { status: 422, headers: { "Cache-Control": "no-store" } });
+        }
+        const target = new URL(request.url);
+        target.pathname = "/api/wave/command";
+        const forwarded = new Request(target.toString(), {
+          method: "POST", headers: request.headers,
+          body: JSON.stringify(connector.delegated),
+        });
+        // Same ATHENA/Yellow authority, approval plan, queue, and D1 receipt.
+        return athenaGuardedCommand(forwarded, env, ctx);
+      }
+      return Response.json({ ok: false, code: "CONNECTOR_ENDPOINT_NOT_FOUND" }, { status: 404 });
     }
     if (pathname.startsWith("/api/mcp-config/")) {
       return mcpConfigApi.fetch(request, env as never, ctx as never);

@@ -73,7 +73,7 @@ function installNativeApiBridge() {
       data,
     });
 
-    if (requestUrl === "/api/session" && method === "POST" && result.status >= 200 && result.status < 300) {
+    if ((requestUrl === "/api/session" || requestUrl === "/api/session/refresh") && method === "POST" && result.status >= 200 && result.status < 300) {
       const token = result.data && typeof result.data === "object" ? String((result.data as Record<string, unknown>).session_token ?? "") : "";
       if (token) localStorage.setItem(NATIVE_SESSION_KEY, token);
     }
@@ -88,6 +88,31 @@ function installNativeApiBridge() {
 }
 
 installNativeApiBridge();
+
+// Restore and renew only an existing valid Owner session on the same origin.
+// This never remembers the Owner key and does not extend an expired session.
+function installOwnerSessionContinuity() {
+  let renewalInFlight = false;
+  const renew = async () => {
+    if (renewalInFlight || !navigator.onLine || document.visibilityState === "hidden") return;
+    renewalInFlight = true;
+    try {
+      const checked = await fetch("/api/session", { credentials: "same-origin", cache: "no-store" });
+      if (checked.ok) {
+        const state = await checked.json().catch(() => ({})) as { authenticated?: boolean };
+        if (state.authenticated === true) {
+          await fetch("/api/session/refresh", { method: "POST", credentials: "same-origin", cache: "no-store" });
+        }
+      }
+    } catch { /* Offline: do not log the user out or ask for another key. */ }
+    finally { renewalInFlight = false; }
+  };
+  window.addEventListener("focus", () => { void renew(); });
+  window.addEventListener("online", () => { void renew(); });
+  window.setInterval(() => { void renew(); }, 20 * 60 * 1000);
+  void renew();
+}
+installOwnerSessionContinuity();
 
 if (!nativeApp && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {

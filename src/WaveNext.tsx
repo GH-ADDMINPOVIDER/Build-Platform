@@ -96,9 +96,12 @@ type CommandResult = {
   ok?: boolean;
   code?: string;
   run_id?: string;
+  task?: { id?: string; status?: string };
+  execution?: { status?: string; consumer_proven?: boolean };
+  command_plan?: { capability?: string; provider?: string };
   policy?: string;
   verification?: { status?: string; reason?: string };
-  approval?: { required?: boolean; permission_class?: string; capability_id?: string; provider_id?: string; environment?: string | null };
+  approval?: { required?: boolean; approval_id?: string; permission_class?: string; capability_id?: string; provider_id?: string; environment?: string | null };
   resolver?: { status?: string; descriptor?: { capability_id?: string; provider_id?: string; permission_class?: string } };
   result?: { path?: string; sha?: string; content_excerpt?: string; content_redacted?: boolean };
   canonical?: { conversation_id?: string; session_line?: string; sequence?: number; replayed?: boolean };
@@ -110,6 +113,18 @@ type Surface = "operate" | "command" | "agents";
 type Props = { initialTab?: Tab; surface?: Surface };
 
 const HANDOFF_DRAFT_KEY = "ogenic.wave-next.handoff.v1";
+const COMMAND_VIEW_KEY = "ogenic.wave.command.view.v1";
+type PendingCommandApproval = { id: string; request: Record<string, unknown> };
+const MENTION_PRESETS = [
+  { label: "ATHENA", detail: "วางแผนและส่งต่อคำสั่ง" },
+  { label: "Codex-TS", detail: "ตัวตน Codex TS ที่ Runner-1" },
+  { label: "Codex-GS", detail: "ตัวตน Codex GS ที่ Runner-1" },
+  { label: "VIOLET", detail: "จัดทีมและงานหลายเอเจ้น" },
+  { label: "Yellow-Stone", detail: "ตรวจสิทธิ์และอนุมัติ" },
+  { label: "GitHub", detail: "Repository และ Actions" },
+  { label: "Runner-1", detail: "Self-hosted execution host" },
+  { label: "skills", detail: "แนะนำสกิลที่เกี่ยวข้อง" },
+];
 const SSH_HOST = "165.232.174.32";
 const SSH_USER = "wave";
 
@@ -276,6 +291,10 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
   const [tab, setTab] = useState<Tab>(() => initialDashboardTab(initialTab));
   const [command, setCommand] = useState("");
   const [resourcePath, setResourcePath] = useState("");
+  const [advanced, setAdvanced] = useState(() => {
+    try { return localStorage.getItem(COMMAND_VIEW_KEY) === "advanced"; } catch { return false; }
+  });
+  const [pendingApproval, setPendingApproval] = useState<PendingCommandApproval | null>(null);
   const [commandBusy, setCommandBusy] = useState(false);
   const [commandResult, setCommandResult] = useState<CommandResult | null>(null);
   const [dashboard, setDashboard] = useState<Dashboard>({});
@@ -292,6 +311,28 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
     if (dashboard.runtime?.provider) return "LIVE";
     return "DEGRADED";
   }, [dashboard.runtime?.provider, session?.authenticated]);
+
+  const mentionChoices = useMemo(() => {
+    const registered = (violet.agents ?? [])
+      .filter((agent) => agent.agent_id && /^[a-z0-9_.-]+$/i.test(agent.agent_id))
+      .slice(0, 30)
+      .map((agent) => ({ label: agent.agent_id, detail: agent.visible_identity || agent.app || "Registered agent" }));
+    return [...MENTION_PRESETS, ...registered.filter((agent) => !MENTION_PRESETS.some((known) => known.label.toLowerCase() === agent.label.toLowerCase()))];
+  }, [violet.agents]);
+  const activeMention = command.match(/(?:^|\s)@([a-z0-9_.-]*)$/i)?.[1];
+  const mentionMatches = activeMention === undefined ? [] : mentionChoices
+    .filter((item) => item.label.toLowerCase().includes(activeMention.toLowerCase()))
+    .slice(0, 8);
+  function chooseMention(label: string) {
+    setCommand((prev) => prev.replace(/@([a-z0-9_.-]*)$/i, `@${label} `));
+  }
+  function toggleAdvanced() {
+    setAdvanced((previous) => {
+      const next = !previous;
+      try { localStorage.setItem(COMMAND_VIEW_KEY, next ? "advanced" : "simple"); } catch { /* storage not required */ }
+      return next;
+    });
+  }
 
   const runtimeSignals = useMemo(
     () => buildRuntimeSignals(dashboard, connectors, bridge),
@@ -374,11 +415,14 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
 
   async function runGuardedCommand() {
     const intent = command.trim();
-    const path = resourcePath.trim();
+    const path = advanced ? resourcePath.trim() : "";
     if (!intent && !path) return;
     setCommandBusy(true);
     setCommandResult(null);
+    setPendingApproval(null);
     try {
+      // Simple mode routes natural language to the existing guarded Codex queue.
+      // Advanced explicit path is the existing Yellow Stone verified READ lane.
       const requestBody: Record<string, unknown> = {
         intent: intent || `read file ${path}`,
         environment: "staging",
@@ -387,19 +431,48 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
         requestBody.capability = "read_file";
         requestBody.provider = "github";
         requestBody.input = { path };
+      } else {
+        requestBody.capability = "codex_selfhost";
+        requestBody.provider = "openai";
+        requestBody.mode = "autonomous";
       }
       const response = await fetch("/api/wave/command", {
-        method: "POST",
-        credentials: "same-origin",
-        cache: "no-store",
+        method: "POST", credentials: "same-origin", cache: "no-store",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
-      const body = await response.json().catch(() => ({ ok: false, code: `HTTP_${response.status}` }));
-      setCommandResult(body as CommandResult);
-      if (body?.canonical?.sequence) void load();
+      const body = await response.json().catch(() => ({ ok: false, code: `HTTP_${response.status}` })) as CommandResult;
+      setCommandResult(body);
+      if (response.status === 202 && body.code === "OWNER_APPROVAL_REQUIRED" && body.approval?.approval_id) {
+        setPendingApproval({ id: body.approval.approval_id, request: requestBody });
+      }
+      if (body.canonical?.sequence) void load();
     } catch (cause) {
       setCommandResult({ ok: false, code: cause instanceof Error ? cause.message : "COMMAND_UNAVAILABLE" });
+    } finally {
+      setCommandBusy(false);
+    }
+  }
+
+  async function confirmGuardedCommand() {
+    if (!pendingApproval || commandBusy) return;
+    const approved = pendingApproval;
+    setCommandBusy(true);
+    try {
+      const response = await fetch("/api/wave/command", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...approved.request,
+          approval: { confirmed: true, approval_id: approved.id },
+        }),
+      });
+      const body = await response.json().catch(() => ({ ok: false, code: `HTTP_${response.status}` })) as CommandResult;
+      setCommandResult(body);
+      if (response.ok && body.ok) setPendingApproval(null);
+      if (body.canonical?.sequence) void load();
+    } catch (cause) {
+      setCommandResult({ ok: false, code: cause instanceof Error ? cause.message : "APPROVAL_UNAVAILABLE" });
     } finally {
       setCommandBusy(false);
     }
@@ -444,33 +517,76 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
         <a className={surface === "operate" ? "active" : ""} href="/overview">OPERATE</a>
       </nav>
 
-      {surface === "command" && <section className="wnHero">
-        <div className="wnHeroCopy">
-          <span className="wnKicker">RUN / COMMAND</span>
-          <h2>What should WAVE do?</h2>
-          <p>Guarded Run enters through ATHENA admission and always delegates execution authority to Yellow Stone. Higher-risk actions stop at owner approval; no provider can execute directly from this surface.</p>
+      {surface === "command" && <section className="wnHero wnCommandGlass">
+        <div className="wnCommandHeading">
+          <div className="wnHeroCopy">
+            <span className="wnKicker">WAVE COMMAND · AGENT → OWNER SIGN → RUN</span>
+            <h2>สั่งงาน WAVE ได้เลย</h2>
+            <p>Agent วางแผนผ่าน ATHENA → Yellow Stone ตรวจสิทธิ์ → Owner ยืนยันด้วย Signed Session → Terminal Solo รัน → Ruby / D1 รับหลักฐาน · ไม่ต้องจำ Path หรือ OGE</p>
+          </div>
+          <button type="button" className="wnModeSwitch" aria-pressed={advanced} onClick={toggleAdvanced}>
+            {advanced ? "Advanced · ON" : "Simple · ON"} <span aria-hidden="true">⌄</span>
+          </button>
         </div>
-        <textarea value={command} onChange={(e) => setCommand(e.target.value)} placeholder="Tell WAVE what to do…" rows={5} />
-        <input value={resourcePath} onChange={(e) => setResourcePath(e.target.value)} placeholder="Optional GitHub file path for verified READ, e.g. package.json" />
+        <label className="wnComposerLabel" htmlFor="wave-natural-command">ส่งคำสั่ง</label>
+        <div className="wnComposerField">
+          <textarea id="wave-natural-command" value={command}
+            maxLength={1200} rows={4}
+            onChange={(event) => setCommand(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && activeMention !== undefined) { event.preventDefault(); setCommand((prev) => prev.replace(/@([a-z0-9_.-]*)$/i, "")); }
+              if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); void runGuardedCommand(); }
+            }}
+            placeholder="เช่น ตรวจหน้า WAVE และแก้ปุ่มที่กดไม่ทำงาน จากนั้นทดสอบ Staging…" />
+          {mentionMatches.length > 0 && <div className="wnMentionMenu" role="listbox" aria-label="แนะนำเอเจ้น ทีม และสกิล">
+            {mentionMatches.map((option) => <button type="button" role="option" aria-selected={false} key={option.label}
+              onClick={() => chooseMention(option.label)}>
+              <strong>@{option.label}</strong><small>{option.detail}</small>
+            </button>)}
+          </div>}
+        </div>
+        <div className="wnMentionHint"><span>พิมพ์ <b>@</b> เพื่อเลือกเอเจ้น ทีม สกิล หรือเครื่องมือ</span><span>Owner approval เฉพาะงานที่ต้องอนุมัติ</span></div>
+        {advanced && <section className="wnAdvancedOptions" aria-label="Advanced command options">
+          <span className="wnKicker">ADVANCED OPTIONS · OPTIONAL</span>
+          <p>เลือกเฉพาะเมื่อจำเป็น เช่น อ่านไฟล์ GitHub แบบเจาะจง โดยไม่ต้องส่งงานให้ Codex</p>
+          <label htmlFor="wave-resource-path">GitHub file path (optional)</label>
+          <input id="wave-resource-path" value={resourcePath} onChange={(event) => setResourcePath(event.target.value)}
+            placeholder="Optional GitHub file path for verified READ, e.g. package.json" />
+          <small>ระบุ Path เพื่อใช้โหมด Verified READ เท่านั้น · การเลือก @ เป็นคำใบ้ ไม่ได้ข้ามการจัดเส้นทางของ Yellow Stone</small>
+        </section>}
         <div className="wnRunActions">
-          <button className="wnPrimary" onClick={() => void runGuardedCommand()} disabled={commandBusy || (!command.trim() && !resourcePath.trim())}>{commandBusy ? "Routing…" : "Run guarded command"}</button>
-          <button onClick={handoff}>Open WAVE Chat with draft</button>
-          <a className="wnButtonLink" href="/agents">Agent controls</a>
+          <button type="button" className="wnPrimary" onClick={() => void runGuardedCommand()}
+            disabled={commandBusy || (!command.trim() && !(advanced && resourcePath.trim()))}>
+            {commandBusy ? "กำลังส่ง…" : "Agent Plan →"}
+          </button>
+          <button type="button" onClick={handoff}>เปิดใน WAVE Chat</button>
+          {advanced && <a className="wnButtonLink" href="/agents">Agent controls</a>}
+          {advanced && <span className="wnAdvancedAlias">Run guarded command</span>}
         </div>
-        {commandResult && <article className="wnCard">
+        {pendingApproval && <section className="wnApprovalBox" role="status" aria-live="polite">
+          <div><b>Agent Plan พร้อม · รอ Owner Sign</b><p>Sign คือการยืนยันแผนด้วย Owner Session ไม่ใช่การให้ Agent เซ็นแทน · Runner ยังไม่เริ่ม</p>
+            <small>{String(commandResult?.command_plan?.provider || "openai")} · {String(commandResult?.command_plan?.capability || "codex_selfhost")}</small></div>
+          <div className="wnRunActions">
+            <button type="button" className="wnPrimary" disabled={commandBusy} onClick={() => void confirmGuardedCommand()}>Owner Sign → Queue Runner-1</button>
+            <button type="button" disabled={commandBusy} onClick={() => { setPendingApproval(null); setCommandResult(null); }}>ยกเลิก</button>
+          </div>
+        </section>}
+        {commandResult && <article className="wnCard wnCommandReceipt">
           <div className="wnCardHead">
-            <div><span className="wnKicker">COMMAND RESULT</span><h3>{commandResult.ok ? "Yellow Stone result" : "Guarded stop"}</h3></div>
-            <State value={commandResult.verification?.status || commandResult.code || (commandResult.ok ? "VERIFIED" : "BLOCKED")} />
+            <div><span className="wnKicker">COMMAND RECEIPT</span>
+              <h3>{pendingApproval ? "รอการยืนยัน" : commandResult.ok ? "ระบบรับคำสั่งแล้ว" : "ระบบหยุดตามนโยบาย"}</h3>
+            </div>
+            <State value={commandResult.execution?.status || commandResult.verification?.status || commandResult.code || "PENDING"} />
           </div>
           <dl className="wnFacts">
-            <div><dt>Admission</dt><dd>{commandResult.command_handoff?.admission || "—"}</dd></div>
             <div><dt>Authority</dt><dd>{commandResult.command_handoff?.execution_authority || "YELLOW_STONE_ONLY"}</dd></div>
-            <div><dt>Capability</dt><dd>{commandResult.approval?.capability_id || commandResult.resolver?.descriptor?.capability_id || "—"}</dd></div>
-            <div><dt>Provider</dt><dd>{commandResult.approval?.provider_id || commandResult.resolver?.descriptor?.provider_id || "—"}</dd></div>
-            <div><dt>Run</dt><dd>{commandResult.run_id || "—"}</dd></div>
+            <div><dt>Capability</dt><dd>{commandResult.command_plan?.capability || commandResult.approval?.capability_id || commandResult.resolver?.descriptor?.capability_id || "—"}</dd></div>
+            <div><dt>Provider</dt><dd>{commandResult.command_plan?.provider || commandResult.approval?.provider_id || commandResult.resolver?.descriptor?.provider_id || "—"}</dd></div>
+            <div><dt>Task / Run</dt><dd>{commandResult.task?.id || commandResult.run_id || "—"}</dd></div>
             <div><dt>1LSS</dt><dd>{commandResult.canonical?.sequence ? `#${commandResult.canonical.sequence}` : commandResult.code || commandResult.verification?.reason || "no new evidence"}</dd></div>
           </dl>
-          {commandResult.approval?.required && <div className="wnPolicy">Owner approval required · {commandResult.approval.permission_class || "NON_READ"}. No side effect executed.</div>}
+          {commandResult.approval?.required && <div className="wnPolicy">Owner approval required · No side effect executed.</div>}
+          {commandResult.execution?.status === "QUEUED" && <div className="wnPolicy">Runner-1 กำลังรับงาน · QUEUED ไม่ใช่ DONE · รอ COMMAND_RESULT</div>}
           {commandResult.result?.path && <div className="wnPolicy">Verified READ · {commandResult.result.path} · {commandResult.result.sha || "sha unavailable"}</div>}
         </article>}
       </section>}

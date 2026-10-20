@@ -1,3 +1,5 @@
+import { useState } from "react";
+import StoneCircuitDiagram from "./StoneCircuitDiagram";
 type ModeKind = "chat" | "agent" | "tools" | "session" | "supervisor" | "deploy";
 type Tone = "green" | "yellow" | "mix";
 
@@ -89,6 +91,7 @@ function CommandPreview() {
 }
 
 export default function Landing() {
+  const [showArchitecture, setShowArchitecture] = useState(false);
   return <main className="wvShell" id="top">
     <div className="wvGlow wvGlowGreen" aria-hidden="true" />
     <div className="wvGlow wvGlowGold" aria-hidden="true" />
@@ -126,6 +129,22 @@ export default function Landing() {
         </div>
       </div>
       <CommandPreview />
+    </section>
+
+    <section className="wvBlueprint" aria-label="WAVE system diagram reserved area">
+      <div className="wvBlueprintIntro">
+        <div><small>WAVE ARCHITECTURE · SAME MIND</small>
+          <h2>System diagram</h2>
+          <p>วงจรหินทั้ง 7 + WHITE DIAMOND ATHENA · กด Run/Pause/Step/Reset ดูสัญญาณวิ่งได้ · เป็นผังจำลอง ไม่ใช่ผลรันจริง</p>
+        </div>
+        <button type="button" aria-expanded={showArchitecture} aria-controls="wave-system-diagram-slot"
+          onClick={() => setShowArchitecture((current) => !current)}>
+          {showArchitecture ? "HIDE DIAGRAM −" : "SHOW DIAGRAM +"}
+        </button>
+      </div>
+      {showArchitecture && <div className="wvBlueprintBody" id="wave-system-diagram-slot">
+        <StoneCircuitDiagram />
+      </div>}
     </section>
 
     <section className="wvStoneRail" id="stones" aria-label="WAVE system cores">
