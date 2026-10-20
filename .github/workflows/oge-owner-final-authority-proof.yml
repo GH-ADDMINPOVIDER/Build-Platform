@@ -1,0 +1,54 @@
+name: OGE Owner Final Authority - Feature Proof
+on:
+  push:
+    branches:
+      - task/oge-owner-final-authority-20261020
+    paths:
+      - ".github/workflows/oge-owner-final-authority-proof.yml"
+      - "worker/**"
+      - "src/**"
+      - "scripts/verify-oge-35-runtime.mjs"
+      - "tests/**"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: owner-final-authority-feature-proof
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact feature SHA
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Assert isolated Runner-1 branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test "$GITHUB_REF_NAME" = "task/oge-owner-final-authority-20261020"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-package-lock --no-audit --no-fund
+      - name: Full repository tests
+        run: npm run test
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Record evidence
+        if: success()
+        run: |
+          echo "## Owner Final Authority staging feature" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Signed Owner Session final; no second Yellow approval step" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Authentication, Staging scope, secret guards and adapter checks remain" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tests, typecheck and build: PASS on $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Not a production deploy or live command result" >> "$GITHUB_STEP_SUMMARY"
