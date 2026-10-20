@@ -20,12 +20,12 @@ type Stone = {
 
 const stones: Stone[] = [
   { id: "green", number: "01", name: "GREEN STONE", role: "1LSS · ONE-LINE SESSION", species: "Emerald", description: "ความจำหลัก D1 และบริบทข้าม Session", color: "#16A34A", x: 195, y: 297 },
-  { id: "yellow", number: "02", name: "YELLOW STONE", role: "TOOLS · EXECUTION AUTHORITY", species: "Citrine", description: "รวม MCP / SDK / API และประตูอนุมัติ", color: "#EAB308", x: 575, y: 297 },
+  { id: "yellow", number: "02", name: "YELLOW STONE", role: "TOOLS · API / MCP / SDK", species: "Citrine", description: "เครื่องมือและ Adapter เท่านั้น · Owner เป็นผู้ตัดสินใจ", color: "#EAB308", x: 575, y: 297 },
   { id: "blue", number: "03", name: "BLUE DIAMOND", role: "AGENTS · READINESS", species: "Blue diamond", description: "ทะเบียน Agent ตัวตนและความพร้อม", color: "#3B82F6", x: 955, y: 297 },
   { id: "violet", number: "04", name: "VIOLET STONE", role: "MULTI-AGENT SOLUTION", species: "Amethyst", description: "จัดทีม แบ่งงาน รันขนาน รวมผล", color: "#8B5CF6", x: 195, y: 518 },
   { id: "ruby", number: "05", name: "RUBY STONE", role: "VERIFICATION · PROOF", species: "Ruby", description: "ตรวจผลและหลักฐานก่อนเก็บเข้า Green", color: "#DC2626", x: 955, y: 518 },
   { id: "runner", number: "06", name: "STONE RUNNER", role: "EPHEMERAL RUNTIME", species: "Obsidian", description: "งาน Build / Test / Workerd / Codex ตามสิทธิ์", color: "#111113", x: 575, y: 518 },
-  { id: "rule", number: "07", name: "RULE STONE", role: "CENTRAL RULE TAXONOMY", species: "Gray agate", description: "กฎกลางหนึ่งชุด โดย Yellow เป็นผู้บังคับ", color: "#6B7280", x: 575, y: 733 },
+  { id: "rule", number: "07", name: "RULE STONE", role: "CENTRAL RULE TAXONOMY", species: "Gray agate", description: "กฎกลางหนึ่งชุด · Yellow ไม่ใช่ผู้มีอำนาจอนุมัติ", color: "#6B7280", x: 575, y: 733 },
 ];
 
 const athena = {
@@ -184,7 +184,7 @@ export default function StoneCircuitDiagram() {
       <div className="scTerminalHeading">
         <div><small>ONE SPECIAL ENVIRONMENT · EXISTING RUNNER-1</small>
           <h4>TERMINAL ENVIRONMENT · SOLO</h4>
-          <p>หนึ่ง Session / หนึ่งคำสั่งที่กำลังรัน · แยกจาก Agent Environment · รันหลัง Yellow Stone Policy / Owner Authorization</p>
+          <p>หนึ่ง Session / หนึ่งคำสั่งที่กำลังรัน · แยกจาก Agent Environment · รันตาม Owner Authorization ผ่าน Tools Stone</p>
         </div>
         <span className="scTerminalFlag">SOLO · NOT MULTI-AGENT · SEPARATE FROM AGENT REGISTRY</span>
       </div>
@@ -202,7 +202,7 @@ export default function StoneCircuitDiagram() {
           <div><strong>OPC · OpenCode</strong><small>TERMINAL CODING AGENT · SOLO</small><p>Adapter reserved · CLI ยังไม่ได้ติดตั้ง · รอขยาย RAM ก่อนเริ่มใช้งาน</p></div>
         </div>
       </div>
-      <p className="scTerminalBoundary"><b>Execution boundary:</b> ATHENA → YELLOW STONE (Policy / Approval) → RUNNER-1 → TERMINAL [SSH | IDEs | OPC] → RUBY PROOF → GREEN 1LSS. Blue/Violet จัดการ Agent Environment ทั่วไป แต่ OPC อยู่ Terminal Solo Block นี้เท่านั้น · ไม่ส่งคำสั่งพร้อมกันหลาย Executor</p>
+      <p className="scTerminalBoundary"><b>Execution boundary:</b> OWNER (Signed Session) → ATHENA → YELLOW STONE (TOOLS ONLY) → RUNNER-1 → TERMINAL [SSH | IDEs | OPC] → RUBY PROOF → GREEN 1LSS. Blue/Violet จัดการ Agent Environment ทั่วไป แต่ OPC อยู่ Terminal Solo Block นี้เท่านั้น · ไม่ส่งคำสั่งพร้อมกันหลาย Executor</p>
     </section>
 
     <footer className="scFooter">
@@ -211,9 +211,9 @@ export default function StoneCircuitDiagram() {
       <button type="button" className="scDetailsToggle" onClick={() => setShowDetails((x) => !x)}
         aria-expanded={showDetails}>{showDetails ? "Hide flow notes −" : "Flow details +"}</button>
       {showDetails && <div className="scFlowNotes">
-        <p>ATHENA = วางแผน · YELLOW = บังคับสิทธิ์/อนุมัติ · BLUE = Agent Registry · VIOLET = จัดทีม · RUNNER = รันงาน · RUBY = ตรวจหลักฐาน · GREEN = บันทึกบริบท · RULE = กฎกลาง</p>
+        <p>ATHENA = วางแผน · YELLOW = Tools/API/MCP/SDK ไม่ใช่ผู้อนุมัติ · BLUE = Agent Registry · VIOLET = จัดทีม · RUNNER = รันงาน · RUBY = ตรวจหลักฐาน · GREEN = บันทึกบริบท · RULE = กฎกลาง</p>
         <p>Runner-1 เป็นเครื่อง Self-hosted เพียงเครื่องเดียวที่ตรวจพบ; GitHub Account 2 ไม่ใช่ Runner-2 Host. สายสัญญาณเป็นผังอธิบาย ไม่ยืนยันความพร้อม Runtime ทุกช่องทาง</p>
-        <p>Terminal Environment เป็นบล็อกพิเศษเดียว: SSH = Access, IDEs = Editor/Debugger, OpenCode/OPC = Terminal Solo Coding Agent (ยังไม่ได้ติดตั้ง). IDE ล่าสุดมี Vim แต่ Web IDE ยังไม่ยืนยัน ไม่จัด OPC เป็น Blue/Violet Agent ทั่วไป ไม่ให้ข้าม Yellow Stone และต้องใช้ Serial Queue สำหรับคำสั่งจริง</p>
+        <p>Terminal Environment เป็นบล็อกพิเศษเดียว: SSH = Access, IDEs = Editor/Debugger, OpenCode/OPC = Terminal Solo Coding Agent (ยังไม่ได้ติดตั้ง). IDE ล่าสุดมี Vim แต่ Web IDE ยังไม่ยืนยัน ไม่จัด OPC เป็น Blue/Violet Agent ทั่วไป เรียก Tools Stone ตามขอบเขต Owner และต้องใช้ Serial Queue สำหรับคำสั่งจริง</p>
       </div>}
     </footer>
   </section>;

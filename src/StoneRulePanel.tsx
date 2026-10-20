@@ -6,7 +6,7 @@ type RulePanelResponse = {
   ok?:boolean; code?:string; schema_version?:string; stone_count?:number;
   category_count?:number; mapped_category_count?:number;
   stones?:StoneRule[]; policy_flow?:string[];
-  source_file?:string; execution_authority?:string;
+  source_file?:string; execution_authority?:string; owner_decision_authority?:string; yellow_stone_role?:string;
   controls_all_seven?:boolean; runtime_enforcement_claimed?:boolean;
 };
 const fallbackNames = ["GREEN STONE","YELLOW STONE","BLUE DIAMOND","VIOLET STONE","RUBY STONE","STONE RUNNER","RULE STONE"];
@@ -35,14 +35,15 @@ export default function StoneRulePanel(){
   return <section className="srPanel" aria-label="Rule Stone Panel for seven stones">
     <header className="srHead">
       <div><span className="wnKicker">07 · RULE STONE — GRAY AGATE</span><h3>Stone Rule Panel</h3>
-      <p>One canonical rule register for all seven stones. Existing Yellow Stone remains the only execution authority.</p></div>
+      <p>One rule register for seven stones. The Owner decides; Yellow Stone supplies tools and adapters only.</p></div>
       <button type="button" onClick={()=>void refresh()} disabled={loading}>{loading?"Loading…":"Refresh rules"}</button>
     </header>
     {error && <div className="wnError" role="alert">{error} — no policy state was assumed.</div>}
     <div className="srSummary">
       <span><strong>{data.stone_count??"—"}</strong> stones governed</span>
       <span><strong>{data.mapped_category_count??"—"}/{data.category_count??"—"}</strong> rule categories mapped</span>
-      <span><strong>{data.execution_authority??"UNKNOWN"}</strong> execution authority</span>
+      <span><strong>{data.owner_decision_authority??"UNKNOWN"}</strong> Owner decision authority</span>
+      <span><strong>{data.yellow_stone_role??"UNKNOWN"}</strong> Yellow tools role</span>
     </div>
     <div className="srStones">
       {stones.map(stone=><button type="button" key={stone.id}
@@ -58,7 +59,7 @@ export default function StoneRulePanel(){
       {active.rules.map(rule=><p key={rule.category_id}><strong>{rule.category_id}</strong> {rule.description}</p>)}
     </section>}
     <footer className="srFoot">
-      <p><strong>Authority:</strong> Rule Stone owns the central taxonomy; Yellow authorizes effects; Ruby verifies; Green retains approved evidence. This panel is read-only and does not certify full runtime policy enforcement.</p>
+      <p><strong>Authority:</strong> The Owner authorizes commands. Rule Stone owns rules, Yellow supplies scoped tools and adapters, Runner executes, Ruby verifies, and Green retains evidence. Legacy Yellow API IDs do not confer decision authority. This panel is read-only.</p>
       <p><strong>Source:</strong> <code>{data.source_file||"config/oge95-rules-center.json"}</code></p>
     </footer>
   </section>;

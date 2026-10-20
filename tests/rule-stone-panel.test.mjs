@@ -17,7 +17,10 @@ test("Rule Stone #07 owns one rules registry with exact seven locked names",()=>
     "RUBY STONE","STONE RUNNER","RULE STONE",
   ]);
   assert.equal(rules.stone_rule_panel.canonical_owner,"RULE_STONE_07");
-  assert.equal(rules.stone_rule_panel.yellow_only_exec_authority,true);
+  assert.equal(rules.stone_rule_panel.yellow_only_tool_adapter,true);
+  assert.equal(rules.authority_topology.owner_decision_authority,"SIGNED_OWNER_SESSION");
+  assert.equal(rules.authority_topology.yellow_stone_role,"TOOLS_ADAPTER_ONLY");
+  assert.equal(rules.stone_rule_panel.yellow_only_exec_authority,false);
   assert.equal(rules.stone_rule_panel.separate_approval_gateway,false);
 });
 test("Every stone has meaningful mapped canonical rule categories; no duplicate center",()=>{
@@ -41,7 +44,9 @@ test("Owner-authenticated panel is read-only and does not bypass Yellow",()=>{
   assert.match(api,/\.get\("\/api\/rule-stone\/panel"/);
   assert.doesNotMatch(api,/\.post\(|\.put\(|\.delete\(/);
   assert.match(api,/runtime_enforcement_claimed:false/);
-  assert.match(api,/execution_authority:"YELLOW_STONE_ONLY"/);
+  assert.match(api,/execution_authority:"YELLOW_STONE_ONLY"/); // legacy tool routing
+  assert.match(api,/owner_decision_authority:rules.authority_topology.owner_decision_authority/);
+  assert.match(ui,/The Owner decides/);
   assert.match(entry,/createRuleStoneApi/);
   assert.match(entry,/pathname\.startsWith\("\/api\/rule-stone\/"\)/);
 });
@@ -61,5 +66,5 @@ test("Stone Runner host and locked stone colors match canonical staging architec
   assert.equal(stones[0].color,"#16A34A");
   assert.equal(stones[6].color,"#6B7280");
   assert.equal(rules.stone_rule_panel.separate_approval_gateway,false);
-  assert.equal(rules.stone_rule_panel.yellow_only_exec_authority,true);
+  assert.equal(rules.stone_rule_panel.yellow_only_exec_authority,false);
 });

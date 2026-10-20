@@ -3,15 +3,16 @@ flowchart LR
   classDef support fill:#f5f5f5,stroke:#666,color:#111,stroke-width:1px;
   classDef provider fill:#fff,stroke:#999,color:#111,stroke-dasharray: 4 3;
 
-  WAVE["WAVE<br/>Human Surface"]:::core
+  OWNER["OWNER<br/>Final Decision Authority"]:::core
+  WAVE["WAVE<br/>Authenticated Surface"]:::core
   ATHENA["ATHENA + BLUE<br/>Admission · Identity · Planning"]:::core
-  YELLOW["YELLOW / MA-OP<br/>Execution Authority"]:::core
+  YELLOW["YELLOW STONE / TOOLS<br/>API · MCP · SDK · Adapters"]:::core
   CCS["CCS / Use Card<br/>Capability · Scope · Lease"]:::core
   VIOLET["VIOLET<br/>Multi-Agent · Workflow"]:::core
   RUBY["RUBY<br/>Verify · Evidence · Recovery Gate"]:::core
   GREEN["GREEN / 1LSS<br/>owner-main · Canonical Retention"]:::core
 
-  WAVE --> ATHENA --> YELLOW --> CCS --> VIOLET --> RUBY --> GREEN
+  OWNER --> WAVE --> ATHENA --> YELLOW --> CCS --> VIOLET --> RUBY --> GREEN
   GREEN -. compact canonical context .-> ATHENA
 
   subgraph Providers["Agents / Providers"]

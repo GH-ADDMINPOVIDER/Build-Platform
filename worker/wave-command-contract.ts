@@ -88,7 +88,9 @@ export function waveCommandPolicy(modeValue: WaveCommandMode) {
     mode: modeValue,
     control_plane: "WAVE",
     planner: "ATHENA",
-    execution_authority: "YELLOW_STONE_ONLY",
+    execution_authority: "YELLOW_STONE_ONLY", // legacy tools route, not Owner authority
+    owner_decision_authority: "SIGNED_OWNER_SESSION",
+    yellow_stone_role: "TOOLS_ADAPTER_ONLY",
     canonical_memory: "owner-main / 1LSS_OWNER_MAIN",
     non_read_behavior: "OWNER_SESSION_DIRECT_WHEN_ADAPTER_AVAILABLE",
     direct_execution_bypass: false,

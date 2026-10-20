@@ -13,7 +13,10 @@ test("autonomous WAVE command has one normalized contract", () => {
 });
 
 test("autonomous command remains Yellow-controlled and canonical", () => {
-  assert.match(contract, /execution_authority: "YELLOW_STONE_ONLY"/);
+  assert.match(contract, /execution_authority: "YELLOW_STONE_ONLY"/); // backward compatible tool route
+  assert.match(contract, /owner_decision_authority: "SIGNED_OWNER_SESSION"/);
+  assert.match(contract, /yellow_stone_role: "TOOLS_ADAPTER_ONLY"/);
+  assert.match(entry, /owner_decision_authority: "SIGNED_OWNER_SESSION"/);
   assert.match(contract, /owner-main \/ 1LSS_OWNER_MAIN/);
   assert.match(contract, /direct_execution_bypass: false/);
   assert.match(entry, /normalizeWaveCommandBody/);

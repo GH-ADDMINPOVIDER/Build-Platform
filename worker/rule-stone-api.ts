@@ -32,7 +32,10 @@ export function createRuleStoneApi() {
       canonical_owner:"RULE_STONE_07",
       stones,policy_flow:panel.policy_flow,limits:panel.limits,
       precedence:rules.precedence,
-      execution_authority:"YELLOW_STONE_ONLY",
+      execution_authority:"YELLOW_STONE_ONLY", // legacy tool-routing identifier
+      execution_authority_legacy:true,
+      owner_decision_authority:rules.authority_topology.owner_decision_authority,
+      yellow_stone_role:rules.authority_topology.yellow_stone_role,
       taxonomy_authority:"RULE_STONE_07",
       no_second_approval_gate:true,
       rules_updated_by:"VERSIONED_GITHUB_STAGING_ONLY",

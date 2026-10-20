@@ -70,6 +70,14 @@ test("existing signed session renews without saving Owner key or bypassing authe
   assert.doesNotMatch(bridge, /localStorage\.setItem\([^)]*ownerKey/);
 });
 
+test("Owner makes decisions and Yellow Stone only supplies tools", () => {
+  const circuit = read("src/StoneCircuitDiagram.tsx");
+  const panel = read("src/StoneRulePanel.tsx");
+  assert.match(circuit, /YELLOW STONE \(TOOLS ONLY\)/);
+  assert.match(circuit, /TOOLS · API \/ MCP \/ SDK/);
+  assert.match(panel, /The Owner decides/);
+});
+
 test("terminal special environment keeps OpenCode with SSH and IDEs, outside the seven stones and agent registry", () => {
   const circuit = read("src/StoneCircuitDiagram.tsx");
   const styles = read("src/stone-circuit-diagram.css");
@@ -83,7 +91,7 @@ test("terminal special environment keeps OpenCode with SSH and IDEs, outside the
   assert.match(circuit, /OPC · OpenCode/);
   assert.match(circuit, /SSH/);
   assert.match(circuit, /IDEs/);
-  assert.match(circuit, /Yellow Stone Policy \/ Owner Authorization/);
+  assert.match(circuit, /Owner Authorization ผ่าน Tools Stone/);
   assert.match(styles, /\.scTerminalTools/);
   assert.match(styles, /grid-template-columns:1fr/);
 });

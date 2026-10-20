@@ -296,7 +296,9 @@ function handoffMetadata(athena: { maturity?: unknown }) {
     actor_id: ATHENA_ACTOR_ID,
     maturity: athena.maturity,
     admitted: true,
-    execution_authority: EXECUTION_AUTHORITY,
+    execution_authority: EXECUTION_AUTHORITY, // existing tools route (compatibility only)
+    owner_decision_authority: "SIGNED_OWNER_SESSION",
+    yellow_stone_role: "TOOLS_ADAPTER_ONLY",
     yellow_stone_route: "/api/capabilities/execute",
     direct_execution_bypass: false,
   };

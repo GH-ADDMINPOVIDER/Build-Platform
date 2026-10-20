@@ -2,6 +2,20 @@
   "schema_version": "OGE95_UNIFIED_RULES_V1",
   "canonical_issue": "OGE-95",
   "owner_intent": "One edit point, deduplicate repeated work/data, do not over-gate useful tasks",
+  "authority_topology": {
+    "owner_directive_date": "2026-10-20",
+    "owner_decision_authority": "SIGNED_OWNER_SESSION",
+    "yellow_stone_role": "TOOLS_ADAPTER_ONLY",
+    "yellow_is_approval_authority": false,
+    "second_yellow_approval_gate": false,
+    "rule_owner": "RULE_STONE_07",
+    "planner": "WHITE_DIAMOND_ATHENA",
+    "execution_host": "STONE_RUNNER_06",
+    "verifier": "RUBY_STONE_05",
+    "memory": "GREEN_STONE_1LSS",
+    "legacy_yellow_stone_only_means": "COMPATIBILITY_TOOL_ROUTE",
+    "technical_checks_retained": ["AUTHENTICATION", "PROVIDER_PERMISSIONS", "STAGING_SCOPE", "ADAPTER_READINESS", "SECRETS", "COST", "IDEMPOTENCY", "EXPIRY"]
+  },
   "canonical_paths": {
     "repository": "Ogenicchocolate21debug/Build-Platform",
     "branch": "phase-vi-provider-incentive-metering",
@@ -624,7 +638,9 @@
     "authority": "CANONICAL_RULE_TAXONOMY_ONLY",
     "policy_file": "config/oge95-rules-center.json",
     "edit_here_first": true,
-    "yellow_only_exec_authority": true,
+    "yellow_only_exec_authority": false,
+    "owner_final_decision_authority": "SIGNED_OWNER_SESSION",
+    "yellow_only_tool_adapter": true,
     "rules_shared_across_all_stones": true,
     "separate_approval_gateway": false,
     "stones": [
@@ -646,7 +662,7 @@
         "name": "YELLOW STONE",
         "species": "Citrine",
         "color": "#EAB308",
-        "function": "Tools · Capability Execution",
+        "function": "Tools · API / MCP / SDK Adapters",
         "category_ids": [
           "02_execution_workflow",
           "04_cost_tokens_context",
