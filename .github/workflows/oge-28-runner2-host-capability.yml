@@ -229,6 +229,47 @@ jobs:
           echo "OCIAN_PROVIDER_MCP_TOOL_CALLS=NOT_ATTEMPTED"
           echo "OCIAN_HOST_PROBE=END"
 
+      - name: Install optional OpenCode CLI in isolated user-local prefix
+        if: github.actor == 'Wave-Runner-2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$HOME" = /home/wave
+          umask 077
+          bin="$HOME/.local/bin/opencode"
+          if test -x "$bin" && timeout 15 "$bin" --version >/dev/null 2>&1; then
+            echo "OCIAN_OPENCODE_INSTALL=ALREADY_PRESENT"
+          else
+            if ! command -v node >/dev/null || ! command -v npm >/dev/null; then
+              echo "OCIAN_OPENCODE_INSTALL=BLOCKED_NODE_NPM_MISSING"
+            elif ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)'; then
+              echo "OCIAN_OPENCODE_INSTALL=BLOCKED_NODE_BELOW_22"
+            else
+              mkdir -p "$HOME/.local"
+              # Official current OpenCode v2 npm CLI; no root, no LLM calls,
+              # no user auth, no API tokens, no background daemon.
+              if timeout 240 env NODE_OPTIONS=--max-old-space-size=256 npm install -g \
+                  --prefix "$HOME/.local" --no-audit --no-fund --silent @opencode/cli \
+                  > "$RUNNER_TEMP/ocian-opencode-install.log" 2>&1; then
+                echo "OCIAN_OPENCODE_INSTALL=NEW"
+              else
+                echo "OCIAN_OPENCODE_INSTALL=BLOCKED_PACKAGE_OR_MEMORY_OR_NETWORK"
+              fi
+            fi
+          fi
+          if test -x "$bin" && timeout 15 "$bin" --version >/dev/null 2>&1; then
+            echo "OCIAN_OPENCODE_CLI_VERSION=PASS"
+            if timeout 10 "$bin" mcp --help >/dev/null 2>&1; then
+              echo "OCIAN_OPENCODE_MCP_CLIENT_COMMAND=AVAILABLE_AUTH_UNVERIFIED"
+            else
+              echo "OCIAN_OPENCODE_MCP_CLIENT_COMMAND=NOT_VERIFIED"
+            fi
+          else
+            echo "OCIAN_OPENCODE_CLI_VERSION=NOT_VERIFIED"
+          fi
+          echo "OCIAN_OPENCODE_PROVIDER_AUTH=NOT_ATTEMPTED"
+          echo "OCIAN_OPENCODE_PAID_MODEL_CALLS=ZERO"
       - name: Bind existing Owner staging key with Infisical OIDC
         if: github.actor == 'Wave-Runner-2'
         uses: Infisical/secrets-action@v1.0.17
