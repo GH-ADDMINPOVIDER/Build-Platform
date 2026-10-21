@@ -325,7 +325,6 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
     if (!task || task.capability !== "local_agent_team" || !task.resource_key?.startsWith("local-agent-team:" + ROOM + ":")) {
       return c.json({ ok: false, code: "ROOM_TASK_NOT_FOUND" }, 404);
     }
-    if (TERMINAL.has(task.status)) return c.json({ ok: false, code: "TASK_TERMINAL", status: task.status }, 409);
     const created = await c.env.DB.prepare(
       "SELECT external_ref FROM agent_events WHERE task_id = ? AND event_type = 'LOCAL_TEAM_TASK_CREATED' LIMIT 1",
     ).bind(taskId).first<{ external_ref?: string }>();
@@ -335,10 +334,6 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
     if (permission !== "READ") {
       return c.json({ ok: false, code: "READ_ONLY_ADAPTER_SCOPE", requested_permission: permission }, 409);
     }
-    const proof = await lastVerifiedCodexReceipt(c.env.DB);
-    if (!providerReadiness(c.env, proof).some((p) => p.id === "codex" && p.dispatchable === true)) {
-      return c.json({ ok: false, code: "CODEX_READONLY_RUNTIME_UNVERIFIED" }, 503);
-    }
     const linked = await c.env.DB.prepare(
       "SELECT external_ref FROM agent_events WHERE task_id = ? AND event_type = 'LOCAL_TEAM_COMMAND_LINKED' LIMIT 1",
     ).bind(taskId).first<{ external_ref?: string }>();
@@ -347,8 +342,42 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
       try { previous = String((JSON.parse(linked.external_ref || "{}") as Record<string, unknown>).command_task_id || ""); }
       catch { /* refuse malformed recorded link */ }
       if (!/^wavecmd_[a-f0-9]{64}$/.test(previous)) return c.json({ ok: false, code: "INVALID_EXISTING_COMMAND_LINK" }, 409);
+      if (TERMINAL.has(task.status)) {
+        // Replays of a completed task must never enqueue another Codex job.
+        // Confirm the exact previously linked command's Ruby/D1 evidence.
+        if (task.status !== "DONE") {
+          return c.json({ ok: false, code: "TASK_TERMINAL", status: task.status }, 409);
+        }
+        const verified = await c.env.DB.prepare(
+          "SELECT external_ref FROM agent_events WHERE task_id = ? AND event_type = 'LOCAL_TEAM_RESULT_VERIFIED' AND correlation_id = ? LIMIT 1",
+        ).bind(taskId, previous).first<{ external_ref?: string }>();
+        const checkpoint = await c.env.DB.prepare(
+          "SELECT checkpoint_ref, state_hash FROM agent_checkpoints WHERE task_id = ? AND agent_id = 'codex-selfhost:wave-runner-01' LIMIT 1",
+        ).bind(taskId).first<{ checkpoint_ref?: string; state_hash?: string }>();
+        let receipt: Record<string, unknown> = {};
+        try { receipt = JSON.parse(verified?.external_ref || "{}") as Record<string, unknown>; }
+        catch { /* malformed receipt is never accepted */ }
+        const digest = String(receipt.result_sha256 || "");
+        if (receipt.command_task_id !== previous || receipt.status !== "DONE" ||
+          receipt.consumer_proven !== true || !/^[a-f0-9]{64}$/.test(digest) ||
+          checkpoint?.state_hash !== digest || !checkpoint.checkpoint_ref) {
+          return c.json({ ok: false, code: "ROOM_DONE_RECEIPT_NOT_VERIFIED" }, 409);
+        }
+        return c.json({
+          ok: true, code: "COMMAND_ALREADY_DONE", idempotent_replay: true,
+          room_task_id: taskId, command_task_id: previous,
+          execution: { status: "DONE", consumer_proven: true },
+          receipt: { result_sha256: digest, evidence_ref: checkpoint.checkpoint_ref },
+          canonical_session: OWNER_SESSION,
+        }, 200, { "Cache-Control": "no-store" });
+      }
       return c.json({ ok: true, code: "COMMAND_ALREADY_LINKED", command_task_id: previous,
         execution: { status: "PENDING_RECEIPT", consumer_proven: false }, idempotent_replay: true }, 200);
+    }
+    if (TERMINAL.has(task.status)) return c.json({ ok: false, code: "TASK_TERMINAL", status: task.status }, 409);
+    const proof = await lastVerifiedCodexReceipt(c.env.DB);
+    if (!providerReadiness(c.env, proof).some((p) => p.id === "codex" && p.dispatchable === true)) {
+      return c.json({ ok: false, code: "CODEX_READONLY_RUNTIME_UNVERIFIED" }, 503);
     }
 
     // Stable idempotency key per room task even after browser reloads or retries.

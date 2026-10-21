@@ -96,3 +96,16 @@ test("OpenBot one-prompt Owner command reuses canonical task, conversation and C
   assert.match(ui, /quickKey \+ "-message"/);
   assert.match(ui, /await load\(\)/);
 });
+
+test("completed OpenBot dispatch returns original D1 result and checkpoint instead of re-executing", () => {
+  assert.match(api, /event_type = 'LOCAL_TEAM_RESULT_VERIFIED' AND correlation_id = \?/);
+  assert.match(api, /agent_id = 'codex-selfhost:wave-runner-01'/);
+  assert.match(api, /receipt\.consumer_proven !== true/);
+  assert.match(api, /checkpoint\?\.state_hash !== digest/);
+  assert.match(api, /code: "COMMAND_ALREADY_DONE"/);
+  assert.match(api, /idempotent_replay: true/);
+  assert.match(api, /code: "ROOM_DONE_RECEIPT_NOT_VERIFIED"/);
+  const proof = fs.readFileSync(new URL("../scripts/verify-openbot-launchroom-staging.mjs", import.meta.url), "utf8");
+  assert.match(proof, /OPENBOT_LAUNCHROOM_DONE_REPLAY_D1=PASS/);
+  assert.match(proof, /DONE_VERIFIED_REUSED/);
+});

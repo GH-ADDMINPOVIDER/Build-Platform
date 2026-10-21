@@ -93,6 +93,14 @@ console.log("OPENBOT_LAUNCHROOM_OWNER_SESSION=PASS");
 console.log("OPENBOT_LAUNCHROOM_TASK_D1_READBACK=PASS");
 console.log("OPENBOT_LAUNCHROOM_CONVERSATION_D1_READBACK=PASS");
 console.log("OPENBOT_LAUNCHROOM_CODEX_READONLY_DISPATCH=PASS");
+if (dispatch.payload.code === "COMMAND_ALREADY_DONE") {
+  assert.equal(dispatch.payload.idempotent_replay, true, "TERMINAL_REPLAY_MUST_BE_IDEMPOTENT");
+  assert.equal(dispatch.payload.execution?.status, "DONE", "TERMINAL_REPLAY_STATUS");
+  assert.equal(dispatch.payload.execution?.consumer_proven, true, "TERMINAL_REPLAY_REQUIRES_REAL_RECEIPT");
+  assert.match(String(dispatch.payload.receipt?.result_sha256 || ""), /^[a-f0-9]{64}$/, "TERMINAL_REPLAY_RECEIPT_SHA");
+  console.log("OPENBOT_LAUNCHROOM_DONE_REPLAY_D1=PASS");
+}
 console.log("OPENBOT_LAUNCHROOM_ROOM_TASK=" + taskId);
 console.log("OPENBOT_LAUNCHROOM_WAVE_TASK=" + commandTaskId);
-console.log("OPENBOT_LAUNCHROOM_COMPLETION=PENDING_RUNNER_RECEIPT");
+console.log("OPENBOT_LAUNCHROOM_COMPLETION=" +
+  (dispatch.payload.code === "COMMAND_ALREADY_DONE" ? "DONE_VERIFIED_REUSED" : "PENDING_RUNNER_RECEIPT"));
