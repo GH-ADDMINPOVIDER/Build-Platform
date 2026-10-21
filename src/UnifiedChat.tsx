@@ -221,7 +221,7 @@ export default function UnifiedChat({ surface }: Props) {
   const selectedPstackPreset = pstackWorkflows.workflows.find((item) => item.id === selectedPstackId) ?? null;
   const pools = dashboard.incentives?.pools ?? [];
   const exhausted = dashboard.incentives?.policy_state === "EXHAUSTED";
-  const requiresOpenAI = !["manus", "live"].includes(toolMode);
+  const requiresOpenAI = !["manus", "live", "command"].includes(toolMode);
   const quotaMetered = pools.some((pool) => pool.telemetry === "HARNESS_METERED");
   const quotaBlocked = exhausted && requiresOpenAI && !allowPaidFallback;
 
@@ -583,6 +583,36 @@ export default function UnifiedChat({ surface }: Props) {
     await loadHistory();
   }
 
+  // Explicit commands are written by the authenticated Owner, never guessed
+  // from ordinary chat text or emitted by an LLM tool call.
+  const ownerProtocol = (value: string) =>
+    /^\\/OG\\.(MODES|STATUS|MODE|PROBE|RUN|EXECUTE|COMMAND)(?:\\s+([\\s\\S]*))?$/i.exec(value.trim());
+
+  async function runOwnerProtocol(kind: string, arg: string) {
+    const command = kind.toUpperCase();
+    if (command === "RUN" || command === "EXECUTE" || command === "COMMAND") {
+      if (!arg.trim()) throw new Error("OG_COMMAND_TEXT_REQUIRED");
+      return runWaveCommand(arg.trim());
+    }
+    if (command === "PROBE") {
+      const match = /^((?:n8n)|(?:mcp))(?:\\s+([a-z0-9_-]{1,80}))?$/i.exec(arg.trim());
+      if (!match || (match[1].toLowerCase() === "mcp" && !match[2])) throw new Error("USAGE: /OG.PROBE n8n  or  /OG.PROBE mcp provider-id");
+      const qs = new URLSearchParams({ mode: match[1].toLowerCase() });
+      if (match[2]) qs.set("provider", match[2]);
+      const response = await fetch("/api/connector-endpoint/v1/probe?" + qs.toString(), { credentials: "same-origin", cache: "no-store" });
+      const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+      setMessages(rows => [...rows, { id: crypto.randomUUID(), role: "assistant", text: `/OG.PROBE ${arg} · HTTP ${response.status} · ${String(body.state ?? body.code ?? (body.ok ? "PASS" : "NOT_VERIFIED"))} · E2E execution not implied`, created_at: Date.now() }]);
+      return;
+    }
+    const response = await fetch("/api/connector-modes/status?probe=1", { credentials: "same-origin", cache: "no-store" });
+    const data = await response.json().catch(() => ({})) as { ok?: boolean; code?: string; modes?: Array<{ mode?: string; runtime_status?: string; missing_bindings?: string[]; e2e_evidence?: string }> };
+    if (!response.ok || !data.ok || !Array.isArray(data.modes)) throw new Error(data.code || `MODES_HTTP_${response.status}`);
+    const rows = command === "MODE" ? data.modes.filter(x => x.mode?.toLowerCase() === arg.toLowerCase().replace(/[ -]+/g, "_")) : data.modes;
+    if (command === "MODE" && rows.length !== 1) throw new Error("MODE_NOT_FOUND · /OG.MODES to list all 15");
+    const lines = rows.map((row, i) => `${command === "MODE" ? "" : `${i+1}. `}${row.mode}: ${row.runtime_status ?? "NOT_VERIFIED"}${row.missing_bindings?.length ? " · missing " + row.missing_bindings.join(", ") : ""} · ${row.e2e_evidence ?? "NO_LIVE_RECEIPT"}`);
+    setMessages(rows => [...rows, { id: crypto.randomUUID(), role: "assistant", text: `OGENIC CCS · ${data.modes?.length ?? 0} modes · source/credential and execution status are separate\\n${lines.join("\\n")}`, created_at: Date.now() }]);
+  }
+
   async function runWaveCommand(prompt: string) {
     const response = await fetch("/api/wave/command", {
       method: "POST", credentials: "same-origin", headers: {
@@ -813,13 +843,15 @@ export default function UnifiedChat({ surface }: Props) {
       setInlineNotice(`pstack ${selectedPstackPreset.title} selected · พิมพ์โจทย์งานก่อนกด Send เพื่อไม่ให้ AI วนเรียกเครื่องมือ`);
       return;
     }
+    const ogMatch = !attachments.length ? ownerProtocol(prompt) : null;
+    const explicitOwnerRoute = Boolean(ogMatch);
     const effectivePrompt = selectedPstackPreset
       ? selectedPstackPreset.prompt + "\n\nUSER TASK:\n" + pstackTask
       : prompt;
     if (!composerDraft.ready) { setInlineNotice("กำลังอ่าน draft · รอสักครู่"); return; }
     if (attachments.some(row => row.status !== "uploaded")) { setInlineNotice("รอ upload ให้ครบ หรือ retry/เอาไฟล์ที่ล้มเหลวออกก่อนส่ง"); return; }
     if (attachments.length && (toolMode !== "chat" || experienceMode !== "chat-api")) { setInlineNotice("โหมดนี้ยังไม่รับไฟล์แนบ · เลือก WAVE Chat ก่อนส่ง ไฟล์ยังอยู่ครบ"); return; }
-    if (quotaBlocked) { setInlineNotice("Included quota หมด · เลือก API fallback ก่อน กูจะไม่เผา token เอง"); return; }
+    if (quotaBlocked && !explicitOwnerRoute) { setInlineNotice("Included quota หมด · เลือก API fallback ก่อน กูจะไม่เผา token เอง"); return; }
     if (experienceMode === "agent-ai" && !d1Enabled) {
       setInlineNotice("Agent AI ต้องใช้ owner-main / 1LSS");
       return;
@@ -830,7 +862,8 @@ export default function UnifiedChat({ surface }: Props) {
     const sentText = draft;
     setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "user", text: selectedPstackPreset ? `pstack · ${selectedPstackPreset.title}: ${pstackTask}` : prompt, created_at: Date.now(), source_surface: surface }]);
     try {
-      if (toolMode === "command") await runWaveCommand(effectivePrompt);
+      if (ogMatch) await runOwnerProtocol(ogMatch[1], (ogMatch[2] || "").trim());
+      else if (toolMode === "command") await runWaveCommand(effectivePrompt);
       else if (toolMode === "manus") await runManus(effectivePrompt);
       else if (toolMode === "live") await runLiveDoor(effectivePrompt);
       else if (toolMode === "github" || toolMode === "linear" || toolMode === "n8n" || toolMode === "meta") await runInlineTool(toolMode, effectivePrompt);
@@ -994,7 +1027,17 @@ export default function UnifiedChat({ surface }: Props) {
         <a href={manualDispatch.url} target="_blank" rel="noreferrer">เปิด GitHub Actions →</a>
         <button type="button" onClick={() => void navigator.clipboard?.writeText(manualDispatch.taskId).catch(() => {})}>Copy Task ID</button>
       </div>}
-      {quotaBlocked && <div className="ucQuotaWarn"><b>Guarded quota หมด</b><span>Paid fallback ปิดอยู่ กูจะไม่ข้าม guard เอง</span><button onClick={() => setAllowPaidFallback(true)}>Allow paid fallback</button></div>}
+      {quotaBlocked && toolMode !== "command" && <div className="ucQuotaWarn"><b>Guarded quota หมด</b><span>Paid fallback ปิดอยู่ กูจะไม่ข้าม guard เอง</span><button onClick={() => setAllowPaidFallback(true)}>Allow paid fallback</button></div>}
+      <div className="ucExperience" role="group" aria-label="Owner command control">
+        <button type="button" aria-pressed={toolMode === "command"} className={toolMode === "command" ? "active" : ""}
+          onClick={() => { setToolMode(current => current === "command" ? "chat" : "command"); setToolDock(false); }}>
+          <b>{toolMode === "command" ? "OWNER RUN · ON" : "OWNER RUN"}</b>
+          <small>Signed Owner → Yellow → Runner-1 · no repeat confirmation</small>
+        </button>
+        <button type="button" onClick={() => { setDraft("/OG.MODES"); composerInput.current?.focus(); }}>
+          <b>15 CCS MODES</b><small>Live discovery · type /OG.MODES</small>
+        </button>
+      </div>
       <div className="ucExperience" role="group" aria-label="Chat mode">
         {EXPERIENCE_MODES.map((item) => <button key={item.id} className={experienceMode === item.id ? "active" : ""} aria-pressed={experienceMode === item.id} onClick={() => selectExperience(item.id)}><b>{item.label}</b><small>{item.state}</small></button>)}
       </div>

@@ -15,6 +15,8 @@ export type ConnectorBindings = {
   LINEAR_API_KEY?: string;
   N8N_API_KEY?: string;
   N8N_BASE_URL?: string;
+  N8N_SELFHOST_BASE_URL?: string;
+  N8N_SELFHOST_API_KEY?: string;
   LINE_CHANNEL_ACCESS_TOKEN?: string;
   LINE_SECRET_CHANNEL?: string;
   LINE_ID_USE?: string;
@@ -139,34 +141,48 @@ async function fetchJson(url: string, init: RequestInit = {}, timeoutMs = 7000) 
 }
 
 export async function inspectN8n(env: ConnectorBindings): Promise<ConnectorStatus> {
-  const base = safeBaseUrl(env.N8N_BASE_URL);
-  const key = clean(env.N8N_API_KEY, 4000);
+  // The legacy n8n Cloud tenant is preserved as an archive and may 404.
+  // Prefer the existing Railway self-host ONLY with its own Infisical-bound
+  // credential; never send legacy cloud credentials to a different host.
+  const selfhostBase = safeBaseUrl(env.N8N_SELFHOST_BASE_URL);
+  const usingSelfhost = Boolean(selfhostBase);
+  const base = selfhostBase || safeBaseUrl(env.N8N_BASE_URL);
+  const key = clean(usingSelfhost ? env.N8N_SELFHOST_API_KEY : env.N8N_API_KEY, 4000);
+  const source = usingSelfhost ? "SELFHOST_STAGING" : "LEGACY_CLOUD";
   if (!base || !key) return {
     id: "n8n", label: "n8n", kind: "automation", state: "CONFIGURATION_REQUIRED", route_mode: "DISABLED",
-    summary: !base ? "Missing N8N_BASE_URL" : "Missing N8N_API_KEY", checked_at: nowIso(),
+    summary: !base ? "n8n staging URL missing" : usingSelfhost ? "Staging self-host credential not bound" : "Legacy cloud credential not bound",
+    last_error: !base ? "N8N_URL_UNBOUND" : usingSelfhost ? "N8N_SELFHOST_API_KEY_UNBOUND" : "N8N_API_KEY_UNBOUND",
+    checked_at: nowIso(),
   };
   const headers = { Accept: "application/json", "X-N8N-API-KEY": key };
   try {
     const workflows = await fetchJson(`${base}/api/v1/workflows?limit=1`, { headers });
     if (!workflows.response.ok) return {
-      id: "n8n", label: "n8n", kind: "automation", state: "ERROR", route_mode: "DISABLED",
-      summary: `API health HTTP ${workflows.response.status}`, last_error: `HTTP_${workflows.response.status}`, checked_at: nowIso(),
+      id: "n8n", label: "n8n", kind: "automation",
+      state: workflows.response.status === 401 || workflows.response.status === 403 ? "CONFIGURATION_REQUIRED" : "ERROR",
+      route_mode: "DISABLED",
+      summary: source + " workflows API HTTP " + workflows.response.status,
+      last_error: source + "_WORKFLOWS_HTTP_" + workflows.response.status,
+      checked_at: nowIso(),
     };
     const executions = await fetchJson(`${base}/api/v1/executions?limit=10`, { headers });
-    const quotaText = `${executions.text}`.toLowerCase();
-    if (quotaText.includes("execution limit reached") || quotaText.includes("execution quota") || quotaText.includes("monthly execution limit")) {
-      return {
-        id: "n8n", label: "n8n", kind: "automation", state: "QUOTA_BLOCKED", route_mode: "DISABLED",
-        summary: "API reachable · workflow execution quota is blocked", last_error: "EXECUTION_LIMIT_REACHED", checked_at: nowIso(),
-      };
-    }
+    const quotaText = String(executions.text).toLowerCase();
+    if (quotaText.includes("execution limit reached") || quotaText.includes("execution quota") || quotaText.includes("monthly execution limit")) return {
+      id: "n8n", label: "n8n", kind: "automation", state: "QUOTA_BLOCKED", route_mode: "DISABLED",
+      summary: source + " API reachable; execution quota blocked", last_error: "EXECUTION_LIMIT_REACHED", checked_at: nowIso(),
+    };
     return {
-      id: "n8n", label: "n8n", kind: "automation", state: executions.response.ok ? "LIVE" : "DEGRADED", route_mode: "N8N",
-      summary: executions.response.ok ? "API reachable · execution history readable" : `Workflow API live · executions HTTP ${executions.response.status}`,
-      last_error: executions.response.ok ? null : `EXECUTIONS_HTTP_${executions.response.status}`, checked_at: nowIso(),
+      id: "n8n", label: "n8n", kind: "automation",
+      state: executions.response.ok ? "LIVE" : "DEGRADED",
+      route_mode: "N8N",
+      summary: executions.response.ok ? source + " API workflows and executions readable" : source + " workflows readable; executions HTTP " + executions.response.status,
+      last_error: executions.response.ok ? null : source + "_EXECUTIONS_HTTP_" + executions.response.status,
+      checked_at: nowIso(),
     };
   } catch (error) {
-    return { id: "n8n", label: "n8n", kind: "automation", state: "ERROR", route_mode: "DISABLED", summary: "n8n API unavailable", last_error: redactError(error), checked_at: nowIso() };
+    return { id: "n8n", label: "n8n", kind: "automation", state: "ERROR", route_mode: "DISABLED",
+      summary: source + " API unavailable", last_error: redactError(error), checked_at: nowIso() };
   }
 }
 

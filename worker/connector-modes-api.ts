@@ -102,7 +102,7 @@ export function createConnectorModesApi() {
   api.get("/api/connector-modes/status", async (c) => {
     const shouldProbe = c.req.query("probe") === "1";
     const configured = new Set<string>();
-    for (const key of ["OPENAI_API_KEY", "GITHUB_TOKEN", "LINEAR_API_KEY", "N8N_API_KEY", "N8N_BASE_URL", "INFISICAL_MACHINE_IDENTITY", "INFISICAL_PROJECT_ID", "INFISICAL_ENVIRONMENT"]) {
+    for (const key of ["OPENAI_API_KEY", "GITHUB_TOKEN", "LINEAR_API_KEY", "N8N_API_KEY", "N8N_BASE_URL", "N8N_SELFHOST_BASE_URL", "N8N_SELFHOST_API_KEY", "INFISICAL_MACHINE_IDENTITY", "INFISICAL_PROJECT_ID", "INFISICAL_ENVIRONMENT"]) {
       if (hasValue(c.env, key)) configured.add(key);
     }
     if (c.env.DB) configured.add("DB");
@@ -136,10 +136,10 @@ export function createConnectorModesApi() {
       evidence_class: mode.evidence_class,
       execution_verification: mode.execution_verification,
       state: stateFor(mode, liveById, configured),
-      configured_bindings: bindingKeysFor(mode.mode).filter((key) => configured.has(key) || (key === "provider_bindings (D1)" && configured.has("provider_bindings"))),
-      missing_bindings: bindingKeysFor(mode.mode).filter((key) => !configured.has(key) && !(key === "provider_bindings (D1)" && configured.has("provider_bindings"))),
+      configured_bindings: (mode.mode === "n8n" && configured.has("N8N_SELFHOST_BASE_URL") ? ["N8N_SELFHOST_BASE_URL", "N8N_SELFHOST_API_KEY"] : bindingKeysFor(mode.mode)).filter((key) => configured.has(key) || (key === "provider_bindings (D1)" && configured.has("provider_bindings"))),
+      missing_bindings: (mode.mode === "n8n" && configured.has("N8N_SELFHOST_BASE_URL") ? ["N8N_SELFHOST_BASE_URL", "N8N_SELFHOST_API_KEY"] : bindingKeysFor(mode.mode)).filter((key) => !configured.has(key) && !(key === "provider_bindings (D1)" && configured.has("provider_bindings"))),
       authentication: {
-        configured: bindingKeysFor(mode.mode).some((key) => configured.has(key)),
+        configured: (mode.mode === "n8n" && configured.has("N8N_SELFHOST_BASE_URL") ? ["N8N_SELFHOST_BASE_URL", "N8N_SELFHOST_API_KEY"] : bindingKeysFor(mode.mode)).some((key) => configured.has(key)),
         accepted: liveProbeFor(mode.mode, liveTools).some((probe) => probe.state === "LIVE"),
         values_exposed: false,
       },
@@ -167,7 +167,7 @@ export function createConnectorModesApi() {
       live_tools: liveTools,
       connector_registry: shouldProbe ? connectorRegistry : [],
       modes,
-      policy: "READ_PROBE_ONLY · NO_SECRET_VALUES · WRITE_AND_EXECUTE_REQUIRE_SEPARATE_OWNER_APPROVAL",
+      policy: "READ_PROBE_ONLY · NO_SECRET_VALUES · OWNER_COMMAND_AUTHORIZED_BY_SIGNED_SESSION_ON_SEPARATE_YELLOW_ROUTE",
     }, 200, { "Cache-Control": "no-store" });
   });
 

@@ -50,6 +50,8 @@ env:
   INFISICAL_CLOUDFLARE_PROJECT_ID: e8cfba67-ea99-4d79-bc9f-87b862f9129c
   INFISICAL_CLOUDFLARE_PROJECT_SLUG: ogenic-sio-ti-rv
   N8N_BASE_URL: ${{ vars.N8N_BASE_URL || 'https://ogenic-registry.app.n8n.cloud' }}
+  # Existing OGE-69 Railway self-host; dedicated Infisical credential is required.
+  N8N_SELFHOST_BASE_URL: ${{ vars.N8N_SELFHOST_BASE_URL || 'https://n8n-staging-76b7.up.railway.app' }}
 
 jobs:
   deploy:

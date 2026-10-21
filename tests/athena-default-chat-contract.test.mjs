@@ -53,7 +53,8 @@ test("ATHENA has bounded tool rounds, canonical 1LSS context, and fail-closed ex
   assert.match(api, /ATHENA_ACTOR_ID = "athena-command"/);
   assert.match(api, /COMMANDER_CANDIDATE/);
   assert.match(api, /YELLOW_STONE_ONLY/);
-  assert.match(api, /Never execute writes from this lane/);
+  assert.match(api, /eight auto-called verification tools are READ ONLY/);
+  assert.match(api, /WAVE Chat supports \/OG.RUN/);
   assert.match(api, /Fresh GitHub or Linear verification/i);
 });
 
