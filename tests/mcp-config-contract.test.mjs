@@ -84,6 +84,9 @@ test("bounded Github remote read-proof is owner-only, readonly and evidence-only
   assert.match(api, /provider !== "github"/);
   assert.match(api, /https:\/\/api\.githubcopilot\.com\/mcp\/readonly/);
   assert.match(api, /"get_file_contents"/);
+  assert.match(api, /entry.type !== "resource"/);
+  assert.match(api, /resource.text/);
+  assert.match(api, /resourceTexts.length/);
   assert.match(api, /"tools\/call"/);
   assert.match(api, /path: "README\.md"/);
   assert.match(api, /ref: "refs\/heads\/phase-vi-provider-incentive-metering"/);
