@@ -77,10 +77,14 @@ for name in names:
     candidate = os.environ.get(name, "").strip()
     if not candidate or candidate in tested:
         continue
+    # Infisical can contain non-token metadata/serialized JSON under a token
+    # alias. Never use malformed values as HTTP headers or echo them to logs.
+    if any(ord(ch) < 33 or ord(ch) > 126 for ch in candidate):
+        continue
     tested.add(candidate)
     try:
         identity = api(candidate, "GET", "/user")
-    except RuntimeError:
+    except (RuntimeError, ValueError):
         continue
     if str(identity.get("login","")).lower() == GH2:
         selected, selected_name = candidate, name
@@ -98,7 +102,7 @@ if selected is None and shutil.which("gh"):
             identity = api(candidate,"GET","/user")
             if str(identity.get("login","")).lower() == GH2:
                 selected, selected_name = candidate, "HOST_GH_CLI"
-    except (RuntimeError, subprocess.TimeoutExpired):
+    except (RuntimeError, ValueError, subprocess.TimeoutExpired):
         pass
 
 if not selected:
@@ -176,7 +180,6 @@ with tempfile.TemporaryDirectory(prefix="ogenic-gh2-mirror-", dir=os.environ.get
         fail("GH2_TARGET_HAS_DIFFERENT_EXISTING_REFS__NO_OVERWRITE")
 
     if not existing:
-        specs = [r+" :"+r for r in []]  # no-op; real specs below do not force updates
         specs = ["refs/heads/*:refs/heads/*"]
         if tags: specs.append("refs/tags/*:refs/tags/*")
         if notes: specs.append("refs/notes/*:refs/notes/*")
