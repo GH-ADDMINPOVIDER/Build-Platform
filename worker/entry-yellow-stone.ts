@@ -37,6 +37,7 @@ import { createDiscordApi } from "./discord-api";
 import { dispatchWaveCommandConsumer } from "./wave-command-dispatch";
 import { createConnectorModesApi } from "./connector-modes-api";
 import { createLocalAgentTeamApi } from "./local-agent-team-api";
+import { readCertificateLincenc } from "./certificate-lincenc-registry";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
@@ -548,6 +549,13 @@ export default {
     }
     if (pathname === "/api/capabilities/execute") {
       return executionApi.fetch(request, env, ctx as never);
+    }
+    // Owner-only read of the existing OGE-128 certificate in staging D1.
+    if (pathname === "/api/system/certificate-lincenc") {
+      if (request.method !== "GET") return Response.json({ ok:false, code:"METHOD_NOT_ALLOWED" }, { status:405, headers:{ "Cache-Control":"no-store" } });
+      if (!(await hasOwnerSession(request, env))) return Response.json({ ok:false, code:"REAUTH_REQUIRED" }, { status:401, headers:{ "Cache-Control":"no-store" } });
+      const result = await readCertificateLincenc(env.DB);
+      return Response.json(result, { status:result.ok ? 200 : result.http_status, headers:{ "Cache-Control":"private, no-store" } });
     }
     if (pathname === "/api/wave/command/status") {
       return commandConsumerStatus(request, env);

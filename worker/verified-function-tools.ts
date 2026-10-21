@@ -1,6 +1,7 @@
 import type { ConnectorD1 } from "./connector-runtime";
 import { readConnectorRegistry, type ConnectorBindings } from "./connector-runtime";
 import { readCanonicalD1Context } from "./d1-context";
+import { readCertificateLincenc } from "./certificate-lincenc-registry";
 
 export const CANONICAL_REPOSITORY = "Ogenicchocolate21debug/Build-Platform";
 export const CANONICAL_BRANCH = "phase-vi-provider-incentive-metering";
@@ -27,6 +28,7 @@ export const verifiedFunctionTools: ToolDefinition[] = [
   { type: "function", name: "linear_get_issue", description: "Read one Linear issue by identifier, for example OGE-32.", strict: true, parameters: { type: "object", properties: { identifier: { type: "string", pattern: "^[A-Za-z][A-Za-z0-9]*-[0-9]+$", maxLength: 40 } }, required: ["identifier"], additionalProperties: false } },
   { type: "function", name: "lss_recent_turns", description: "Read recent turns from locked owner-main / 1LSS_OWNER_MAIN canonical continuity.", strict: true, parameters: { type: "object", properties: { limit: { type: "integer", minimum: 1, maximum: 30 } }, required: ["limit"], additionalProperties: false } },
   { type: "function", name: "yellowstone_status", description: "Read Yellow Stone capability resolver and policy state without execution.", strict: true, parameters: noArguments },
+  { type: "function", name: "certificate_lincenc_status", description: "Read the original OGENIC Certificate lincenc authorization evidence registry from live D1. NOT a Vercel SSL/TLS certificate, current OAuth scope, or live runtime E2E.", strict: true, parameters: noArguments },
 ];
 
 const names = new Set(verifiedFunctionTools.map((tool) => tool.name));
@@ -126,11 +128,15 @@ export async function executeVerifiedTool(name: string, args: unknown, env: Veri
 }
 
 async function dispatchVerifiedTool(name: string, args: unknown, env: VerifiedToolBindings): Promise<Record<string, unknown>> {
-  if (!names.has(name)) return { ok: false, code: "HUMAN_APPROVAL_REQUIRED", verified: false, read_only: true, message: "Only the seven registered read-only tools may execute; writes and unknown functions fail closed." };
+  if (!names.has(name)) return { ok: false, code: "HUMAN_APPROVAL_REQUIRED", verified: false, read_only: true, message: "Only registered read-only tools may execute; writes and unknown functions fail closed." };
   if (!args || typeof args !== "object" || Array.isArray(args)) return invalid("arguments must be an object");
   const input = args as Record<string, unknown>;
   const allowed = name === "github_fetch_file" ? ["path"] : name === "linear_get_issue" ? ["identifier"] : (name === "linear_recent_issues" || name === "lss_recent_turns") ? ["limit"] : [];
   if (Object.keys(input).some((key) => !allowed.includes(key))) return invalid("unknown argument");
+  if (name === "certificate_lincenc_status") {
+    const evidence = await readCertificateLincenc(env.DB);
+    return evidence.ok ? envelope(name, evidence) : { ...evidence, verified:false };
+  }
   if (name === "github_staging_status") return githubStatus(env);
   if (name === "github_fetch_file") return githubFile(env, clip(input.path, 500));
   if (name === "linear_recent_issues") {
