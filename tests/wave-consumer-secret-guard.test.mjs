@@ -27,3 +27,15 @@ test("Existing consumer remains guard enforcing, metadata-only and scope limited
   assert.match(source, /WAVE_CONSUMER_SAFE_FAILURE=/);
   assert.doesNotMatch(source, /process\.stdout\.write\(combined\)/);
 });
+
+test("Owner-pinned WAVE Terminal uses only original GS Codex profile and cannot switch to GT or TS context", () => {
+  const source = readFileSync(new URL("../scripts/wave-command-consumer.mjs", import.meta.url), "utf8");
+  assert.match(source, /const codexHome = "\/home\/wave\/\.codex"/);
+  assert.match(source, /expectedGsIdentityHash/);
+  assert.match(source, /claims\.email/);
+  assert.match(source, /identityHash !== expectedGsIdentityHash/);
+  assert.match(source, /CODEX_GS_PROFILE_NOT_VERIFIED/);
+  assert.match(source, /WAVE_CONSUMER_CODEX_IDENTITY=GPT_GS_CODEX/);
+  assert.doesNotMatch(source, /const codexHome = configuredCodexHome/);
+  assert.doesNotMatch(source, /codexHome = \"\/root\/\.codex\"/);
+});
