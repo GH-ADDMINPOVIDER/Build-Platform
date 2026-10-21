@@ -24,6 +24,8 @@ export async function dispatchWaveCommandConsumer(env: DispatchEnv, taskId: stri
       }),
     },
   );
-  if (!response.ok) return { ok: false as const, code: `GITHUB_DISPATCH_HTTP_${response.status}` };
+  // GitHub workflow_dispatch only acknowledges acceptance with HTTP 204.
+  // Do not treat a different 2xx response as proof of an Actions dispatch.
+  if (response.status !== 204) return { ok: false as const, code: `GITHUB_DISPATCH_HTTP_${response.status}` };
   return { ok: true as const };
 }

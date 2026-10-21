@@ -9,6 +9,7 @@ on:
       - "tests/athena-guarded-command-handoff.test.mjs"
       - "worker/entry-yellow-stone.ts"
       - "worker/wave-command-contract.ts"
+      - "worker/wave-command-dispatch.ts"
       - "tests/wave-command-contract.test.mjs"
       - "worker/capability-execution-api.ts"
       - "worker/athena-chat-api.ts"

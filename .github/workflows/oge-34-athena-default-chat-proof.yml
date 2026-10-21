@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/oge-34-athena-default-chat-proof.yml"
       - "worker/athena-chat-api.ts"
+      - "worker/wave-command-dispatch.ts"
       - "worker/entry-connectors.ts"
       - "tests/athena-default-chat-contract.test.mjs"
       - "worker/verified-function-tools.ts"

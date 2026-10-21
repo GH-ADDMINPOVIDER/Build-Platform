@@ -23,6 +23,12 @@ test("autonomous command remains Yellow-controlled and canonical", () => {
   assert.match(entry, /waveCommandPolicy/);
 });
 
+test("GitHub workflow dispatch requires the actual HTTP 204 acknowledgment", () => {
+  const dispatch = fs.readFileSync("worker/wave-command-dispatch.ts", "utf8");
+  assert.match(dispatch, /response\.status !== 204/);
+  assert.match(dispatch, /GITHUB_DISPATCH_HTTP_/);
+});
+
 test("command contract rejects arbitrary URLs, secrets and non-staging scope", () => {
   assert.match(contract, /SECRET_LIKE_INPUT_REJECTED/);
   assert.match(contract, /ENVIRONMENT_SCOPE_MISMATCH/);
