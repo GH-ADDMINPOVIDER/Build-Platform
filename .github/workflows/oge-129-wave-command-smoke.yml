@@ -8,6 +8,8 @@ on:
       - "scripts/oge129_owner_live_e2e.mjs"
       - "scripts/verify-openbot-launchroom-staging.mjs"
       - "scripts/wave-command-consumer.mjs"
+      - "scripts/wave-consumer-secret-guard.mjs"
+      - "tests/wave-consumer-secret-guard.test.mjs"
       - "tests/wave-terminal-solo-contract.test.mjs"
       - "scripts/wave-terminal-solo.sh"
       - "worker/entry-yellow-stone.ts"
@@ -102,7 +104,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/oge129_owner_live_e2e.mjs
           node --check scripts/wave-command-consumer.mjs
-          node --test tests/wave-terminal-solo-contract.test.mjs
+          node --test tests/wave-terminal-solo-contract.test.mjs tests/wave-consumer-secret-guard.test.mjs
       - name: Resolve existing staging Infisical project
         id: discovery
         shell: bash

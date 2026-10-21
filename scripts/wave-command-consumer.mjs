@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { accessSync, constants } from "node:fs";
 import { join } from "node:path";
+import { bearerCredentialPattern } from "./wave-consumer-secret-guard.mjs";
 
 const taskId = String(process.env.WAVE_TASK_ID || "").trim();
 const waveUrl = String(process.env.WAVE_URL || "https://wave.ogenicchocolate.com").replace(/\/$/, "");
@@ -76,7 +77,7 @@ const combined = String(run.stdout || "") + "\n" + String(run.stderr || "");
 const protectedMarkers = [
   ["openai_key", /(?:^|[^a-z0-9_])sk-[a-z0-9_-]{12,}/i],
   ["github_token", /(?:^|[^a-z0-9_])gh[pousr]_[a-z0-9_]{12,}/i],
-  ["bearer_token", /(?:^|[^a-z0-9_])bearer\s+[a-z0-9._~+/=-]{12,}/i],
+  ["bearer_token", bearerCredentialPattern],
   ["pem_private_key", /BEGIN (?:RSA|OPENSSH|EC) PRIVATE KEY/i],
 ];
 // Distinguish the Codex answer channel from CLI diagnostics before considering

@@ -65,6 +65,7 @@ test("the scope boundary forbids secret outputs and production modifications",()
   // The consumer now categorizes credential markers rather than using the
   // former 'secretLike' identifier. Keep protection checks, not a stale name.
   assert.match(consumer,/const protectedMarkers = \[/);
+  assert.match(consumer, /import \{ bearerCredentialPattern \} from "\.\/wave-consumer-secret-guard\.mjs"/);
   for (const category of ["openai_key","github_token","bearer_token","pem_private_key"]) {
     assert.ok(consumer.includes('["' + category + '",'), "guard class: " + category);
   }
