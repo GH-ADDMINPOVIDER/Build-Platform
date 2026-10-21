@@ -493,3 +493,65 @@ jobs:
           echo CCS_GH2_MCP_READ_ONLY_SERVER_PROOF=TRUE
           echo CCS_GH2_MCP_PROVIDER_WRITE=FALSE
           echo CCS_GH2_MCP_PAID_MODEL_CALLS=ZERO
+
+      - name: Bind existing generic webhook secret through scoped Infisical OIDC
+        if: github.actor == 'Wave-Runner-2'
+        uses: Infisical/secrets-action@v1.0.17
+        with:
+          method: oidc
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+          env-slug: staging
+          domain: https://app.infisical.com
+          secret-path: /
+          secret-name: OGENIC_GENERIC_HOOK_SECRET
+          include-imports: false
+          recursive: false
+      - name: CCS15 signed generic webhook delivery and dedup D1 readback
+        if: github.actor == 'Wave-Runner-2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          umask 077
+          if test -z "$(printenv OGENIC_GENERIC_HOOK_SECRET || true)"; then
+            echo CCS15_WEBHOOK_E2E=BLOCKED_NO_STAGING_HMAC_BINDING
+            exit 0
+          fi
+          cookie="$RUNNER_TEMP/ccs15-hook-$GITHUB_RUN_ID.cookie"
+          login="$RUNNER_TEMP/ccs15-hook-$GITHUB_RUN_ID-login.json"
+          payload="$RUNNER_TEMP/ccs15-hook-$GITHUB_RUN_ID-payload.json"
+          response="$RUNNER_TEMP/ccs15-hook-$GITHUB_RUN_ID-response.json"
+          events="$RUNNER_TEMP/ccs15-hook-$GITHUB_RUN_ID-events.json"
+          trap 'rm -f "$cookie" "$login" "$payload" "$response" "$events"' EXIT
+          id="ccs15-staging-$GITHUB_RUN_ID"
+          jq -nc --arg id "$id" '{type:"ogenic.ccs15.safe_probe",test_id:$id,environment:"staging",side_effects:false}' > "$payload"
+          signature="$(node - "$payload" <<'NODE'
+          const {createHmac}=require('node:crypto');
+          const fs=require('node:fs');
+          const body=fs.readFileSync(process.argv[2]);
+          process.stdout.write('sha256='+createHmac('sha256',process.env.OGENIC_GENERIC_HOOK_SECRET).update(body).digest('hex'));
+          NODE
+          )"
+          root=https://wave.ogenicchocolate.com
+          for pass in first replay; do
+            code="$(timeout 18 curl -sS --max-time 15 -H 'Content-Type: application/json' -H "x-ogenic-signature: $signature" -H "idempotency-key: $id" --data-binary @"$payload" -o "$response" -w '%{http_code}' "$root/hooks/generic" || true)"
+            if test "$code" != 200 || ! jq -e --arg id "$id" --arg pass "$pass" '.ok == true and .provider == "generic" and .id == $id and .duplicate == ($pass=="replay")' "$response" >/dev/null 2>&1; then
+              echo "CCS15_WEBHOOK_$pass=BLOCKED_HTTP_$code"
+              jq -r '"CCS15_WEBHOOK_ERROR="+(.code // "UNKNOWN")' "$response" 2>/dev/null || true
+              exit 0
+            fi
+            echo "CCS15_WEBHOOK_$pass=PASS"
+          done
+          code="$(jq -nc --arg k "$OGENIC_OPS_KEY" '{owner_key:$k}' | timeout 15 curl -sS --max-time 12 --cookie-jar "$cookie" -H 'Content-Type: application/json' --data-binary @- -o "$login" -w '%{http_code}' "$root/api/session" || true)"
+          if test "$code" != 200 || ! jq -e '.ok==true and .authenticated==true' "$login" >/dev/null 2>&1; then
+            echo CCS15_WEBHOOK_D1_READBACK=OWNER_SESSION_BLOCKED
+            exit 0
+          fi
+          code="$(timeout 15 curl -sS --max-time 12 --cookie "$cookie" -o "$events" -w '%{http_code}' "$root/api/connectors/events?limit=100" || true)"
+          if test "$code" = 200 && jq -e --arg id "$id" '([.events[]? | select(.external_id==$id and .provider=="generic" and (.state=="VERIFIED" or .state=="DUPLICATE"))]|length) >= 2' "$events" >/dev/null 2>&1; then
+            echo CCS15_WEBHOOK_HMAC_DEDUP_D1_E2E=PASS
+          else
+            echo "CCS15_WEBHOOK_HMAC_DEDUP_D1_E2E=BLOCKED_HTTP_$code"
+          fi
+          echo CCS15_WEBHOOK_SECRET_VALUE_EXPOSED=FALSE
