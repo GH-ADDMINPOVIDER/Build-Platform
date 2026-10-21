@@ -6,6 +6,7 @@ on:
 permissions:
   contents: read
   actions: read
+  id-token: write
 jobs:
   runner2_probe:
     if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && contains(fromJSON('["Ogenicchocolate21debug","Wave-Runner-2"]'), github.actor)
@@ -227,3 +228,48 @@ jobs:
           echo "OCIAN_IDE_SSH_LOGIN=NOT_PROVEN_BY_LOCAL_SHELL_PROBES"
           echo "OCIAN_PROVIDER_MCP_TOOL_CALLS=NOT_ATTEMPTED"
           echo "OCIAN_HOST_PROBE=END"
+
+      - name: Bind existing Owner staging key with Infisical OIDC
+        if: github.actor == 'Wave-Runner-2'
+        uses: Infisical/secrets-action@v1.0.17
+        with:
+          method: oidc
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+          env-slug: staging
+          domain: https://app.infisical.com
+          secret-path: /
+          secret-name: OGENIC_OPS_KEY
+          include-imports: false
+          recursive: false
+      - name: Authenticated owner MCP inventory and D1 connector state
+        if: github.actor == 'Wave-Runner-2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          umask 077
+          jar="$RUNNER_TEMP/ocian-auth-$GITHUB_RUN_ID.cookies"
+          response="$RUNNER_TEMP/ocian-auth-$GITHUB_RUN_ID.json"
+          state="$RUNNER_TEMP/ocian-mcp-$GITHUB_RUN_ID.json"
+          trap 'rm -f "$jar" "$response" "$state"' EXIT
+          if test -z "$(printenv OGENIC_OPS_KEY || true)"; then echo 'OCIAN_MCP_OWNER_BINDING=MISSING'; exit 0; fi
+          echo 'OCIAN_MCP_INFISICAL_OWNER_KEY=BOUND_NO_VALUE_PRINTED'
+          code="$(jq -nc --arg v "$OGENIC_OPS_KEY" '{owner_key:$v}' | timeout 15 curl --silent --show-error --max-time 12 --cookie-jar "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$response" -w '%{http_code}' https://wave.ogenicchocolate.com/api/session || true)"
+          if test "$code" != 200 || ! jq -e '.ok == true and .authenticated == true and .user.role == "owner"' "$response" >/dev/null 2>&1; then echo "OCIAN_MCP_OWNER_SESSION=NOT_VERIFIED_HTTP_$code"; exit 0; fi
+          echo 'OCIAN_MCP_OWNER_SESSION=VERIFIED'
+          for pair in 'MCP_STATE:/api/mcp-config/state' 'MCP_FIXTURE:/api/mcp-config/discover?provider=simulated' 'CONNECTOR_MANIFEST:/api/connector-endpoint/v1/manifest' 'CONNECTOR_STATUS:/api/connector-endpoint/v1/status' 'LOCAL_TEAM:/api/local-agent-team/state' 'BLUE_REGISTRY:/api/blue-diamond/registry'; do
+            label="$(printf '%s' "$pair" | cut -d: -f1)"
+            path="$(printf '%s' "$pair" | cut -d: -f2-)"
+            status="$(timeout 15 curl --silent --show-error --max-time 12 --cookie "$jar" -o "$response" -w '%{http_code}' "https://wave.ogenicchocolate.com$path" || true)"
+            echo "OCIAN_AUTH_$label=HTTP_$status"
+            if test "$label" = MCP_STATE && test "$status" = 200; then cp "$response" "$state"; jq -r '"OCIAN_MCP_BINDINGS_COUNT="+((.bindings|length)|tostring)' "$state"; jq -r '.bindings[]? | select(.provider_id|test("^[a-z0-9_-]+$")) | "OCIAN_MCP_REGISTERED_"+.provider_id+"="+.status' "$state" | head -n 15; fi
+          done
+          if test -s "$state"; then
+            jq -r '.bindings[]? | select(.status=="configured" or .status=="active") | .provider_id | select(test("^[a-z0-9_-]+$"))' "$state" | head -n 4 | while IFS= read -r provider; do
+              code="$(timeout 17 curl --silent --show-error --max-time 14 --cookie "$jar" --get --data-urlencode "provider=$provider" -o "$response" -w '%{http_code}' https://wave.ogenicchocolate.com/api/mcp-config/discover || true)"
+              echo "OCIAN_MCP_REAL_DISCOVER_$provider=HTTP_$code"
+              if test "$code" = 200; then jq -r '"OCIAN_MCP_LIVE="+((.real_available==true)|tostring)+";TOOL_COUNT="+((.tools|length)|tostring)' "$response" || true; fi
+            done
+          fi
+          echo 'OCIAN_MCP_NO_TOOLS_CALL_OR_SECRET_EXPOSURE=TRUE'
