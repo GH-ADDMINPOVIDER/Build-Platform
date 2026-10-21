@@ -391,6 +391,20 @@
       "staging_only": true,
       "owner_identity_correction_ref": "OGE128-OWNER-IDENTITY-CORRECTION-20261020",
       "this_revision_requires_independent_sync": true
+    },
+    {
+      "event": "GS_CERTIFICATE_LINCENC_CONNECTOR_SCOPE_AUDIT_20261021",
+      "status": "18_EXISTING_AUTH_READ_CHECKS_PASS_3_SERVICE_API_CALLS_PASS_1_PUBLIC_ONLY_1_NOT_INVOKED",
+      "record": "Certificate lincenc",
+      "authenticated_connector_count": 18,
+      "groups": 23,
+      "account_scope": "GS_ONLY",
+      "ts_oauth_reverified": false,
+      "manus_no_side_effect": true,
+      "datacamp_private_oauth": "AUTH_REQUIRED",
+      "notes": "Existing OAuth connections not recreated or reauthorized; current tool/session evidence does not grant accounts TS or WAVE runner access",
+      "source": "read-only MCP tool calls on 2026-10-21",
+      "historical_data_deleted": false
     }
   ],
   "secret_contract": {
@@ -841,6 +855,98 @@
       "no_secret_contents": true,
       "no_second_runner_host": true,
       "owner_marker": "-Ow NOT_AUTHORIZED_BY_BARE_TEXT"
+    },
+    "current_connection_audit_20261021": {
+      "date": "2026-10-21",
+      "runtime_scope": "CURRENT_GS_CHATGPT_ACCOUNT_ONLY",
+      "scope_exclusion": "THIS DOES NOT ATTEST CHATGPT_TS_ACCOUNT, WEB_WAVE_RUNTIME, GITHUB_ACTIONS_SECRET_BINDINGS, OR HOST_SSH",
+      "count_total": 23,
+      "count_authenticated_read_api_verified": 18,
+      "authenticated_read_api_verified": [
+        "AppDeploy",
+        "Canva",
+        "ClickUp",
+        "DigitalOcean",
+        "Figma",
+        "Firecrawl",
+        "GitHub",
+        "Gmail",
+        "Google_Calendar",
+        "Google_Contacts",
+        "Google_Drive",
+        "Linear",
+        "Lovable",
+        "Microsoft_Outlook_Email",
+        "Notion",
+        "Railway",
+        "Statsig",
+        "Vercel"
+      ],
+      "additional_service_call_checks": {
+        "Context7": {
+          "status": "PUBLIC_DOCS_API_CALL_PASS",
+          "authentication": "NO_OWNER_OAUTH_PROOF",
+          "evidence": "Context7 resolve_library_id Hono returned matching docs"
+        },
+        "OpenAI_Platform": {
+          "status": "ACCOUNT_TARGETS_READABLE",
+          "authentication": "API_KEY_CREATION_NOT_PERFORMED",
+          "evidence": "list_openai_api_key_targets returned Personal organization and default project, no key issued"
+        },
+        "Plugin_Management": {
+          "status": "PLUGIN_DIRECTORY_CALL_PASS",
+          "authentication": "PLUGIN_MANAGEMENT_AVAILABLE",
+          "evidence": "search_plugins GitHub returned installed enabled connector"
+        },
+        "DataCamp": {
+          "status": "PUBLIC_CATALOG_PASS_PRIVATE_AUTH_REQUIRED",
+          "authentication": "USER_LOGIN_REQUIRED_FOR_PRIVATE_PROGRESS",
+          "evidence": "public list_courses returned results; authenticated prerequisitesMet returned sign-in required"
+        },
+        "Manus": {
+          "status": "TASK_START_API_EXPOSED_NOT_INVOKED",
+          "authentication": "NOT_VERIFIED",
+          "evidence": "all five exposed functions initiate asynchronous jobs; no benign read-only session inspector"
+        }
+      },
+      "gross_tool_surface_count": 23,
+      "count_existing_oauth_sessions_created_by_this_audit": 0,
+      "live_mcp_checks_only": true,
+      "existing_oauth_preserved": true,
+      "data_residency": "CERTIFICATE_METADATA_ONLY_NO_TOKENS",
+      "github_accounts": [
+        {
+          "account": "Ogenicchocolate21debug",
+          "role_note": "GH runner/account #1; read profile pass; not independent host"
+        },
+        {
+          "account": "Wave-Runner-2",
+          "role_note": "GH runner/account #2; read profile pass; not evidence of a separate self-hosted runner"
+        }
+      ],
+      "accounts": {
+        "GS": {
+          "status": "CURRENT_TOOL_SESSION_READ_CHECKS_PERFORMED"
+        },
+        "TS": {
+          "status": "NOT_OBSERVABLE_OR_CONNECTABLE_FROM_GS_SESSION",
+          "needs": "TS signs into each required third-party service in its own ChatGPT account if not already connected"
+        }
+      },
+      "blockers": [
+        {
+          "app": "DataCamp",
+          "code": "LOGIN_REQUIRED_FOR_PRIVATE_CATALOG_AND_PROGRESS",
+          "resolution": "provider-side DataCamp sign-in in user's own app connection"
+        },
+        {
+          "app": "Manus",
+          "code": "NON_MUTATING_ACCOUNT_STATUS_TOOL_UNAVAILABLE",
+          "resolution": "test only with an explicitly intended Manus task; exposed initiate functions do not prove OAuth or execution"
+        }
+      ],
+      "d1_evidence": "Prior staging D1 write/readback still verified; this revision needs a new exact document SHA readback.",
+      "no_new_license_certificate_id": true
     }
   },
   "owner_identity_correction_20261020": {
