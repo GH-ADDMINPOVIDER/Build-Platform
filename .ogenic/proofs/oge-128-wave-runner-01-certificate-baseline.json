@@ -405,6 +405,25 @@
       "notes": "Existing OAuth connections not recreated or reauthorized; current tool/session evidence does not grant accounts TS or WAVE runner access",
       "source": "read-only MCP tool calls on 2026-10-21",
       "historical_data_deleted": false
+    },
+    {
+      "event": "cross_chat_GS_owner_canonical_handoff_20261021",
+      "checkpoint_id": "WAVE-GS-HANDOFF-20261021-OWNER-MAIN",
+      "status": "GITHUB_RECORDED_D1_SYNC_PENDING",
+      "latest_staging_sha": "bba7ed9d2704d9753d67ef7fda22b6c570ba3392",
+      "owner_labels": [
+        "Tawatchai/gh-runner1",
+        "Tomload21/gh-runner-2"
+      ],
+      "source_runs": [
+        39631305102,
+        39631305177,
+        39631305243,
+        39631305348,
+        39631305300
+      ],
+      "original_fields_retained": true,
+      "no_secrets": true
     }
   ],
   "secret_contract": {
@@ -1034,5 +1053,132 @@
       "seven_stones_tables_mutated": false,
       "note": "This embedded proof references the preceding successful D1 readback. The current amendment revision will independently sync and generate its own run receipt."
     }
+  },
+  "chat_transfer_checkpoint_20261021": {
+    "checkpoint_id": "WAVE-GS-HANDOFF-20261021-OWNER-MAIN",
+    "name": "Certificate lincenc",
+    "created_for": "GS/ATHENA/GT/TS new-chat seamless continuation",
+    "created_on": "2026-10-21",
+    "canonical_session": "owner-main / 1LSS_OWNER_MAIN",
+    "github_1": {
+      "owner_label": "Tawatchai",
+      "runtime_alias": "gh-runner1",
+      "login": "Ogenicchocolate21debug",
+      "profile_id": "306097555",
+      "repo_permission": "admin",
+      "connector_scope": "OWNER_SAYS_INCOMPLETE; LIVE_SCOPE_NOT_VERIFIED"
+    },
+    "github_2": {
+      "owner_label": "Tomload21",
+      "runtime_alias": "gh-runner-2",
+      "login": "Wave-Runner-2",
+      "profile_id": "342175560",
+      "repo_permission": "write",
+      "connector_scope": "OWNER_SELECTED_ALL_AVAILABLE; LIVE_SCOPE_NOT_VERIFIED",
+      "not_a_second_host": true
+    },
+    "codex_gs": {
+      "identity": "GPT_GS_CODEX",
+      "profile": "/home/wave/.codex",
+      "historical_login": "PASS",
+      "current_wave_e2e": "NOT_VERIFIED"
+    },
+    "codex_ts": {
+      "identity": "GPT_TS_CODEX",
+      "profile": "/root/.codex",
+      "historical_execution": "TS_CODEX_EXEC=SUCCESS",
+      "proof_run": 39124078680,
+      "proof_job": 117665435544,
+      "current_wave_e2e": "NOT_VERIFIED",
+      "docker": "OPTIONAL_ADAPTER"
+    },
+    "host": {
+      "name": "wave-runner-01",
+      "droplet_id": 604432491,
+      "ip": "165.232.174.32",
+      "single_selfhost_service": true
+    },
+    "staging": {
+      "repo": "Ogenicchocolate21debug/Build-Platform",
+      "branch": "phase-vi-provider-incentive-metering",
+      "head_at_20261021": "bba7ed9d2704d9753d67ef7fda22b6c570ba3392",
+      "url": "https://wave.ogenicchocolate.com",
+      "worker": "ogenic-phase-vi-staging",
+      "d1": "ogenic-phase-vi-staging",
+      "db_id": "b4ac3a33-df80-47cf-8e75-7574e025b87b"
+    },
+    "run_proofs": {
+      "deploy": {
+        "id": 39631305102,
+        "result": "SUCCESS"
+      },
+      "phase_ii": {
+        "id": 39631305348,
+        "result": "SUCCESS"
+      },
+      "runner_catchup": {
+        "id": 39631305300,
+        "result": "SUCCESS"
+      },
+      "oge35": {
+        "id": 39631305177,
+        "result": "SUCCESS_BOUNDED_NOT_FULL_CODEX_E2E"
+      },
+      "oge34": {
+        "id": 39631305243,
+        "result": "FAILURE_BLUE_DIAMOND_ADMISSION_METADATA_MISMATCH"
+      },
+      "historical_dispatch": {
+        "id": 39368975395,
+        "actions_read_http": 200,
+        "actions_write_http": 403,
+        "current_state": "RECHECK"
+      },
+      "historical_codex_ts": {
+        "id": 39124078680,
+        "result": "PASS"
+      },
+      "gh2_transfer": {
+        "id": 39611522647,
+        "result": "SUCCESS_TRANSFER_ONLY"
+      }
+    },
+    "connector_registry": {
+      "mcp_groups": 23,
+      "verified_read_historical": 18,
+      "connector_modes_inventory": 15,
+      "all_provider_e2e_verified": false
+    },
+    "certificate": {
+      "id": "oge-128-wave-runner-01-baseline-20261018",
+      "branch": "task/oge-128-runtime-certificate-20261018",
+      "path": ".ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json",
+      "d1_table": "certificate_lincenc",
+      "last_preexisting_d1_readback": "github-actions:39412623014/job/118593855071",
+      "this_revision_d1": "PENDING_NEW_SHA_READBACK",
+      "leaf_issued": false
+    },
+    "remaining_work": [
+      "OGE-34 admission metadata mismatch",
+      "WAVE Worker real Actions:write dispatch scope",
+      "CURRENT Codex TS/GS current host smoke + WAVE command E2E + D1 COMMAND_RESULT_DONE",
+      "OpenBot agent per-adapter E2E / Launch Room",
+      "iPhone WAVE UI validation",
+      "new Certificate revision D1 SHA256 readback"
+    ],
+    "current_boundaries": {
+      "signed_owner_authority": "CURRENT_STAGING_SOURCE",
+      "no_second_approval_for_owner": true,
+      "no_bare_Ow_auth": true,
+      "non_read_adapter": "UNSUPPORTED_WHEN_NOT_IMPLEMENTED",
+      "seven_stones_separate": true,
+      "auth_scopes_not_implied_by_certificate": true
+    },
+    "historical_sources_retained": true,
+    "no_new_certificate": true,
+    "no_secret_values": true,
+    "no_production_mutation": true,
+    "migration_prompt": "# GS / ATHENA — WAVE CANONICAL RECOVERY HANDOFF (21 OCT 2026)\nMode: STAGING ONLY · EXECUTE TO VERIFIED RESULT · EXISTING SYSTEMS · NO DUPLICATES · NO GUESSING\n\nThis is a continuation. First read the single original Certificate lincenc on GitHub, latest ATHENA, D1, prior conversation/1LSS and P-Stack, current GitHub HEAD and CI. Then check all four account contexts and actual host/consumer paths. Execute fixes using already-connected MCP/GitHub Actions/Infisical and existing Runner-1. Do not ask Owner to reconnect working plugins, repeat already-proven setup or do SSH steps from iPhone. Never use a previous PASS to assert present-time E2E.\n\nCANONICAL SYSTEM\nRepo: Ogenicchocolate21debug/Build-Platform\nStaging branch: phase-vi-provider-incentive-metering\nLatest verified staging HEAD on 21 Oct: bba7ed9d2704d9753d67ef7fda22b6c570ba3392 (recheck LIVE before edits).\nWeb: https://wave.ogenicchocolate.com ; Worker: ogenic-phase-vi-staging.\nD1: ogenic-phase-vi-staging ; binding DB ; DB ID b4ac3a33-df80-47cf-8e75-7574e025b87b.\nCanonical memory: owner-main / 1LSS_OWNER_MAIN.\nOne physical self-hosted Runner/Host: wave-runner-01; DigitalOcean Droplet 604432491; Ubuntu 24.04; 165.232.174.32; Singapore; 1GB RAM. Do not invent a second Runner-2 host. DigitalOcean MCP access does not prove interactive SSH rights.\n\nIDENTITY — OWNER-CORRECTED, DO NOT MIX\nGH account 1: Tawatchai (gh-runner1); actual GitHub login Ogenicchocolate21debug / profile ID 306097555; repo admin VERIFIED. Owner states connection/OAuth scopes incomplete for intended WAVE workflow. Repo admin ≠ installed-app OAuth scopes ≠ Worker GITHUB_TOKEN Actions:write.\nGH account 2: Tomload21 (gh-runner-2); login Wave-Runner-2 / profile ID 342175560; repo write VERIFIED. Owner selected full offered connector permissions; live scopes NOT INSPECTED. This is ACCOUNT TWO, not another DigitalOcean server.\nCodex GS: GPT_GS_CODEX, existing /home/wave/.codex; historical signed-in PASS; current WAVE command completion UNVERIFIED.\nCodex TS: GPT_TS_CODEX, original /root/.codex. Historical successful real inference TS_CODEX_EXEC=SUCCESS via optional read-only Docker adapter, Run 39124078680 / job 117665435544. Docker was a workaround, not mandatory gateway. Distinguish TS from the separate GT actor; Owner corrected one past 'GT' shorthand to TS. Do not relogin/recreate profiles unless live evidence proves required.\n\nSINGLE CERTIFICATE, NO NEW ID/FILE\nName exactly Certificate lincenc; original ID oge-128-wave-runner-01-baseline-20261018.\nGitHub canonical path .ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json on branch task/oge-128-runtime-certificate-20261018.\nCloudflare D1 isolated table certificate_lincenc, separate from 7 stones. Append checkpoint to SAME file; retain all original fields, source archives, historic proofs and owner corrections; duplicate marker '-' if needed. Only mark new D1 revision verified after independent SHA-256 readback (the previous revision was verified). Certificate Manager Infisical cert-manager-89-qe API access historic 200, but X.509 leaf issuance NOT VERIFIED. Do not put tokens/private keys into Certificate or chat.\nPlugin registry: 23 MCP tool groups, historic 18 authenticated read checks. None of this alone establishes Actions-write or provider/Agent execution. 15 connector modes inventoried; not 15 E2E-certified adapters.\n\nLATEST CI/RUNTIME CHECKPOINT — OCT 21\nStaging Deploy 39631305102 SUCCESS at bba7ed9... (log confirms deployed OGENIC_GIT_SHA).\nWAVE Phase II Canonical Check 39631305348 SUCCESS; Runner catchup 39631305300 SUCCESS.\nOGE-35 ATHENA Guarded Command 39631305177 SUCCESS: owner-authenticated guarded READ and bounded unsupported non-READ; DOES NOT PROVE current Codex TS+GS COMMAND_RESULT_DONE.\nOGE-34 ATHENA Default Chat 39631305243 FAILURE: Blue Diamond admission metadata mismatch; HTTP 200 and ATHENA runtime reached. Fix actual contract mismatch after inspecting logs, not by disabling Blue admission.\nLatest deployment also verified Owner-authenticated /api/system/certificate-lincenc readback and D1 SHA integrity.\nHistorical WAVE GITHUB_TOKEN dispatch canary Run 39368975395: Actions READ 200 but dispatch WRITE 403. Retest NOW using the Worker/Infisical staging credential; neither GitHub ChatGPT MCP account alone fixes Worker token scopes. Current code can retain deferred task/manual GitHub dispatch; do not call QUEUED=DONE.\nCurrent /api/wave/command single Signed Owner Session is final staging authority, without redundant second confirmation; still verify Owner identity/origin, bounded staging scope, real adapter, dispatch, evidence and Ruby/D1 receipt. Plain -Ow is not a credential. Existing /api/capabilities/execute supports bounded READ; non-READ missing adapters must report ADAPTER_NOT_IMPLEMENTED, not pretend to execute.\nATHENA default chat has 7 READ tools only: ogenic_system_status, github_staging_status, github_fetch_file, linear_recent_issues, linear_get_issue, lss_recent_turns, yellowstone_status. WAVE Command and Runner are a different execution surface.\nOpenBot Local Agent Team already exists in /agents Launch Room; D1 agent_tasks / agent_events / agent_checkpoints. Unbound Codex, Claude Code, Gemini, Grok, OpenCode, Cursor, Cline, Ollama or LM Studio must show honest NOT_VERIFIED; do not trigger paid fallback or invent a room adapter. Task/comment persistence != actual agent execution.\nWAVE UI already includes Liquid Glass Clear light/dark, simple natural-language command, @ agent options, owner session renewal, seven-stone animated architecture and Launch Room. Do not replace it; verify iPhone behavior.\nSeven Stones: Green=1LSS/D1, Yellow=policy/capabilities, Blue Diamond=agent registry, Violet=multi-agent, Ruby=evidence verification, Stone Runner=execution, Rule Stone=policy taxonomy. White Diamond ATHENA=brain outside seven. Certificate lincenc is evidence registry outside seven.\n\nREQUIRED NEXT ACTION IN ORDER\n1. Check ATHENA → GitHub HEAD/CI → existing certificate and last D1 row → old chat and 1LSS → P-Stack → actual principal scopes → DigitalOcean host/Runner-1. Do not blindly start new architecture.\n2. Fix OGE-34 Blue Diamond admission metadata mismatch with truthful tests and no policy bypass.\n3. Check/fix WAVE Worker Actions:write Dispatch credential via the existing Infisical staging source (env=staging path=/), do not use dev or rotate secrets without scoped permission; test real dispatch HTTP.\n4. Verify original TS and GS Codex contexts on existing host; run real Codex smoke tests and current WAVE → Yellow → Dispatch → Runner-1 → Codex TS/GS → callback COMMAND_RESULT_DONE → D1 readback.\n5. Validate OpenBot room task/handoff/checkpoint/result and iPhone UI. Keep missing adapters disabled, no false success.\n6. After each verified change: test, typecheck, build, staging-only commit/push/deploy, inspect current SHA and actions logs, and append proof in SAME Certificate with new D1 SHA readback. Never modify Production, Candy Factory, paid resources or D1 schema without explicit bounded Owner instruction.\n\nSTOP ONLY when a specific missing authorization, absent adapter, or inaccessible tool is independently verified and there is no authorized existing alternative. Give exact blocker and smallest Owner action. No task bouncing to Work/GT.\n\nREPORT FORMAT:\nRESULT | CHANGED | TEST | DEPLOY | RUNTIME | SHA | RUN_ID | UI_URL | BLOCKER/NEXT_ACTION\nSeparate HISTORICAL PASS / CURRENT VERIFIED / NOT VERIFIED. Provide commit/run links. Avoid calling everything done just because CI passes.\n",
+    "status": "GITHUB_COMMITTED_D1_READBACK_PENDING"
   }
 }
