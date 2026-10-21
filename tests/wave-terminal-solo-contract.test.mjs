@@ -68,7 +68,10 @@ test("the scope boundary forbids secret outputs and production modifications",()
   for (const category of ["openai_key","github_token","bearer_token","pem_private_key"]) {
     assert.ok(consumer.includes('["' + category + '",'), "guard class: " + category);
   }
-  assert.match(consumer,/const guardClasses = protectedMarkers\.filter/);
+  assert.match(consumer,/const stdoutGuardClasses = protectedMarkers\.filter/);
+  assert.match(consumer,/const stderrGuardClasses = protectedMarkers\.filter/);
+  assert.match(consumer,/WAVE_CONSUMER_GUARD_CHANNELS=/);
+  assert.match(consumer,/const guardClasses = \[\.\.\.new Set/);
   assert.match(consumer,/const guarded = guardClasses\.length !== 0/);
   assert.match(consumer,/const status = guarded \? "BLOCKED"/);
   assert.match(consumer,/WAVE_CONSUMER_SAFE_FAILURE=/);

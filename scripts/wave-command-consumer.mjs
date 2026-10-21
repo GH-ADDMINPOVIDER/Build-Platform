@@ -79,9 +79,17 @@ const protectedMarkers = [
   ["bearer_token", /(?:^|[^a-z0-9_])bearer\s+[a-z0-9._~+/=-]{12,}/i],
   ["pem_private_key", /BEGIN (?:RSA|OPENSSH|EC) PRIVATE KEY/i],
 ];
-const guardClasses = protectedMarkers.filter(([, expression]) => expression.test(combined)).map(([label]) => label);
+// Distinguish the Codex answer channel from CLI diagnostics before considering
+// any filter change. Only classes are logged; never token values or output.
+const stdoutText = String(run.stdout || "");
+const stderrText = String(run.stderr || "");
+const stdoutGuardClasses = protectedMarkers.filter(([, expression]) => expression.test(stdoutText)).map(([label]) => label);
+const stderrGuardClasses = protectedMarkers.filter(([, expression]) => expression.test(stderrText)).map(([label]) => label);
+const guardClasses = [...new Set([...stdoutGuardClasses, ...stderrGuardClasses])];
 const guarded = guardClasses.length !== 0;
 const status = guarded ? "BLOCKED" : run.status === 0 ? "DONE" : "FAILED";
+if (guarded) process.stdout.write("WAVE_CONSUMER_GUARD_CHANNELS=" +
+  JSON.stringify({ stdout_classes: stdoutGuardClasses, stderr_classes: stderrGuardClasses }) + "\n");
 if (status !== "DONE") {
   // Only category and numeric exit status are safe to expose as diagnostics.
   process.stderr.write("WAVE_CONSUMER_SAFE_FAILURE=" +
