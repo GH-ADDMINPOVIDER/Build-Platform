@@ -16,6 +16,7 @@ const authResponse = await fetch(base + "/api/session", {
 const auth = await authResponse.json().catch(() => ({}));
 assert.equal(authResponse.status, 200, "SIGNED_OWNER_SESSION_UNAVAILABLE");
 assert.equal(auth.authenticated, true);
+assert.equal(auth.user?.role, "owner", "SIGNED_OWNER_ROLE_REQUIRED");
 const bearer = typeof auth.session_token === "string" ? auth.session_token : "";
 assert.ok(bearer, "SIGNED_OWNER_BEARER_UNAVAILABLE");
 const headers = { authorization: "Bearer " + bearer, "content-type": "application/json" };
@@ -40,13 +41,15 @@ assert.ok((before.payload.providers || []).filter(x => x.id !== "codex").every(x
 // OPENBOT E2E PASS is emitted by the existing WAVE Command Consumer only after
 // this exact room task's D1 result/checkpoint readback succeeds.
 console.log("OPENBOT_LAUNCHROOM_READONLY_SCOPE=PASS");
+console.log("OPENBOT_OWNER_AUTHORITY=SIGNED_OWNER_SESSION_YELLOW_STONE_READ_ONLY");
+console.log("OPENBOT_CODEX_DOCUMENT=docs/YELLOW_EFFECT_CONTRACT.md");
 
 const task = await call("/api/local-agent-team/tasks", {
   method: "POST",
   headers: { "Idempotency-Key": "openbot-room-" + sha },
   body: JSON.stringify({
-    title: "Read package.json and report only the package name and npm script names",
-    description: "Inspect package.json only. Report the package name and npm script names. Do not read any other file, print its contents, install tools, or change files.",
+    title: "OpenBot Owner READ audit: inspect docs/YELLOW_EFFECT_CONTRACT.md and package.json; report npm scripts and Yellow scope; no writes",
+    description: "SIGNED OWNER, STAGING ONLY, wave-runner-01, Yellow Stone authority. Read docs/YELLOW_EFFECT_CONTRACT.md and package.json only; report the authority boundary, package name and npm script names. No writes, secret reads, external actions, production, schema changes, installs or Git changes.",
     permission: "READ", workspace_ref: "workspace:staging",
   }),
 });
