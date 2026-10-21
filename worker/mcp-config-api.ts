@@ -301,6 +301,9 @@ export function createMcpConfigApi() {
       if (endpoint !== "https://api.githubcopilot.com/mcp/readonly") {
         return c.json({ ok: false, code: "READONLY_MCP_ENDPOINT_REQUIRED" }, 422);
       }
+      if (binding.secret_ref !== "env:GITHUB_TOKEN") {
+        return c.json({ ok: false, code: "MCP_READ_PROOF_REQUIRES_EXISTING_GITHUB_BINDING" }, 422);
+      }
       const token = resolveSecret(binding, c.env);
       if (!token) return c.json({ ok: false, code: "MCP_AUTH_BINDING_MISSING" }, 503);
       try {
