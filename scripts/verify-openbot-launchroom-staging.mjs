@@ -33,6 +33,13 @@ assert.ok(before.payload.storage?.canonical?.includes("Cloudflare D1"));
 const codex = (before.payload.providers || []).find(x => x.id === "codex");
 assert.equal(codex?.dispatchable, true, "CODEX_ROOM_READONLY_ADAPTER_NOT_VERIFIED");
 assert.equal(codex?.smoke_test, "READONLY_E2E_PASS");
+assert.equal(codex?.room_adapter, "CODEX_READONLY_EXISTING_WAVE", "CODEX_RUNTIME_ADAPTER_MUST_BE_EXISTING");
+assert.ok((before.payload.providers || []).filter(x => x.id !== "codex").every(x => x.dispatchable !== true),
+  "NO_UNVERIFIED_PROVIDER_MAY_BE_DISPATCHABLE");
+// A successful unrelated Codex proof is only the prerequisite for this room test.
+// OPENBOT E2E PASS is emitted by the existing WAVE Command Consumer only after
+// this exact room task's D1 result/checkpoint readback succeeds.
+console.log("OPENBOT_LAUNCHROOM_READONLY_SCOPE=PASS");
 
 const task = await call("/api/local-agent-team/tasks", {
   method: "POST",
@@ -78,6 +85,9 @@ assert.equal(linked.http, 200);
 const roomTask = (linked.payload.tasks || []).find(x => x.id === taskId);
 assert.ok(roomTask, "ROOM_TASK_NOT_READBACK");
 assert.equal(roomTask.command_task_id, commandTaskId, "ROOM_WAVE_TASK_LINK_NOT_READBACK");
+assert.ok((linked.payload.events || []).some(event => event.task_id === taskId &&
+  event.event_type === "LOCAL_TEAM_COMMAND_LINKED" && event.correlation_id === commandTaskId),
+  "ROOM_COMMAND_LINK_D1_EVENT_MISSING");
 
 console.log("OPENBOT_LAUNCHROOM_OWNER_SESSION=PASS");
 console.log("OPENBOT_LAUNCHROOM_TASK_D1_READBACK=PASS");
