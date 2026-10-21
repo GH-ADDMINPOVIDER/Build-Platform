@@ -1,0 +1,51 @@
+name: OGE GH2 Private Transfer Bundle - Full Git Refs
+on:
+  push:
+    branches: [task/gh2-build-platform-mirror-20261021]
+    paths:
+      - .github/workflows/oge-gh2-full-git-bundle-backup.yml
+permissions:
+  contents: read
+jobs:
+  bundle:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    steps:
+      - name: Clone source with short-lived Actions read token, preserve full Git refs
+        shell: bash
+        env:
+          OGE_SOURCE_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$GITHUB_REF_NAME" = task/gh2-build-platform-mirror-20261021
+          umask 077
+          mkdir -p "$RUNNER_TEMP/ogenic-gh2-transfer"
+          temp="$(mktemp -d "$RUNNER_TEMP/ogenic-gh2-bundle.XXXXXXXX")"
+          trap 'rm -rf "$temp"' EXIT
+          printf '%s\n' '#!/bin/sh' 'case "$1" in *sername*) printf "x-access-token";; *) printf "%s" "$OGE_SOURCE_TOKEN";; esac' > "$temp/askpass"
+          chmod 700 "$temp/askpass"
+          export GIT_ASKPASS="$temp/askpass" GIT_TERMINAL_PROMPT=0
+          git clone --mirror "https://github.com/Ogenicchocolate21debug/Build-Platform.git" "$temp/source.git" >/dev/null 2>&1
+          cd "$temp/source.git"
+          git bundle create "$RUNNER_TEMP/ogenic-gh2-transfer/Build-Platform-full-git-history.bundle" --all
+          git bundle verify "$RUNNER_TEMP/ogenic-gh2-transfer/Build-Platform-full-git-history.bundle" >/dev/null
+          git for-each-ref --format='%(refname) %(objectname)' refs/heads refs/tags refs/notes > "$RUNNER_TEMP/ogenic-gh2-transfer/GIT-REFS-SHA256.txt"
+          sha256sum "$RUNNER_TEMP/ogenic-gh2-transfer/Build-Platform-full-git-history.bundle" > "$RUNNER_TEMP/ogenic-gh2-transfer/BUNDLE-SHA256.txt"
+          echo "GH1_FULL_GIT_BUNDLE=VERIFIED"
+          echo "GH1_FULL_GIT_REFS=$(wc -l < "$RUNNER_TEMP/ogenic-gh2-transfer/GIT-REFS-SHA256.txt")"
+          echo "GH1_FULL_GIT_BUNDLE_BYTES=$(wc -c < "$RUNNER_TEMP/ogenic-gh2-transfer/Build-Platform-full-git-history.bundle")"
+      - name: Store private importable Git bundle in existing source repo artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ogenic-gh2-build-platform-full-history
+          path: ${{ runner.temp }}/ogenic-gh2-transfer/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Record scope
+        shell: bash
+        run: |
+          echo "GH2 destination requires its own verified account credential; ChatGPT GitHub OAuth does not transfer to Runner-1." >> "$GITHUB_STEP_SUMMARY"
+          echo "This is a full Git-history transfer bundle, NOT yet a GH-2 repository mirror." >> "$GITHUB_STEP_SUMMARY"
+          echo "No GH-1 branch, D1, production, secrets, or GH-2 existing repository was changed." >> "$GITHUB_STEP_SUMMARY"
