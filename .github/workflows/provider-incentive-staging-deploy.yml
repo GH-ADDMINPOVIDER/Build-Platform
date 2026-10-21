@@ -729,6 +729,19 @@ jobs:
             ([.tools[].state] | all(. == "LIVE" or . == "CONFIGURATION_REQUIRED" or . == "ERROR"))
           ' >/dev/null
 
+          # Owner-authorized, read-only proof of the original certificate in staging D1.
+          CERTIFICATE_JSON="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" "${STAGING_URL}/api/system/certificate-lincenc")"
+          printf '%s' "$CERTIFICATE_JSON" | jq -e '
+            .ok == true and .read_only == true and
+            .integrity == "D1_DOCUMENT_SHA256_MATCH" and
+            .certificate_id == "oge-128-wave-runner-01-baseline-20261018" and
+            .plugins.total == 23 and .plugins.historical_verified_read_api == 18 and
+            .runtime_e2e_verified == false and
+            .storage.database == "ogenic-phase-vi-staging" and
+            .storage.table == "certificate_lincenc"
+          ' >/dev/null || { echo "::error::Original Certificate lincenc D1 readback failed"; exit 1; }
+          echo "CERTIFICATE_LINCENC_STAGING_OWNER_ENDPOINT_READBACK=PASS"
+          echo "- Certificate lincenc: **Owner-authenticated D1 SHA-256 readback PASS**; 23 plugin groups; runtime E2E reported separately." >> "$GITHUB_STEP_SUMMARY"
           CONNECTORS="$(curl --fail --silent --show-error --cookie "$COOKIE_JAR" "${STAGING_URL}/api/connectors")"
           printf '%s' "$CONNECTORS" | jq -e '
             .ok == true and

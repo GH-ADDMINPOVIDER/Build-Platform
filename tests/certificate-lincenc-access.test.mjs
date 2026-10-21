@@ -30,4 +30,5 @@ test("owner authenticated read-only endpoint is routed inside existing Worker",(
   assert.match(entry,/readCertificateLincenc\(env.DB\)/);
   assert.match(entry,/"Cache-Control":"private, no-store"/);
   assert.match(source("src/WaveNext.tsx"), /\/api\/system\/certificate-lincenc/);
+  assert.match(source(".github/workflows/provider-incentive-staging-deploy.yml"), /CERTIFICATE_LINCENC_STAGING_OWNER_ENDPOINT_READBACK=PASS/);
 });
