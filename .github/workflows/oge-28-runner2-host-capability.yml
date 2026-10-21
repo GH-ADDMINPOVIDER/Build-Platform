@@ -413,3 +413,49 @@ jobs:
           fi
           echo CCS_GITHUB_MCP_TOOL_EXECUTION=NOT_ATTEMPTED
           echo CCS_GITHUB_MCP_NEW_SERVER_INSTALLED=FALSE
+
+      - name: CCS/1.0 real Card Stone policy and safe lease verification
+        if: github.actor == 'Wave-Runner-2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test -n "$(printenv OGENIC_OPS_KEY || true)"
+          umask 077
+          cookie="$RUNNER_TEMP/ccs10-$GITHUB_RUN_ID.cookie"
+          reply="$RUNNER_TEMP/ccs10-$GITHUB_RUN_ID.json"
+          trap 'rm -f "$cookie" "$reply"' EXIT
+          url=https://wave.ogenicchocolate.com
+          auth="$(jq -nc --arg k "$OGENIC_OPS_KEY" '{owner_key:$k}' | timeout 15 curl -sS --max-time 12 --cookie-jar "$cookie" -H 'Content-Type: application/json' --data-binary @- -o "$reply" -w '%{http_code}' "$url/api/session")"
+          test "$auth" = 200
+          jq -e '.ok == true and .authenticated == true and .user.role == "owner"' "$reply" >/dev/null
+          code="$(timeout 12 curl -sS --max-time 10 --cookie "$cookie" -o "$reply" -w '%{http_code}' "$url/api/ccs/status")"
+          test "$code" = 200
+          jq -e '.ok == true and .protocol == "CCS/1.0" and .direct_execution_bypass == false and (.verbs|length)==6' "$reply" >/dev/null
+          echo CCS10_STATUS_OWNER_AUTH=PASS
+          for pair in 'ABSENT:INSERT:INSERTED' 'INSERTED:VERIFY:VERIFIED' 'VERIFIED:USE:IN_USE' 'IN_USE:RETURN:RETURNED' 'VERIFIED:LEASE:LEASED' 'LEASED:REVOKE:REVOKED'; do
+            from="$(printf '%s' "$pair" | cut -d: -f1)"
+            verb="$(printf '%s' "$pair" | cut -d: -f2)"
+            want="$(printf '%s' "$pair" | cut -d: -f3)"
+            code="$(jq -nc --arg from "$from" --arg verb "$verb" '{state:$from,verb:$verb,card_id:"ccs.ogenic.staging.read",capability:"read_file"}' | timeout 15 curl -sS --max-time 12 --cookie "$cookie" -H 'Content-Type: application/json' --data-binary @- -o "$reply" -w '%{http_code}' "$url/api/ccs/envelope")"
+            if test "$code" != 200 || ! jq -e --arg want "$want" '.ok == true and .card.state == $want and .direct_execution_bypass == false' "$reply" >/dev/null; then echo "CCS10_TRANSITION_$verb=FAILED_HTTP_$code"; exit 85; fi
+            echo "CCS10_TRANSITION_$verb=PASS"
+          done
+          code="$(jq -nc '{state:"REVOKED",verb:"USE",card_id:"ccs.ogenic.staging.read",capability:"read_file"}' | timeout 15 curl -sS --max-time 12 --cookie "$cookie" -H 'Content-Type: application/json' --data-binary @- -o "$reply" -w '%{http_code}' "$url/api/ccs/envelope")"
+          test "$code" = 409
+          jq -e '.ok==false and .code=="CCS_TRANSITION_DENIED"' "$reply" >/dev/null
+          echo CCS10_REVOKED_USE=DENIED_PASS
+          # Existing USE CARD policy route. It returns a policy decision,
+          # not a persisted lease or live invocation; no E2E escalation claim.
+          for variant in valid cross escalation; do
+            data="$(jq -nc --arg v "$variant" '{source:{card_id:"card.ccs.pool",provider_id:"github",capability_id:"read_file",permission_class:"READ",state:"READY",environment:"staging",lease_eligible:true},borrower:{card_id:"card.ccs.agent",provider_id:(if $v=="cross" then "linear" else "github" end),capability_id:"read_file",permission_class:"READ",state:"READY",environment:"staging",lease_eligible:true},reason:"RATE_LIMIT",requested_permission:(if $v=="escalation" then "WRITE" else "READ" end),requested_ttl_minutes:5,requested_max_calls:1,operation:"staging read"}')"
+            code="$(printf '%s' "$data" | timeout 15 curl -sS --max-time 12 --cookie "$cookie" -H 'Content-Type: application/json' --data-binary @- -o "$reply" -w '%{http_code}' "$url/api/ccs/lease")"
+            case "$variant" in
+              valid) test "$code" = 200; jq -e '.ok == true and .code == "LEASE_ALLOWED_BY_SIGNED_POLICY" and .direct_execution_bypass == false and .evidence.state == "RUBY_PENDING"' "$reply" >/dev/null ;;
+              cross) test "$code" = 409; jq -e '.code == "CROSS_PROVIDER_LEASE_DENIED_V1"' "$reply" >/dev/null ;;
+              escalation) test "$code" = 409; jq -e '.code == "PERMISSION_ESCALATION_DENIED"' "$reply" >/dev/null ;;
+            esac
+            echo "CCS10_POLICY_$variant=PASS"
+          done
+          echo CCS10_POLICY_MODE=HTTP_POLICY_EVALUATION_NO_REAL_LEASE_PERSISTED
+          echo CCS10_RUNTIME_6_VERBS=PASS
