@@ -327,12 +327,31 @@ export function createMcpConfigApi() {
         const body = result.body.result && typeof result.body.result === "object"
           ? result.body.result as Record<string, unknown> : {};
         const entries = Array.isArray(body.content) ? body.content : [];
-        const textEntries = entries.filter((part): part is { type: string; text: string } =>
-          Boolean(part && typeof part === "object" && part.type === "text" && typeof part.text === "string"));
-        if (!result.ok || body.isError === true || !textEntries.length) {
+        // GitHub MCP get_file_contents returns a short text status PLUS a
+        // resource block containing the actual file. Do not hash the status
+        // or falsely interpret its successful RPC as an actual file read.
+        const resourceTexts = entries.flatMap((part) => {
+          if (!part || typeof part !== "object") return [] as string[];
+          const entry = part as Record<string, unknown>;
+          if (entry.type !== "resource" && entry.type !== "embedded-resource") return [] as string[];
+          const resource = entry.resource && typeof entry.resource === "object"
+            ? entry.resource as Record<string, unknown> : null;
+          return resource && typeof resource.text === "string"
+            ? [resource.text] : [] as string[];
+        });
+        const textContents = entries.flatMap((part) => {
+          if (!part || typeof part !== "object") return [] as string[];
+          const entry = part as Record<string, unknown>;
+          return entry.type === "text" && typeof entry.text === "string"
+            ? [entry.text] : [] as string[];
+        });
+        if (!result.ok || body.isError === true || (!resourceTexts.length && !textContents.length)) {
           return c.json({ ok: false, code: "MCP_READ_TOOL_FAILED" }, 503);
         }
-        const message = textEntries.map((part) => part.text).join("\n");
+        // Prefer the actual embedded file payload. The separate text message
+        // often says only "successfully downloaded text file".
+        const message = resourceTexts.length
+          ? resourceTexts.join("\n") : textContents.join("\n");
         if (!message || message.length > 100_000) {
           return c.json({ ok: false, code: "MCP_READ_PROOF_PAYLOAD_UNEXPECTED" }, 503);
         }
