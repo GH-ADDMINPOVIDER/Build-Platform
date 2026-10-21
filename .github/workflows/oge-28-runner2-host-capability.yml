@@ -1,4 +1,4 @@
-name: OGE-28 Runner-2 host registration capability probe
+name: OGE-28 GH-2 and GS existing self-host MCP readiness proof
 on:
   push:
     branches: [phase-vi-provider-incentive-metering]
@@ -8,7 +8,7 @@ permissions:
   actions: read
 jobs:
   runner2_probe:
-    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && contains(fromJSON('["Ogenicchocolate21debug","Wave-Runner-2"]'), github.actor)
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 8
     steps:
@@ -62,4 +62,60 @@ jobs:
           else
             echo STORED_ACCOUNT_RUNNER_LIST_API=INSUFFICIENT_SCOPE_OR_UNAVAILABLE
           fi
+          # Read-only capability receipt for existing GH-2-triggered workflow
+          # vs host-local identities. A GitHub Actions actor is not a local login.
+          test "${RUNNER_NAME:-}" = wave-runner-01
+          echo "SELFHOST_RUNNER1=VERIFIED"
+          if test "${GITHUB_ACTOR:-}" = Wave-Runner-2; then
+            echo "GH2_ACTIONS_ACTOR=VERIFIED"
+          else
+            echo "GH2_ACTIONS_ACTOR=NOT_THIS_RUN"
+          fi
+          if command -v codex >/dev/null 2>&1; then
+            echo "GS_CODEX_CLI_INSTALLED=YES"
+            if env -u OPENAI_API_KEY -u CODEX_API_KEY CODEX_HOME=/home/wave/.codex timeout 12 codex login status >/dev/null 2>&1; then
+              echo "GS_CODEX_LOCAL_LOGIN=SIGNED_IN"
+            else
+              echo "GS_CODEX_LOCAL_LOGIN=NOT_VERIFIED"
+            fi
+          else
+            echo "GS_CODEX_CLI_INSTALLED=NO"
+          fi
+          if command -v copilot >/dev/null 2>&1; then
+            echo "COPILOT_CLI_INSTALLED=YES"
+            if COPILOT_AUTO_UPDATE=false timeout 12 copilot version >/dev/null 2>&1; then
+              echo "COPILOT_CLI_COMMAND=WORKING"
+            else
+              echo "COPILOT_CLI_COMMAND=NOT_VERIFIED"
+            fi
+          else
+            echo "COPILOT_CLI_INSTALLED=NO"
+          fi
+          if test -f "$HOME/.copilot/mcp-config.json"; then
+            echo "COPILOT_USER_MCP_CONFIG=PRESENT"
+            # Read only syntactic validity; never print server headers, URLs,
+            # secret values or raw config from the runner account.
+            if node -e 'JSON.parse(require("node:fs").readFileSync(process.env.HOME+"/.copilot/mcp-config.json","utf8"))' >/dev/null 2>&1; then
+              echo "COPILOT_USER_MCP_CONFIG_SYNTAX=VALID"
+            else
+              echo "COPILOT_USER_MCP_CONFIG_SYNTAX=INVALID"
+            fi
+          else
+            echo "COPILOT_USER_MCP_CONFIG=ABSENT"
+          fi
+          if command -v gh >/dev/null 2>&1; then
+            # The runner can have a stored GH1 account even when GH2 pushes.
+            # Unset job-token aliases to avoid misidentifying Github Actions.
+            stored_login="$(env -u GH_TOKEN -u GITHUB_TOKEN -u COPILOT_GITHUB_TOKEN timeout 12 gh api user --jq .login 2>/dev/null || true)"
+            if test "$stored_login" = Wave-Runner-2; then
+              echo "GH2_HOST_LOCAL_GH_AUTH=VERIFIED"
+            elif test -n "$stored_login"; then
+              echo "GH2_HOST_LOCAL_GH_AUTH=OTHER_ACCOUNT"
+            else
+              echo "GH2_HOST_LOCAL_GH_AUTH=NOT_VERIFIED"
+            fi
+          else
+            echo "GH2_HOST_LOCAL_GH_AUTH=GH_CLI_NOT_INSTALLED"
+          fi
+          echo "MCP_PROBE_SCOPE=READ_ONLY_NO_INSTALL_NO_TOKEN_OUTPUT"
           echo OGE28_RUNNER2_HOST_CAPABILITY_END
