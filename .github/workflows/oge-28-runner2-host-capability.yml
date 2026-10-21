@@ -314,3 +314,54 @@ jobs:
             done
           fi
           echo 'OCIAN_MCP_NO_TOOLS_CALL_OR_SECRET_EXPOSURE=TRUE'
+
+      - name: CCS 15-mode real owner-authenticated runtime matrix
+        if: github.actor == 'Wave-Runner-2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
+          test -n "$(printenv OGENIC_OPS_KEY || true)" || { echo CCS15_OWNER_KEY=NOT_BOUND; exit 81; }
+          umask 077
+          jar="$RUNNER_TEMP/ccs15-$GITHUB_RUN_ID.cookies"
+          login="$RUNNER_TEMP/ccs15-$GITHUB_RUN_ID-login.json"
+          payload="$RUNNER_TEMP/ccs15-$GITHUB_RUN_ID-response.json"
+          manifest="$RUNNER_TEMP/ccs15-$GITHUB_RUN_ID-manifest.json"
+          modes="$RUNNER_TEMP/ccs15-$GITHUB_RUN_ID-modes.json"
+          trap 'rm -f "$jar" "$login" "$payload" "$manifest" "$modes"' EXIT
+          auth_status="$(jq -nc --arg v "$OGENIC_OPS_KEY" '{owner_key:$v}' | timeout 15 curl -sS --max-time 12 --cookie-jar "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$login" -w '%{http_code}' https://wave.ogenicchocolate.com/api/session)"
+          test "$auth_status" = 200
+          jq -e '.ok == true and .authenticated == true and .user.role == "owner"' "$login" >/dev/null
+          echo CCS15_OWNER_SESSION=VERIFIED
+          url=https://wave.ogenicchocolate.com
+          status="$(timeout 15 curl -sS --max-time 12 --cookie "$jar" -o "$manifest" -w '%{http_code}' "$url/api/connector-endpoint/v1/manifest")"
+          test "$status" = 200
+          jq -e '.ok == true and .modes_documented == 15 and (.transports|length) == 15 and (.all_fifteen_modes_live_e2e_proven == false)' "$manifest" >/dev/null
+          echo CCS15_ENDPOINT_MANIFEST=PASS_COUNT_15
+          status="$(timeout 65 curl -sS --max-time 60 --cookie "$jar" -o "$modes" -w '%{http_code}' "$url/api/connector-modes/status?probe=1")"
+          echo "CCS15_MODES_STATUS_HTTP=$status"
+          test "$status" = 200
+          jq -e '.ok == true and .modes_documented == 15 and (.modes|length)==15 and ([.modes[].mode]|unique|length)==15' "$modes" >/dev/null
+          jq -e --slurpfile m "$manifest" '([.modes[].mode|ascii_downcase]|sort) == ([$m[0].transports[].id|if .=="npx_cli" then "npx_npx_cli" else . end]|sort)' "$modes" >/dev/null
+          echo CCS15_MODES_INVENTORY=PASS_COUNT_15_UNIQUE
+          jq -r '.modes[]|"CCS15_MODE_"+.mode+"="+.state' "$modes"
+          jq -r '"CCS15_LIVE_TOOLS="+((.live_tools|length)|tostring)+";CCS15_REGISTRY="+((.connector_registry|length)|tostring)' "$modes"
+          jq -r '"CCS15_DEPLOYED_SHA="+([.modes[]?.latest_verified_sha|select(type=="string")][0] // "UNKNOWN")' "$modes"
+          for transport in token secret credential npx_cli sdk a2a_agent_relay; do
+            code="$(jq -nc --arg t "$transport" '{transport:$t,command:"staging bounded check",capability:"read_file",provider:"github",environment:"staging"}' | timeout 13 curl -sS --max-time 10 --cookie "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$payload" -w '%{http_code}' "$url/api/connector-endpoint/v1/command" || true)"
+            if test "$code" = 422 && jq -e '.ok == false and (.code=="IDENTITY_REFERENCE_ONLY_NO_SECRET_EXPORT" or .code=="MODE_ADAPTER_NOT_VERIFIED_USE_EXISTING_SAFE_ROUTE")' "$payload" >/dev/null 2>&1; then
+              echo "CCS15_SAFETY_BLOCK_$transport=PASS"
+            else
+              echo "CCS15_SAFETY_BLOCK_$transport=FAILED_HTTP_$code"
+              exit 88
+            fi
+          done
+          for mode in n8n mcp; do
+            if test "$mode" = mcp; then extra='&provider=__nonexistent_ccs15__'; else extra=''; fi
+            code="$(timeout 20 curl -sS --max-time 17 --cookie "$jar" -o "$payload" -w '%{http_code}' "$url/api/connector-endpoint/v1/probe?mode=$mode$extra" || true)"
+            echo "CCS15_SAFE_PROBE_$mode=HTTP_$code"
+          done
+          echo CCS15_MCP_REAL_TOOLS_CALL=NOT_PERFORMED_NO_PROVIDER
+          echo CCS15_PAID_MODEL_CALLS=ZERO
+          echo CCS15_NO_NEW_GATEWAY_RUNNER_OR_SECRET=TRUE
