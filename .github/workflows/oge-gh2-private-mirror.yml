@@ -1,0 +1,48 @@
+name: OGE GH2 Build-Platform Private Full Git Mirror
+on:
+  push:
+    branches:
+      - task/gh2-build-platform-mirror-20261021
+    paths:
+      - .github/workflows/oge-gh2-private-mirror.yml
+      - scripts/oge-gh2-private-mirror.py
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: oge-gh2-private-full-repository-mirror
+  cancel-in-progress: false
+jobs:
+  mirror:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && contains(fromJSON('["Ogenicchocolate21debug","Wave-Runner-2"]'), github.actor)
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 17
+    steps:
+      - name: Checkout exact mirror script without persisting GitHub token
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate script syntax and preserve source scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$GITHUB_REF_NAME" = task/gh2-build-platform-mirror-20261021
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -m py_compile scripts/oge-gh2-private-mirror.py
+      - name: Load existing staging Infisical secret aliases (OIDC)
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+          project-slug: ogenic-sio-ti-rv
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: Identify GH2 credential, make private repository, then mirror and verify refs
+        shell: bash
+        env:
+          OGE_SOURCE_READ_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 scripts/oge-gh2-private-mirror.py
