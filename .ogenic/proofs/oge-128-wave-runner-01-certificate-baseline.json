@@ -603,6 +603,74 @@
       "new_runner_created": false,
       "new_certificate_created": false,
       "production_mutated": false
+    },
+    {
+      "event": "gs_owner_terminal_gs_only_gt_go_parked_20261021",
+      "status": "RECOVERED_GS_CODEX_TERMINAL_EXECUTION_GTG0_LANE_PARKED",
+      "scope": "STAGING_ONLY",
+      "canonical_checkpoint": "WAVE-GS-HANDOFF-20261021-OWNER-MAIN",
+      "canonical_session": "owner-main / 1LSS_OWNER_MAIN",
+      "owner_direction": "Park GT-side Go-plan Codex execution in WAVE; route new approved WAVE Terminal work to verified GS profile; do not alter billing or credentials.",
+      "identities": {
+        "gs": {
+          "identity": "GPT_GS_CODEX",
+          "host_profile": "/home/wave/.codex",
+          "wave_consumer_default": "ENFORCED_GS_ONLY",
+          "verified_by_local_claim": true
+        },
+        "ts": {
+          "identity": "GPT_TS_CODEX",
+          "host_profile": "/root/.codex",
+          "status": "HISTORICAL_PRESERVED_NO_WAVE_CONSUMER_FALLTHROUGH"
+        },
+        "gt": {
+          "actor": "GT",
+          "codex_subscription_reported_by_owner": "Go",
+          "wave_codex_execution": "PARKED",
+          "same_actor_as_ts": "NOT_ASSUMED"
+        }
+      },
+      "host": {
+        "name": "wave-runner-01",
+        "transport": "GITHUB_ACTIONS_SELFHOSTED_TERMINAL",
+        "ssh_server_added": false,
+        "new_secret_or_key": false
+      },
+      "github_staging": {
+        "current_source_sha": "bc5b65143407ec8736f27014241ac45a4edb8af2",
+        "consumer_routing_commit": "be55a6600b0330c7c5ce222050e1b2351ef3b5b9",
+        "regression_commit": "eaf6615059aec89d8b3028bbe2eeb75792e0cdad",
+        "existing_staging_deploy_workflow_update": "bc5b65143407ec8736f27014241ac45a4edb8af2",
+        "new_deploy_run": 39645179261,
+        "new_deploy_state": "PENDING_AS_OF_RECORD"
+      },
+      "proven_terminal_execution": {
+        "status": "CURRENT_VERIFIED_GS_CODEX",
+        "run_id": 39645000030,
+        "source_sha": "eaf6615059aec89d8b3028bbe2eeb75792e0cdad",
+        "result_status": "DONE",
+        "result_sha256": "963786bdb9d239ce5478db1969a0592b1bec82326aa61abffc5bfd23af384f15",
+        "logs": [
+          "WAVE_CONSUMER_CODEX_IDENTITY=GPT_GS_CODEX",
+          "OGE129_SIGNED_OWNER_TO_RUNNER_CODEX_D1_E2E=PASS"
+        ],
+        "interpretation": "Current WAVE owner-approved command consumed using the existing GS profile and D1 result verified; full same-deployed-SHA proof is pending staging run"
+      },
+      "openbot_launch_room": {
+        "previous_same_deployed_sha": "0c327ece8969159aa5309df3398c6adf7a6bc592",
+        "consumer_run": 39644294876,
+        "previous_e2e": "CURRENT_VERIFIED_AT_PRIOR_STAGING_SHA",
+        "external_openbot_product": "NOT_VERIFIED_DISABLED"
+      },
+      "shared_document": "https://github.com/Ogenicchocolate21debug/Build-Platform/issues/45#issuecomment-6322199471",
+      "new_certificate_revision_d1_readback": "PENDING_GITHUB_ACTIONS_SYNC",
+      "permanent_stop_conditions": [
+        "No production/secret/OAuth/paid changes without explicit owner consent",
+        "No new runner/gateway/certificate/profile",
+        "Continue signed Owner session / Yellow Stone / audit logging"
+      ],
+      "previous_evidence_preserved": true,
+      "no_secret_values": true
     }
   ],
   "secret_contract": {
