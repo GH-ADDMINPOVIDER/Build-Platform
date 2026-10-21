@@ -333,8 +333,11 @@ export function createMcpConfigApi() {
           return c.json({ ok: false, code: "MCP_READ_TOOL_FAILED" }, 503);
         }
         const message = textEntries.map((part) => part.text).join("\n");
-        if (!message || message.length > 100_000 || !message.includes("# OGENIC Phase VI")) {
+        if (!message || message.length > 100_000) {
           return c.json({ ok: false, code: "MCP_READ_PROOF_PAYLOAD_UNEXPECTED" }, 503);
+        }
+        if (!message.includes("# OGENIC Phase VI")) {
+          return c.json({ ok: false, code: "MCP_READ_PROOF_CONTENT_MISMATCH" }, 503);
         }
         const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(message));
         const resultSha256 = Array.from(new Uint8Array(digest), (n) => n.toString(16).padStart(2, "0")).join("");
