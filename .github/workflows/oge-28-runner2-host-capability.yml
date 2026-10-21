@@ -162,3 +162,68 @@ jobs:
           echo "GH2_COPILOT_GITHUB_AUTH=NOT_ATTEMPTED"
           echo "GH2_COPILOT_MCP_INSTALL=NOT_ATTEMPTED_GITHUB_BUILTIN"
           echo "GH2_COPILOT_MCP_OUTBOUND_TOOLS=NOT_ENABLED"
+
+      - name: Probe OGENIC SSH IDE OpenCode MCP and Cloudflare live readiness
+        if: github.actor == 'Wave-Runner-2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "Ogenicchocolate21debug/Build-Platform"
+          test "$GITHUB_REF_NAME" = "phase-vi-provider-incentive-metering"
+          test "$RUNNER_NAME" = "wave-runner-01"
+          echo "OCIAN_S_HOST_AUDIT=BEGIN"
+          echo "OCIAN_S_HOST_RUNNER_IDENTITY=wave-runner-01"
+          echo "OCIAN_S_HOST_SYSTEM_HOSTNAME=$(hostname)"
+          echo "OCIAN_S_HOST_EFFECTIVE_USER=$(id -un)"
+          for bin in ssh sshd ss git node npm npx docker wrangler infisical gh codex opencode code code-server cursor cline; do
+            upper="$(printf '%s' "$bin" | tr '[:lower:]-' '[:upper:]_')"
+            if command -v "$bin" >/dev/null 2>&1; then
+              echo "OCIAN_CLI_$upper=INSTALLED"
+            else
+              echo "OCIAN_CLI_$upper=ABSENT"
+            fi
+          done
+          if test -x /home/wave/.local/bin/copilot && timeout 12 /home/wave/.local/bin/copilot --version >/dev/null 2>&1; then
+            echo "OCIAN_COPILOT_USERLOCAL=VERSION_OK_AUTH_UNVERIFIED"
+          else
+            echo "OCIAN_COPILOT_USERLOCAL=NOT_VERIFIED"
+          fi
+          if test -x /home/wave/.local/bin/opencode; then
+            echo "OCIAN_OPENCODE_USERLOCAL=INSTALLED"
+          else
+            echo "OCIAN_OPENCODE_USERLOCAL=ABSENT"
+          fi
+          if command -v codex >/dev/null 2>&1 && env -u OPENAI_API_KEY -u CODEX_API_KEY CODEX_HOME=/home/wave/.codex timeout 12 codex login status >/dev/null 2>&1; then
+            echo "OCIAN_GS_CODEX_PROFILE=SIGNED_IN"
+          else
+            echo "OCIAN_GS_CODEX_PROFILE=NOT_VERIFIED"
+          fi
+          if command -v ssh >/dev/null 2>&1 && timeout 5 ssh -V >/dev/null 2>&1; then echo "OCIAN_SSH_CLIENT=AVAILABLE"; else echo "OCIAN_SSH_CLIENT=NOT_VERIFIED"; fi
+          if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet ssh; then echo "OCIAN_SSH_SERVICE=ACTIVE"; else echo "OCIAN_SSH_SERVICE=NOT_ACTIVE_OR_UNAVAILABLE"; fi
+          if command -v ss >/dev/null 2>&1 && ss -ltn 2>/dev/null | awk '$4 ~ /:22$/ {found=1} END {exit !found}'; then echo "OCIAN_SSH_PORT22_LISTENING=YES"; else echo "OCIAN_SSH_PORT22_LISTENING=NO_OR_UNAVAILABLE"; fi
+          for dir in "$HOME/.vscode-server" "$HOME/.vscode-remote" "$HOME/.code-server" "$HOME/.cursor-server"; do
+            case "$dir" in
+              *vscode-server) label=VSCODE_SERVER ;;
+              *vscode-remote) label=VSCODE_REMOTE ;;
+              *code-server) label=CODE_SERVER ;;
+              *cursor-server) label=CURSOR_SERVER ;;
+            esac
+            if test -d "$dir"; then echo "OCIAN_IDE_$label=DIRECTORY_PRESENT"; else echo "OCIAN_IDE_$label=NOT_INSTALLED_FOR_RUNNER_USER"; fi
+          done
+          if command -v codex >/dev/null 2>&1 && timeout 10 env CODEX_HOME=/home/wave/.codex codex mcp list > "$RUNNER_TEMP/ocian-codex-mcp-list" 2>&1; then echo "OCIAN_GS_CODEX_MCP_CONFIG_CLI=READABLE"; else echo "OCIAN_GS_CODEX_MCP_CONFIG_CLI=NOT_VERIFIED"; fi
+          for config in "$HOME/.copilot/mcp-config.json" "$HOME/.config/opencode/opencode.json" "$HOME/.config/opencode/opencode.jsonc"; do
+            if test -f "$config"; then
+              case "$config" in *copilot*) label=COPILOT;; *) label=OPENCODE;; esac
+              echo "OCIAN_$label_MCP_CONFIG=FILE_PRESENT_NOT_RUNTIME_VERIFIED"
+            fi
+          done
+          for route in /api/health /api/mcp-config/state /api/mcp-config/discover /api/connector-endpoint/v1/manifest /api/connector-endpoint/v1/status /api/local-agent-team/state /api/blue-diamond/registry; do
+            code="$(timeout 13 curl --connect-timeout 4 --max-time 10 -L -s -o /dev/null -w '%{http_code}' "https://wave.ogenicchocolate.com$route" || true)"
+            case "$code" in [12345][0-9][0-9]) ;; *) code=TRANSPORT_UNAVAILABLE;; esac
+            key="$(printf '%s' "$route" | tr '[:lower:]/-' '[:upper:]__')"
+            echo "OCIAN_CF_ROUTE_$key=$code"
+          done
+          echo "OCIAN_CF_PROTECTED_MCP_EXPECTED=AUTH_REQUIRED_NO_BYPASS"
+          echo "OCIAN_IDE_SSH_LOGIN=NOT_PROVEN_BY_LOCAL_SHELL_PROBES"
+          echo "OCIAN_PROVIDER_MCP_TOOL_CALLS=NOT_ATTEMPTED"
+          echo "OCIAN_HOST_PROBE=END"
