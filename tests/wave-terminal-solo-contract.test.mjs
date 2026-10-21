@@ -64,15 +64,15 @@ test("the scope boundary forbids secret outputs and production modifications",()
   assert.match(consumer,/Never touch main, production, Candy, D1 schema/);
   // The consumer now categorizes credential markers rather than using the
   // former 'secretLike' identifier. Keep protection checks, not a stale name.
-  assert.match(consumer,/const protectedMarkers = \\[/);
+  assert.match(consumer,/const protectedMarkers = \[/);
   for (const category of ["openai_key","github_token","bearer_token","pem_private_key"]) {
     assert.ok(consumer.includes('["' + category + '",'), "guard class: " + category);
   }
-  assert.match(consumer,/const guardClasses = protectedMarkers\\.filter/);
-  assert.match(consumer,/const guarded = guardClasses\\.length !== 0/);
-  assert.match(consumer,/const status = guarded \\? "BLOCKED"/);
+  assert.match(consumer,/const guardClasses = protectedMarkers\.filter/);
+  assert.match(consumer,/const guarded = guardClasses\.length !== 0/);
+  assert.match(consumer,/const status = guarded \? "BLOCKED"/);
   assert.match(consumer,/WAVE_CONSUMER_SAFE_FAILURE=/);
-  assert.doesNotMatch(consumer,/process\\.stdout\\.write\\(combined\\)/);
+  assert.doesNotMatch(consumer,/process\.stdout\.write\(combined\)/);
 
   assert.match(shell,/umask 077/);
   assert.match(shell,/chmod 600/);
