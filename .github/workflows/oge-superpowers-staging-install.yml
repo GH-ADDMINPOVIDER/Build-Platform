@@ -159,9 +159,7 @@ jobs:
             -v /root/.codex:/root/.codex:rw \
             -v /usr/lib/node_modules:/usr/lib/node_modules:ro \
             -v "$GITHUB_WORKSPACE":/workspace:ro \
-            -v "$skills":/root/.agents/skills:ro \
             "$image" -eu -c '
-              test -r /root/.agents/skills/using-superpowers/SKILL.md
               node /usr/lib/node_modules/@openai/codex/bin/codex.js exec \
                 --sandbox read-only --skip-git-repo-check \
                 --output-last-message /tmp/ts-last.txt \
@@ -182,7 +180,7 @@ jobs:
                 }
               grep -Fxq OGENIC_TS_CODEX_READY /tmp/ts-last.txt || { echo TS_CODEX_CURRENT=OUTPUT_NOT_MATCHED; exit 78; }
               echo TS_CODEX_CURRENT=LIVE_INFERENCE_PASS
-              echo TS_CODEX_SUPERPOWERS_SKILLS_MOUNTED=TRUE
+              echo TS_CODEX_SUPERPOWERS_SKILLS_MOUNTED=FALSE_SEPARATE_CONTEXT
             '; then
             echo "TS_CODEX_ROOT_RUNTIME=NOT_OPERATIONAL"
             exit 78
