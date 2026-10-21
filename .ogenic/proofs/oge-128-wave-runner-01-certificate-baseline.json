@@ -424,6 +424,126 @@
       ],
       "original_fields_retained": true,
       "no_secrets": true
+    },
+    {
+      "event": "gs_native_checkpoint_refresh_20261021_1659z",
+      "checkpoint_id": "WAVE-GS-HANDOFF-20261021-OWNER-MAIN",
+      "snapshot_as_of_utc": "2026-10-21T16:58:14Z",
+      "status": "PARTIAL_CURRENT_E2E_VERIFIED_DUAL_CODEX_PENDING",
+      "source": "Direct GitHub branch, Actions run, job log, existing certificate and DigitalOcean connector readback",
+      "canonical_session": "owner-main / 1LSS_OWNER_MAIN",
+      "staging": {
+        "branch": "phase-vi-provider-incentive-metering",
+        "head_sha": "cbc8a0df8509f4426595a66900bf4a680bddc19b",
+        "deployment": {
+          "status": "CURRENT_VERIFIED",
+          "run_id": 39637836414,
+          "conclusion": "success"
+        },
+        "athena_default_chat": {
+          "status": "CURRENT_VERIFIED",
+          "run_id": 39637836556,
+          "conclusion": "success",
+          "admission_tool_count": 8
+        },
+        "athena_guarded_command": {
+          "status": "CURRENT_VERIFIED_BOUNDED",
+          "run_id": 39637836501,
+          "conclusion": "success"
+        },
+        "runner_catchup": {
+          "status": "CURRENT_VERIFIED",
+          "run_id": 39637836427,
+          "conclusion": "success"
+        },
+        "phase_ii_canonical": {
+          "status": "IN_PROGRESS_AS_OF_SNAPSHOT",
+          "run_id": 39637836381
+        }
+      },
+      "github": {
+        "account_1": {
+          "identity": "Tawatchai",
+          "login": "Ogenicchocolate21debug",
+          "repo_permission": "admin",
+          "status": "CURRENT_VERIFIED_REPO_PERMISSION",
+          "oauth_all_scopes": "NOT_VERIFIED"
+        },
+        "account_2": {
+          "identity": "Tomload21",
+          "login": "Wave-Runner-2",
+          "repo_permission": "write",
+          "status": "CURRENT_VERIFIED_REPO_PERMISSION",
+          "oauth_all_scopes": "NOT_VERIFIED"
+        },
+        "worker_actions_dispatch": {
+          "status": "CURRENT_VERIFIED",
+          "source": "Infisical staging -> GH-2 principal-bound worker runtime",
+          "gh2_canary_http": 422,
+          "old_gh1_token_http": 403,
+          "deploy_run": 39637836414,
+          "real_owner_dispatch_run": 39637836418,
+          "consumer_run": 39638124364
+        }
+      },
+      "single_host": {
+        "droplet_id": 604432491,
+        "runner": "wave-runner-01",
+        "ip": "165.232.174.32",
+        "memory_mb": 1024,
+        "digitalocean_status": "active",
+        "status": "CURRENT_VERIFIED_CONTROL_PLANE"
+      },
+      "command_e2e": {
+        "status": "CURRENT_VERIFIED_SINGLE_EXISTING_CODEX_EXECUTION",
+        "consumer_run": 39638124364,
+        "task_id": "wavecmd_5cc0fa227a1f5e00e619c4fa34ff930242667ad2578751b2885552e9fb04a427",
+        "run_sha": "cbc8a0df8509f4426595a66900bf4a680bddc19b",
+        "result_status": "DONE",
+        "result_sha256": "815ea6ffa30c95bceb77d869b773303aaac345afa5f62f4636aa9d405008847f",
+        "logged_receipt": "OGE129_SIGNED_OWNER_TO_RUNNER_CODEX_D1_E2E=PASS",
+        "verified_scope": "signed owner -> WAVE command -> GitHub workflow_dispatch -> Runner-1 -> Codex -> callback -> D1 readback",
+        "separate_gs_ts_identity_proof": "NOT_VERIFIED"
+      },
+      "dual_codex": {
+        "gs": {
+          "identity": "GPT_GS_CODEX",
+          "path": "/home/wave/.codex",
+          "historical_login": "HISTORICAL_VERIFIED",
+          "current_separate_execution": "NOT_VERIFIED"
+        },
+        "ts": {
+          "identity": "GPT_TS_CODEX",
+          "path": "/root/.codex",
+          "historical_run": 39124078680,
+          "historical_result": "HISTORICAL_VERIFIED",
+          "current_separate_execution": "NOT_VERIFIED"
+        },
+        "active_proof_run": 39638887326,
+        "proof_branch_sha": "8a6797c62ea6ca78b9b8d422aec17b0544a444c0",
+        "proof_status": "PENDING_AS_OF_SNAPSHOT"
+      },
+      "pstack": {
+        "state": "GUIDED_WORKFLOW_PRESETS",
+        "full_upstream_plugin_execution": "NOT_VERIFIED"
+      },
+      "certificate_lincenc": {
+        "historical_d1_readback_run": 39634126837,
+        "historical_d1_sha256": "a1fc44a069e83ecb591acef5e8e7abb6b6522108f186c3098d60f49828f5db57",
+        "this_append_new_d1_revision": "PENDING_INDEPENDENT_READBACK",
+        "history_preserved": true,
+        "raw_credentials_included": false,
+        "seven_stones_modified": false
+      },
+      "remaining_scope": [
+        "Verify current separate GS Codex and TS Codex execution receipts on existing Runner-1",
+        "Verify current Phase II canonical Run 39637836381 final conclusion",
+        "Verify this Certificate revision's GitHub-to-D1 SHA-256 readback",
+        "Independently verify WAVE UI depicts real persisted execution for both identities"
+      ],
+      "production_mutated": false,
+      "new_runner_created": false,
+      "new_certificate_created": false
     }
   ],
   "secret_contract": {
