@@ -104,6 +104,90 @@ jobs:
             echo "SUPERPOWERS_CODEX_GS_LOCAL_LOGIN=NOT_VERIFIED"
           fi
           echo "SUPERPOWERS_GPT_CHAT_CLIENT_INSTALL=NOT_APPLICABLE"
+      - name: Exercise existing Codex TS root OAuth context through bounded Docker read-only invocation
+        shell: bash
+        timeout-minutes: 5
+        env:
+          OPENAI_API_KEY: ""
+          CODEX_API_KEY: ""
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "TS_CODEX_CURRENT=DOCKER_NOT_AVAILABLE"
+            exit 78
+          fi
+          if test ! -f /usr/lib/node_modules/@openai/codex/bin/codex.js; then
+            echo "TS_CODEX_CURRENT=HOST_CLI_PACKAGE_UNAVAILABLE"
+            exit 78
+          fi
+          pin=b739a8af570e10a95898f2bdf6cec97467fa6c12
+          skills="$HOME/.local/share/ogenic/third_party/superpowers/$pin/skills"
+          test -f "$skills/using-superpowers/SKILL.md" || { echo "TS_CODEX_SUPERPOWERS_SKILLS_MISSING"; exit 78; }
+          image=""
+          while IFS= read -r candidate; do
+            [[ "$candidate" != *"<none>"* ]] || continue
+            if docker run --rm --network none --read-only --user 0:0 --entrypoint /bin/sh "$candidate" -c 'command -v node >/dev/null 2>&1' >/dev/null 2>&1; then
+              image="$candidate"
+              break
+            fi
+          done < <(docker image ls --format '{{.Repository}}:{{.Tag}}')
+          if test -z "$image"; then echo "TS_CODEX_CURRENT=NO_PREEXISTING_NODE_IMAGE"; exit 78; fi
+          # Check the specific TS identity using only hash of the claim; never print/copy root auth.json.
+          # A failed identity check cannot fall back to GS or a different Codex account.
+          if ! docker run --rm --network none --read-only --user 0:0 --entrypoint /bin/sh \
+            --cap-drop ALL --security-opt no-new-privileges \
+            --mount type=bind,source=/root/.codex,target=/root/.codex,readonly \
+            -e HOME=/root -e CODEX_HOME=/root/.codex "$image" -ec '
+              node -e '\''const fs=require("fs"),c=require("crypto");const a=JSON.parse(fs.readFileSync("/root/.codex/auth.json","utf8"));const t=a.tokens&&a.tokens.id_token; if(typeof t!=="string")process.exit(78);const p=JSON.parse(Buffer.from(t.split(".")[1],"base64url").toString("utf8"));const h=c.createHash("sha256").update(String(p.email||"").trim().toLowerCase()).digest("hex");if(h!=="a9bc2ab898ff2400247c11565f37dd59ff90d50085185c2756db603e4a778aba")process.exit(78);'\''
+            ' >/dev/null 2>&1; then
+            echo "TS_CODEX_CURRENT=IDENTITY_UNVERIFIED"
+            exit 78
+          fi
+          echo "TS_CODEX_IDENTITY=GPT_TS_CODEX"
+          # Reuse historical Docker adapter, existing root CODEX_HOME and existing CLI package.
+          # Root OAuth cache is writable only to permit normal token refresh; no raw token access/output.
+          if ! timeout 150s docker run --rm --read-only --user 0:0 \
+            --cap-drop ALL --security-opt no-new-privileges \
+            --pids-limit 96 --memory 704m \
+            --tmpfs /tmp:rw,nosuid,noexec,size=24m --workdir /workspace \
+            --entrypoint /bin/sh \
+            -e HOME=/root -e CODEX_HOME=/root/.codex -e CI=1 \
+            -e OPENAI_API_KEY= -e CODEX_API_KEY= -e GH_TOKEN= -e GITHUB_TOKEN= \
+            --mount type=bind,source=/root/.codex,target=/root/.codex \
+            --mount type=bind,source=/usr/lib/node_modules,target=/usr/lib/node_modules,readonly \
+            --mount type=bind,source="$GITHUB_WORKSPACE",target=/workspace,readonly \
+            --mount type=bind,source="$skills",target=/root/.agents/skills,readonly \
+            "$image" -eu -c '
+              test -r /root/.agents/skills/using-superpowers/SKILL.md
+              node /usr/lib/node_modules/@openai/codex/bin/codex.js exec \
+                --sandbox read-only --skip-git-repo-check \
+                --output-last-message /tmp/ts-last.txt \
+                "Return exactly OGENIC_TS_CODEX_READY. Do not inspect files or execute shell commands." \
+                >/tmp/ts-cli.log 2>&1 || {
+                  if grep -Eiq "invalid_grant|failed to refresh|refresh token" /tmp/ts-cli.log; then
+                    echo TS_CODEX_CURRENT=TOKEN_REFRESH_REJECTED
+                  elif grep -Eiq "401|reauthentication|not logged in|login required" /tmp/ts-cli.log; then
+                    echo TS_CODEX_CURRENT=REAUTH_REQUIRED
+                  elif grep -Eiq "403|permission denied" /tmp/ts-cli.log; then
+                    echo TS_CODEX_CURRENT=FORBIDDEN_OR_SANDBOX
+                  elif grep -Eiq "quota|rate limit|429" /tmp/ts-cli.log; then
+                    echo TS_CODEX_CURRENT=QUOTA_OR_RATE_LIMIT
+                  else
+                    echo TS_CODEX_CURRENT=CLI_INFERENCE_FAILED
+                  fi
+                  exit 78
+                }
+              grep -Fxq OGENIC_TS_CODEX_READY /tmp/ts-last.txt || { echo TS_CODEX_CURRENT=OUTPUT_NOT_MATCHED; exit 78; }
+              echo TS_CODEX_CURRENT=LIVE_INFERENCE_PASS
+              echo TS_CODEX_SUPERPOWERS_SKILLS_MOUNTED=TRUE
+            '; then
+            echo "TS_CODEX_ROOT_RUNTIME=NOT_OPERATIONAL"
+            exit 78
+          fi
+          echo "TS_CODEX_ROOT_CURRENT_LIVE_E2E=PASS"
       - name: Scope and honesty receipt
         if: always()
         shell: bash
