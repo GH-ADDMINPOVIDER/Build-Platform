@@ -76,3 +76,21 @@ test("WAVE MCP UI uses references and safe metadata instead of secret values", a
   assert.doesNotMatch(ui, /secret_value|token_value|private_key_value|credential_value/);
   assert.match(ui, /Safe simulated discovery/);
 });
+
+test("bounded Github remote read-proof is owner-only, readonly and evidence-only", async () => {
+  const api = await read("worker/mcp-config-api.ts");
+  assert.match(api, /action === "read_proof"/);
+  assert.match(api, /hasOwnerSession\(c\.req\.raw, c\.env\)/);
+  assert.match(api, /provider !== "github"/);
+  assert.match(api, /https:\/\/api\.githubcopilot\.com\/mcp\/readonly/);
+  assert.match(api, /"get_file_contents"/);
+  assert.match(api, /"tools\/call"/);
+  assert.match(api, /path: "README\.md"/);
+  assert.match(api, /ref: "phase-vi-provider-incentive-metering"/);
+  assert.match(api, /MCP_GITHUB_READ_E2E_PASS/);
+  assert.match(api, /result_body_exposed: false/);
+  assert.match(api, /secret_exposed: false/);
+  assert.match(api, /persistent_lease_created: false/);
+  assert.match(api, /provider_write_attempted: false/);
+  assert.match(api, /paid_model_inference_attempted: false/);
+});
