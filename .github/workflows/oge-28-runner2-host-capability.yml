@@ -496,6 +496,8 @@ jobs:
 
       - name: Bind existing generic webhook secret through scoped Infisical OIDC
         if: github.actor == 'Wave-Runner-2'
+        id: generic_webhook_secret
+        continue-on-error: true
         uses: Infisical/secrets-action@v1.0.17
         with:
           method: oidc
