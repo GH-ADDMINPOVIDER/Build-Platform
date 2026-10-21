@@ -544,6 +544,65 @@
       "production_mutated": false,
       "new_runner_created": false,
       "new_certificate_created": false
+    },
+    {
+      "event": "gs_native_dual_codex_current_execution_receipt_20261021_1703z",
+      "checkpoint_id": "WAVE-GS-HANDOFF-20261021-OWNER-MAIN",
+      "status": "RECOVERED_DUAL_CODEX_CURRENT_EXECUTION",
+      "environment": "staging",
+      "canonical_session": "owner-main / 1LSS_OWNER_MAIN",
+      "staging_source_sha": "cbc8a0df8509f4426595a66900bf4a680bddc19b",
+      "verified_evidence": {
+        "dual_codex_run": 39638887326,
+        "dual_codex_job": 119360139732,
+        "dual_codex_proof_sha": "8a6797c62ea6ca78b9b8d422aec17b0544a444c0",
+        "gs": {
+          "identity": "GPT_GS_CODEX",
+          "profile": "/home/wave/.codex",
+          "execution": "GS_CODEX_EXEC=SUCCESS",
+          "sandbox": "READ_ONLY"
+        },
+        "ts": {
+          "identity": "GPT_TS_CODEX",
+          "profile": "/root/.codex",
+          "login": "ROOT_CODEX_TS_LOGIN_STATUS=SIGNED_IN",
+          "adapter": "EXISTING_DOCKER",
+          "execution": "TS_CODEX_EXEC=SUCCESS",
+          "sandbox": "READ_ONLY"
+        },
+        "wave_dispatch_after_deploy": {
+          "status": "CURRENT_VERIFIED",
+          "smoke_run": 39637836418,
+          "smoke_attempt": 2,
+          "consumer_run": 39639887053,
+          "consumer_e2e": "OGE129_SIGNED_OWNER_TO_RUNNER_CODEX_D1_E2E=PASS"
+        },
+        "oge34": {
+          "run": 39637836556,
+          "status": "RECOVERED"
+        },
+        "oge35": {
+          "run": 39637836501,
+          "status": "CURRENT_VERIFIED"
+        },
+        "staging_deploy": {
+          "run": 39637836414,
+          "status": "CURRENT_VERIFIED"
+        }
+      },
+      "still_unverified": {
+        "ts_wavetoworker_callback": "NOT_VERIFIED",
+        "live_mobile_ui_visual": "NOT_VERIFIED",
+        "all_external_plugin_scopes": "NOT_VERIFIED",
+        "universal_e2e_complete": false
+      },
+      "certificate_revision_method": "APPEND_ONLY_EXISTING_CERTIFICATE",
+      "previous_events_preserved": true,
+      "signed_capability_grant_changed": false,
+      "raw_credential_values_included": false,
+      "new_runner_created": false,
+      "new_certificate_created": false,
+      "production_mutated": false
     }
   ],
   "secret_contract": {
