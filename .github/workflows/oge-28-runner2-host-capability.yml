@@ -477,7 +477,7 @@ jobs:
           test "$code" = 200
           jq -e '.ok == true and .authenticated == true and .user.role == "owner"' "$login" >/dev/null
           code="$(jq -nc '{provider:"github",action:"read_proof"}' | timeout 35 curl -sS --max-time 32 --cookie "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$result" -w '%{http_code}' "$url/api/mcp-config/action" || true)"
-          if test "$code" = 200 && jq -e '.ok == true and .code == "MCP_GITHUB_READ_E2E_PASS" and (.result_sha256|test("^[a-f0-9]{64}$")) and .result_body_exposed == false and .secret_exposed == false' "$result" >/dev/null 2>&1; then
+          if test "$code" = 200 && jq -e '.ok == true and .code == "MCP_GITHUB_READ_E2E_PASS" and (.result_sha256|test("^[a-f0-9]{64}$")) and (.bytes_read > 400) and .result_body_exposed == false and .secret_exposed == false' "$result" >/dev/null 2>&1; then
             echo CCS_GH2_MCP_TOOLS_CALL_E2E=PASS
             jq -r '"CCS_GH2_MCP_READ_RECEIPT_SHA256="+.result_sha256' "$result"
             jq -r '"CCS_GH2_MCP_READ_BYTES="+(.bytes_read|tostring)' "$result"
