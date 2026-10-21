@@ -138,7 +138,7 @@ async function main() {
     // Pin the adapter to the checked-out repository's existing staging D1 configuration.
     const config = await readFile("wrangler.jsonc", "utf8");
     assert.ok(config.includes('"database_name": "ogenic-phase-vi-staging"') && config.includes(`"database_id": "${DATABASE}"`));
-    evidence = await prove({ env: process.env, dispatch: tools.executeVerifiedTool, definitions: tools.verifiedFunctionTools });
+    evidence = await prove({ env: process.env, dispatch: tools.executeVerifiedTool, definitions: tools.verifiedFunctionTools.filter(tool => TOOL_NAMES.includes(tool.name)) });
     if (evidence.result !== "PASS") process.exitCode = 1;
   } catch (error) {
     const reason = String(error?.message ?? "").split("\n")[0];

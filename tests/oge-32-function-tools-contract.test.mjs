@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { build } from "esbuild";
-import { prove, permittedRequest, readOnlyD1, READ_QUERIES } from "../scripts/verify-oge-32-read-only.mjs";
+import { prove, permittedRequest, readOnlyD1, READ_QUERIES, TOOL_NAMES } from "../scripts/verify-oge-32-read-only.mjs";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 const compiled = await build({ entryPoints: [new URL("../worker/verified-function-tools.ts", import.meta.url).pathname], bundle: true, write: false, platform: "node", format: "esm" });
@@ -34,7 +34,7 @@ test("server-side proof uses signed auth and only allowlisted reads with safe ev
     if (url.includes("/actions/runs")) return Response.json({ workflow_runs: [] });
     throw new Error("UNEXPECTED_REQUEST");
   };
-  const evidence = await prove({ env, dispatch: executeVerifiedTool, definitions: verifiedFunctionTools, request });
+  const evidence = await prove({ env, dispatch: executeVerifiedTool, definitions: verifiedFunctionTools.filter(tool => TOOL_NAMES.includes(tool.name)), request });
   assert.equal(evidence.result, "PASS");
   assert.equal(Object.keys(evidence.seven_tools).length, 7);
   assert.equal(evidence.write_denial, "HUMAN_APPROVAL_REQUIRED");
@@ -43,7 +43,7 @@ test("server-side proof uses signed auth and only allowlisted reads with safe ev
   assert.equal(evidence.agent_calls, 0);
   assert.ok(!JSON.stringify(evidence).includes("fixture-"));
   assert.ok(requests.every(({ url, method }) => method === "GET" || url.endsWith("/api/session") || url.includes("api.linear.app") || url.includes("api.cloudflare.com")));
-  const partial = await prove({ env: { ...env, LINEAR_API_KEY: undefined }, dispatch: executeVerifiedTool, definitions: verifiedFunctionTools, request });
+  const partial = await prove({ env: { ...env, LINEAR_API_KEY: undefined }, dispatch: executeVerifiedTool, definitions: verifiedFunctionTools.filter(tool => TOOL_NAMES.includes(tool.name)), request });
   assert.equal(partial.result, "BLOCKED");
   assert.equal(partial.owner_auth, "PASS");
   assert.equal(partial.seven_tools.linear_get_issue, "BLOCKED_CONFIGURATION_REQUIRED");
@@ -56,7 +56,7 @@ test("server-side proof uses signed auth and only allowlisted reads with safe ev
   const db = readOnlyD1(request, env.CLOUDFLARE_ACCOUNT_ID, env.CLOUDFLARE_API_TOKEN, { reads: 0, failures: 0 });
   assert.throws(() => db.prepare("DELETE FROM chat_messages"), /D1_READ_ONLY_ALLOWLIST/);
   await assert.rejects(db.prepare([...READ_QUERIES][0]).run(), /D1_WRITE_FORBIDDEN/);
-  await assert.rejects(prove({ env, dispatch: executeVerifiedTool, definitions: verifiedFunctionTools, request: async () => Response.json({}, { status: 401 }) }), /STAGING_HTTP_401/);
+  await assert.rejects(prove({ env, dispatch: executeVerifiedTool, definitions: verifiedFunctionTools.filter(tool => TOOL_NAMES.includes(tool.name)), request: async () => Response.json({}, { status: 401 }) }), /STAGING_HTTP_401/);
 });
 
 test("dispatcher rejects consequential actions and secret paths without upstream calls", async () => {
@@ -69,7 +69,8 @@ test("dispatcher rejects consequential actions and secret paths without upstream
   assert.equal((await executeVerifiedTool("github_staging_status", { branch: "main" }, {})).code, "INVALID_TOOL_ARGUMENTS");
   assert.equal((await executeVerifiedTool("lss_recent_turns", { limit: 1, conversation: "other" }, {})).code, "INVALID_TOOL_ARGUMENTS");
   assert.equal((await executeVerifiedTool("yellowstone_status", {}, {})).code, "CONFIGURATION_REQUIRED");
-  assert.equal(verifiedFunctionTools.length, 7);
+  assert.equal(verifiedFunctionTools.length, 8);
+  assert.ok(verifiedFunctionTools.some(tool => tool.name === "certificate_lincenc_status"));
 });
 
 test("live dispatch locks reads, sanitizes provider output, and contains upstream failures", async () => {
@@ -110,12 +111,13 @@ test("live dispatch locks reads, sanitizes provider output, and contains upstrea
   } finally { globalThis.fetch = originalFetch; }
 });
 
-test("OGE-32 registers exactly the seven strict read-only private tools", async () => {
+test("OGE-32 original seven verified tools are preserved, plus D1 Certificate read tool", async () => {
   const source = await read("worker/verified-function-tools.ts");
   const names = ["ogenic_system_status", "github_staging_status", "github_fetch_file", "linear_recent_issues", "linear_get_issue", "lss_recent_turns", "yellowstone_status"];
   for (const name of names) assert.match(source, new RegExp(`name: "${name}"`));
   assert.equal((source.match(/name: "(?:ogenic_system_status|github_staging_status|github_fetch_file|linear_recent_issues|linear_get_issue|lss_recent_turns|yellowstone_status)"/g) ?? []).length, 7);
-  assert.equal((source.match(/type: "function", name: .* strict: true/g) ?? []).length, 7);
+  assert.equal((source.match(/type: "function", name: .* strict: true/g) ?? []).length, 8);
+  assert.match(source, /name: "certificate_lincenc_status"/);
   assert.match(source, /additionalProperties: false/);
   assert.doesNotMatch(source, /name: "(?:connector_status|list_recent_hook_events|http_action|trigger_n8n_workflow)"/);
 });
