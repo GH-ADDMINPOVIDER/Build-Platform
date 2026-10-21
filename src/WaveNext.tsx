@@ -110,6 +110,16 @@ type CommandResult = {
   command_handoff?: { admission?: string; actor_id?: string; execution_authority?: string; yellow_stone_route?: string; direct_execution_bypass?: boolean };
 };
 
+type CertificateStatus = {
+  ok?: boolean; code?: string; certificate_id?: string; integrity?: string;
+  runtime_e2e_verified?: boolean; canonical_source?: { url?: string };
+  plugins?: { total?: number; historical_verified_read_api?: number };
+  owner_identity_labels?: {
+    github_first?: { label?: string };
+    github_second?: { label?: string };
+    codex_ts?: { historical_execution_result?: string };
+  };
+};
 type Tab = "run" | "agent" | "rules" | "session" | "connections" | "approvals" | "history";
 type Surface = "operate" | "command" | "agents";
 type Props = { initialTab?: Tab; surface?: Surface };
@@ -329,6 +339,7 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
   const [bridge, setBridge] = useState<BridgeStatus | null>(null);
   const [violet, setViolet] = useState<VioletStatus>({ agents: [] });
   const [sessions, setSessions] = useState<SessionRef[]>([]);
+  const [certificate, setCertificate] = useState<CertificateStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -370,21 +381,23 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
     setLoading(true);
     setError("");
     try {
-      const [dashR, connectorR, selfHostR, bridgeR, sessionsR, violetR] = await Promise.all([
+      const [dashR, connectorR, selfHostR, bridgeR, sessionsR, violetR, certificateR] = await Promise.all([
         fetch("/api/dashboard", { credentials: "same-origin", cache: "no-store" }),
         fetch("/api/connectors", { credentials: "same-origin", cache: "no-store" }),
         fetch("/api/openai/selfhost/readiness", { credentials: "same-origin", cache: "no-store" }),
         fetch("/api/1lss/status", { credentials: "same-origin", cache: "no-store" }),
         fetch("/api/1lss/sessions?limit=12", { credentials: "same-origin", cache: "no-store" }),
         fetch("/api/violet/status", { credentials: "same-origin", cache: "no-store" }),
+        fetch("/api/system/certificate-lincenc", { credentials: "same-origin", cache: "no-store" }),
       ]);
-      const [dashB, connectorB, selfHostB, bridgeB, sessionsB, violetB] = await Promise.all([
+      const [dashB, connectorB, selfHostB, bridgeB, sessionsB, violetB, certificateB] = await Promise.all([
         dashR.json().catch(() => ({})),
         connectorR.json().catch(() => ({})),
         selfHostR.json().catch(() => ({})),
         bridgeR.json().catch(() => ({})),
         sessionsR.json().catch(() => ({})),
         violetR.json().catch(() => ({})),
+        certificateR.json().catch(() => ({})),
       ]);
       if (dashR.ok) setDashboard(dashB as Dashboard);
       if (connectorR.ok && Array.isArray(connectorB.connectors)) setConnectors(connectorB.connectors as Connector[]);
@@ -394,6 +407,7 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
       if (sessionsR.ok && Array.isArray(sessionsB.sessions)) setSessions(sessionsB.sessions as SessionRef[]);
       if (violetR.ok && Array.isArray(violetB.agents)) setViolet(violetB as VioletStatus);
       else setViolet({ agents: [] });
+      setCertificate(certificateR.ok ? (certificateB as CertificateStatus) : {ok:false,code:String(certificateB?.code ?? ("HTTP_" + certificateR.status))});
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Runtime status unavailable");
     } finally {
@@ -609,6 +623,20 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
             <div><dt>1LSS</dt><dd>{bridge?.cross_surface_ready ? "cross-surface ready" : "status pending"}</dd></div>
             <div><dt>Latest sequence</dt><dd>{bridge?.latest_sequence ?? "—"}</dd></div>
           </dl>
+        </article>
+
+        <article className="wnCard">
+          <div className="wnCardHead"><div><span className="wnKicker">OGENIC · CANONICAL D1 EVIDENCE</span><h3>Certificate lincenc</h3></div><State value={certificate?.ok ? "VERIFIED" : "NOT_VERIFIED"} /></div>
+          <p className="wnBody">Owner authorization evidence, not SSL/TLS or present-day execution authority.</p>
+          <dl className="wnFacts">
+            <div><dt>Certificate</dt><dd>{certificate?.certificate_id || certificate?.code || "NOT_READ"}</dd></div>
+            <div><dt>D1 integrity</dt><dd>{certificate?.integrity || "NOT_VERIFIED"}</dd></div>
+            <div><dt>Plugins</dt><dd>{certificate?.plugins ? String(certificate.plugins.total ?? 0) + " groups / " + String(certificate.plugins.historical_verified_read_api ?? 0) + " historical read-API proofs" : "—"}</dd></div>
+            <div><dt>GitHub identities</dt><dd>{certificate?.owner_identity_labels?.github_first?.label || "Tawatchai"} / {certificate?.owner_identity_labels?.github_second?.label || "Tomload21"}</dd></div>
+            <div><dt>Codex TS historical</dt><dd>{certificate?.owner_identity_labels?.codex_ts?.historical_execution_result || "NOT_VERIFIED"}</dd></div>
+            <div><dt>Current E2E</dt><dd>{certificate?.runtime_e2e_verified ? "VERIFIED" : "NOT_PROVEN_BY_CERTIFICATE"}</dd></div>
+          </dl>
+          <p className="wnBody"><a href={certificate?.canonical_source?.url || "https://github.com/Ogenicchocolate21debug/Build-Platform/blob/task/oge-128-runtime-certificate-20261018/.ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json"} target="_blank" rel="noreferrer">Original Certificate in GitHub ↗</a></p>
         </article>
 
         <article className="wnCard">
