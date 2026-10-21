@@ -81,10 +81,10 @@ jobs:
             console.error('GS_CODEX_IDENTITY_NOT_VERIFIED');process.exit(78);
           }
           NODE
-          timeout 150s env -u OPENAI_API_KEY -u CODEX_API_KEY -u GH_TOKEN -u GITHUB_TOKEN \\
-            CODEX_HOME=/home/wave/.codex codex exec --sandbox read-only --skip-git-repo-check \\
-            --output-last-message "$RUNNER_TEMP/gs-proof-last.txt" \\
-            'Return exactly OGENIC_GS_CODEX_READY. Do not inspect files or run shell commands.' \\
+          timeout 150s env -u OPENAI_API_KEY -u CODEX_API_KEY -u GH_TOKEN -u GITHUB_TOKEN \
+            CODEX_HOME=/home/wave/.codex codex exec --sandbox read-only --skip-git-repo-check \
+            --output-last-message "$RUNNER_TEMP/gs-proof-last.txt" \
+            'Return exactly OGENIC_GS_CODEX_READY. Do not inspect files or run shell commands.' \
             > "$RUNNER_TEMP/gs-codex-private.log" 2>&1 || {
               echo "GS_CODEX_EXEC=RUNTIME_ERROR_LOG_WITHHELD"; exit 78;
             }
