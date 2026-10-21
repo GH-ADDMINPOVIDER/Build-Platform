@@ -18,6 +18,7 @@ on:
       - "scripts/infisical-cloudflare-source-select.sh"
       - "tests/infisical-cloudflare-source.test.mjs"
       - "tests/oge-89-deepseek-yellow-integration.test.mjs"
+      - "tests/mcp-config-contract.test.mjs"
       - "workflows/**"
       - "database/**"
       - "config/**"
