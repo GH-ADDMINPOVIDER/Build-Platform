@@ -255,17 +255,19 @@ async function sendOpenBotReadOnlyProbe(env: ConnectorBindings) {
       body,
     }, 5000);
     const accepted = response.status === 202;
+    const duplicate = response.status === 200;
+    const state = accepted ? "EVENT_ACCEPTED" : duplicate ? "DUPLICATE_ACCEPTED" : "DELIVERY_FAILED";
     await logEvent(env, {
       provider: "openbot",
       event_type: "READ_ONLY_PROBE",
-      state: accepted ? "EVENT_ACCEPTED" : "DELIVERY_FAILED",
+      state,
       external_id: deliveryId,
       detail: { http_status: response.status, run_completed: false },
     });
     return {
-      ok: accepted,
+      ok: accepted || duplicate,
       connector: "openbot",
-      state: accepted ? "EVENT_ACCEPTED" : "DELIVERY_FAILED",
+      state,
       http_status: response.status,
       delivery_id: deliveryId,
       run_completed: false,
