@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
+import { hasOwnerOrOpsAccess, hasOwnerSession, type AuthBindings } from "./app-auth";
 
 type D1Result<T = Record<string, unknown>> = { results?: T[]; success?: boolean };
 type D1Prepared = {
@@ -283,6 +283,70 @@ export function createMcpConfigApi() {
       return c.json({ ...result, provider, binding: bindingEnvelope(binding), side_effects: false }, result.ok ? 200 : 503, { "Cache-Control": "no-store" });
     }
 
+    // One bounded READ proof on the existing GitHub MCP remote server.
+    // This uses no extra gateway, credential export or general tools/call API.
+    if (action === "read_proof") {
+      if (!(await hasOwnerSession(c.req.raw, c.env))) {
+        return c.json({ ok: false, code: "OWNER_SESSION_REQUIRED" }, 403);
+      }
+      if (provider !== "github") return c.json({ ok: false, code: "READ_PROOF_GITHUB_ONLY" }, 422);
+      const binding = await c.env.DB.prepare(
+        `SELECT id, provider_id, environment, binding_type, secret_ref, status, last_checked_at, metadata_json, updated_at
+         FROM provider_bindings WHERE provider_id = ? AND environment = 'staging' AND binding_type = 'mcp' LIMIT 1`,
+      ).bind(provider).first<BindingRow>();
+      if (!binding || binding.status === "disabled") {
+        return c.json({ ok: false, code: "MCP_BINDING_NOT_ENABLED" }, 503);
+      }
+      const endpoint = parseMetadata(binding.metadata_json).endpoint;
+      if (endpoint !== "https://api.githubcopilot.com/mcp/readonly") {
+        return c.json({ ok: false, code: "READONLY_MCP_ENDPOINT_REQUIRED" }, 422);
+      }
+      const token = resolveSecret(binding, c.env);
+      if (!token) return c.json({ ok: false, code: "MCP_AUTH_BINDING_MISSING" }, 503);
+      try {
+        const initialized = await jsonRpc(endpoint, "initialize", {
+          protocolVersion: "2025-06-18", capabilities: {},
+          clientInfo: { name: "OGENIC-WAVE-READ-PROOF", version: "1" },
+        }, 1, token);
+        if (!initialized.ok) return c.json({ ok: false, code: "MCP_INIT_UNAVAILABLE" }, 503);
+        const listed = await jsonRpc(endpoint, "tools/list", {}, 2, token, initialized.sessionId);
+        if (!listed.ok || !normalizeTools(
+          (listed.body.result && typeof listed.body.result === "object"
+            ? (listed.body.result as Record<string, unknown>).tools : null),
+        ).some((tool) => tool.name === "get_file_contents" && tool.risk === "READ")) {
+          return c.json({ ok: false, code: "MCP_READ_TOOL_UNAVAILABLE" }, 503);
+        }
+        const result = await jsonRpc(endpoint, "tools/call", {
+          name: "get_file_contents",
+          arguments: { owner: "Ogenicchocolate21debug", repo: "Build-Platform",
+            path: "README.md", ref: "phase-vi-provider-incentive-metering" },
+        }, 3, token, initialized.sessionId);
+        const body = result.body.result && typeof result.body.result === "object"
+          ? result.body.result as Record<string, unknown> : {};
+        const entries = Array.isArray(body.content) ? body.content : [];
+        const textEntries = entries.filter((part): part is { type: string; text: string } =>
+          Boolean(part && typeof part === "object" && part.type === "text" && typeof part.text === "string"));
+        if (!result.ok || body.isError === true || !textEntries.length) {
+          return c.json({ ok: false, code: "MCP_READ_TOOL_FAILED" }, 503);
+        }
+        const message = textEntries.map((part) => part.text).join("\n");
+        if (!message || message.length > 100_000) {
+          return c.json({ ok: false, code: "MCP_READ_PROOF_PAYLOAD_UNEXPECTED" }, 503);
+        }
+        const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(message));
+        const resultSha256 = Array.from(new Uint8Array(digest), (n) => n.toString(16).padStart(2, "0")).join("");
+        return c.json({ ok: true, code: "MCP_GITHUB_READ_E2E_PASS",
+          provider: "github", binding_type: "mcp", environment: "staging",
+          tool: "get_file_contents", scope: "README.md:STAGING_READ_ONLY",
+          result_sha256: resultSha256, bytes_read: new TextEncoder().encode(message).byteLength,
+          result_body_exposed: false, secret_exposed: false,
+          persistent_lease_created: false, provider_write_attempted: false,
+          paid_model_inference_attempted: false,
+        }, 200, { "Cache-Control": "no-store" });
+      } catch {
+        return c.json({ ok: false, code: "MCP_READ_PROOF_UNAVAILABLE" }, 503);
+      }
+    }
     if (!["register", "enable", "disable"].includes(action)) return c.json({ ok: false, code: "UNSUPPORTED_ACTION" }, 400);
     if (body.approved !== true) {
       return c.json({ ok: false, code: "HUMAN_APPROVAL_REQUIRED", policy: "OGE26", requested_action: action }, 409);
