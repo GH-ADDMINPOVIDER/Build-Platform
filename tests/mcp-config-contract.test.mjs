@@ -86,7 +86,8 @@ test("bounded Github remote read-proof is owner-only, readonly and evidence-only
   assert.match(api, /"get_file_contents"/);
   assert.match(api, /"tools\/call"/);
   assert.match(api, /path: "README\.md"/);
-  assert.match(api, /ref: "phase-vi-provider-incentive-metering"/);
+  assert.match(api, /ref: "refs\/heads\/phase-vi-provider-incentive-metering"/);
+  assert.match(api, /message.includes\("# OGENIC Phase VI"\)/);
   assert.match(api, /MCP_GITHUB_READ_E2E_PASS/);
   assert.match(api, /result_body_exposed: false/);
   assert.match(api, /secret_exposed: false/);
