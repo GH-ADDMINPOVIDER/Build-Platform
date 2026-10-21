@@ -32,6 +32,8 @@ test("ATHENA reuses exactly the OGE-32 verified private tool registry and never 
   assert.match(api, /requestBody\.tools = verifiedFunctionTools/);
   assert.match(api, /exact_private_tool_count: verifiedFunctionTools\.length/);
   assert.equal((verified.match(/type: "function", name:/g) ?? []).length, 8);
+  const workflow = await read(".github/workflows/oge-34-athena-default-chat-proof.yml");
+  assert.match(workflow, /\.blue_diamond\.exact_private_tool_count == 8/);
   assert.match(verified, /certificate_lincenc_status/);
   assert.match(api, /NOT Vercel SSL\/TLS Certs API/);
   assert.doesNotMatch(api, /type: "web_search"/);

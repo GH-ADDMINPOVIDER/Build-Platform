@@ -120,7 +120,7 @@ jobs:
           jq -e '.ok == true and .runtime == "BLUE_DIAMOND_ATHENA_VERIFIED_CHAT_V0_1" and .conversation_id == "owner-main" and .session_line == "1LSS_OWNER_MAIN"' "$BODY" >/dev/null \
             || { echo "::error::ATHENA route/canonical contract mismatch"; exit 1; }
 
-          jq -e '.blue_diamond.stone == 4 and .blue_diamond.identity == "ATHENA" and .blue_diamond.actor_id == "athena-command" and .blue_diamond.maturity == "COMMANDER_CANDIDATE" and .blue_diamond.admitted == true and .blue_diamond.preflight_event == "AGENT_PRE_RUN" and .blue_diamond.permission_class == "READ" and .blue_diamond.exact_private_tool_count == 7 and .blue_diamond.execution_authority == "YELLOW_STONE_ONLY"' "$BODY" >/dev/null \
+          jq -e '.blue_diamond.stone == 4 and .blue_diamond.identity == "ATHENA" and .blue_diamond.actor_id == "athena-command" and .blue_diamond.maturity == "COMMANDER_CANDIDATE" and .blue_diamond.admitted == true and .blue_diamond.preflight_event == "AGENT_PRE_RUN" and .blue_diamond.permission_class == "READ" and .blue_diamond.exact_private_tool_count == 8 and .blue_diamond.execution_authority == "YELLOW_STONE_ONLY"' "$BODY" >/dev/null \
             || { echo "::error::Blue Diamond admission metadata mismatch"; exit 1; }
 
           jq -e '([.function_calls[]?.name] | index("github_staging_status") != null) and ([.function_calls[]?.name] | index("linear_get_issue") != null)' "$BODY" >/dev/null \
