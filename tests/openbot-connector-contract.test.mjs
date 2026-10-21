@@ -36,9 +36,11 @@ test("OpenBot event contains only bounded read-only metadata and never forwards 
   assert.doesNotMatch(runtime.slice(runtime.indexOf("async function sendOpenBotReadOnlyProbe"), runtime.indexOf("export async function testConnector")), /prompt|command:|shell|raw_body/i);
 });
 
-test("HTTP 202 is EVENT_ACCEPTED only and cannot be reported as a completed run", () => {
+test("HTTP 202 means accepted and HTTP 200 means duplicate; neither proves run completion", () => {
   assert.match(runtime, /const accepted = response\.status === 202/);
-  assert.match(runtime, /state: accepted \? "EVENT_ACCEPTED" : "DELIVERY_FAILED"/);
+  assert.match(runtime, /const duplicate = response\.status === 200/);
+  assert.match(runtime, /"DUPLICATE_ACCEPTED"/);
+  assert.match(runtime, /ok: accepted \|\| duplicate/);
   assert.match(runtime, /run_completed: false/);
   assert.match(runtime, /completion_evidence_required: "OpenBot routine history or a documented result callback"/);
 });
