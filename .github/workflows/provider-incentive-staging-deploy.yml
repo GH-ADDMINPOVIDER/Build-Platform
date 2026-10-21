@@ -13,6 +13,7 @@ on:
       - "scripts/infisical-discover-project.sh"
       - "scripts/oge34-github-worker-binding.mjs"
       - "scripts/verify-openbot-launchroom-staging.mjs"
+      - "scripts/wave-command-consumer.mjs"
       - ".github/workflows/oge-36-staging-cloud-fallback.yml"
       - "scripts/infisical-cloudflare-source-select.sh"
       - "tests/infisical-cloudflare-source.test.mjs"
