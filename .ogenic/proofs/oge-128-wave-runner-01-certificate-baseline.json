@@ -721,6 +721,65 @@
       "prior_certificate_d1_readback_sha256": "42d8ac282e6cd2f2d1cd4e2da123593b1d9905019d3beee7725aa0ebc941621a",
       "this_revision_d1_readback": "PENDING_NEW_INDEPENDENT_READBACK",
       "previous_entries_preserved": true
+    },
+    {
+      "event": "gs_gh2_existing_selfhost_copilot_mcp_capability_audit_20261021_1853z",
+      "status": "CURRENT_VERIFIED_GH2_SELFHOST_AND_GS_CODEX__COPILOT_MCP_NOT_CONFIGURED",
+      "checkpoint_id": "WAVE-GS-HANDOFF-20261021-OWNER-MAIN",
+      "scope": "STAGING_ONLY_READ_ONLY_HOST_AUDIT",
+      "observed_at_utc": "2026-10-21T18:53:00Z",
+      "repository": "Ogenicchocolate21debug/Build-Platform",
+      "staging_head_audited": "ff519e6f90ca0d2db7c4d9526fcba55fecca3407",
+      "existing_workflow": ".github/workflows/oge-28-runner2-host-capability.yml",
+      "workflow_change": "audit(oge28): verify GH-2 self-host actor, GS Codex, and Copilot MCP readiness without secrets",
+      "audit_run": {
+        "run_id": 39656683866,
+        "job_id": 119418705979,
+        "conclusion": "success",
+        "actor": "Wave-Runner-2",
+        "runner_name": "wave-runner-01",
+        "runner_id": 21
+      },
+      "gh2": {
+        "github_login": "Wave-Runner-2",
+        "repository_permission": "write",
+        "actions_push_actor": "CURRENT_VERIFIED",
+        "on_host_stored_gh_cli_auth": "NOT_VERIFIED",
+        "copilot_subscription_entitlement": "NOT_VERIFIED"
+      },
+      "gs_codex": {
+        "identity": "GPT_GS_CODEX",
+        "profile": "/home/wave/.codex",
+        "cli_installed": true,
+        "local_login": "SIGNED_IN",
+        "prior_wave_command_e2e_run": 39645715001,
+        "prior_e2e_status": "DONE"
+      },
+      "host": {
+        "droplet_id": 604432491,
+        "runner": "wave-runner-01",
+        "uid": 1000,
+        "noninteractive_sudo": false,
+        "docker_available": true,
+        "runner_directory_exists": "/opt/wave/actions-runner"
+      },
+      "copilot_cli_mcp": {
+        "copilot_cli_installed": false,
+        "user_mcp_config_present": false,
+        "github_mcp_is_builtin_when_copilot_installed": true,
+        "no_external_mcp_server_name_or_endpoint_supplied": true,
+        "actual_gh2_copilot_runtime_inference": "NOT_VERIFIED",
+        "source_document": "GitHub Docs: Adding MCP servers for GitHub Copilot CLI",
+        "recommended_install_condition": "Confirm GH-2 GitHub Copilot entitlement and authorized GH-2 Copilot authentication; do not reuse GitHub Actions job token or GS OpenAI session",
+        "default_security_posture": "NO_INSTALL_NO_NEW_OAUTH_NO_SCOPE_ESCALATION_NO_SECRETS"
+      },
+      "distinction": "GH-2 GitHub Actions actor on self-host does not imply GH-2 GitHub CLI or Copilot CLI logged into the host. Copilot MCP configuration is separate from both GitHub App and Codex MCP.",
+      "history_preserved": true,
+      "production_changed": false,
+      "new_runner_created": false,
+      "new_certificate_created": false,
+      "secret_changed": false,
+      "next": "GH-2 Copilot CLI entitlement/authentication and a named additional MCP server are needed for an actual external MCP installation; no duplicate GitHub MCP server"
     }
   ],
   "secret_contract": {
