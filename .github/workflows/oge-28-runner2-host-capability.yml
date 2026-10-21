@@ -365,3 +365,51 @@ jobs:
           echo CCS15_MCP_REAL_TOOLS_CALL=NOT_PERFORMED_NO_PROVIDER
           echo CCS15_PAID_MODEL_CALLS=ZERO
           echo CCS15_NO_NEW_GATEWAY_RUNNER_OR_SECRET=TRUE
+
+      - name: CCS GitHub remote MCP Read-only registration and true discovery
+        if: github.actor == 'Wave-Runner-2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
+          test -n "$(printenv OGENIC_OPS_KEY || true)"
+          umask 077
+          jar="$RUNNER_TEMP/ccs-github-$GITHUB_RUN_ID.cookies"
+          response="$RUNNER_TEMP/ccs-github-$GITHUB_RUN_ID.json"
+          state="$RUNNER_TEMP/ccs-github-$GITHUB_RUN_ID-state.json"
+          trap 'rm -f "$jar" "$response" "$state"' EXIT
+          root=https://wave.ogenicchocolate.com
+          code="$(jq -nc --arg v "$OGENIC_OPS_KEY" '{owner_key:$v}' | timeout 15 curl -sS --max-time 12 --cookie-jar "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$response" -w '%{http_code}' "$root/api/session")"
+          if test "$code" != 200 || ! jq -e '.ok == true and .authenticated == true and .user.role == "owner"' "$response" >/dev/null; then echo CCS_GITHUB_MCP_AUTH=BLOCKED; exit 87; fi
+          code="$(timeout 15 curl -sS --max-time 12 --cookie "$jar" -o "$state" -w '%{http_code}' "$root/api/mcp-config/state")"
+          test "$code" = 200
+          prior="$(jq -r '[.bindings[]? | select(.provider_id=="github")]|length' "$state")"
+          if test "$prior" != 0; then
+            echo CCS_GITHUB_MCP_BINDING=EXISTING_NOT_MUTATED
+          else
+            # Existing staging provider+binding D1 table; official remote
+            # Github MCP service defaults to READ-ONLY via path /readonly.
+            # Reference existing Worker environment key; no token in payload.
+            code="$(jq -nc '{provider:"github",action:"register",approved:true,endpoint:"https://api.githubcopilot.com/mcp/readonly",secret_ref:"env:GITHUB_TOKEN",label:"GH2 ReadOnly MCP"}' | timeout 15 curl -sS --max-time 12 --cookie "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$response" -w '%{http_code}' "$root/api/mcp-config/action" || true)"
+            if test "$code" != 200; then
+              echo "CCS_GITHUB_MCP_REGISTER=BLOCKED_HTTP_$code"
+              jq -r '"CCS_GITHUB_MCP_REGISTER_CODE="+(.code // "UNKNOWN")' "$response" 2>/dev/null || true
+              exit 0
+            fi
+            echo CCS_GITHUB_MCP_REGISTER=READONLY_REFERENCE_BOUND
+          fi
+          code="$(timeout 24 curl -sS --max-time 21 --cookie "$jar" --get --data-urlencode 'provider=github' -o "$response" -w '%{http_code}' "$root/api/mcp-config/discover" || true)"
+          if test "$code" = 200 && jq -e '.ok == true and .real_available == true and (.tools|length)>0' "$response" >/dev/null 2>&1; then
+            echo CCS_GITHUB_MCP_INITIALIZE_TOOLS_LIST=LIVE
+            jq -r '"CCS_GITHUB_MCP_TOOL_COUNT="+((.tools|length)|tostring)' "$response"
+          else
+            echo "CCS_GITHUB_MCP_INITIALIZE_TOOLS_LIST=BLOCKED_HTTP_$code"
+            jq -r '"CCS_GITHUB_MCP_DISCOVERY_CODE="+(.code // "UNKNOWN")' "$response" 2>/dev/null || true
+            if test "$prior" = 0; then
+              code="$(jq -nc '{provider:"github",action:"disable",approved:true}' | timeout 13 curl -sS --max-time 10 --cookie "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$response" -w '%{http_code}' "$root/api/mcp-config/action" || true)"
+              echo "CCS_GITHUB_MCP_FAILED_BINDING_DISABLED_HTTP_$code"
+            fi
+          fi
+          echo CCS_GITHUB_MCP_TOOL_EXECUTION=NOT_ATTEMPTED
+          echo CCS_GITHUB_MCP_NEW_SERVER_INSTALLED=FALSE
