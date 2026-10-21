@@ -68,6 +68,32 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/owner-terminal-auth-proof.mjs
+      - name: Prove GS existing Codex identity and read-only inference
+        shell: bash
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const proof=JSON.parse(readFileSync('owner-terminal-auth-proof.json','utf8'));
+          if (!proof.runtime?.profiles?.some(x=>x.identity==='GPT_GS_CODEX' && x.login==='SIGNED_IN')) {
+            console.error('GS_CODEX_IDENTITY_NOT_VERIFIED');process.exit(78);
+          }
+          NODE
+          timeout 150s env -u OPENAI_API_KEY -u CODEX_API_KEY -u GH_TOKEN -u GITHUB_TOKEN \\
+            CODEX_HOME=/home/wave/.codex codex exec --sandbox read-only --skip-git-repo-check \\
+            --output-last-message "$RUNNER_TEMP/gs-proof-last.txt" \\
+            'Return exactly OGENIC_GS_CODEX_READY. Do not inspect files or run shell commands.' \\
+            > "$RUNNER_TEMP/gs-codex-private.log" 2>&1 || {
+              echo "GS_CODEX_EXEC=RUNTIME_ERROR_LOG_WITHHELD"; exit 78;
+            }
+          test -f "$RUNNER_TEMP/gs-proof-last.txt" && grep -Fq OGENIC_GS_CODEX_READY "$RUNNER_TEMP/gs-proof-last.txt" || {
+            echo "GS_CODEX_EXEC=MARKER_MISSING"; exit 78;
+          }
+          echo GS_CODEX_EXEC=SUCCESS
+          echo GS_CODEX_EXEC_ACCOUNT=GPT_GS_CODEX
+          echo GS_CODEX_EXEC_SANDBOX=READ_ONLY
       - name: Discover existing root Codex identity with Docker read-only (no SSH or OAuth changes)
         shell: bash
         run: |
@@ -192,6 +218,7 @@ jobs:
         shell: bash
         run: bash scripts/infisical-discover-project.sh
       - name: Load bounded SSH authorization via Infisical OIDC
+        if: false # Existing Docker profile is the path; no SSH credentials needed for this audit.
         uses: Infisical/secrets-action@v1.0.9
         with:
           method: oidc
@@ -203,7 +230,7 @@ jobs:
       - name: Verify SSH root Codex context with sanitized claims
         # Root-SSH is fallback only: the original TS account has an approved
         # read-only Docker control path; do not fail it for an unrelated SSH key.
-        if: steps.root_codex_login.outputs.ts_ready != 'true'
+        if: false # Do not modify root SSH authorization or any host credentials.
         shell: bash
         run: |
           set -euo pipefail
@@ -303,6 +330,11 @@ jobs:
         run: npm run typecheck
       - name: Build staging source without any deployment
         run: npm run build
+      - name: Fail closed when existing TS Codex Docker identity is unavailable
+        if: steps.root_codex_login.outputs.ts_ready != 'true'
+        run: |
+          echo "::error::TS_CODEX_EXISTING_PROFILE_NOT_VERIFIED"
+          exit 78
       - name: Exercise TS Codex read-only inference through existing Docker adapter
         if: steps.root_codex_login.outputs.ts_ready == 'true'
         timeout-minutes: 4
