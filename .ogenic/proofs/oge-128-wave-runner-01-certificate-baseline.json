@@ -835,6 +835,109 @@
       "no_oauth_changes": true,
       "no_production_changes": true,
       "next_action": "Approve GH2 Copilot browser/device login through SSH/IDE terminal; then verify copilot mcp list and run one bounded read-only Copilot prompt before enabling extra MCP tools."
+    },
+    {
+      "event": "gs_ocian_host_ssh_ide_opencode_cf_owner_mcp_e2e_audit_20261021_1959z",
+      "status": "PARTIAL_VERIFIED__HOST_CF_OWNER_CONTROL_PASS__EXTERNAL_MCP_AND_IDE_PENDING",
+      "recorded_date_asia_bangkok": "2026-10-22",
+      "scope": "STAGING_ONLY",
+      "canonical_session": "owner-main / 1LSS_OWNER_MAIN",
+      "canonical_certificate_id": "oge-128-wave-runner-01-baseline-20261018",
+      "host": {
+        "display_label": "OCIAN_S-Host",
+        "digitalocean_name": "OCIAN-S-Host",
+        "droplet_id": 604432491,
+        "cloud_active": true,
+        "runner_count": 1,
+        "actual_linux_hostname": "wave-runner-01",
+        "github_runner_registration": "wave-runner-01",
+        "ssh_client": "INSTALLED",
+        "sshd_service": "ACTIVE",
+        "tcp22_local": "LISTENING",
+        "remote_ssh_login": "NOT_VERIFIED",
+        "ide_server_for_user_wave": "ABSENT"
+      },
+      "github": {
+        "actor": "Wave-Runner-2",
+        "current_staging_head": "91ab21ad0c9f11348c5f618427e5f1eac25a7759",
+        "host_probe_first_run": 39665059422,
+        "authenticated_mcp_run": 39665622735,
+        "opencode_installed_and_mcp_check_run": 39666078451,
+        "head_catchup_run": 39666078276,
+        "head_catchup": "SUCCESS"
+      },
+      "cloudflare": {
+        "worker_name": "ogenic-phase-vi-staging",
+        "worker_last_deploy_sha": "1469325e17b34a5cedf3f65f6b2e88eaa3d0c782",
+        "worker_deploy_run": 39663937818,
+        "worker_deploy": "SUCCESS",
+        "public_health_http": 200,
+        "protected_unauth_http": 401,
+        "owner_authenticated_protected_http": 200,
+        "owner_session_authorized_through_existing_infisical_oidc": true,
+        "d1_certificate_history_protected": "ORIGINAL_APPEND_ONLY_NO_SCHEMA_MUTATION"
+      },
+      "agents_tools": {
+        "gs_codex": {
+          "profile": "/home/wave/.codex",
+          "login": "SIGNED_IN",
+          "mcp_cli_list": "READABLE",
+          "previous_command_e2e_run": 39645715001
+        },
+        "github_copilot_cli": {
+          "installed": true,
+          "cli_version": "PASS",
+          "github_login": "NOT_VERIFIED",
+          "mcp_live": "NOT_VERIFIED"
+        },
+        "opencode_cli": {
+          "package": "@opencode/cli",
+          "installed": true,
+          "installed_location": "/home/wave/.local/bin/opencode",
+          "version": "PASS",
+          "mcp_client_command": "AVAILABLE",
+          "provider_login": "NOT_ATTEMPTED",
+          "metered_model_calls": 0
+        },
+        "infisical_cli_path": "ABSENT",
+        "wrangler_cli_path": "INSTALLED",
+        "node_npm_npx_docker_git": "INSTALLED",
+        "vscode_cursor_server": "NOT_INSTALLED_FOR_HOST_USER"
+      },
+      "mcp": {
+        "control_plane": "WAVE_MCP_CONFIG_V1",
+        "owner_session_proven": "VERIFIED",
+        "infisical_oidc_binding": "PASS",
+        "state": "HTTP_200",
+        "connector_manifest": "HTTP_200",
+        "connector_status": "HTTP_200",
+        "local_team": "HTTP_200",
+        "blue_registry": "HTTP_200",
+        "simulated_fixture": "HTTP_200_NOT_REAL",
+        "staging_provider_bindings_count": 0,
+        "real_provider_mcp_discovery": "NOT_RUN_NO_BINDING",
+        "tools_call": "NOT_ATTEMPTED_NO_PROVIDER",
+        "chatgpt_direct_external_mcp": "NOT_CONNECTED_BY_THIS_GH2_WORKFLOW",
+        "permission_model": "READ_ONLY_DIAGNOSTIC_ONLY_NO_UNBOUNDED_GRANTS_NO_ADDITIONAL_GATEWAY"
+      },
+      "xai_meta": {
+        "workflow_run_id": 39663937655,
+        "state": "FAILED_PREFLIGHT",
+        "cause": "INFISICAL_ORG_ID missing",
+        "provider_call_state": "NOT_PROVEN",
+        "auto_paid_retry": false
+      },
+      "evidence_issue": "https://github.com/Ogenicchocolate21debug/Build-Platform/issues/37#issuecomment-6325313577",
+      "preservation": {
+        "all_older_history_retained": true,
+        "original_gh1_repo_current": true,
+        "gh2_owner_repo_created": false,
+        "new_runner": false,
+        "new_certificate": false,
+        "production_changed": false,
+        "secrets_or_oauth_changed": false
+      },
+      "this_revision_d1_sync": "PENDING_EXISTING_CERTIFICATE_WORKFLOW"
     }
   ],
   "secret_contract": {
