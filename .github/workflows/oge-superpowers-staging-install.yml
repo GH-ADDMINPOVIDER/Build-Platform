@@ -139,7 +139,7 @@ jobs:
           # A failed identity check cannot fall back to GS or a different Codex account.
           if ! docker run --rm --network none --read-only --user 0:0 --entrypoint /bin/sh \
             --cap-drop ALL --security-opt no-new-privileges \
-            --mount type=bind,source=/root/.codex,target=/root/.codex,readonly \
+            -v /root/.codex:/root/.codex:ro \
             -e HOME=/root -e CODEX_HOME=/root/.codex "$image" -ec '
               node -e '\''const fs=require("fs"),c=require("crypto");const a=JSON.parse(fs.readFileSync("/root/.codex/auth.json","utf8"));const t=a.tokens&&a.tokens.id_token; if(typeof t!=="string")process.exit(78);const p=JSON.parse(Buffer.from(t.split(".")[1],"base64url").toString("utf8"));const h=c.createHash("sha256").update(String(p.email||"").trim().toLowerCase()).digest("hex");if(h!=="a9bc2ab898ff2400247c11565f37dd59ff90d50085185c2756db603e4a778aba")process.exit(78);'\''
             ' >/dev/null 2>&1; then
@@ -156,10 +156,10 @@ jobs:
             --entrypoint /bin/sh \
             -e HOME=/root -e CODEX_HOME=/root/.codex -e CI=1 \
             -e OPENAI_API_KEY= -e CODEX_API_KEY= -e GH_TOKEN= -e GITHUB_TOKEN= \
-            --mount type=bind,source=/root/.codex,target=/root/.codex \
-            --mount type=bind,source=/usr/lib/node_modules,target=/usr/lib/node_modules,readonly \
-            --mount type=bind,source="$GITHUB_WORKSPACE",target=/workspace,readonly \
-            --mount type=bind,source="$skills",target=/root/.agents/skills,readonly \
+            -v /root/.codex:/root/.codex:rw \
+            -v /usr/lib/node_modules:/usr/lib/node_modules:ro \
+            -v "$GITHUB_WORKSPACE":/workspace:ro \
+            -v "$skills":/root/.agents/skills:ro \
             "$image" -eu -c '
               test -r /root/.agents/skills/using-superpowers/SKILL.md
               node /usr/lib/node_modules/@openai/codex/bin/codex.js exec \
