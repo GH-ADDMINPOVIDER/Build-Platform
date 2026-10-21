@@ -557,3 +557,43 @@ jobs:
             echo "CCS15_WEBHOOK_HMAC_DEDUP_D1_E2E=BLOCKED_HTTP_$code"
           fi
           echo CCS15_WEBHOOK_SECRET_VALUE_EXPOSED=FALSE
+
+      - name: Bind existing self-host n8n API credential via Infisical OIDC
+        if: github.actor == 'Wave-Runner-2'
+        id: ccs15_n8n_auth
+        continue-on-error: true
+        uses: Infisical/secrets-action@v1.0.17
+        with:
+          method: oidc
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+          env-slug: staging
+          domain: https://app.infisical.com
+          secret-path: /
+          secret-name: N8N_SELFHOST_API_KEY
+          include-imports: false
+          recursive: false
+      - name: CCS15 n8n authenticated real API workflow inventory and CLI checks
+        if: github.actor == 'Wave-Runner-2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          if command -v npm >/dev/null 2>&1 && npm --version >/dev/null 2>&1; then echo CCS15_NPM_EXECUTION=PASS_VERSION; else echo CCS15_NPM_EXECUTION=BLOCKED; fi
+          if command -v npx >/dev/null 2>&1 && timeout 15 npx --no-install --offline node --version >/dev/null 2>&1; then echo CCS15_NPX_LOCAL_NO_INSTALL_EXECUTION=PASS; else echo CCS15_NPX_LOCAL_NO_INSTALL_EXECUTION=BLOCKED_NO_ALLOWED_BINARY; fi
+          if test -z "$(printenv N8N_SELFHOST_API_KEY || true)"; then
+            echo CCS15_N8N_AUTHENTICATED_API=BLOCKED_INFISICAL_STAGING_BINDING_NOT_FOUND
+            exit 0
+          fi
+          umask 077
+          out="$RUNNER_TEMP/ccs15-n8n-$GITHUB_RUN_ID.json"
+          trap 'rm -f "$out"' EXIT
+          base=https://n8n-staging-76b7.up.railway.app
+          status="$(timeout 20 curl -sS --max-time 17 -H "X-N8N-API-KEY: $N8N_SELFHOST_API_KEY" -H 'Accept: application/json' -o "$out" -w '%{http_code}' "$base/api/v1/workflows?limit=100" || true)"
+          if test "$status" = 200 && jq -e '.data|type=="array"' "$out" >/dev/null 2>&1; then
+            jq -r '"CCS15_N8N_AUTHENTICATED_WORKFLOW_INVENTORY=PASS_COUNT_"+((.data|length)|tostring)' "$out"
+            jq -r '"CCS15_N8N_ENABLED_WORKFLOWS="+([.data[]?|select(.active==true)]|length|tostring)' "$out"
+          else
+            echo "CCS15_N8N_AUTHENTICATED_API=BLOCKED_HTTP_$status"
+          fi
+          echo CCS15_N8N_WORKFLOW_EXECUTION=NOT_ATTEMPTED_WITHOUT_APPROVED_ACTIVE_WORKFLOW
