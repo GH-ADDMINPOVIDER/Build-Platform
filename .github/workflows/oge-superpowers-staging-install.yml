@@ -1,0 +1,114 @@
+name: OGENIC Superpowers - Pinned Skills Install on Existing Runner-1
+
+on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-superpowers-staging-install.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oge-superpowers-existing-runner-1
+  cancel-in-progress: false
+
+jobs:
+  install:
+    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact staging source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Install immutable superpowers skills without running upstream hooks
+        shell: bash
+        env:
+          OPENAI_API_KEY: ""
+          CODEX_API_KEY: ""
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$GITHUB_REPOSITORY" = Ogenicchocolate21debug/Build-Platform
+          test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          pin=b739a8af570e10a95898f2bdf6cec97467fa6c12
+          root="$HOME/.local/share/ogenic/third_party/superpowers"
+          pinned="$root/$pin"
+          mkdir -p "$root"
+          if test ! -r "$pinned/skills/using-superpowers/SKILL.md"; then
+            temp="$(mktemp -d "$root/.stage.XXXXXXXX")"
+            trap 'rm -rf -- "$temp"' EXIT
+            git -C "$temp" init -q
+            GIT_TERMINAL_PROMPT=0 git -C "$temp" -c credential.helper= fetch --quiet --no-tags --depth=1 https://github.com/obra/superpowers.git "$pin"
+            git -C "$temp" -c core.hooksPath=/dev/null checkout --quiet --detach FETCH_HEAD
+            test "$(git -C "$temp" rev-parse HEAD)" = "$pin"
+            test -r "$temp/LICENSE"
+            test -r "$temp/skills/using-superpowers/SKILL.md"
+            mkdir -p "$temp/package"
+            cp -a "$temp/skills" "$temp/package/skills"
+            cp "$temp/LICENSE" "$temp/package/LICENSE"
+            test ! -e "$pinned"
+            mv "$temp/package" "$pinned"
+          fi
+          count=0
+          for skill_file in "$pinned"/skills/*/SKILL.md; do
+            test -f "$skill_file"
+            name="$(basename "$(dirname "$skill_file")")"
+            [[ "$name" =~ ^[a-z][a-z0-9-]+$ ]]
+            for directory in "$HOME/.agents/skills" "$HOME/.codex/skills"; do
+              mkdir -p "$directory"
+              name_path="$directory/superpowers-$name"
+              target="$pinned/skills/$name"
+              if test -L "$name_path"; then
+                test "$(readlink "$name_path")" = "$target"
+              elif test -e "$name_path"; then
+                echo "SUPERPOWERS_EXISTING_SKILL_COLLISION"
+                exit 78
+              else
+                ln -s "$target" "$name_path"
+              fi
+              test -r "$name_path/SKILL.md"
+            done
+            count=$((count+1))
+          done
+          test "$count" -ge 12
+          test -r "$HOME/.agents/skills/superpowers-using-superpowers/SKILL.md"
+          test -r "$HOME/.agents/skills/superpowers-systematic-debugging/SKILL.md"
+          test -r "$HOME/.agents/skills/superpowers-verification-before-completion/SKILL.md"
+          echo "SUPERPOWERS_UPSTREAM_SHA=$pin"
+          echo "SUPERPOWERS_GS_RUNNER_SKILLS_INSTALLED=$count"
+          echo "SUPERPOWERS_SKILL_READBACK=PASS"
+          echo "SUPERPOWERS_AUTH_FILES_MODIFIED=FALSE"
+          echo "SUPERPOWERS_UPSTREAM_HOOKS_EXECUTED=FALSE"
+          echo "SUPERPOWERS_CODEX_TS_ROOT_INSTALL=NOT_VERIFIED"
+      - name: Check Codex GS existing local login (never export tokens)
+        shell: bash
+        env:
+          OPENAI_API_KEY: ""
+          CODEX_API_KEY: ""
+          GH_TOKEN: ""
+          GITHUB_TOKEN: ""
+        run: |
+          set -euo pipefail
+          if command -v codex >/dev/null 2>&1 && codex login status >/dev/null 2>&1; then
+            echo "SUPERPOWERS_CODEX_GS_LOCAL_LOGIN=SIGNED_IN"
+          else
+            echo "SUPERPOWERS_CODEX_GS_LOCAL_LOGIN=NOT_VERIFIED"
+          fi
+          echo "SUPERPOWERS_GPT_CHAT_CLIENT_INSTALL=NOT_APPLICABLE"
+      - name: Scope and honesty receipt
+        if: always()
+        shell: bash
+        run: |
+          echo "Pinned skills: obra/superpowers at b739a8af570e10a95898f2bdf6cec97467fa6c12" >> "$GITHUB_STEP_SUMMARY"
+          echo "One existing host: wave-runner-01; only wave user's CLI skill directories." >> "$GITHUB_STEP_SUMMARY"
+          echo "No production, credential edits, new agent host or upstream execution hooks." >> "$GITHUB_STEP_SUMMARY"
+          echo "Skills on GS host != TS/root install or ChatGPT account plugin or new Protocol E2E." >> "$GITHUB_STEP_SUMMARY"
