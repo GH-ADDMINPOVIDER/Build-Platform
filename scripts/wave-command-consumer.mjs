@@ -1,21 +1,18 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { accessSync, constants } from "node:fs";
+import { accessSync, constants, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { bearerCredentialPattern } from "./wave-consumer-secret-guard.mjs";
 
 const taskId = String(process.env.WAVE_TASK_ID || "").trim();
 const waveUrl = String(process.env.WAVE_URL || "https://wave.ogenicchocolate.com").replace(/\/$/, "");
 const opsKey = String(process.env.OGENIC_OPS_KEY || "");
-const configuredCodexHome = String(process.env.WAVE_CODEX_HOME_ACCOUNT_1 || "").trim();
-const existingCodexHome = join(String(process.env.HOME || "/home/wave"), ".codex");
-let codexHome = configuredCodexHome;
-if (!codexHome) {
-  try {
-    accessSync(join(existingCodexHome, "auth.json"), constants.R_OK);
-    codexHome = existingCodexHome;
-  } catch { /* fail closed below */ }
-}
+// Owner route selection: GS is the ONLY WAVE Terminal executor while the
+// GT/Go Codex lane is parked. Retain TS/GT profiles; do not alter their auth.
+// Ignore the legacy Infisical profile override for command execution; it could
+// otherwise silently select a different signed-in account.
+const codexHome = "/home/wave/.codex";
+const expectedGsIdentityHash = "8bbd06e2d6ece81d6aa072621f55c87ccdac79f6108bf7f42b75eb4596aa3f53";
 const evidenceRef = String(process.env.WAVE_EVIDENCE_REF || "").slice(0, 300);
 const workspace = process.cwd();
 
@@ -26,6 +23,22 @@ function fail(message) {
 if (!/^wavecmd_[a-f0-9]{64}$/.test(taskId)) fail("INVALID_TASK_ID");
 if (!opsKey) fail("CONFIGURATION_REQUIRED:OGENIC_OPS_KEY");
 if (!codexHome.startsWith("/")) fail("CONFIGURATION_REQUIRED:CODEX_LOGIN_CONTEXT");
+// Confirm that the existing CLI profile still belongs to GPT_GS_CODEX; mere
+// directory presence or paid-plan assumptions are not authentication.
+try {
+  const authPath = join(codexHome, "auth.json");
+  accessSync(authPath, constants.R_OK);
+  const auth = JSON.parse(readFileSync(authPath, "utf8"));
+  const idToken = auth.tokens?.id_token;
+  if (typeof idToken !== "string" || idToken.split(".").length !== 3) throw new Error("metadata");
+  const claims = JSON.parse(Buffer.from(idToken.split(".")[1], "base64url").toString("utf8"));
+  const email = typeof claims.email === "string" ? claims.email.trim().toLowerCase() : "";
+  const identityHash = createHash("sha256").update(email).digest("hex");
+  if (identityHash !== expectedGsIdentityHash) throw new Error("identity");
+} catch {
+  fail("CODEX_GS_PROFILE_NOT_VERIFIED");
+}
+process.stdout.write("WAVE_CONSUMER_CODEX_IDENTITY=GPT_GS_CODEX\\n".replace("\\n", "\n"));
 if (process.env.GITHUB_REF_NAME !== "phase-vi-provider-incentive-metering") fail("ENVIRONMENT_SCOPE_MISMATCH");
 
 async function api(path, body) {
