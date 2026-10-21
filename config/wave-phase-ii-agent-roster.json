@@ -25,7 +25,9 @@
         "priority",
         "risk_approval",
         "product_judgment"
-      ]
+      ],
+      "evidence_label": "UNUSED_OR_NOT_LIVE_VERIFIED",
+      "routing_policy": "NO_AUTOROUTE_UNTIL_CURRENT_RUNTIME_EVIDENCE"
     },
     {
       "id": "chatgpt-main",
@@ -40,7 +42,9 @@
         "cross_tool_coordination",
         "evidence_synthesis"
       ],
-      "execution_authority": "NO_DIRECT_BYPASS_OF_YELLOW"
+      "execution_authority": "NO_DIRECT_BYPASS_OF_YELLOW",
+      "evidence_label": "E2E_OR_EXECUTION_VERIFIED",
+      "routing_policy": "ENABLED_EXISTING_SCOPE"
     },
     {
       "id": "athena-openai",
@@ -53,7 +57,9 @@
         "select_agent",
         "handoff",
         "escalate"
-      ]
+      ],
+      "evidence_label": "E2E_OR_EXECUTION_VERIFIED",
+      "routing_policy": "ENABLED_EXISTING_SCOPE"
     },
     {
       "id": "codex",
@@ -72,7 +78,9 @@
         "source_mutation",
         "repo_tasks",
         "implementation"
-      ]
+      ],
+      "evidence_label": "E2E_OR_EXECUTION_VERIFIED",
+      "routing_policy": "ENABLED_EXISTING_SCOPE"
     },
     {
       "id": "linear",
@@ -86,7 +94,9 @@
         "comments",
         "evidence_index"
       ],
-      "rule": "Do not use as high-frequency execution queue."
+      "rule": "Do not use as high-frequency execution queue.",
+      "evidence_label": "LIMITED_OR_HISTORICAL_VERIFIED",
+      "routing_policy": "CONSTRAINED_EXISTING_SCOPE"
     },
     {
       "id": "github",
@@ -101,7 +111,9 @@
         "diff",
         "artifact",
         "audit"
-      ]
+      ],
+      "evidence_label": "E2E_OR_EXECUTION_VERIFIED",
+      "routing_policy": "ENABLED_EXISTING_SCOPE"
     }
   ],
   "specialists": [
@@ -114,7 +126,9 @@
         "READ_first",
         "no_repo_mutation",
         "no_hidden_retry"
-      ]
+      ],
+      "evidence_label": "LIMITED_OR_HISTORICAL_VERIFIED",
+      "routing_policy": "CONSTRAINED_EXISTING_SCOPE"
     },
     {
       "id": "manus",
@@ -131,13 +145,17 @@
       "constraints": [
         "Yellow_handoff",
         "result_must_be_verified_before_retention"
-      ]
+      ],
+      "evidence_label": "UNUSED_OR_NOT_LIVE_VERIFIED",
+      "routing_policy": "NO_AUTOROUTE_UNTIL_CURRENT_RUNTIME_EVIDENCE"
     },
     {
       "id": "anthropic-claude",
       "role": "architecture_long_context_independent_review",
       "status": "candidate_not_live_proven",
-      "auto_route": false
+      "auto_route": false,
+      "evidence_label": "UNUSED_OR_NOT_LIVE_VERIFIED",
+      "routing_policy": "NO_AUTOROUTE_UNTIL_CURRENT_RUNTIME_EVIDENCE"
     },
     {
       "id": "deepseek",
@@ -150,13 +168,17 @@
         "no_repo_mutation",
         "no_hidden_retry_or_paid_fallback",
         "ruby_verify_before_green_retention"
-      ]
+      ],
+      "evidence_label": "LIMITED_OR_HISTORICAL_VERIFIED",
+      "routing_policy": "CONSTRAINED_EXISTING_SCOPE"
     },
     {
       "id": "perplexity",
       "role": "web_research_source_synthesis",
       "status": "paid_smoke_deferred",
-      "auto_route": false
+      "auto_route": false,
+      "evidence_label": "UNUSED_OR_NOT_LIVE_VERIFIED",
+      "routing_policy": "NO_AUTOROUTE_UNTIL_CURRENT_RUNTIME_EVIDENCE"
     },
     {
       "id": "xai",
@@ -166,7 +188,9 @@
       "canonical_secret": "XAI_API_KEY",
       "secret_aliases": [
         "GROK_API_KEY"
-      ]
+      ],
+      "evidence_label": "UNUSED_OR_NOT_LIVE_VERIFIED",
+      "routing_policy": "NO_AUTOROUTE_UNTIL_CURRENT_RUNTIME_EVIDENCE"
     },
     {
       "id": "meta-model",
@@ -179,7 +203,9 @@
         "payment_required_before_inference",
         "no_auto_route",
         "global_context_policy"
-      ]
+      ],
+      "evidence_label": "UNUSED_OR_NOT_LIVE_VERIFIED",
+      "routing_policy": "NO_AUTOROUTE_UNTIL_CURRENT_RUNTIME_EVIDENCE"
     }
   ],
   "execution_fabric": [
@@ -187,39 +213,53 @@
       "id": "n8n",
       "role": "fanout_fanin_mechanical_preverify",
       "status": "selfhost_ready",
-      "authority": "NOT_CONTROL_PLANE"
+      "authority": "NOT_CONTROL_PLANE",
+      "evidence_label": "E2E_OR_EXECUTION_VERIFIED",
+      "routing_policy": "ENABLED_EXISTING_SCOPE"
     },
     {
       "id": "github-actions",
       "role": "deterministic_test_build_source_audit",
-      "status": "active"
+      "status": "active",
+      "evidence_label": "E2E_OR_EXECUTION_VERIFIED",
+      "routing_policy": "ENABLED_EXISTING_SCOPE"
     },
     {
       "id": "ruby",
       "role": "semantic_system_capability_verify",
-      "status": "active"
+      "status": "active",
+      "evidence_label": "E2E_OR_EXECUTION_VERIFIED",
+      "routing_policy": "ENABLED_EXISTING_SCOPE"
     },
     {
       "id": "green-1lss",
       "role": "verified_retention_canonical_session",
-      "status": "active"
+      "status": "active",
+      "evidence_label": "E2E_OR_EXECUTION_VERIFIED",
+      "routing_policy": "ENABLED_EXISTING_SCOPE"
     }
   ],
   "resource_arms": [
     {
       "id": "vercel",
       "role": "secondary_preview_deploy_observability",
-      "status": "connected_optional"
+      "status": "connected_optional",
+      "evidence_label": "LIMITED_OR_HISTORICAL_VERIFIED",
+      "routing_policy": "CONSTRAINED_EXISTING_SCOPE"
     },
     {
       "id": "clickup",
       "role": "external_collaboration_docs_tasks",
-      "status": "installed_optional"
+      "status": "installed_optional",
+      "evidence_label": "LIMITED_OR_HISTORICAL_VERIFIED",
+      "routing_policy": "CONSTRAINED_EXISTING_SCOPE"
     },
     {
       "id": "notion",
       "role": "legacy_knowledge_archive_migration",
-      "status": "connector_readable_noncanonical"
+      "status": "connector_readable_noncanonical",
+      "evidence_label": "LIMITED_OR_HISTORICAL_VERIFIED",
+      "routing_policy": "CONSTRAINED_EXISTING_SCOPE"
     }
   ],
   "routing_rules": [
@@ -233,5 +273,78 @@
     "Gemini may take verified READ workloads when capability/readiness/cost rank wins.",
     "xAI/Grok is one provider identity, not two independent agents.",
     "Only verified outcomes enter Green/1LSS."
-  ]
+  ],
+  "operator_host": {
+    "display_name": "OCIAN_S-Host",
+    "digitalocean_name": "OCIAN-S-Host",
+    "droplet_id": 604432491,
+    "github_runner_registration": "wave-runner-01",
+    "runner_count": 1,
+    "ip_unchanged": true,
+    "hostname_change_does_not_require_runner_service_rename": true
+  },
+  "last_agent_label_audit": {
+    "as_of_utc": "2026-10-21T19:41:03Z",
+    "sourced_from": [
+      "config/provider-readiness-attestations.json",
+      "worker/blue-diamond-registry.ts",
+      "worker/white-diamond-registry.ts",
+      "worker/local-agent-team-api.ts",
+      "GitHub Actions receipts 39645715001, 39660383615, 39660723394"
+    ],
+    "rules": [
+      "E2E_OR_EXECUTION_VERIFIED is lane-specific only, not global provider billing entitlement",
+      "LIMITED_OR_HISTORICAL_VERIFIED is not automatic execution permission",
+      "UNUSED_OR_NOT_LIVE_VERIFIED does not mean delete installed account or secret",
+      "No new default provider auto-route or billable call",
+      "GitHub name GH-2 is account, not second physical Runner"
+    ],
+    "additional_agent_surfaces": {
+      "blue_diamond": {
+        "chatgpt-main-controller": "BRIDGE_VERIFIED_LIMITED",
+        "athena-command": "E2E_OR_EXECUTION_VERIFIED",
+        "codex-execution-agent": "E2E_OR_EXECUTION_VERIFIED",
+        "github-evidence-arm": "E2E_OR_EXECUTION_VERIFIED",
+        "linear-task-arm": "LIMITED_OR_HISTORICAL_VERIFIED",
+        "manus-candidate": "UNUSED_OR_NOT_LIVE_VERIFIED",
+        "perplexity-candidate": "UNUSED_OR_NOT_LIVE_VERIFIED",
+        "deepseek-candidate": "LIMITED_OR_HISTORICAL_VERIFIED",
+        "claude-candidate": "UNUSED_OR_NOT_LIVE_VERIFIED",
+        "gemini-candidate": "LIMITED_OR_HISTORICAL_VERIFIED",
+        "grok-candidate": "UNUSED_OR_NOT_LIVE_VERIFIED",
+        "meta-model-candidate": "BILLING_BLOCKED_UNUSED",
+        "copilot-candidate": "CLI_INSTALLED_AUTH_NOT_VERIFIED_UNUSED",
+        "cursor-candidate": "UNUSED_OR_NOT_LIVE_VERIFIED",
+        "notion-knowledge-arm": "LIMITED_OR_HISTORICAL_VERIFIED",
+        "cloudflare-runtime-arm": "E2E_OR_EXECUTION_VERIFIED"
+      },
+      "white_diamond": {
+        "white-diamond-manager": "SOURCE_OR_CONTROL_VERIFIED_ONLY",
+        "yellow-stone-router": "E2E_OR_EXECUTION_VERIFIED",
+        "codex-left-arm": "E2E_OR_EXECUTION_VERIFIED",
+        "github-specialist": "E2E_OR_EXECUTION_VERIFIED",
+        "browser-specialist": "UNUSED_OR_NOT_LIVE_VERIFIED",
+        "linear-specialist": "LIMITED_OR_HISTORICAL_VERIFIED",
+        "manus-specialist": "UNUSED_OR_NOT_LIVE_VERIFIED",
+        "drive-specialist": "LIMITED_OR_HISTORICAL_VERIFIED",
+        "notion-specialist": "LIMITED_OR_HISTORICAL_VERIFIED",
+        "gmail-specialist": "UNUSED_OR_NOT_LIVE_VERIFIED",
+        "figma-specialist": "UNUSED_OR_NOT_LIVE_VERIFIED",
+        "line-specialist": "UNUSED_OR_NOT_LIVE_VERIFIED",
+        "meta-specialist": "UNUSED_OR_NOT_LIVE_VERIFIED",
+        "n8n-specialist": "LIMITED_OR_HISTORICAL_VERIFIED",
+        "mcp-specialist": "SOURCE_OR_CONTROL_VERIFIED_ONLY"
+      },
+      "local_openbot_room": {
+        "codex": "E2E_OR_EXECUTION_VERIFIED",
+        "claude": "NO_ADAPTER_UNUSED",
+        "gemini": "NO_ADAPTER_UNUSED",
+        "grok": "NO_ADAPTER_UNUSED",
+        "opencode": "NO_ADAPTER_UNUSED",
+        "cursor": "NO_ADAPTER_UNUSED",
+        "cline": "NO_ADAPTER_UNUSED"
+      }
+    },
+    "separate_verification_notice": "Agent labels are evidence annotations on the existing canonical roster, not live service state. Recheck runtime before dispatch."
+  }
 }
