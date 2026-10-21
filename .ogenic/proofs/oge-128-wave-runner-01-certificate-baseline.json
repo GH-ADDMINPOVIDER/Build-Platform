@@ -780,6 +780,61 @@
       "new_certificate_created": false,
       "secret_changed": false,
       "next": "GH-2 Copilot CLI entitlement/authentication and a named additional MCP server are needed for an actual external MCP installation; no duplicate GitHub MCP server"
+    },
+    {
+      "event": "gh2_copilot_cli_installed_userlocal_runner1_20261021_1918z",
+      "status": "CURRENT_VERIFIED_USERLOCAL_INSTALL_COPILOT_GH2_LOGIN_PENDING",
+      "canonical_checkpoint": "WAVE-GS-HANDOFF-20261021-OWNER-MAIN",
+      "record_as_of_utc": "2026-10-21T19:18:42Z",
+      "scope": "STAGING_SELFHOST_RUNNER1",
+      "product": "GitHub Copilot CLI",
+      "plan": "GitHub Copilot Free officially includes CLI subject to account availability and usage credits; entitlement of this GH2 account NOT VERIFIED",
+      "source_sha": "f4707d870b5561f8aa1d1eda722fa603cd0b4e29",
+      "github": {
+        "actor": "Wave-Runner-2",
+        "repo_permission": "write",
+        "job_run_id": 39660383615,
+        "conclusion": "success",
+        "source_path": ".github/workflows/oge-28-runner2-host-capability.yml"
+      },
+      "host": {
+        "name": "wave-runner-01",
+        "digitalocean_droplet_id": 604432491,
+        "executable": "/home/wave/.local/bin/copilot",
+        "runtime_user": "wave",
+        "install_scope": "USER_LOCAL_NO_SUDO",
+        "cli_version_check": "PASS",
+        "new_runner": false,
+        "new_daemon": false,
+        "ssh_access_verified": false,
+        "ide_terminal_usage": "POSSIBLE_NOT_EXECUTION_VERIFIED"
+      },
+      "identities": {
+        "gs_codex": "EXISTING_SIGNED_IN_UNCHANGED",
+        "gh2_github_actions_actor": "CURRENT_VERIFIED",
+        "gh2_host_copilot_auth": "NOT_ATTEMPTED",
+        "gh2_copilot_paid_entitlement": "NOT_VERIFIED",
+        "infisical_oidc": "EXISTING_WORKFLOW_ONLY_NOT_COPILOT_LOGIN"
+      },
+      "mcp": {
+        "github_server": "BUNDLED_IN_COPILOT_CLI",
+        "github_tools_authenticated": "NOT_VERIFIED",
+        "additional_server_installed": false,
+        "external_tool_scope": "NOT_ENABLED",
+        "github_mcp_use": "REQUIRES_GH2_LOGIN_AND_AUTH",
+        "user_supplied_docs": "GitHub Docs Adding MCP servers for GitHub Copilot CLI"
+      },
+      "prior_gs_e2e": {
+        "run": 39645715001,
+        "result_status": "DONE",
+        "kept": true
+      },
+      "checkpoint_issue": "https://github.com/Ogenicchocolate21debug/Build-Platform/issues/39#issuecomment-6324505799",
+      "this_revision_staging_d1_sha256_readback": "PENDING_INDEPENDENT_GITHUB_ACTIONS_SYNC",
+      "no_secret_rotation": true,
+      "no_oauth_changes": true,
+      "no_production_changes": true,
+      "next_action": "Approve GH2 Copilot browser/device login through SSH/IDE terminal; then verify copilot mcp list and run one bounded read-only Copilot prompt before enabling extra MCP tools."
     }
   ],
   "secret_contract": {
