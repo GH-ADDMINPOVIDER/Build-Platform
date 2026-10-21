@@ -347,6 +347,10 @@ jobs:
           echo CCS15_MODES_INVENTORY=PASS_COUNT_15_UNIQUE
           jq -r '.modes[]|"CCS15_MODE_"+.mode+"="+.state' "$modes"
           jq -r '"CCS15_LIVE_TOOLS="+((.live_tools|length)|tostring)+";CCS15_REGISTRY="+((.connector_registry|length)|tostring)' "$modes"
+          # Sanitized per-connector state from the already-authenticated
+          # read-only CCS status response. Never print secret references.
+          jq -r '.connector_registry[] | "CCS_CONNECTOR_"+.id+"="+.state+";ROUTE="+.route_mode+";ERROR="+(.last_error // "NONE")' "$modes"
+          jq -r '.live_tools[] | "CCS_LIVE_TOOL_"+.id+"="+.state' "$modes"
           jq -r '"CCS15_DEPLOYED_SHA="+([.modes[]?.latest_verified_sha|select(type=="string")][0] // "UNKNOWN")' "$modes"
           for transport in token secret credential npx_cli sdk a2a_agent_relay; do
             code="$(jq -nc --arg t "$transport" '{transport:$t,command:"staging bounded check",capability:"read_file",provider:"github",environment:"staging"}' | timeout 13 curl -sS --max-time 10 --cookie "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$payload" -w '%{http_code}' "$url/api/connector-endpoint/v1/command" || true)"
