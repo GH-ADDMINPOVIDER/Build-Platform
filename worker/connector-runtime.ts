@@ -23,6 +23,12 @@ export type ConnectorBindings = {
   META_VERIFY_TOKEN?: string;
   OPENAI_WEBHOOK_SECRET?: string;
   OGENIC_GENERIC_HOOK_SECRET?: string;
+  OPENBOT_ENABLED?: string;
+  OPENBOT_WEBHOOK_URL?: string;
+  OPENBOT_WEBHOOK_SECRET?: string;
+  OGENIC_GIT_SHA?: string;
+  OGENIC_GITHUB_BRANCH?: string;
+  WAVE_EVIDENCE_URL?: string;
 };
 
 type ConnectorState = "LIVE" | "CONFIGURED" | "CONFIGURATION_REQUIRED" | "DEGRADED" | "QUOTA_BLOCKED" | "ERROR";
@@ -175,6 +181,7 @@ export async function readConnectorRegistry(env: ConnectorBindings): Promise<Con
   const metaReady = Boolean(clean(env.META_PAGE_ACCESS_TOKEN, 4000) && clean(env.META_APP_SECRET, 4000) && clean(env.META_VERIFY_TOKEN, 4000));
   const genericReady = Boolean(clean(env.OGENIC_GENERIC_HOOK_SECRET, 4000));
   const openaiHookReady = Boolean(clean(env.OPENAI_WEBHOOK_SECRET, 4000));
+  const openbotReady = env.OPENBOT_ENABLED === "true" && Boolean(clean(env.OPENBOT_WEBHOOK_URL, 2000) && clean(env.OPENBOT_WEBHOOK_SECRET, 4000));
   const n8n = await inspectN8n(env);
   return [
     { id: "line", label: "LINE OA", kind: "messaging", state: lineReady ? "CONFIGURED" : "CONFIGURATION_REQUIRED", route_mode: lineReady ? "DIRECT_HTTP" : "DISABLED", summary: lineReady ? "Direct Messaging API + verified webhook ready" : "LINE token/channel secret not bound to Worker", checked_at: nowIso() },
@@ -182,6 +189,7 @@ export async function readConnectorRegistry(env: ConnectorBindings): Promise<Con
     n8n,
     { id: "http", label: "HTTP Hooks", kind: "generic", state: genericReady ? "CONFIGURED" : "CONFIGURATION_REQUIRED", route_mode: genericReady ? "DIRECT_HTTP" : "DISABLED", summary: genericReady ? "Signed generic inbound hook ready" : "Generic hook secret not configured", checked_at: nowIso() },
     { id: "openai_hooks", label: "OpenAI Webhooks", kind: "openai", state: openaiHookReady ? "CONFIGURED" : "CONFIGURATION_REQUIRED", route_mode: openaiHookReady ? "DIRECT_HTTP" : "DISABLED", summary: openaiHookReady ? "Standard Webhooks signature verification ready" : "OPENAI_WEBHOOK_SECRET required", checked_at: nowIso() },
+    { id: "openbot", label: "OpenBot Read-only Routine", kind: "local_agent", state: openbotReady ? "CONFIGURED" : "CONFIGURATION_REQUIRED", route_mode: openbotReady ? "DIRECT_HTTP" : "DISABLED", summary: openbotReady ? "Enabled for explicit owner-triggered read-only probe; 202 means accepted, not completed" : "Disabled by default; requires OPENBOT_ENABLED=true and server-side webhook URL/secret", checked_at: nowIso() },
     { id: "github", label: "GitHub", kind: "developer", state: clean(env.GITHUB_TOKEN, 4000) ? "CONFIGURED" : "CONFIGURATION_REQUIRED", route_mode: clean(env.GITHUB_TOKEN, 4000) ? "DIRECT_HTTP" : "DISABLED", summary: "Existing server adapter", checked_at: nowIso() },
     { id: "linear", label: "Linear", kind: "developer", state: clean(env.LINEAR_API_KEY, 4000) ? "CONFIGURED" : "CONFIGURATION_REQUIRED", route_mode: clean(env.LINEAR_API_KEY, 4000) ? "DIRECT_HTTP" : "DISABLED", summary: "Existing server adapter", checked_at: nowIso() },
   ];
@@ -195,7 +203,88 @@ export async function recentConnectorEvents(env: ConnectorBindings, limit = 30) 
   return (rows.results ?? []).map((row) => ({ ...row, detail_json: row.detail_json ? "REDACTED_METADATA_AVAILABLE" : null }));
 }
 
+
+/**
+ * Sends one harmless, bounded status probe to an explicitly configured OpenBot
+ * webhook routine. The connector is inert unless OPENBOT_ENABLED=true and both
+ * server-side bindings exist. A 202 is only EVENT_ACCEPTED, never RUN_COMPLETED.
+ */
+async function sendOpenBotReadOnlyProbe(env: ConnectorBindings) {
+  const endpoint = clean(env.OPENBOT_WEBHOOK_URL, 2000);
+  const secret = clean(env.OPENBOT_WEBHOOK_SECRET, 4000);
+  if (env.OPENBOT_ENABLED !== "true") {
+    return { ok: false, connector: "openbot", code: "CONNECTOR_DISABLED", state: "DISABLED" };
+  }
+  if (!endpoint || !secret) {
+    return { ok: false, connector: "openbot", code: "CONFIGURATION_REQUIRED", missing: !endpoint ? "OPENBOT_WEBHOOK_URL" : "OPENBOT_WEBHOOK_SECRET" };
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(endpoint);
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash) throw new Error("unsafe endpoint");
+  } catch {
+    return { ok: false, connector: "openbot", code: "INVALID_WEBHOOK_ENDPOINT" };
+  }
+
+  const deliveryId = crypto.randomUUID();
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const event = {
+    type: "ogenic.wave.readonly_probe",
+    occurredAt: nowIso(),
+    data: {
+      task_id: "openbot-readonly-probe",
+      correlation_id: deliveryId,
+      task_class: "read_only_status",
+      environment: "staging",
+      ...(clean(env.OGENIC_GIT_SHA, 80) ? { source_sha: clean(env.OGENIC_GIT_SHA, 80) } : {}),
+      ...(clean(env.OGENIC_GITHUB_BRANCH, 120) ? { source_branch: clean(env.OGENIC_GITHUB_BRANCH, 120) } : {}),
+      ...(clean(env.WAVE_EVIDENCE_URL, 500) ? { evidence_url: clean(env.WAVE_EVIDENCE_URL, 500) } : {}),
+    },
+  };
+  const body = JSON.stringify(event);
+  const signature = "sha256=" + hex(await hmacBytes(secret, `${timestamp}.${deliveryId}.${body}`));
+  try {
+    const { response } = await fetchJson(parsed.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-OpenBot-Timestamp": timestamp,
+        "X-OpenBot-Delivery-Id": deliveryId,
+        "X-OpenBot-Signature": signature,
+      },
+      body,
+    }, 5000);
+    const accepted = response.status === 202;
+    await logEvent(env, {
+      provider: "openbot",
+      event_type: "READ_ONLY_PROBE",
+      state: accepted ? "EVENT_ACCEPTED" : "DELIVERY_FAILED",
+      external_id: deliveryId,
+      detail: { http_status: response.status, run_completed: false },
+    });
+    return {
+      ok: accepted,
+      connector: "openbot",
+      state: accepted ? "EVENT_ACCEPTED" : "DELIVERY_FAILED",
+      http_status: response.status,
+      delivery_id: deliveryId,
+      run_completed: false,
+      completion_evidence_required: "OpenBot routine history or a documented result callback",
+    };
+  } catch (error) {
+    await logEvent(env, {
+      provider: "openbot",
+      event_type: "READ_ONLY_PROBE",
+      state: "DELIVERY_FAILED",
+      external_id: deliveryId,
+      detail: { error: redactError(error), run_completed: false },
+    });
+    return { ok: false, connector: "openbot", state: "DELIVERY_FAILED", code: "OPENBOT_WEBHOOK_UNREACHABLE", run_completed: false };
+  }
+}
+
 export async function testConnector(env: ConnectorBindings, connectorId: string) {
+  if (connectorId === "openbot") return sendOpenBotReadOnlyProbe(env);
   if (connectorId === "n8n") return inspectN8n(env);
   if (connectorId === "line") {
     const token = clean(env.LINE_CHANNEL_ACCESS_TOKEN, 4000);
