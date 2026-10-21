@@ -938,6 +938,99 @@
         "secrets_or_oauth_changed": false
       },
       "this_revision_d1_sync": "PENDING_EXISTING_CERTIFICATE_WORKFLOW"
+    },
+    {
+      "event": "ccs10_ccs15_github_mcp_resource_true_e2e_20261021_2111z",
+      "status": "VERIFIED_SCOPED_E2E_GITHUB_MCP_READ_ONLY__CCS_SIX_POLICY_PASS__15_MODE_INVENTORY_PASS",
+      "as_of_utc": "2026-10-21T21:11:11Z",
+      "scope": "STAGING_ONLY_EXACT_DEPLOYED_SHA",
+      "canonical_certificate_id": "oge-128-wave-runner-01-baseline-20261018",
+      "runtime": {
+        "hostname_alias": "OCIAN_S-Host",
+        "digitalocean_droplet_id": 604432491,
+        "physical_host_count": 1,
+        "git_actions_runner_registration": "wave-runner-01",
+        "github_operational_account": "GH-2",
+        "github_actor": "Wave-Runner-2",
+        "github_repo_owner_current": "Ogenicchocolate21debug",
+        "repo_migration_to_GH2_owner_not_complete": true
+      },
+      "deployed_source": {
+        "branch": "phase-vi-provider-incentive-metering",
+        "sha": "7b21a8189b721bf53fa4b049a6fd5a77a12a0658",
+        "cloudflare_staging_deploy_run": 39675610849,
+        "status": "SUCCESS",
+        "source_fix_commit": "95553af6ccdb1655aa7dbba70cd10ac4304d0fb7",
+        "test_commit": "d6a3be462f5c2571eb673999ea29ff90e74e8513"
+      },
+      "github_mcp": {
+        "provider": "github",
+        "transport": "OFFICIAL_REMOTE_MCP_READONLY",
+        "existing_binding_type": "mcp",
+        "secret_reference": "env:GITHUB_TOKEN",
+        "new_gateway_created": false,
+        "readonly_endpoint": "https://api.githubcopilot.com/mcp/readonly",
+        "initializer": "LIVE",
+        "discovered_tools": 28,
+        "tool": "get_file_contents",
+        "tool_invocation": "REAL_TOOLS_CALL_E2E_PASS",
+        "input": {
+          "owner": "Ogenicchocolate21debug",
+          "repo": "Build-Platform",
+          "path": "README.md",
+          "ref": "refs/heads/phase-vi-provider-incentive-metering"
+        },
+        "result_bytes": 4871,
+        "result_sha256": "6e15c51da0bdc426cc68a0f831b99896e8eff876724848eaf2421dd05bd9fb6f",
+        "source_heading_verified": true,
+        "raw_result_returned_to_log": false,
+        "proof_workflow_run": 39673817330,
+        "proof_workflow_run_attempt": 2,
+        "proof_workflow_job_id": 119488072446,
+        "source_workflow_commit": "eb8da5a0013f7c0ce79bf80d1d752e6fbc432604",
+        "failure_before_fix": "MCP_READ_PROOF_CONTENT_MISMATCH",
+        "failure_run_attempt": 1,
+        "root_cause": "Actual file in MCP embedded resource.text, previous client consumed short text status only",
+        "paid_model_calls": 0,
+        "provider_write": false,
+        "other_27_tools_e2e_proven": false
+      },
+      "capability_card_stone": {
+        "protocol": "CCS/1.0",
+        "verbs_total": 6,
+        "verbs_http_policy_pass": 6,
+        "revoked_use_denied": true,
+        "cross_provider_lease_denied": true,
+        "permission_escalation_denied": true,
+        "persisted_lease_created": false,
+        "live_invoke_authorized": "NOT_PROVEN_FROM_POLICY_CHECK_ONLY",
+        "proof_run": 39673817330
+      },
+      "connector_15_modes": {
+        "inventory_count": 15,
+        "inventory_consistency": "PASS",
+        "owner_authenticated_runtime_status_http": 200,
+        "actual_executable_envelope_modes": [
+          "rest_api",
+          "repository_api_pr_api",
+          "agent_api",
+          "agent_sign_command_run"
+        ],
+        "token_secret_credential": "IDENTITY_REFERENCE_ONLY__NON_EXECUTABLE",
+        "all_15_independent_external_e2e": "NOT_PROVEN",
+        "mode_level_current_labels": "SOURCE_READY_RUNTIM_PARTIAL_LIVE_READ_E2E_PENDING_MIX",
+        "mcp_github_one_scoped_tool_e2e": "PASS",
+        "n8n_safe_health_http": 200,
+        "n8n_workflow_execution": "NOT_PROVEN",
+        "xai_meta_proof": "PREFLIGHT_BLOCKED_PREVIOUS_NOT_PROVIDER_E2E"
+      },
+      "future": false,
+      "no_raw_credentials": true,
+      "no_new_runner": true,
+      "no_new_gateway": true,
+      "no_d1_schema_changes": true,
+      "no_production_changes": true,
+      "checkpoint_issue": "https://github.com/Ogenicchocolate21debug/Build-Platform/issues/37#issuecomment-6326575112"
     }
   ],
   "secret_contract": {
