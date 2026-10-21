@@ -586,7 +586,7 @@ export default function UnifiedChat({ surface }: Props) {
   // Explicit commands are written by the authenticated Owner, never guessed
   // from ordinary chat text or emitted by an LLM tool call.
   const ownerProtocol = (value: string) =>
-    /^\\/OG\\.(MODES|STATUS|MODE|PROBE|RUN|EXECUTE|COMMAND)(?:\\s+([\\s\\S]*))?$/i.exec(value.trim());
+    /^\/OG\.(MODES|STATUS|MODE|PROBE|RUN|EXECUTE|COMMAND)(?:\s+([\s\S]*))?$/i.exec(value.trim());
 
   async function runOwnerProtocol(kind: string, arg: string) {
     const command = kind.toUpperCase();
@@ -595,7 +595,7 @@ export default function UnifiedChat({ surface }: Props) {
       return runWaveCommand(arg.trim());
     }
     if (command === "PROBE") {
-      const match = /^((?:n8n)|(?:mcp))(?:\\s+([a-z0-9_-]{1,80}))?$/i.exec(arg.trim());
+      const match = /^((?:n8n)|(?:mcp))(?:\s+([a-z0-9_-]{1,80}))?$/i.exec(arg.trim());
       if (!match || (match[1].toLowerCase() === "mcp" && !match[2])) throw new Error("USAGE: /OG.PROBE n8n  or  /OG.PROBE mcp provider-id");
       const qs = new URLSearchParams({ mode: match[1].toLowerCase() });
       if (match[2]) qs.set("provider", match[2]);
@@ -610,7 +610,7 @@ export default function UnifiedChat({ surface }: Props) {
     const rows = command === "MODE" ? data.modes.filter(x => x.mode?.toLowerCase() === arg.toLowerCase().replace(/[ -]+/g, "_")) : data.modes;
     if (command === "MODE" && rows.length !== 1) throw new Error("MODE_NOT_FOUND · /OG.MODES to list all 15");
     const lines = rows.map((row, i) => `${command === "MODE" ? "" : `${i+1}. `}${row.mode}: ${row.runtime_status ?? "NOT_VERIFIED"}${row.missing_bindings?.length ? " · missing " + row.missing_bindings.join(", ") : ""} · ${row.e2e_evidence ?? "NO_LIVE_RECEIPT"}`);
-    setMessages(rows => [...rows, { id: crypto.randomUUID(), role: "assistant", text: `OGENIC CCS · ${data.modes?.length ?? 0} modes · source/credential and execution status are separate\\n${lines.join("\\n")}`, created_at: Date.now() }]);
+    setMessages(rows => [...rows, { id: crypto.randomUUID(), role: "assistant", text: `OGENIC CCS · ${data.modes?.length ?? 0} modes · source/credential and execution status are separate\n${lines.join("\n")}`, created_at: Date.now() }]);
   }
 
   async function runWaveCommand(prompt: string) {

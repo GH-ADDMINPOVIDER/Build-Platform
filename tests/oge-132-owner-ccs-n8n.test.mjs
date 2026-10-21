@@ -5,7 +5,7 @@ const read=(p)=>fs.readFileSync(new URL("../"+p,import.meta.url),"utf8");
 const chat=read("src/UnifiedChat.tsx"),runtime=read("worker/connector-runtime.ts"),modes=read("worker/connector-modes-api.ts"),workflow=read(".github/workflows/provider-incentive-staging-deploy.yml");
 test("Owner can submit a single signed /OG.RUN from WAVE Chat without model or double confirmation",()=>{
   assert.match(chat,/ownerProtocol\(prompt\)/);
-  assert.match(chat,/\/OG\\\\\.\(MODES/);
+  assert.ok(chat.includes("MODES|STATUS|MODE|PROBE|RUN|EXECUTE|COMMAND"));
   assert.match(chat,/runOwnerProtocol\(ogMatch\[1\]/);
   assert.match(chat,/runWaveCommand\(arg\.trim\(\)\)/);
   assert.match(chat,/toolMode === "command"\) await runWaveCommand/);
