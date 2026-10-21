@@ -8,6 +8,12 @@ on:
       - "scripts/oge129_owner_live_e2e.mjs"
       - "scripts/verify-openbot-launchroom-staging.mjs"
       - "scripts/wave-command-consumer.mjs"
+      - "tests/wave-terminal-solo-contract.test.mjs"
+      - "scripts/wave-terminal-solo.sh"
+      - "worker/entry-yellow-stone.ts"
+      - "worker/wave-command-dispatch.ts"
+      - ".github/workflows/wave-command-consumer.yml"
+      - "worker/app-auth.ts"
   workflow_dispatch:
 permissions:
   contents: read
