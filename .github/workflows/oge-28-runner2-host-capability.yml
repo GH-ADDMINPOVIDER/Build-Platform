@@ -459,3 +459,33 @@ jobs:
           done
           echo CCS10_POLICY_MODE=HTTP_POLICY_EVALUATION_NO_REAL_LEASE_PERSISTED
           echo CCS10_RUNTIME_6_VERBS=PASS
+
+      - name: CCS GitHub MCP real tools-call bounded staging receipt
+        if: github.actor == 'Wave-Runner-2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test -n "$(printenv OGENIC_OPS_KEY || true)"
+          umask 077
+          jar="$RUNNER_TEMP/ccs-readproof-$GITHUB_RUN_ID.cookies"
+          login="$RUNNER_TEMP/ccs-readproof-login-$GITHUB_RUN_ID.json"
+          result="$RUNNER_TEMP/ccs-readproof-result-$GITHUB_RUN_ID.json"
+          trap 'rm -f "$jar" "$login" "$result"' EXIT
+          url=https://wave.ogenicchocolate.com
+          code="$(jq -nc --arg k "$OGENIC_OPS_KEY" '{owner_key:$k}' | timeout 15 curl -sS --max-time 12 --cookie-jar "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$login" -w '%{http_code}' "$url/api/session")"
+          test "$code" = 200
+          jq -e '.ok == true and .authenticated == true and .user.role == "owner"' "$login" >/dev/null
+          code="$(jq -nc '{provider:"github",action:"read_proof"}' | timeout 35 curl -sS --max-time 32 --cookie "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$result" -w '%{http_code}' "$url/api/mcp-config/action" || true)"
+          if test "$code" = 200 && jq -e '.ok == true and .code == "MCP_GITHUB_READ_E2E_PASS" and (.result_sha256|test("^[a-f0-9]{64}$")) and .result_body_exposed == false and .secret_exposed == false' "$result" >/dev/null 2>&1; then
+            echo CCS_GH2_MCP_TOOLS_CALL_E2E=PASS
+            jq -r '"CCS_GH2_MCP_READ_RECEIPT_SHA256="+.result_sha256' "$result"
+            jq -r '"CCS_GH2_MCP_READ_BYTES="+(.bytes_read|tostring)' "$result"
+          else
+            echo "CCS_GH2_MCP_TOOLS_CALL_E2E=BLOCKED_HTTP_$code"
+            jq -r '"CCS_GH2_MCP_READ_FAILURE_CODE="+(.code // "UNKNOWN")' "$result" 2>/dev/null || true
+            exit 88
+          fi
+          echo CCS_GH2_MCP_READ_ONLY_SERVER_PROOF=TRUE
+          echo CCS_GH2_MCP_PROVIDER_WRITE=FALSE
+          echo CCS_GH2_MCP_PAID_MODEL_CALLS=ZERO
