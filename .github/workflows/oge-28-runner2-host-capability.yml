@@ -119,3 +119,46 @@ jobs:
           fi
           echo "MCP_PROBE_SCOPE=READ_ONLY_NO_INSTALL_NO_TOKEN_OUTPUT"
           echo OGE28_RUNNER2_HOST_CAPABILITY_END
+      - name: Install Copilot CLI user-local only for GH-2 on existing Runner-1
+        if: github.actor == 'Wave-Runner-2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$GITHUB_REPOSITORY" = Ogenicchocolate21debug/Build-Platform
+          test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
+          test "$GITHUB_ACTOR" = Wave-Runner-2
+          test "$HOME" = /home/wave
+          umask 077
+          bin="$HOME/.local/bin/copilot"
+          if test -x "$bin" && timeout 15 "$bin" --version >/dev/null 2>&1; then
+            echo "GH2_COPILOT_USERLOCAL_INSTALL=ALREADY_PRESENT"
+          else
+            if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+              echo "GH2_COPILOT_INSTALL=BLOCKED_NODE_NPM_UNAVAILABLE"
+              exit 80
+            fi
+            if ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)'; then
+              echo "GH2_COPILOT_INSTALL=BLOCKED_NODE_BELOW_22"
+              exit 81
+            fi
+            mkdir -p "$HOME/.local"
+            # Use only GitHub's official npm package. Do not run Copilot with
+            # GITHUB_TOKEN, load another account's auth, or install a daemon.
+            if ! timeout 240 npm install -g --prefix "$HOME/.local" \
+                --no-audit --no-fund --silent @github/copilot \
+                > "$RUNNER_TEMP/ogenic-copilot-install.log" 2>&1; then
+              echo "GH2_COPILOT_INSTALL=FAILED_NETWORK_OR_PACKAGE"
+              exit 82
+            fi
+            echo "GH2_COPILOT_USERLOCAL_INSTALL=NEW"
+          fi
+          if ! test -x "$bin" || ! timeout 15 "$bin" --version >/dev/null 2>&1; then
+            echo "GH2_COPILOT_CLI_VERSION_PROOF=FAILED"
+            exit 83
+          fi
+          echo "GH2_COPILOT_CLI_VERSION_PROOF=PASS"
+          echo "GH2_COPILOT_CLI_PATH=~/.local/bin/copilot"
+          echo "GH2_COPILOT_GITHUB_AUTH=NOT_ATTEMPTED"
+          echo "GH2_COPILOT_MCP_INSTALL=NOT_ATTEMPTED_GITHUB_BUILTIN"
+          echo "GH2_COPILOT_MCP_OUTBOUND_TOOLS=NOT_ENABLED"
