@@ -18,3 +18,19 @@ The current live CCS surface remains a bounded/read-oriented control facade. Fut
 - Canonical Cloudflare deployment credential source remains the pre-existing Infisical staging project via GitHub OIDC; do not duplicate, transfer or expose Cloudflare tokens.
 - Existing staging deploy selects GH-2 by a real principal + Actions write check before assembling the Worker protected runtime bundle. Any missing/mismatched GH-2 binding **fails closed**, instead of silently reverting to GH-1 Dispatch 403.
 - Production, Candy, Cloudflare database schema, SSH identities and Runner configuration are unchanged. Worker queues are not `COMMAND_RESULT_DONE` unless a genuine Runner execution receipt is observed.
+
+## Platform Engineer — GH-2 / Tomload21 (Owner assignment, 21 Oct 2026)
+
+**Operational role:** `Platform Engineer` for the existing OGENIC/WAVE **staging** platform. This is an Owner-assigned operational job function, **not** a GitHub built-in repository permission or an assertion of additional OAuth/token scopes.
+
+**Bound principal:** GitHub account 2, login `Wave-Runner-2`, GitHub user ID `342175560` (Owner label `Tomload21`, GH Runner-2). Identity must match the actual authenticated GitHub principal before any delegated invocation. **Do not confuse this GitHub account with a second physical GitHub Actions runner.** The existing execution host is `wave-runner-01`.
+
+**Accountable platform duties (within previously verified capabilities):**
+- Maintain and troubleshoot staging source integrations, GitHub Actions/workflow dispatch, branch CI, and deployment coordination for `Ogenicchocolate21debug/Build-Platform`.
+- Use the already-verified **GH-2 staging Actions Dispatch** credential binding `GH-ID-TOMLOAD-RUNNER-2` through the existing Infisical/Worker route, including a real principal and Actions-write preflight; never substitute the GH-1 legacy read-only dispatch credential or copy raw PATs into repo files.
+- Route approved work to the existing `wave-runner-01` and coordinate Codex GS/TS and the ATHENA/Yellow/Ruby/Green operating chain; collect exact SHA, job, dispatch, result, and canonical D1 evidence before claiming E2E/DONE.
+- Apply scoped fixes, tests and source commits **only using permissions actually verified for the invoking token**. Escalate real permission/scope failures to Owner with the failing capability and HTTP result, without pretending that a broad installation checkbox means that every invocation can write.
+
+**Authority boundaries:** GH-2 is **not Owner, repo Admin, Cloudflare credential custodian, an additional Runner host, or an independent security gate**. GitHub collaborator level observed is `write`, not `admin`; the 422 invalid-ref canary proved Actions-write admission only, not live command completion. No production/main/Candy, Cloudflare/D1 schema or data, Infisical/secret rotation, credential grants, billing, or other privileged state changes without the corresponding existing scope and fresh Owner authorization. Yellow enforces actual capability/lease scope; Ruby verifies; Green/1LSS stores verified evidence. Revocation and least privilege still apply.
+
+**Role verification:** Read `AGENTS.md` and this contract, check staging HEAD, independently verify the GH-2 principal and token's required permission at invocation time, then check Runner result and D1 receipt. Store failure distinctly as `NOT_VERIFIED`/`BLOCKED_AUTH`, not as an Owner-approved operation.
