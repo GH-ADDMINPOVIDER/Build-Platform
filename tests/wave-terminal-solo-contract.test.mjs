@@ -71,8 +71,10 @@ test("the scope boundary forbids secret outputs and production modifications",()
   assert.match(consumer,/const stdoutGuardClasses = protectedMarkers\.filter/);
   assert.match(consumer,/const stderrGuardClasses = protectedMarkers\.filter/);
   assert.match(consumer,/WAVE_CONSUMER_GUARD_CHANNELS=/);
-  assert.match(consumer,/const guardClasses = \[\.\.\.new Set/);
+  assert.match(consumer,/const guardClasses = stdoutGuardClasses/);
   assert.match(consumer,/const guarded = guardClasses\.length !== 0/);
+  assert.match(consumer,/WAVE_CONSUMER_INTERNAL_STDERR_REDACTED/);
+  assert.match(consumer,/const stderrGuardClasses = protectedMarkers\.filter/);
   assert.match(consumer,/const status = guarded \? "BLOCKED"/);
   assert.match(consumer,/WAVE_CONSUMER_SAFE_FAILURE=/);
   assert.doesNotMatch(consumer,/process\.stdout\.write\(combined\)/);

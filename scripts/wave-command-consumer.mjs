@@ -85,11 +85,16 @@ const stdoutText = String(run.stdout || "");
 const stderrText = String(run.stderr || "");
 const stdoutGuardClasses = protectedMarkers.filter(([, expression]) => expression.test(stdoutText)).map(([label]) => label);
 const stderrGuardClasses = protectedMarkers.filter(([, expression]) => expression.test(stderrText)).map(([label]) => label);
-const guardClasses = [...new Set([...stdoutGuardClasses, ...stderrGuardClasses])];
+// Only stdout is the Codex result channel. CLI stderr is captured internally,
+// never emitted or persisted as plaintext; do not fail a completed command
+// because internal CLI authentication diagnostics contain Bearer-shaped text.
+// Protected stdout still fails closed, regardless of the Codex exit code.
+const guardClasses = stdoutGuardClasses;
 const guarded = guardClasses.length !== 0;
 const status = guarded ? "BLOCKED" : run.status === 0 ? "DONE" : "FAILED";
-if (guarded) process.stdout.write("WAVE_CONSUMER_GUARD_CHANNELS=" +
+if (guarded || stderrGuardClasses.length) process.stdout.write("WAVE_CONSUMER_GUARD_CHANNELS=" +
   JSON.stringify({ stdout_classes: stdoutGuardClasses, stderr_classes: stderrGuardClasses }) + "\n");
+if (stderrGuardClasses.length) process.stdout.write("WAVE_CONSUMER_INTERNAL_STDERR_REDACTED=YES\n");
 if (status !== "DONE") {
   // Only category and numeric exit status are safe to expose as diagnostics.
   process.stderr.write("WAVE_CONSUMER_SAFE_FAILURE=" +
