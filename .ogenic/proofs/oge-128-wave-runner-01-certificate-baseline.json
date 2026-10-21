@@ -671,6 +671,56 @@
       ],
       "previous_evidence_preserved": true,
       "no_secret_values": true
+    },
+    {
+      "event": "gs_codex_same_deployed_sha_execution_recovered_20261021_1743z",
+      "status": "RECOVERED_CURRENT_VERIFIED",
+      "canonical_checkpoint": "WAVE-GS-HANDOFF-20261021-OWNER-MAIN",
+      "execution_target": "wave-runner-01",
+      "runner_transport": "GITHUB_ACTIONS_SELFHOSTED_TERMINAL",
+      "source_and_deployed_sha": "bc5b65143407ec8736f27014241ac45a4edb8af2",
+      "staging_deploy_run": 39645179261,
+      "staging_deploy_conclusion": "success",
+      "latest_head_catchup_run": 39645179321,
+      "latest_head_catchup_conclusion": "success",
+      "gs_command_execution": {
+        "identity": "GPT_GS_CODEX",
+        "profile": "/home/wave/.codex",
+        "run_id": 39645715001,
+        "job_id": 119380624931,
+        "run_conclusion": "success",
+        "task_id": "wavecmd_4f46571cc24d8ec32a5319dc23a7377e2b7ddf06790f8d53147ae7dbae91503e",
+        "result_status": "DONE",
+        "result_sha256": "70a3dfb1b39458a2b18ec30e187ff167817baa042f3be299244cf604d605f069",
+        "logged_evidence": [
+          "WAVE_CONSUMER_CODEX_IDENTITY=GPT_GS_CODEX",
+          "WAVE_CONSUMER_READ_ONLY_SANDBOX=ENFORCED",
+          "OGE129_SIGNED_OWNER_TO_RUNNER_CODEX_D1_E2E=PASS"
+        ],
+        "permission": "SIGNED_OWNER_STAGING_ONLY_READ_ONLY_EVIDENCE",
+        "separate_plus_subscription_api_verified": false
+      },
+      "gt_go_lane": {
+        "status": "PARKED_FOR_WAVE_COMMAND_CONSUMER",
+        "subscriptions_modified": false
+      },
+      "ts_codex_profile": {
+        "identity": "GPT_TS_CODEX",
+        "profile": "/root/.codex",
+        "historical_execution_preserved": true,
+        "current_wave_consumer_fallback": false
+      },
+      "external_openbot_product": "NOT_VERIFIED_SEPARATE_FROM_INTERNAL_LAUNCH_ROOM",
+      "internal_openbot_launch_room_previous_sha": "0c327ece8969159aa5309df3398c6adf7a6bc592",
+      "owner_evidence_handoff": "https://github.com/Ogenicchocolate21debug/Build-Platform/issues/45#issuecomment-6322199471",
+      "no_secret_changes": true,
+      "no_new_ssh_keys": true,
+      "no_new_host": true,
+      "no_production_changes": true,
+      "prior_certificate_d1_sync_run": 39645579319,
+      "prior_certificate_d1_readback_sha256": "42d8ac282e6cd2f2d1cd4e2da123593b1d9905019d3beee7725aa0ebc941621a",
+      "this_revision_d1_readback": "PENDING_NEW_INDEPENDENT_READBACK",
+      "previous_entries_preserved": true
     }
   ],
   "secret_contract": {
