@@ -322,7 +322,7 @@ export function createMcpConfigApi() {
         const result = await jsonRpc(endpoint, "tools/call", {
           name: "get_file_contents",
           arguments: { owner: "Ogenicchocolate21debug", repo: "Build-Platform",
-            path: "README.md", ref: "phase-vi-provider-incentive-metering" },
+            path: "README.md", ref: "refs/heads/phase-vi-provider-incentive-metering" },
         }, 3, token, initialized.sessionId);
         const body = result.body.result && typeof result.body.result === "object"
           ? result.body.result as Record<string, unknown> : {};
@@ -333,7 +333,7 @@ export function createMcpConfigApi() {
           return c.json({ ok: false, code: "MCP_READ_TOOL_FAILED" }, 503);
         }
         const message = textEntries.map((part) => part.text).join("\n");
-        if (!message || message.length > 100_000) {
+        if (!message || message.length > 100_000 || !message.includes("# OGENIC Phase VI")) {
           return c.json({ ok: false, code: "MCP_READ_PROOF_PAYLOAD_UNEXPECTED" }, 503);
         }
         const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(message));
