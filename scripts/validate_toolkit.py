@@ -154,6 +154,8 @@ def main() -> None:
     for path in ROOT.rglob("*"):
         if not path.is_file() or path.resolve() == SELF:
             continue
+        if any(part in {"third_party", "node_modules", ".git"} for part in path.relative_to(ROOT).parts):
+            continue
         if path.suffix.lower() not in scanned_suffixes:
             continue
         text = path.read_text(errors="ignore")
