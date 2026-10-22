@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - feat/openbot-readonly-webhook-20261021
+      - feat/gh-addmin-povider-openbot-e2e-20261022
     paths:
       - worker/connector-runtime.ts
       - worker/local-agent-team-api.ts
@@ -13,6 +14,7 @@ on:
       - tests/openbot-connector-contract.test.mjs
       - tests/local-agent-team-contract.test.mjs
       - .github/workflows/openbot-gh-addmin-provider-e2e.yml
+      - scripts/verify-gh2-openbot-d1-task-lifecycle.mjs
 
 permissions:
   contents: read
@@ -44,6 +46,7 @@ jobs:
       INFISICAL_SECRET_PATH: /
       STAGING_URL: https://wave.ogenicchocolate.com
     steps:
+      - uses: actions/checkout@v4
       - uses: Infisical/secrets-action@v1.0.9
         with:
           method: oidc
@@ -55,6 +58,9 @@ jobs:
           domain: https://app.infisical.com
           export-type: env
           include-imports: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Verify live Owner session and OpenBot Launch Room readiness
         shell: bash
         run: |
@@ -75,3 +81,5 @@ jobs:
           echo "OPENBOT_OWNER_SESSION=PASS"
           echo "OPENBOT_D1_LAUNCH_ROOM=PASS"
           echo "OPENBOT_CODEX_READINESS=$codex_state"
+      - name: Verify GH2 signed Owner task and D1 independent readback (without dispatch)
+        run: node scripts/verify-gh2-openbot-d1-task-lifecycle.mjs
