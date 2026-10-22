@@ -57,6 +57,19 @@ def main() -> None:
         raise SystemExit("Capability Index name/version mismatch")
     if registry.get("version") != "1.3.0":
         raise SystemExit("Tool Registry version mismatch")
+    yellow_stone = next(
+        (surface for surface in registry.get("surfaces", []) if surface.get("name") == "Yellow Stone"),
+        None,
+    )
+    if yellow_stone is None:
+        raise SystemExit("Yellow Stone tool option is missing")
+    forbidden_authority_fields = {"roles", "role", "principal", "permissions", "approval_authority"}
+    if yellow_stone.get("kind") != "tool_option" or any(
+        field in yellow_stone for field in forbidden_authority_fields
+    ):
+        raise SystemExit("Yellow Stone must be a tool option without a role or authority")
+    if yellow_stone.get("authority") != "none":
+        raise SystemExit("Yellow Stone must not carry authority")
     if len(capabilities.get("groups", [])) != 11:
         raise SystemExit("Capability Index must contain groups 00 through 10")
 
