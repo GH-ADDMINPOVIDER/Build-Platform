@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       task_id:
-        description: Yellow-Stone / Owner-approved WAVE task id
+        description: Owner-authorized WAVE task id; Yellow Stone may be selected only as a tool option
         required: true
         type: string
 permissions:
@@ -59,7 +59,7 @@ jobs:
           env-slug: staging
           secret-path: /
           recursive: true
-      - name: Run ONLY through host-wide Terminal Solo + Yellow-approved consumer
+      - name: Run through host-wide Terminal Solo with Owner authorization
         env:
           WAVE_TASK_ID: ${{ inputs.task_id }}
           WAVE_EVIDENCE_REF: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
