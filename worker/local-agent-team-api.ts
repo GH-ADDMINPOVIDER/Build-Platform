@@ -135,6 +135,22 @@ async function taskById(db: D1Like, id: string) {
   ).bind(id).first<TaskRow>();
 }
 
+// Compatibility boundary WF-001. A Fabric task can never be completed, dispatched,
+// or reassigned through the old Owner-only shortcuts: it must use verified Fabric APIs.
+async function rejectFabricLegacyMutation(db: D1Like, taskId: string) {
+  try {
+    const row = await db.prepare("SELECT task_id FROM af_tasks WHERE task_id=? LIMIT 1")
+      .bind(taskId).first<{task_id:string}>();
+    return row ? { ok:false, code:"FABRIC_VERIFIER_ROUTE_REQUIRED",
+      fabric_task_id:taskId, verified:false } : null;
+  } catch (error) {
+    // Before migration 0017 there are no Fabric tasks; preserve legacy behavior.
+    // Any other query failure is not authorization to bypass verification.
+    if (/no such table: af_tasks/i.test(String(error))) return null;
+    throw error;
+  }
+}
+
 async function latestEvent(db: D1Like, taskId: string) {
   return db.prepare(
     "SELECT event_type FROM agent_events WHERE task_id = ? ORDER BY created_at DESC LIMIT 1",
@@ -317,6 +333,8 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
     if (origin && origin !== new URL(c.req.url).origin) return c.json({ ok: false, code: "ORIGIN_DENIED" }, 403);
     if (!dispatchExistingWave) return c.json({ ok: false, code: "RUNTIME_ADAPTER_UNAVAILABLE" }, 503);
     const taskId = clean(c.req.param("taskId"), 100);
+    const fabricConflict = await rejectFabricLegacyMutation(c.env.DB, taskId);
+    if (fabricConflict) return c.json(fabricConflict, 409, { "Cache-Control": "no-store" });
     if (!/^localteam_[a-f0-9]{64}$/.test(taskId)) return c.json({ ok: false, code: "INVALID_TASK_ID" }, 400);
     const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
     const agentId = clean(body.agent_id, 48);
@@ -399,6 +417,8 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
   api.post("/api/local-agent-team/tasks/:taskId/handoff", async (c) => {
     if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
     const taskId = clean(c.req.param("taskId"), 100);
+    const fabricConflict = await rejectFabricLegacyMutation(c.env.DB, taskId);
+    if (fabricConflict) return c.json(fabricConflict, 409, { "Cache-Control": "no-store" });
     const idempotencyKey = clean(c.req.header("Idempotency-Key"), 240);
     const targetAgent = clean((await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>))).agent_id, 100);
     if (!idempotencyKey || !targetAgent) return c.json({ ok: false, code: "IDEMPOTENCY_KEY_AND_AGENT_REQUIRED" }, 400);
@@ -425,6 +445,8 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
   api.post("/api/local-agent-team/tasks/:taskId/result", async (c) => {
     if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
     const taskId = clean(c.req.param("taskId"), 100);
+    const fabricConflict = await rejectFabricLegacyMutation(c.env.DB, taskId);
+    if (fabricConflict) return c.json(fabricConflict, 409, { "Cache-Control": "no-store" });
     const idempotencyKey = clean(c.req.header("Idempotency-Key"), 240);
     const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
     const status = clean(body.status, 30).toUpperCase();
@@ -447,6 +469,8 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
   api.post("/api/local-agent-team/tasks/:taskId/checkpoint", async (c) => {
     if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
     const taskId = clean(c.req.param("taskId"), 100);
+    const fabricConflict = await rejectFabricLegacyMutation(c.env.DB, taskId);
+    if (fabricConflict) return c.json(fabricConflict, 409, { "Cache-Control": "no-store" });
     const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
     const agentId = clean(body.agent_id, 100);
     const checkpointRef = clean(body.checkpoint_ref, 240);
