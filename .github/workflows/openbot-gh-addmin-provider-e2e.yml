@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - feat/openbot-readonly-webhook-20261021
+      - feat/gh-addmin-povider-openbot-e2e-20261022
     paths:
       - worker/connector-runtime.ts
       - worker/local-agent-team-api.ts
