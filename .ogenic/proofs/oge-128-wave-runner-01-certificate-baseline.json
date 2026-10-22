@@ -1106,6 +1106,112 @@
       "no_new_host_runner_gateway_secrets": true,
       "no_production_changes": true,
       "no_billable_external_ai_call": true
+    },
+    {
+      "event": "gs_owner_e2e_runtime_reverification_20261022_0103z",
+      "status": "SCOPED_GS_COMMAND_D1_E2E_PASS__N8N_AUTH_READ_PASS__YELLOW_DENIAL_PASS__CONNECTOR_GLOBAL_PARTIAL",
+      "checkpoint_id": "WAVE-GS-OWNER-E2E-20261022-0103Z",
+      "recorded_at_utc": "2026-10-22T01:03:25Z",
+      "scope": "STAGING_ONLY_OWNER_MAIN_1LSS_OWNER_MAIN",
+      "priority": "OWNER_ITEMS_4_5_6_ONLY; ITEMS_1_2_3_PAUSED",
+      "source_authority": "OWNER_REQUEST_TO_START_RUNTIME_E2E_VERIFICATION; NO_SECRETS_OR_AUTHORIZATION_BYPASS",
+      "github": {
+        "action_account": "Wave-Runner-2",
+        "canonical_repository": "Ogenicchocolate21debug/Build-Platform",
+        "physical_runner": "wave-runner-01",
+        "physical_host_count": 1,
+        "staging_workflow_commits": [
+          "61df6e39c7db2e7aa086006abfef0fe7908f69fd",
+          "546e8c4dcafa6c042e7b3c46612a4310dbdd8dcd",
+          "d1f4b989e63e380c955f613620f0f83e6df06a7e",
+          "3705c3c8439d2e1576fe337f33a8887cdc74c66d"
+        ],
+        "latest_source_sha": "3705c3c8439d2e1576fe337f33a8887cdc74c66d",
+        "last_observed_worker_deployed_sha": "4c37d5fac3a7af66ebfe88432894b854ee6b8fc0",
+        "source_deploy_sha_equal": false,
+        "source_changes": "WORKFLOW_TEST_ONLY_NO_WORKER_CODE_CHANGE"
+      },
+      "proofs": {
+        "github_mcp_readonly": {
+          "run_id": 39701916640,
+          "status": "PASS",
+          "tool": "get_file_contents",
+          "bytes": 4871,
+          "returned_result_sha256": "6e15c51da0bdc426cc68a0f831b99896e8eff876724848eaf2421dd05bd9fb6f",
+          "other_tools_27_unverified": true
+        },
+        "ccs_policy_six": {
+          "run_id": 39701916640,
+          "status": "PASS_HTTP_POLICY_NO_PERSISTED_LEASE"
+        },
+        "connector_15_inventory": {
+          "run_id": 39701916640,
+          "status": "PASS_REGISTRY_ONLY_NOT_15_E2E"
+        },
+        "n8n_authenticated_read": {
+          "run_id": 39701916640,
+          "status": "PASS",
+          "secret_reference_alias": "N8N_API_KEY",
+          "infisical_project_slug": "ogenic-sio-ti-rv",
+          "infisical_env": "staging",
+          "workflows_count": 6,
+          "active_workflows": 0,
+          "workflow_execution": "NOT_ATTEMPTED"
+        },
+        "owner_signed_gs_codex_d1": {
+          "dispatch_run_id": 39702184862,
+          "consumer_run_id": 39702219051,
+          "task_id": "wavecmd_5522dc5f40d8885cf3fcaa95a0f42fc9a5aba1b07956db5f29ddf15379e39414",
+          "identity": "GPT_GS_CODEX",
+          "source_sha": "546e8c4dcafa6c042e7b3c46612a4310dbdd8dcd",
+          "result_status": "DONE",
+          "result_sha256": "3b8f2bfda6ce9c1db3b9f3233c01397278607af4af2b2e37f8040c4516bc6709",
+          "d1_e2e_marker": "OGE129_SIGNED_OWNER_TO_RUNNER_CODEX_D1_E2E=PASS",
+          "status": "PASS"
+        },
+        "n8n_yellow_owner_auth": {
+          "run_id": 39703063890,
+          "staging_source_sha": "3705c3c8439d2e1576fe337f33a8887cdc74c66d",
+          "contract_typecheck_build": "PASS",
+          "module_inventory": "PASS",
+          "ops_only_execute": "DENIED_HTTP_401_PASS",
+          "signed_owner_unimplemented_adapter": "DENIED_HTTP_501_PASS",
+          "wave_placement": "PASS",
+          "provider_workflow_executed": false,
+          "status": "AUTHORITY_POLICY_E2E_PASS_NO_PROVIDER_EXEC"
+        },
+        "prior_certificate_revision_27": {
+          "d1_sync_run": 39681580875,
+          "status": "D1_WRITE_READBACK_PASS",
+          "document_sha256": "4b484eb1fcf8870eb985b6ac4d763e55dfa71983f79d5a59727b2ae857c87f92"
+        }
+      },
+      "open_blockers": {
+        "generic_webhook": "OGENIC_GENERIC_HOOK_SECRET_NOT_FOUND_IN_INFISICAL_STAGING_ROOT; HMAC+DEDUP+D1 E2E NOT_VERIFIED",
+        "n8n_workflow_execution": "6_FOUND_ZERO_ACTIVE; NO_APPROVED_EXECUTION_RECEIPT",
+        "a2a_sdk_relay": "NO_INDEPENDENT_PROVIDER_INVOKE_RESULT_READBACK",
+        "external_openbot": "NO_SIGNED_HOST_ONLINE_AND_ROUTINE_HISTORY_E2E",
+        "wave_ui": "NO_INDEPENDENT_IPHONE_UI_RECEIPT",
+        "ts_wave_e2e": "SEPARATE_TS_LANE_NOT_DISPATCHED; GS_ONLY_OWNER_PRIORITY",
+        "stage_source_vs_worker_sha": "WORKFLOW_ONLY_SOURCE_NEWER_THAN_DEPLOYED_WORKER; NO_PRODUCTION_DEPLOY"
+      },
+      "certificate": {
+        "same_certificate_id_preserved": true,
+        "event_history_append_only": true,
+        "revision_event_count": 28,
+        "current_revision_d1_sync": "PENDING_EXISTING_WORKFLOW_READBACK",
+        "previous_history_retained": true,
+        "seven_stone_tables_mutated": false
+      },
+      "constraints": {
+        "no_new_runner": true,
+        "no_new_gateway": true,
+        "no_new_certificate": true,
+        "no_raw_secrets": true,
+        "no_secret_rotation": true,
+        "no_production_change": true,
+        "no_provider_paid_inference": true
+      }
     }
   ],
   "secret_contract": {
