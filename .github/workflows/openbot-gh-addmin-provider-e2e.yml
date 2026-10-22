@@ -46,6 +46,7 @@ jobs:
       INFISICAL_SECRET_PATH: /
       STAGING_URL: https://wave.ogenicchocolate.com
     steps:
+      - uses: actions/checkout@v4
       - uses: Infisical/secrets-action@v1.0.9
         with:
           method: oidc
