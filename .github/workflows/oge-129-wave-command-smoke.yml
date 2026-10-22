@@ -135,3 +135,5 @@ jobs:
         if: always()
         run: |
           echo 'OGE-129 sends one existing owner-authorized Codex CLI command in read-only sandbox. No extra provider API spending, new service, second runner or production change.' >> "$GITHUB_STEP_SUMMARY"
+
+# 2026-10-22 GS E2E re-verification trigger: read-only signed Owner proof only; completion requires Consumer D1 receipt.
