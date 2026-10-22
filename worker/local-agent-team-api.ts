@@ -58,7 +58,7 @@ const OWNER_SESSION = "owner-main/1LSS_OWNER_MAIN";
 const MAX_SUMMARY = 800;
 const TERMINAL = new Set(["DONE", "BLOCKED", "FAILED", "CANCELLED"]);
 const PROVIDERS = [
-  ["codex", "Codex", ["OPENAI_EXECUTOR_API_KEY", "OPENAI_API_KEY"], "wave-runner-01 / existing Codex lane"],
+  ["codex", "Codex", ["OPENAI_EXECUTOR_API_KEY", "OPENAI_API_KEY"], "GH_ADDMIN_POVIDER / existing Codex lane"],
   ["claude", "Claude Code", ["ANTHROPIC_API_KEY"], "existing runner adapter pending"],
   ["gemini", "Gemini CLI", ["GEMINI_API_KEY"], "existing runner adapter pending"],
   ["grok", "Grok", ["XAI_API_KEY"], "existing runner adapter pending"],
@@ -100,7 +100,7 @@ function providerReadiness(env: LocalAgentTeamBindings, proof: ProofRow | null =
     /^https:\/\/github\.com\/Ogenicchocolate21debug\/Build-Platform\/actions\/runs\/\d+$/.test(String(receipt.evidence_ref ?? ""));
   const codexAvailable = Boolean(evidenced && env.DB && env.GITHUB_TOKEN && env.OGENIC_OPS_KEY);
   return PROVIDERS.map(([id, label, keys, execution]) => {
-    // Codex runs through the existing signed CLI login on Runner-1, not an API key.
+    // Codex runs through the existing authorized execution binding under GH_ADDMIN_POVIDER, not an API key.
     if (id === "codex") return {
       id, label, configuration: evidenced ? "CLI_E2E_PREVIOUSLY_PROVEN" : "RUNTIME_PROOF_REQUIRED",
       executable_or_endpoint: "WAVE_COMMAND_CONSUMER_EXISTING",
@@ -307,8 +307,8 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
   });
 
 
-  // Local OpenBot-mode tasks reuse the SAME Yellow/ATHENA WAVE command and
-  // Runner-1 Codex lane. They do not install the external OpenBot app.
+  // Local OpenBot-mode tasks reuse the same Owner-authorized WAVE command and
+  // GH_ADDMIN_POVIDER Codex lane. They do not install the external OpenBot app.
   // The first operational adapter is deliberately READ-only; every other
   // provider remains non-dispatchable until a real runtime receipt exists.
   api.post("/api/local-agent-team/tasks/:taskId/dispatch", async (c) => {
@@ -385,7 +385,7 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
         dispatch_status: command.code, consumer_proven: false })).run();
     if (realDispatch) {
       await c.env.DB.prepare(
-        "UPDATE agent_tasks SET status = 'RUNNING', claimed_by = 'codex-selfhost:wave-runner-01', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'QUEUED'",
+        "UPDATE agent_tasks SET status = 'RUNNING', claimed_by = 'GH_ADDMIN_POVIDER', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'QUEUED'",
       ).bind(taskId).run();
     }
     return c.json({
