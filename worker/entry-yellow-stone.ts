@@ -37,6 +37,7 @@ import { createDiscordApi } from "./discord-api";
 import { dispatchWaveCommandConsumer } from "./wave-command-dispatch";
 import { createConnectorModesApi } from "./connector-modes-api";
 import { createLocalAgentTeamApi } from "./local-agent-team-api";
+import { createAgentFabricApi } from "./fabric-api";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
@@ -66,6 +67,7 @@ const capabilityCardStoneApi = createCapabilityCardStoneApi();
 const n8nMigrationApi = createN8nMigrationApi();
 const discordApi = createDiscordApi();
 const connectorModesApi = createConnectorModesApi();
+const agentFabricApi = createAgentFabricApi();
 const localAgentTeamApi = createLocalAgentTeamApi(
   (request, bindings, ctx) => athenaGuardedCommand(request, bindings as Bindings, ctx),
 );
@@ -660,6 +662,9 @@ export default {
     }
     if (pathname.startsWith("/api/connector-modes/")) {
       return connectorModesApi.fetch(request, env as never, ctx as never);
+    }
+    if (pathname.startsWith("/api/agent-fabric/")) {
+      return agentFabricApi.fetch(request, env as never, ctx as never);
     }
     if (pathname.startsWith("/api/local-agent-team/")) {
       return localAgentTeamApi.fetch(request, env as never, ctx as never);
