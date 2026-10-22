@@ -4,8 +4,9 @@ const base = "https://wave.ogenicchocolate.com";
 const secret = String(process.env.OGENIC_OPS_KEY || "").trim();
 const sha = String(process.env.GITHUB_SHA || "").trim();
 assert.match(sha, /^[a-f0-9]{40}$/, "STAGING_SHA_REQUIRED");
-assert.equal(process.env.GITHUB_REF_NAME, "phase-vi-provider-incentive-metering");
-assert.equal(process.env.RUNNER_NAME, "wave-runner-01");
+assert.equal(process.env.GITHUB_REPOSITORY, "Wave-Runner-2/Build-Platform");
+assert.equal(process.env.GITHUB_REF_NAME, "feat/gh-addmin-povider-openbot-e2e-20261022");
+assert.ok(process.env.RUNNER_NAME, "EXECUTION_RUNNER_REQUIRED");
 assert.ok(secret, "STAGING_OWNER_SECRET_FROM_INFISICAL_REQUIRED");
 
 const authResponse = await fetch(base + "/api/session", {
