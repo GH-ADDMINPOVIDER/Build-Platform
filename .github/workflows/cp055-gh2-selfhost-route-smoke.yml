@@ -1,0 +1,50 @@
+# CP-055 / CP-056 bounded GH2 -> existing self-host runner route diagnostic.
+# Staging feature branch only. No production, no migrations, no shell automation of issue contents.
+name: CP055 GH2 Self-host Codex Route Smoke
+on:
+  push:
+    branches:
+      - feat/task-envelope-lnwjud-a2a-cp055-056-20261023
+    paths:
+      - .github/workflows/cp055-gh2-selfhost-route-smoke.yml
+permissions:
+  contents: read
+concurrency:
+  group: cp055-staging-selfhost-smoke
+  cancel-in-progress: false
+jobs:
+  route-smoke:
+    if: >-
+      github.repository == 'Wave-Runner-2/Build-Platform' &&
+      github.ref == 'refs/heads/feat/task-envelope-lnwjud-a2a-cp055-056-20261023'
+    runs-on: self-hosted
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact GH2 feature SHA, no persistent write credential
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify exact staging source and existing TMN Codex CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
+          test "$GITHUB_REF_NAME" = "feat/task-envelope-lnwjud-a2a-cp055-056-20261023"
+          echo "CP055_GH2_SELFHOST_ROUTE_REACHED=YES"
+          echo "TASK_SOURCE_SHA=$(git rev-parse HEAD)"
+          echo "RUNNER_LABEL_NAME=$RUNNER_NAME"
+          echo "NODE_VERSION=$(node --version 2>/dev/null || echo UNAVAILABLE)"
+          echo "CODEX_CLI_PATH=$(command -v codex || echo NOT_INSTALLED)"
+          if command -v codex >/dev/null 2>&1; then
+            codex --version
+          else
+            echo "::error::Codex CLI not available in this self-host runner environment"
+            exit 3
+          fi
+          test -f worker/task-envelope-contract.ts
+          test -f database/migrations/0018_task_envelope_routing.sql
+          echo "ENVELOPE_FILE_PRESENT=YES"
+          echo "MIGRATION_FILE_PRESENT=YES"
+          echo "TASK_INPUT_SHA256=$(sha256sum worker/task-envelope-contract.ts | cut -d' ' -f1)"
+          echo "CP055_STAGING_PROBE_ONLY=NO_CODEX_EXEC_NO_SECRETS_NO_D1_MIGRATION"
