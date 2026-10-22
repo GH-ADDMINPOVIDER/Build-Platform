@@ -1,6 +1,10 @@
 name: OGE-70 n8n Execution Fabric Proof
 
 on:
+  push:
+    branches: [phase-vi-provider-incentive-metering]
+    paths:
+      - ".github/workflows/oge-70-n8n-execution-fabric-proof.yml"
   workflow_dispatch:
 
 permissions:
