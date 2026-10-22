@@ -19,6 +19,7 @@
     {"name":"Cloudflare","roles":["worker","pages","d1","domain"],"approval":"human_only_for_production_or_public_publish"},
     {"name":"Infisical","roles":["secret_reference","scope","credential_layer"],"approval":"human_only_for_credential_mutation; read-only metadata may run automatically"},
     {"name":"Web / Public Search","roles":["research","buyer_intent_discovery"]},
+    {"name":"Yellow Stone","kind":"tool_option","capabilities":["bounded_execution","evidence_capture"],"selection":"explicit_or_router_selected","authority":"none"},
     {"name":"Image Generation","roles":["generate","edit"]}
   ]
 }

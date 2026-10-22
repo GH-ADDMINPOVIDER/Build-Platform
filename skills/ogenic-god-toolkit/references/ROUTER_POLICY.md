@@ -29,6 +29,9 @@ Rules:
 - A handoff item must include: requested outcome, target repo/system, attempts, blocker, required capability, risk class, verification condition, and provenance links when available.
 - Consequential actions still pause at Human Approval even if GitHub can technically execute them.
 
+## Yellow Stone semantics
+Yellow Stone is an optional execution tool, never a principal, role, approver, permission boundary, or source of authority. The router may select it only as an execution surface after authorization has already been established by the applicable owner/session policy. Selecting or not selecting Yellow Stone must not grant, expand, revoke, or substitute authority.
+
 ## Developer status publishing
 For every routed developer task, emit a secret-safe status record suitable for the Developer Control Panel:
 - `capability`
