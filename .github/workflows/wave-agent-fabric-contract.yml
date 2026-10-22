@@ -1,0 +1,40 @@
+name: WAVE Native Agent Fabric WF-001..005 Contracts
+on:
+  push:
+    branches:
+      - feat/wave-native-agent-fabric-wf001-wf005-20261022
+  pull_request:
+    branches:
+      - feat/gh-addmin-povider-openbot-e2e-20261022
+    paths:
+      - "worker/fabric-*.ts"
+      - "worker/local-agent-team-api.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "database/migrations/0016_*.sql"
+      - "database/migrations/0017_*.sql"
+      - "src/AgentFabricInbox.tsx"
+      - "src/agent-fabric.css"
+      - "src/main.tsx"
+      - "tests/agent-fabric-*"
+      - ".github/workflows/wave-agent-fabric-contract.yml"
+permissions:
+  contents: read
+jobs:
+  staging-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: WAVE Fabric actual SQLite migration and FK/uniqueness proof
+        run: python3 tests/agent-fabric-schema-smoke.py
+      - name: Fabric integration and compatibility contracts
+        run: node --test tests/agent-fabric-contract.test.mjs tests/local-agent-team-contract.test.mjs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build staging artifact (no deploy)
+        run: npm run build
