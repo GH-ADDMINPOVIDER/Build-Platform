@@ -93,6 +93,7 @@ Potential execution surfaces, when connected and authorized:
 - Infisical
 - Web/public search
 - Image generation
+- Yellow Stone (optional execution tool only; never a role or authority)
 - Authorized local or hosted runtimes
 
 Capability waterfall:
@@ -104,6 +105,8 @@ Capability waterfall:
 6. Automation/CI for repeatable or hosted execution.
 7. Authorized local/runtime bridge only when genuinely required.
 8. **Blocked** only after all valid surfaces are exhausted or a required authorization is missing.
+
+Yellow Stone is only a selectable execution tool. It is never a principal, role, approver, permission boundary, or source of authority; authorization must exist before it is selected.
 
 Never route to a fallback that lacks required permission or an execution backend. Never claim a fallback ran unless the resulting state is verified.
 
