@@ -109,17 +109,35 @@ jobs:
             .descriptor.executable == true
           ' >/dev/null
 
-          STATUS="$(curl -sS             -o /tmp/oge70-yellow-execute.json             -w '%{http_code}'             -H 'content-type: application/json'             -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}"             --data "$REQUEST"             "${STAGING_URL}/api/capabilities/execute")"
-          test "$STATUS" = "409" || { echo "::error::expected approval gate HTTP 409, got $STATUS"; exit 1; }
-          jq -e '
-            .ok == false and
-            .code == "HUMAN_APPROVAL_REQUIRED" and
-            .approval.required == true and
-            .approval.provider_id == "n8n" and
-            .approval.capability_id == "workflow_run" and
-            .approval.permission_class == "EXECUTE"
-          ' /tmp/oge70-yellow-execute.json >/dev/null
-          echo "OGE-70 Yellow n8n resolver/approval proof PASS."
+          # Ops Key can resolve capabilities, but cannot authorize EXECUTE by itself.
+          STATUS="$(curl -sS -o /tmp/oge70-yellow-execute.json -w '%{http_code}' \
+            -H 'content-type: application/json' \
+            -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}" \
+            --data "$REQUEST" "${STAGING_URL}/api/capabilities/execute")"
+          test "$STATUS" = "401" || { echo "::error::expected ops-only EXECUTE denial HTTP 401, got $STATUS"; exit 1; }
+          jq -e '.ok == false and .code == "REAUTH_REQUIRED"' /tmp/oge70-yellow-execute.json >/dev/null
+          echo "OGE70_YELLOW_OPS_EXEC_DENIED=PASS"
+
+          # Obtain the existing signed Owner Session without printing or persisting credentials.
+          umask 077
+          AUTH_FILE="$RUNNER_TEMP/oge70-owner-$GITHUB_RUN_ID.json"
+          EXEC_FILE="$RUNNER_TEMP/oge70-owner-execute-$GITHUB_RUN_ID.json"
+          trap 'rm -f "$AUTH_FILE" "$EXEC_FILE"' EXIT
+          AUTH_STATUS="$(jq -nc --arg k "$OGENIC_OPS_KEY" '{owner_key:$k}' | \
+            curl -sS -o "$AUTH_FILE" -w '%{http_code}' \
+              -H 'content-type: application/json' -H 'x-ogenic-client: native' \
+              --data-binary @- "${STAGING_URL}/api/session")"
+          test "$AUTH_STATUS" = "200" || { echo "::error::Signed Owner Session unavailable HTTP $AUTH_STATUS"; exit 1; }
+          jq -e '.authenticated == true and .user.role == "owner" and (.session_token|type == "string" and length > 20)' "$AUTH_FILE" >/dev/null
+          OWNER_SESSION="$(jq -r '.session_token' "$AUTH_FILE")"
+          STATUS="$(curl -sS -o "$EXEC_FILE" -w '%{http_code}' \
+            -H 'content-type: application/json' \
+            -H "Authorization: Bearer $OWNER_SESSION" \
+            --data "$REQUEST" "${STAGING_URL}/api/capabilities/execute")"
+          test "$STATUS" = "501" || { echo "::error::expected no-unimplemented-EXECUTE-adapter HTTP 501, got $STATUS"; exit 1; }
+          jq -e '.ok == false and .code == "ADAPTER_NOT_IMPLEMENTED" and .approval.authority == "SIGNED_OWNER_SESSION" and .verification.status == "blocked"' "$EXEC_FILE" >/dev/null
+          echo "OGE70_YELLOW_OWNER_AUTH_ADAPTER_DENIAL=PASS"
+          echo "OGE70_N8N_EXECUTED=FALSE"
 
       - name: Verify WAVE exposes placement without enabling execution
         shell: bash
