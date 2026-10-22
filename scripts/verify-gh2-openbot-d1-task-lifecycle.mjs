@@ -19,7 +19,7 @@ async function api(path, init = {}) {
     signal: AbortSignal.timeout(12000),
   });
   const payload = await response.json().catch(() => ({}));
-  return { http: response.status, payload };
+  return { http: response.status, payload, setCookie: response.headers.getSetCookie?.() || [] };
 }
 const session = await api("/api/session", {
   method: "POST",
@@ -30,8 +30,16 @@ assert.equal(session.http, 200, "OWNER_SESSION_HTTP");
 assert.equal(session.payload.authenticated, true, "OWNER_SESSION_AUTH");
 assert.equal(session.payload.user?.role, "owner", "OWNER_ROLE");
 const bearer = String(session.payload.session_token || "");
-assert.ok(bearer, "SIGNED_OWNER_BEARER_REQUIRED");
-const headers = { authorization: "Bearer " + bearer, "Content-Type": "application/json" };
+// The current WAVE Owner route may issue a signed session cookie instead of a bearer token.
+// Node 22 exposes Set-Cookie separately, and neither token nor cookie is ever logged.
+const cookies = session.setCookie
+  .map(value => value.split(";")[0].trim())
+  .filter(value => /^[A-Za-z0-9_-]+=[^;]+$/.test(value))
+  .join("; ");
+assert.ok(bearer || cookies, "SIGNED_OWNER_SESSION_CREDENTIAL_REQUIRED");
+const headers = { "Content-Type": "application/json" };
+if (bearer) headers.authorization = "Bearer " + bearer;
+else headers.Cookie = cookies;
 const key = "gh2-openbot-owner-d1-" + run + "-" + attempt;
 const taskBody = {
   title: "GH_ADDMIN_POVIDER staging OpenBot D1 lifecycle " + run,
