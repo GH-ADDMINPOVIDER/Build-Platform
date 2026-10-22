@@ -88,9 +88,12 @@ export async function verifyAccess(request: Request, env: FabricEnv): Promise<{ 
   const key = await crypto.subtle.importKey(
     "jwk", selected, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]
   );
-  const signature = fromBase64Url(parts[2]);
+  // Crypto APIs require ArrayBuffer-backed data in current TS DOM typings.
+  // Copy untrusted base64 bytes into a fresh buffer (never SharedArrayBuffer).
+  const signature = new Uint8Array(fromBase64Url(parts[2])).buffer;
+  const signedBytes = new TextEncoder().encode(parts[0] + "." + parts[1]).buffer;
   const verified = await crypto.subtle.verify(
-    "RSASSA-PKCS1-v1_5", key, signature, utf8(parts[0] + "." + parts[1])
+    "RSASSA-PKCS1-v1_5", key, signature, signedBytes
   );
   if (!verified) throw new FabricError(401, "ACCESS_SIGNATURE_INVALID");
   const email = payload.email.trim().toLowerCase();
