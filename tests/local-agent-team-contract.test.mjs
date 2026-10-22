@@ -19,7 +19,7 @@ test("local agent team reuses canonical queue and has resumable task operations"
   assert.match(api, /REAUTH_REQUIRED/);
 });
 
-test("local agent team is wired through Yellow Stone and existing Agent Deck", () => {
+test("local agent team uses Owner authority and Yellow Stone only as a selectable tool option", () => {
   assert.match(entry, /createLocalAgentTeamApi/);
   assert.match(entry, /pathname\.startsWith\("\/api\/local-agent-team\/"\)/);
   assert.match(wave, /LocalAgentTeamPanel/);
@@ -43,7 +43,7 @@ test("OpenBot Launch Room uses existing Agent Deck and canonical D1 events", () 
   assert.match(api, /room_adapter: "UNVERIFIED"/);
 });
 
-test("OpenBot read-only Codex dispatch connects existing Owner Yellow command and Runner-1 receipt", () => {
+test("OpenBot read-only Codex dispatch connects Owner-authorized command and GH_ADDMIN_POVIDER receipt", () => {
   assert.match(api, /ExistingWaveDispatcher/);
   assert.match(entry, /createLocalAgentTeamApi\(/);
   assert.match(entry, /athenaGuardedCommand\(request, bindings as Bindings, ctx\)/);
@@ -71,7 +71,7 @@ test("OpenBot reports absent external adapters and forbids room WRITE execution"
   assert.match(ui, /No verified room adapter available/);
 });
 
-test("OpenBot runtime proof releases Runner-1 before the existing consumer and verifies final D1 checkpoint", () => {
+test("OpenBot runtime proof releases the execution lane before the consumer and verifies final D1 checkpoint", () => {
   const check = fs.readFileSync(new URL("../scripts/verify-openbot-launchroom-staging.mjs", import.meta.url), "utf8");
   const workflow = fs.readFileSync(new URL("../.github/workflows/provider-incentive-staging-deploy.yml", import.meta.url), "utf8");
   const consumer = fs.readFileSync(new URL("../scripts/wave-command-consumer.mjs", import.meta.url), "utf8");

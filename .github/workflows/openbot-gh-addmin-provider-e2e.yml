@@ -1,0 +1,85 @@
+name: OpenBot GH_ADDMIN_POVIDER E2E
+
+on:
+  pull_request:
+    branches:
+      - feat/openbot-readonly-webhook-20261021
+      - feat/gh-addmin-povider-openbot-e2e-20261022
+    paths:
+      - worker/connector-runtime.ts
+      - worker/local-agent-team-api.ts
+      - worker/entry-yellow-stone.ts
+      - src/LocalAgentTeamPanel.tsx
+      - scripts/verify-openbot-launchroom-staging.mjs
+      - tests/openbot-connector-contract.test.mjs
+      - tests/local-agent-team-contract.test.mjs
+      - .github/workflows/openbot-gh-addmin-provider-e2e.yml
+      - scripts/verify-gh2-openbot-d1-task-lifecycle.mjs
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  contract-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: OpenBot contracts
+        run: node --test tests/openbot-connector-contract.test.mjs tests/local-agent-team-contract.test.mjs
+      - name: Typecheck and build
+        run: npm run typecheck && npm run build
+
+  live-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      INFISICAL_IDENTITY_ID: b0962d69-bd33-4ac3-b4f4-48589535ca38
+      INFISICAL_PROJECT_SLUG: ogenic-sio-ti-rv
+      INFISICAL_SECRET_ENV_SLUG: staging
+      INFISICAL_SECRET_PATH: /
+      STAGING_URL: https://wave.ogenicchocolate.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ env.INFISICAL_SECRET_ENV_SLUG }}
+          secret-path: ${{ env.INFISICAL_SECRET_PATH }}
+          recursive: true
+          domain: https://app.infisical.com
+          export-type: env
+          include-imports: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify live Owner session and OpenBot Launch Room readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          test -n "${OGENIC_OPS_KEY:-}" || { echo "::error::OGENIC_OPS_KEY missing"; exit 1; }
+          cookie="$RUNNER_TEMP/openbot-cookie"
+          session="$(jq -nc --arg key "$OGENIC_OPS_KEY" '{owner_key:$key}' | curl --fail --silent --show-error             -c "$cookie" -H 'content-type: application/json' -H 'x-ogenic-client: native'             --data-binary @- "$STAGING_URL/api/session")"
+          printf '%s' "$session" | jq -e '.ok == true and .authenticated == true and .user.role == "owner"' >/dev/null
+          state="$(curl --fail --silent --show-error -b "$cookie" "$STAGING_URL/api/local-agent-team/state")"
+          printf '%s' "$state" | jq -e '
+            .ok == true and
+            .canonical_session == "owner-main/1LSS_OWNER_MAIN" and
+            (.storage.canonical | contains("Cloudflare D1")) and
+            ([.providers[].id] | index("codex") != null)
+          ' >/dev/null
+          codex_state="$(printf '%s' "$state" | jq -r '.providers[] | select(.id=="codex") | [.dispatchable,.authentication,.smoke_test] | @tsv')"
+          echo "OPENBOT_OWNER_SESSION=PASS"
+          echo "OPENBOT_D1_LAUNCH_ROOM=PASS"
+          echo "OPENBOT_CODEX_READINESS=$codex_state"
+      - name: Verify GH2 signed Owner task and D1 independent readback (without dispatch)
+        run: node scripts/verify-gh2-openbot-d1-task-lifecycle.mjs
