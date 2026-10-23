@@ -1,0 +1,38 @@
+name: TMN lockfile reconcile (staging only)
+on:
+  push:
+    branches:
+      - fix/tmn-docker-cach-security-20261023
+permissions:
+  contents: write
+jobs:
+  repair-lock:
+    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/tmn-docker-cach-security-20261023
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regenerate patched dependency lockfile
+        working-directory: apps/ogenic-control-tower
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit only the regenerated staging lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add apps/ogenic-control-tower/package-lock.json
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' \
+                -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+                commit -m 'security: synchronize patched MCP and proxy-addr lockfile'
+            git push origin HEAD:refs/heads/fix/tmn-docker-cach-security-20261023
+          fi
+      - name: Validate npm clean install after lock repair
+        working-directory: apps/ogenic-control-tower
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run check
