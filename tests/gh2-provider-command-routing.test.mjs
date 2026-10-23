@@ -48,8 +48,8 @@ test("command consumer remains bounded and reads secrets through existing OIDC",
 
 // The workflow and the actual terminal guard must agree on GH-2; historic store is not an executor.
 test("Terminal SOLO guard accepts only the active GH-2 technical repository", () => {
-  assert.match(terminalSolo, /GITHUB_REPOSITORY:-.*Wave-Runner-2\\/Build-Platform/);
-  assert.doesNotMatch(terminalSolo, /GITHUB_REPOSITORY:-.*Ogenicchocolate21debug\\/Build-Platform/);
+  assert.ok(terminalSolo.includes('GITHUB_REPOSITORY:-') && terminalSolo.includes('"Wave-Runner-2/Build-Platform"'));
+  assert.ok(!terminalSolo.includes('"Ogenicchocolate21debug/Build-Platform"'));
   assert.match(terminalSolo, /TERMINAL_SOLO_DENIED_REPOSITORY/);
   assert.match(terminalSolo, /flock -w 900/);
 });
