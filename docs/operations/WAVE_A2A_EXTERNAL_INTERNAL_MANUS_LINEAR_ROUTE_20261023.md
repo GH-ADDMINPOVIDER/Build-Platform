@@ -23,8 +23,27 @@ Both sources go through the **same bidirectional Manus BRIDGE receive/send**. A 
 **INTERNAL (RED zone — color means internal, not FAIL)**:
 
 - `Terminal SSH + IDEs + OPC` and `Docker Container` on the existing OCIAN-S HOST handle internal command/tool/coding execution.
+- **Codex GS = primary internal code-fix / agent execution** behind the authenticated WAVE/Yellow -> GH2/TMN command route; keep its existing local profile separate from any other Codex account.
+- **GitHub Copilot = Terminal/IDE coding assistant tool**, not another GitHub operational identity and not the self-hosted Actions runner. It belongs inside TMN's SSH/IDEs/OPC tool surface, not in the External connector runtime.
 - Docker provides compute, process isolation and transient workspace, **not an automatic durable data store**.
 - `RP_STORE(OLD)`/GH1 stays outside the active execution path as an unchanged recovery/reference source. No GH1 execution or silent migration.
+
+### 2.1 Backup / fallback pool — not an implicit execute-right escalation
+
+| Backup | Placement | Authorized use | Guard |
+|---|---|---|---|
+| `RP_STORE(OLD)` / Store | Outside hot execution path (cold source/Context lookup) | When primary GH2 files/context are unavailable, retrieve immutable source by exact SHA into isolated read-only workspace | Never become primary command or runner, never silently deploy legacy source |
+| Gemini (API) | External model provider through registered n8n/WAVE connector | Bounded READ reasoning / research / context fallback | Must verify identity, allowed model, API quota and owner-approved capability; cannot replace Docker/SSH execution |
+| DeepSeek API | External model provider through registered n8n/WAVE connector | Bounded reasoning / debugging / code-analysis fallback | Verify existing Infisical binding and paid-call policy before invocation; cannot replace shell execution |
+
+Backups are **conditional capabilities**, not always-on live fallbacks. Linear can record fallback requests; Manus can bridge authorized requests/results. Neither can bypass Yellow/Owner authority.
+
+### 2.2 Historical host evidence — limits of current proof
+
+- GH1 historical self-hosted job [39701916640](https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/39701916640), 2026-10-22: `OCIAN_COPILOT_USERLOCAL=VERSION_OK_AUTH_UNVERIFIED`; **Copilot binary/version detected, login/inference not proven**.
+- Same run: `OCIAN_GS_CODEX_PROFILE=SIGNED_IN` and `OCIAN_OPENCODE_USERLOCAL=INSTALLED`, OpenCode CLI version PASS with `PROVIDER_AUTH=NOT_ATTEMPTED`.
+- Same run: SSH service ACTIVE; `OCIAN_IDE_VSCODE_SERVER`, `OCIAN_IDE_VSCODE_REMOTE`, `OCIAN_IDE_CODE_SERVER`, `OCIAN_IDE_CURSOR_SERVER` all `NOT_INSTALLED_FOR_RUNNER_USER`. Do not label remote IDE tooling as E2E-ready.
+- This is host evidence from GH1 **historical source only**; it does not authorize GH1 as the current execution plane. GH2 host runner and full internal A2A return E2E remain separate outstanding gates.
 
 **Cross-zone signaling**:
 
@@ -51,7 +70,10 @@ Destination C: `ChatGPT account Owner` **only through its independently connecte
 | Manus | Bridge RECEIVE + SEND, signal relay, correlation | Not approval authority, not secret storage |
 | Linear | RECEIVE + ORDER, Back Context, eligible delegated agent tasks | Not OCIAN's Docker/SSH runner by default |
 | n8n/Railway | External tool/protocol registry, workflow runtime, calling/retry, return-delivery adapter | Not unchecked sudo or independent owner-sign grant |
-| Terminal/Docker | Internal shell/tool/agent execution within approved host | No open public port, no inherent persistence |
+| Codex GS | Primary internal coding agent and execution via gated TMN tool adapter | Existing signed-in profile does not mean GH2 runner dispatch works | 
+| GitHub Copilot | TMN Terminal/IDE assistant tool | Historical version present; AUTH/real calling UNVERIFIED | 
+| Terminal/Docker | Internal shell/tool/agent execution within approved host | No open public port, no inherent persistence | 
+| Store, Gemini, DeepSeek API | Cold source recovery and scoped model analysis fallbacks | Never automatic owner-sign, paid-call or host-execution bypass |
 | ATHENA/Yellow | Pre-execution owner/permission policy | Must run BEFORE meaningful side effects |
 | ATHENA/Registry/Green Stone | Post-execution attestation and durable result verification | No retrospective bypass of authorization |
 | GH_ADDMIN_POVIDER + Infisical OIDC | Operational GitHub + least-privilege credential broker | No GH1 command fallback, no raw secrets in logs/cards |
