@@ -13,7 +13,7 @@ const wrapper=read("scripts/wave-terminal-solo.sh");
 const contract=read("worker/wave-command-contract.ts");
 
 test("one GH2 Addmin Provider only; store is archive, not command target",()=>{
- assert.equal(aliases.active_provider.label,"GH-2 Addmin Provider");
+ assert.equal(aliases.active_provider.label,"GH-ADDMINT POVIDER");
  assert.equal(aliases.archive_store.label,"store");
  assert.equal(aliases.archive_store.can_receive_new_commands,false);
  assert.equal(policy.dispatch.repository,"Wave-Runner-2/Build-Platform");
@@ -33,8 +33,8 @@ test("GS signed WAVE command uses the only real codex_selfhost/openai route",()=
  assert.match(contract,/SECRET_LIKE_INPUT_REJECTED/);
 });
 test("same physical OCIAN host, same registered runner and Codex home",()=>{
- assert.equal(policy.physical_host,"OCIAN-S-Host");
- assert.equal(policy.codex_executor,"Codex S-Host");
+ assert.equal(policy.physical_host,"OCIAN-S HOST");
+ assert.equal(policy.codex_executor,"CODEX-TMN");
  assert.equal(policy.runner_service,"wave-runner-01");
  assert.equal(policy.codex_home,"/home/wave/.codex");
  assert.match(workflow,/runs-on: \[self-hosted, linux, x64, wave\]/);
@@ -56,6 +56,8 @@ test("cannot reinterpret task context schema as container requirement",()=>{
  assert.equal(policy.context.contract,"wave.task.envelope.v1");
  assert.equal(policy.context.enable_only_after_d1_staging_binding_readback,true);
  assert.equal(policy.constraints.no_second_runner,true);
- assert.equal(policy.constraints.no_docker_required,true);
+ assert.equal(policy.docker_runtime.requested_by_owner,true);
+ assert.equal(policy.docker_runtime.new_GH2_execution_proven,false);
+ assert.equal(policy.constraints.docker_required,true);
  assert.equal(policy.constraints.no_main_or_prod,true);
 });
