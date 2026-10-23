@@ -1,0 +1,62 @@
+name: TMN A2A OCIAN Host SSH Docker Activate (staging)
+on:
+  push:
+    branches: [feat/tmn-a2a-docker-behind-ssh-20261023]
+    paths: [".github/workflows/tmn-a2a-ocian-host-staging.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tmn-a2a-ocian-host-staging
+  cancel-in-progress: false
+jobs:
+  bind-existing-host:
+    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref == 'refs/heads/feat/tmn-a2a-docker-behind-ssh-20261023'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 12
+    environment: staging
+    env:
+      WAVE_TMN_A2A_TOKEN: ${{ secrets.WAVE_TMN_A2A_TOKEN }}
+    steps:
+      - name: Checkout exact GH2 staging branch without persisted Git credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Confirm existing OCIAN host / SSH / Docker, never sudo
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test "$(hostname)" = "wave-runner-01"
+          test "$(id -un)" = "wave"
+          command -v docker
+          command -v ssh
+          timeout 10 docker info --format 'EXISTING_DOCKER_ENGINE={{.ServerVersion}}'
+          docker compose version
+          systemctl is-active --quiet ssh
+          test -n "$WAVE_TMN_A2A_TOKEN" && test "$(printf '%s' "$WAVE_TMN_A2A_TOKEN" | wc -c)" -ge 16 || {
+            echo "::error::Missing GH2 staging-injected WAVE_TMN_A2A_TOKEN; no Docker changes performed."
+            exit 79
+          }
+          echo 'OCIAN_GH2_SSH_DOCKER_PREREQUISITES_PASS'
+      - name: Launch bounded A2A service behind existing SSH localhost
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f infra/tmn-a2a-ssh/compose.yml up -d --build --wait
+          docker port wave-tmn-a2a-staging-a2a-docker-1 18761/tcp | grep -Fx '127.0.0.1:18761'
+          docker inspect wave-tmn-a2a-staging-a2a-docker-1 \
+            --format '{{.HostConfig.Privileged}} {{.HostConfig.ReadonlyRootfs}} {{json .HostConfig.PortBindings}}' \
+            | grep -F 'false true'
+          echo 'OCIAN_A2A_PRIVATE_DOCKER_CONTAINER=RUNNING'
+      - name: Real bounded A2A requests to OCIAN Docker process
+        env:
+          WAVE_A2A_REMOTE_URL: http://127.0.0.1:18761
+        run: node --experimental-strip-types --test infra/tmn-a2a-ssh/test.mjs
+      - name: Honest host-only proof boundary
+        run: |
+          echo 'OCIAN_GH2_SELFHOST_DOCKER_A2A_PROBE=PASS'
+          echo 'SSH_EXTERNAL_FORWARD=NOT_TESTED_ON_THIS_HOST'
+          echo 'TMN_CODEX_D1_LINCENC_A2A_E2E=NOT_PROVEN'

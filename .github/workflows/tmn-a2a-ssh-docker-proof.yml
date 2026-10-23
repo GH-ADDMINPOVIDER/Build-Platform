@@ -1,0 +1,51 @@
+name: TMN A2A SSH Docker Runtime Proof (staging)
+on:
+  push:
+    branches: [feat/tmn-a2a-docker-behind-ssh-20261023]
+    paths:
+      - "infra/tmn-a2a-ssh/**"
+      - "worker/task-envelope-contract.ts"
+      - ".github/workflows/tmn-a2a-ssh-docker-proof.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  docker-a2a-proof:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      WAVE_TMN_A2A_TOKEN: ci-fixture-only-no-provider-credential
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Local JSON-RPC + existing TaskEnvelope negative-auth tests
+        run: node --experimental-strip-types --test infra/tmn-a2a-ssh/test.mjs
+      - name: Verify real Docker daemon and Compose, no host secrets
+        run: |
+          docker version --format 'client={{.Client.Version}} server={{.Server.Version}}'
+          docker compose version
+          docker compose -f infra/tmn-a2a-ssh/compose.yml config --quiet
+      - name: Build and start real restricted A2A Docker container
+        run: docker compose -f infra/tmn-a2a-ssh/compose.yml up -d --build --wait
+      - name: Prove SSH-only host loopback port
+        run: |
+          set -euo pipefail
+          docker port wave-tmn-a2a-staging-a2a-docker-1 18761/tcp | grep -Fx '127.0.0.1:18761'
+          curl -fsS --max-time 5 http://127.0.0.1:18761/healthz | node -e 'let b="";process.stdin.on("data",c=>b+=c).on("end",()=>{const j=JSON.parse(b);if(!j.ok||j.service!=="wave-tmn-a2a-docker")process.exit(1);console.log("A2A_DOCKER_HEALTH_PASS")})'
+      - name: A2A message/send and tasks/get executed by Docker process
+        env:
+          WAVE_A2A_REMOTE_URL: http://127.0.0.1:18761
+        run: node --experimental-strip-types --test infra/tmn-a2a-ssh/test.mjs
+      - name: No broad host mounts or public ports; scoped proof only
+        run: |
+          set -euo pipefail
+          docker inspect wave-tmn-a2a-staging-a2a-docker-1 --format '{{.HostConfig.ReadonlyRootfs}} {{.HostConfig.Privileged}} {{json .HostConfig.PortBindings}}' | grep -F 'true false'
+          echo 'A2A_DOCKER_CI=PASS; OCIAN_HOST_DEPLOY=UNVERIFIED; TMN_D1_CERT_E2E=NOT_PROVEN'
+      - name: Stop isolated hosted-CI test container
+        if: always()
+        run: docker compose -f infra/tmn-a2a-ssh/compose.yml down --remove-orphans || true
