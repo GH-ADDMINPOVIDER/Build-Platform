@@ -6,6 +6,7 @@ import { hostname } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateWaveTaskEnvelope } from "../../worker/task-envelope-contract.ts";
+import { validateCcsMulti } from "./ccs-multi.mjs";
 
 const PORT = 18761;
 const MAX_BYTES = 65536;
@@ -132,9 +133,15 @@ export function makeServer(token = process.env.WAVE_TMN_A2A_TOKEN) {
       send(res, 200, fail(id, -32003, "EXECUTION_NOT_AUTHORIZED_ONLY_LOCAL_READONLY_PROBE"));
       return;
     }
+    const ccs = message?.metadata?.ccs_multi === undefined ? null
+      : validateCcsMulti(message.metadata.ccs_multi);
+    if (ccs && !ccs.ok) {
+      send(res, 200, fail(id, -32010, ccs.code));
+      return;
+    }
     const digest = createHash("sha256").update(JSON.stringify({
       taskId: e.task_id, key: e.idempotency_key, context: e.context.context_ref,
-      revision: e.context.context_revision, mode: "DOCKER_LOCAL_PROBE_ONLY"
+      revision: e.context.context_revision, mode: "DOCKER_LOCAL_PROBE_ONLY", ccs: ccs?.code ?? null
     })).digest("hex");
     if (tasks.has(e.task_id)) {
       const prior = tasks.get(e.task_id);
@@ -156,10 +163,11 @@ export function makeServer(token = process.env.WAVE_TMN_A2A_TOKEN) {
           probe: "PASS", scope: "DOCKER_LOCAL_ONLY_NO_WAVE_DISPATCH",
           result_sha256: digest, process_version: process.version,
           container_hostname: hostname(), ssh_boundary: "HOST_LOOPBACK_ONLY",
-          canonical_d1_receipt: false, tmn_command_executed: false
+          canonical_d1_receipt: false, tmn_command_executed: false,
+          ...(ccs ? {ccs_multi:ccs} : {})
         } }]
       }],
-      history: [message]
+      history: [{ messageId: message.messageId, role: "user", contextId: message.contextId, parts: [{kind: "text", text: "tmn.runtime.probe"}] }]
     };
     if (tasks.size >= TASKS_MAX) tasks.delete(tasks.keys().next().value);
     tasks.set(e.task_id, { digest, task });
