@@ -1,0 +1,71 @@
+# WAVE / OGENIC — Owner A2A route lock: External GREEN · Internal RED
+
+> Owner routing correction, 2026-10-23. **Zone colors are not checkpoint PASS/FAIL labels.**
+> Staging architecture contract only. Do not alter previously proven CERT green/orange milestones.
+
+## 1. Dual command ingress (independent origin identities)
+
+1. `GS–GT -> Command` (record `origin_kind=GS_GT` and original context/session).
+2. `Owner -> Command` (record `origin_kind=OWNER` and original context/session).
+
+Both sources go through the **same bidirectional Manus BRIDGE receive/send**. A bridge may transport intent and outcome, but **cannot mint a signed owner session** or approve the work.
+
+`Command -> Manus signal bridge (inbound) -> WAVE ATHENA / Yellow authorization -> GH_ADDMIN_POVIDER (GH2) + Infisical OIDC -> zone router`
+
+## 2. Explicit mutually understood execution zones
+
+**EXTERNAL (GREEN zone — color means external, not E2E PASS)**:
+
+- `n8n + Railway` host and run the external workflow/tool/protocol services.
+- Register connector protocols and broker authorized tool calls, MCP, API, Webhook, A2A, n8n workflow, callback and scoped retries **in this zone**, without relocating an entire vendor plugin installation or pasting provider credentials.
+- The WAVE CCS/1.0 15-mode contract is a capability/transport inventory; no claim that every mode is an independently executable provider.
+
+**INTERNAL (RED zone — color means internal, not FAIL)**:
+
+- `Terminal SSH + IDEs + OPC` and `Docker Container` on the existing OCIAN-S HOST handle internal command/tool/coding execution.
+- Docker provides compute, process isolation and transient workspace, **not an automatic durable data store**.
+- `RP_STORE(OLD)`/GH1 stays outside the active execution path as an unchanged recovery/reference source. No GH1 execution or silent migration.
+
+**Cross-zone signaling**:
+
+- `EXTERNAL/GREEN <-> Manus Bridge <-> INTERNAL/RED` is a **proposed authenticated transport**; Manus carries signals/events/receipts, not raw secrets or unrestricted shell commands.
+- n8n/Railway can use its own workflow runtime; do not force all external tool calls through OCIAN Docker.
+- GH2/Infisical identity and Owner/Yellow capability are mandatory at the specific execution adapter; no broad cross-account or host rights inferred by role labels.
+
+## 3. Post-execution evidence and dispatch
+
+`External n8n/Railway OR Internal Docker -> ATHENA post-run verification -> canonical Registry / D1 -> Green Stone verification -> Linear (RECEIVE + ORDER + Back Context) -> Manus bridge (outbound) -> GH2 or n8n authenticated delivery adapter -> destinations`
+
+Destination A: `WAVE Command` (existing WAVE API session/receipt channel).
+
+Destination B: `ChatGPT account GS–GT` **only through a connected, authorized, supported message-delivery surface**.
+
+Destination C: `ChatGPT account Owner` **only through its independently connected, authorized, supported message-delivery surface**.
+
+**No false direct-delivery claim:** Neither Manus nor Linear independently injects messages into existing private ChatGPT conversations. Using GitHub/n8n to emit a webhook does not by itself give access to either ChatGPT UI account. Prove account-specific callback/polling/connected-app transport before marking delivered. If absent, return an authenticated WAVE Command inbox link/status and store the receipt; do not call it ChatGPT callback E2E.
+
+## 4. Function separation
+
+| Component | Function | Hard boundary |
+|---|---|---|
+| Manus | Bridge RECEIVE + SEND, signal relay, correlation | Not approval authority, not secret storage |
+| Linear | RECEIVE + ORDER, Back Context, eligible delegated agent tasks | Not OCIAN's Docker/SSH runner by default |
+| n8n/Railway | External tool/protocol registry, workflow runtime, calling/retry, return-delivery adapter | Not unchecked sudo or independent owner-sign grant |
+| Terminal/Docker | Internal shell/tool/agent execution within approved host | No open public port, no inherent persistence |
+| ATHENA/Yellow | Pre-execution owner/permission policy | Must run BEFORE meaningful side effects |
+| ATHENA/Registry/Green Stone | Post-execution attestation and durable result verification | No retrospective bypass of authorization |
+| GH_ADDMIN_POVIDER + Infisical OIDC | Operational GitHub + least-privilege credential broker | No GH1 command fallback, no raw secrets in logs/cards |
+
+## 5. Stable A2A result envelope and fallback
+
+Required metadata: `task_id`, `origin_kind=GS_GT|OWNER`, `origin_session_ref`, `return_channel=COMMAND|CHAT`, `reply_to` (registered destination ID, never plaintext session cookie), `context_ref`, `context_revision`, `ccs_mode`, `approval_ref`, `runner_ref`, `zone`, `provider_ref`, `result_sha256`, `registry_receipt_ref`, `green_stone_attestation_ref`, `linear_issue_ref`, `manus_delivery_ref`, `delivery_status`, `fallback_reason`.
+
+Default fallback: **fail closed** to read-only/status-inbox and Linear escalation if a connector, auth, webhook, ChatGPT return transport, or host runner is unavailable. No cross-zone execution retry or credential re-routing without previously registered explicit capability and valid authorization.
+
+## 6. Evidence, not inferred completion
+
+- GH2 hosted Docker CCS 15-mode multi contract, OIDC root names and isolated real-secret bytes stdin SHA check (5/5): [Run 39944510755](https://github.com/Wave-Runner-2/Build-Platform/actions/runs/39944510755), **within GH2 hosted CI scope**.
+- Previous n8n/Railway service online: CERT CP-028 GREEN for runtime status **only**, not n8n workflow calling E2E.
+- GH2 OCIAN SSH/Docker host activation [Run 39937839755](https://github.com/Wave-Runner-2/Build-Platform/actions/runs/39937839755) **QUEUED** at last read.
+- Manus bidirectional signal, Linear dispatch and independent return to two ChatGPT UI accounts: **NOT PROVEN E2E**.
+- Preserve CERT original source, previously GREEN/ORANGE milestones; do not elevate any new milestone without explicit task/result/receipt and destination-side readback.
