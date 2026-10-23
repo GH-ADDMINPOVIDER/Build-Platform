@@ -1,7 +1,7 @@
-# GS → GH-2 Addmin Provider → OCIAN-S-Host → Codex S-Host → D1
+# GS → GH-ADDMINT POVIDER → OCIAN-S HOST → CODEX-TMN → D1
 ## Canonical invocation and task-context recovery | 2026-10-23 | STAGING ONLY
 
-**Goal:** Finish GH-2 Issue #9 / CP-055, CP-056, CP-057 / WAIT-X18, WAIT-X19, WAIT-X20. Do not create a runner, server, Docker container, or second Codex instance. Historical E2E proof Run 39702219051 / Job 119573896324 is immutable; actor `Wave-Runner-2` dispatched on the repository now called `store`. The active GitHub Provider's human label is **GH-2 Addmin Provider**; the current technical GitHub repository is `Wave-Runner-2/Build-Platform`.
+**Goal:** Finish GH-2 Issue #9 / CP-055, CP-056, CP-057 / WAIT-X18, WAIT-X19, WAIT-X20. Do not create a runner, server, Docker container, or second Codex instance. Historical E2E proof Run 39702219051 / Job 119573896324 is immutable; actor `Wave-Runner-2` dispatched on the repository now called `store`. The active GitHub Provider's human label is **GH-ADDMINT POVIDER**; the current technical GitHub repository is `Wave-Runner-2/Build-Platform`.
 
 ### Authoritative topology and roles
 
@@ -10,10 +10,10 @@ GS / Owner (authenticated)
   └─ WAVE Worker  POST /api/wave/command  signed owner session
       ├─ ATHENA planner + Yellow Stone scoped permission
       ├─ Cloudflare D1 agent_tasks / agent_events
-      └─ GH-2 Addmin Provider (technical account Wave-Runner-2)
+      └─ GH-ADDMINT POVIDER (technical account Wave-Runner-2)
           └─ workflow_dispatch wave-command-consumer.yml
               └─ GitHub Actions existing self-host registration
-                  └─ OCEAN physical Droplet OCIAN-S-Host (604432491)
+                  └─ OCEAN physical Droplet OCIAN-S HOST (604432491)
                       └─ registered runner service wave-runner-01
                           └─ scripts/wave-terminal-solo.sh (flock)
                               └─ scripts/wave-command-consumer.mjs
@@ -31,7 +31,7 @@ The caller MUST have an active signed Owner session; free text / Issue labels / 
 Use existing `POST https://wave.ogenicchocolate.com/api/wave/command`:
 ```json
 {
-  "command": "OGE129 READONLY PROOF: verify Codex S-Host staging workspace only; do not modify code or production",
+  "command": "OGE129 READONLY PROOF: verify CODEX-TMN staging workspace only; do not modify code or production",
   "capability": "codex_selfhost",
   "provider": "openai",
   "mode": "read",
@@ -95,3 +95,13 @@ Do **not** run `config.sh remove`, delete runner credentials, restart production
 ### Acceptance and rollback
 
 No green PASS/orange E2E from code-only, hosted CI or queued runner. Old certified green remains unchanged. Every new event should capture timestamp/principal, exact Git SHA, runner/job, task/context revision, result hash, D1 readback. All testing STAGING ONLY; do not merge to main/production without actual acceptance. If fresh changes regress an old certified gate, revert only the new staging change to last passing SHA; append regression and recovery evidence; preserve original proof.
+
+## Owner correction — Docker Runtime is REQUIRED (not optional)
+
+**Current target:** `GH-ADDMINT POVIDER` (human label) authenticates/dispatches via GitHub.com; a pre-existing GitHub Actions agent on the physical `OCIAN-S HOST` accepts the job. **Docker Engine runs on this server**, launching a scoped ephemeral staging container to execute `CODEX-TMN` and return cryptographic result hashes to existing WAVE/D1. No new physical runner, Provider or server.
+
+- Historical Docker evidence exists from `store` Run `39124078680`, where `docker run --rm --network none --read-only` inspected the host Codex runtime and /root/.codex context. It does **not** prove the new GH-ADDMINT POVIDER repository can run CODEX-TMN inside Docker today.
+- Previous signed Owner→Codex→D1 green was `store` Run `39702219051` with **GitHub actor technical ID `Wave-Runner-2`**. The repository workflow was still located in `store`. Do not conflate these two separate historic proofs.
+- Present Draft PR #10 uses **direct host Codex CLI** via `scripts/wave-command-consumer.mjs`, NOT Docker. This is an outstanding IMPLEMENTATION GAP against Owner's new required runtime; **do not deploy it as compliant** until an existing Docker image and Codex CLI dependencies, read-only credential mount, context workspace, rootless UID/GID, CPU/RAM envelope, network policy and GH-ADDMINT POVIDER runner binding are verified on OCIAN.
+- Migration order: prove runner registration/labels for active GitHub repository → identify current OCIAN Docker Engine/image/working Codex profiles without printing secrets → execute read-only Codex container smoke and capture job+SHA → wire the safe Docker call under the **existing** host terminal SOLO lock → signed WAVE TaskEnvelope → D1 result and independent readback; then report E2E Orange on a **new** checkpoint row. Historical Green remains immutable.
+- `CODEX-TMN` is a **human-visible functional executor role**. Its existing internal capability `codex_selfhost`, D1 actor `codex-selfhost:wave-runner-01` and existing host profile paths remain unchanged until independently migrated. This avoids breaking currently certified receipts.
