@@ -3,15 +3,17 @@
   "owner_directive_date": "2026-10-23",
   "purpose": "Canonical human-facing role labels only; do not rename account, runner service, hostname, repo URL, git history or old proof",
   "active_provider": {
-    "label": "GH-2 Addmin Provider",
+    "label": "GH-ADDMINT POVIDER",
     "role": "SOLE_OPERATIONAL_GITHUB_PROVIDER",
     "technical_github_account": "Wave-Runner-2",
     "technical_repo": "Wave-Runner-2/Build-Platform",
-    "execution_host": "OCIAN-S-Host",
+    "execution_host": "OCIAN-S HOST",
     "github_runner_service": "wave-runner-01",
-    "codex_executor": "Codex S-Host",
+    "codex_executor": "CODEX-TMN",
     "codex_profile_path": "/home/wave/.codex",
-    "execution_route": "GS → signed WAVE Command → ATHENA/Yellow → GH-2 Addmin Provider → OCIAN-S-Host GitHub runner → Codex S-Host → D1 readback"
+    "execution_route": "GS → WAVE signed command → ATHENA/Yellow → GH-ADDMINT POVIDER → GitHub Actions → OCIAN-S HOST → Docker Runtime → CODEX-TMN → D1 verified readback",
+    "technical_host_name": "OCIAN-S-Host",
+    "runtime": "Docker Engine on OCIAN-S HOST (required execution lane; current GH2 E2E unverified)"
   },
   "archive_store": {
     "label": "store",
@@ -32,13 +34,14 @@
     "RP_STORE(OLD)"
   ],
   "rules": [
-    "Use exactly one active operational GitHub Provider: GH-2 Addmin Provider",
+    "Use exactly one active operational GitHub Provider: GH-ADDMINT POVIDER",
     "Use store as the sole display name for historical GitHub archive",
     "Frozen aliases may occur only in historical evidence and technical external identifiers, never as active display-role names",
     "Do not rename actual GitHub username Wave-Runner-2, technical repo, registered runner wave-runner-01 or Linux Codex profile without live operator-controlled migration",
     "Never delete or relabel historic E2E/PASS green/orange or source SHA/receipt",
     "Keep new command routing GH2-only and don't dispatch to store",
-    "Host OCIAN-S-Host and Codex S-Host are physical host and local executor, not extra GitHub Providers",
-    "Google Sheet is owner viewing copy; GH2/Store archive/D1/Project provide evidence according to separate retention rules"
+    "Host OCIAN-S HOST and CODEX-TMN are physical host and local executor, not extra GitHub Providers",
+    "Google Sheet is owner viewing copy; GH2/Store archive/D1/Project provide evidence according to separate retention rules",
+    "Owner requires Docker Runtime on existing OCIAN-S HOST for CODEX-TMN execution; only historical Docker proof exists, so verify image, mounts, permissions and GH2 Runner before claiming new E2E"
   ]
 }
