@@ -1,0 +1,82 @@
+name: GH2 CCS Multi 15 Protocols + Infisical OIDC Docker Proof
+on:
+  push:
+    branches: [feat/ccs-multi-protocol-docker-20261023]
+    paths:
+      - 'infra/tmn-a2a-ssh/**'
+      - '.github/workflows/ccs-multi-15-docker-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-docker-protocol:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    env:
+      WAVE_TMN_A2A_TOKEN: ccs-ci-fixture-no-real-credential-20261023
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Original 15 Connector modes CCS protocol validations, local node
+        run: node --experimental-strip-types --test infra/tmn-a2a-ssh/ccs-multi-test.mjs
+      - name: Existing A2A protocol must remain PASS
+        run: node --experimental-strip-types --test infra/tmn-a2a-ssh/test.mjs
+      - name: Build and launch restricted Docker with CCS multi, no credentials
+        run: docker compose -f infra/tmn-a2a-ssh/compose.yml up -d --build --wait
+      - name: Send MULTI CCS/1.0 Card bundle through Docker A2A message/send and tasks/get
+        env:
+          WAVE_A2A_REMOTE_URL: http://127.0.0.1:18761
+        run: node --experimental-strip-types --test infra/tmn-a2a-ssh/ccs-multi-test.mjs
+      - name: Regression check existing single-message A2A in Docker
+        env:
+          WAVE_A2A_REMOTE_URL: http://127.0.0.1:18761
+        run: node --experimental-strip-types --test infra/tmn-a2a-ssh/test.mjs
+      - name: Docker remains loopback, unprivileged, read-only
+        run: |
+          set -euo pipefail
+          docker port wave-tmn-a2a-staging-a2a-docker-1 18761/tcp | grep -Fx '127.0.0.1:18761'
+          docker inspect wave-tmn-a2a-staging-a2a-docker-1 --format '{{.HostConfig.ReadonlyRootfs}} {{.HostConfig.Privileged}}' | grep -Fx 'true false'
+          echo 'CCS_15_PROTOCOL_CONTRACT_DOCKER=PASS; PROVIDER_CALLS_NOT_EXECUTED=TRUE'
+          echo 'OCIAN_S_HOST_AND_D1_E2E=NOT_VERIFIED'
+      - name: Remove hosted CI Docker only
+        if: always()
+        run: docker compose -f infra/tmn-a2a-ssh/compose.yml down --remove-orphans || true
+  oidc-original-secret-names:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+    steps:
+      - name: GH2 Infisical Machine Identity OIDC staging binding
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: false
+      - name: Check original secret-name availability without exporting values or raw hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = 'Wave-Runner-2/Build-Platform'
+          for name in 'GITHUB_TOKEN' 'N8N_API_KEY' 'OPENAI_API_KEY' 'OGENIC_OPS_KEY' 'GH-ID-TOMLOAD-RUNNER-2' 'Key-token-Ownner-Ops_e579' 'OGENIC_GENERIC_HOOK_SECRET'; do
+            if printenv "$name" >/dev/null 2>&1; then
+              echo "INFISICAL_BINDING_NAME_PRESENT=${name}"
+            else
+              echo "INFISICAL_BINDING_NAME_UNVERIFIED=${name}"
+            fi
+          done
+          echo 'INFISICAL_GH2_OIDC=PASS_NAME_ONLY_NO_TOKEN_OUTPUT'
+          echo 'CCS_PROTOCOL_TO_PROVIDER_CALLING=NOT_PROVEN_BY_NAME_CHECK'
