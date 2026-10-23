@@ -14,6 +14,9 @@ on:
       - "scripts/gh2-runner-registration-probe.mjs"
       - "worker/wave-command-dispatch.ts"
       - "worker/entry-yellow-stone.ts"
+      - "worker/task-envelope-runtime-api.ts"
+      - "worker/task-envelope-contract.ts"
+      - "tests/task-envelope-runtime-api.test.mjs"
       - "scripts/wave-command-consumer.mjs"
       - "scripts/wave-terminal-solo.sh"
   workflow_dispatch:
@@ -39,7 +42,12 @@ jobs:
           node-version: '22'
       - name: Static invocation, routing and owner-alias tests (NOT Codex E2E)
         run: |
-          node --test tests/gs-command-invocation.test.mjs tests/owner-frozen-provider-labels.test.mjs tests/gh2-provider-command-routing.test.mjs
+          node --test tests/gs-command-invocation.test.mjs tests/owner-frozen-provider-labels.test.mjs tests/gh2-provider-command-routing.test.mjs tests/task-envelope-runtime-api.test.mjs
+      - name: Build/typecheck Worker bridge without running remote executor
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
       - name: Inspect GH2 existing runner registration through permitted GitHub API
         env:
           GITHUB_TOKEN: ${{ github.token }}
