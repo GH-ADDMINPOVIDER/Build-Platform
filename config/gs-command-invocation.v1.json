@@ -2,11 +2,11 @@
   "schema": "ogenic.gs-command-invocation.v1",
   "version": "1.0.0",
   "environment": "staging",
-  "primary_provider_label": "GH-2 Addmin Provider",
+  "primary_provider_label": "GH-ADDMINT POVIDER",
   "archive_label": "store",
-  "physical_host": "OCIAN-S-Host",
+  "physical_host": "OCIAN-S HOST",
   "runner_service": "wave-runner-01",
-  "codex_executor": "Codex S-Host",
+  "codex_executor": "CODEX-TMN",
   "codex_home": "/home/wave/.codex",
   "owner": {
     "session": "owner-main/1LSS_OWNER_MAIN",
@@ -16,7 +16,7 @@
     "method": "POST",
     "url": "https://wave.ogenicchocolate.com/api/wave/command",
     "payload": {
-      "command": "OGE129 READONLY PROOF: verify Codex S-Host staging workspace only; no code or production changes",
+      "command": "OGE129 READONLY PROOF: verify CODEX-TMN staging workspace only; no code or production changes",
       "capability": "codex_selfhost",
       "provider": "openai",
       "mode": "read",
@@ -55,11 +55,11 @@
   },
   "constraints": {
     "no_second_runner": true,
-    "no_docker_required": true,
     "no_store_dispatch": true,
     "no_secrets_in_task": true,
     "no_main_or_prod": true,
-    "immutable_historic_cert": true
+    "immutable_historic_cert": true,
+    "docker_required": true
   },
   "live_acceptance": "NOT_VERIFIED_WAIT_X19_GH2_RUNNER_QUEUED",
   "cert_tasks": [
@@ -71,5 +71,19 @@
     "WAIT-X18",
     "WAIT-X19",
     "WAIT-X20"
-  ]
+  ],
+  "technical_droplet_name": "OCIAN-S-Host",
+  "docker_runtime": {
+    "requested_by_owner": true,
+    "host": "OCIAN-S HOST",
+    "engine": "Docker",
+    "execution_target": "CODEX-TMN",
+    "historical_proof_run": "39124078680",
+    "historic_scope": "Docker-mediated Codex/identity audit on the existing host; not evidence of current GH2 container execution",
+    "new_GH2_execution_proven": false,
+    "container_image": "VERIFY_EXISTING_IMAGE",
+    "codex_home_mount": "VERIFY_EXISTING_AUTH_PROFILE_READONLY",
+    "host_runner_registration": "VERIFY_OLD_REGISTRATION_BEFORE_REBINDING",
+    "no_duplicate_host_or_runner": true
+  }
 }
