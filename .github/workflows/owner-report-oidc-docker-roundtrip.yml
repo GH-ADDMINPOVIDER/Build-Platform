@@ -55,10 +55,10 @@ jobs:
           set -euo pipefail
           docker pull alpine:3.20
           docker create --name wave-owner-report-roundtrip --network none --read-only \
-            --cap-drop ALL --security-opt no-new-privileges --memory 128m --pids-limit 32 \
+            --tmpfs /tmp:rw,nosuid,nodev,size=64m --cap-drop ALL --security-opt no-new-privileges --memory 128m --pids-limit 32 \
             --entrypoint /bin/sh alpine:3.20 -c 'sleep 120'
-          docker cp owner_report_input/. wave-owner-report-roundtrip:/tmp/
           docker start wave-owner-report-roundtrip
+          docker cp owner_report_input/. wave-owner-report-roundtrip:/tmp/
           docker cp wave-owner-report-roundtrip:/tmp/. owner_report_restored/
           docker rm -f wave-owner-report-roundtrip
           jq -c '.files[]' infra/tmn-a2a-ssh/report-transfer/owner-report-manifest.json | while IFS= read -r entry; do
