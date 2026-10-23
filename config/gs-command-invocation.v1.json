@@ -1,0 +1,89 @@
+{
+  "schema": "ogenic.gs-command-invocation.v1",
+  "version": "1.0.0",
+  "environment": "staging",
+  "primary_provider_label": "GH-ADDMINT POVIDER",
+  "archive_label": "store",
+  "physical_host": "OCIAN-S HOST",
+  "runner_service": "wave-runner-01",
+  "codex_executor": "CODEX-TMN",
+  "codex_home": "/home/wave/.codex",
+  "owner": {
+    "session": "owner-main/1LSS_OWNER_MAIN",
+    "signed_session_required": true
+  },
+  "call": {
+    "method": "POST",
+    "url": "https://wave.ogenicchocolate.com/api/wave/command",
+    "payload": {
+      "command": "OGE129 READONLY PROOF: verify CODEX-TMN staging workspace only; no code or production changes",
+      "capability": "codex_selfhost",
+      "provider": "openai",
+      "mode": "read",
+      "environment": "staging"
+    },
+    "headers": {
+      "idempotency_key": "UUID format, unique per task and stable across retries"
+    },
+    "task_id_source": "server response task.id (wavecmd_ followed by 64 hexadecimal characters)"
+  },
+  "dispatch": {
+    "repository": "Wave-Runner-2/Build-Platform",
+    "workflow": "wave-command-consumer.yml",
+    "ref": "phase-vi-provider-incentive-metering",
+    "inputs": [
+      "task_id"
+    ],
+    "never_target_archive": true
+  },
+  "result": {
+    "endpoint": "/api/wave/command/status",
+    "query": "task_id",
+    "required": [
+      "task.status=DONE",
+      "execution.consumer_proven=true",
+      "last_event=COMMAND_RESULT_DONE",
+      "evidence.result_sha256=64hex",
+      "evidence.git_sha=40hex",
+      "evidence.evidence_ref=exact GH2 run URL"
+    ]
+  },
+  "context": {
+    "contract": "wave.task.envelope.v1",
+    "d1_migration": "0018_task_envelope_routing.sql",
+    "enable_only_after_d1_staging_binding_readback": true
+  },
+  "constraints": {
+    "no_second_runner": true,
+    "no_store_dispatch": true,
+    "no_secrets_in_task": true,
+    "no_main_or_prod": true,
+    "immutable_historic_cert": true,
+    "docker_required": true
+  },
+  "live_acceptance": "NOT_VERIFIED_WAIT_X19_GH2_RUNNER_QUEUED",
+  "cert_tasks": [
+    "CP-055",
+    "CP-056",
+    "CP-057",
+    "CP-059",
+    "CP-060",
+    "WAIT-X18",
+    "WAIT-X19",
+    "WAIT-X20"
+  ],
+  "technical_droplet_name": "OCIAN-S-Host",
+  "docker_runtime": {
+    "requested_by_owner": true,
+    "host": "OCIAN-S HOST",
+    "engine": "Docker",
+    "execution_target": "CODEX-TMN",
+    "historical_proof_run": "39124078680",
+    "historic_scope": "Docker-mediated Codex/identity audit on the existing host; not evidence of current GH2 container execution",
+    "new_GH2_execution_proven": false,
+    "container_image": "VERIFY_EXISTING_IMAGE",
+    "codex_home_mount": "VERIFY_EXISTING_AUTH_PROFILE_READONLY",
+    "host_runner_registration": "VERIFY_OLD_REGISTRATION_BEFORE_REBINDING",
+    "no_duplicate_host_or_runner": true
+  }
+}

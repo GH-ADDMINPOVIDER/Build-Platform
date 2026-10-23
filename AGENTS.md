@@ -1,3 +1,20 @@
+# OWNER'S CURRENT GH-2 COMMAND INVOCATION OVERRIDE — 23 OCT 2026
+This is an append-style current operational section; the pre-existing historical AGENTS.md evidence remains below. This override is in GH2 **staging Draft PR #10 only**, not deployed.
+- **Sole active provider display label:** `GH-ADDMINT POVIDER`; technical GitHub identity `Wave-Runner-2`, technical repository `Wave-Runner-2/Build-Platform`.
+- **Historic archive display label:** `store`; technical repository `Ogenicchocolate21debug/Build-Platform`. It is READ-ONLY historic SHA/Run recovery, NEVER new command dispatch.
+- **One host:** `OCIAN-S HOST` DigitalOcean Droplet 604432491; existing GitHub runner service `wave-runner-01` and Docker Engine; `CODEX-TMN` must execute inside a verified staging container using the retained `/home/wave/.codex` host profile (technical path); neither is an additional Provider.
+- **First read before executing any task:** `docs/operations/GS_COMMAND_INVOCATION_SOP_2026-10-23.md`, `config/gs-command-invocation.v1.json`, `docs/operations/OWNER_ACTIVE_PROVIDER_IDENTITY_MAP_2026-10-23.md`, then exact Task/Checkpoint from CERT.
+- **Single invocation route:** signed owner `POST /api/wave/command` with `capability=codex_selfhost`, `provider=openai`, staging, idempotency UUID -> ATHENA/Yellow -> GH2 Actions -> existing OCIAN runner -> local Codex -> D1 status readback with matching run/hash. `QUEUED` is NOT terminal execution; don't call Codex from a GitHub Issue body or cloud runner.
+- **Task Context integration:** `worker/task-envelope-runtime-api.ts` is additive and **feature-flag OFF** until STAGING D1 0018 migration/authorization is verified. Use read-only envelope scope; do not enable n8n/GT/producer adapters as a substitute for signed Owner execution.
+- **Blocked item:** `CP-057 / WAIT-X19` GH2 self-host job 39838575588 still has no registered runner assignment at last inspection. GitHub-hosted registration inventory's default token returns 403; cannot infer offline. Requires existing-host admin registration/scope check; don't create new runner, Docker, or CODEx login.
+- **Proof status:** prior 2026-10-22 `store` Run39702219051 (actor Wave-Runner-2) is immutable scoped E2E; new CI PASS is not new Runtime E2E. Preserve all prior green/orange; only Owner may choose final acceptance.
+- **Historical names** are quoted below only to preserve context and original evidence, not as active role labels.
+
+- **Owner REQUIRED Docker:** new GH-ADDMINT POVIDER → OCIAN-S HOST → Docker → CODEX-TMN → D1. Historical Docker Run39124078680 exists, new GH2 Docker/Codex E2E unverified. Current host `codex exec` is not compliant with the new execution requirement until safely containerized and proven.
+- **Canonical diagram:** `docs/operations/OWNER_CANONICAL_DOCKER_TMN_DIAGRAM_2026-10-23.md`. **All previous labels below are superseded for current display**, preserved for history and external identifiers only. `store` archive never gets new runtime dispatch.
+
+---
+
 # OGENIC / WAVE Agent Operating Rules
 
 Scope: `phase-vi-provider-incentive-metering` only.

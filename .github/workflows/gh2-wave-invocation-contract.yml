@@ -1,0 +1,60 @@
+# Hosted CI diagnostic only. NEVER runs Codex on github-hosted, and never changes runner registration.
+name: GH2 WAVE Invocation Contract and Runner Inventory
+on:
+  push:
+    branches:
+      - fix/gh2-provider-codex-ocean-route-20261023
+    paths:
+      - ".github/workflows/gh2-wave-invocation-contract.yml"
+      - "config/gs-command-invocation.v1.json"
+      - "config/owner-runtime-labels.json"
+      - "tests/gs-command-invocation.test.mjs"
+      - "tests/owner-frozen-provider-labels.test.mjs"
+      - "tests/gh2-provider-command-routing.test.mjs"
+      - "scripts/gh2-runner-registration-probe.mjs"
+      - "worker/wave-command-dispatch.ts"
+      - "worker/entry-yellow-stone.ts"
+      - "worker/task-envelope-runtime-api.ts"
+      - "worker/task-envelope-contract.ts"
+      - "tests/task-envelope-runtime-api.test.mjs"
+      - "scripts/wave-command-consumer.mjs"
+      - "scripts/wave-terminal-solo.sh"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: gh2-invocation-contract-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  source-contract:
+    name: Read-only WAVE invocation and GH2 runner inventory
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static invocation, routing and owner-alias tests (NOT Codex E2E)
+        run: |
+          node --test tests/gs-command-invocation.test.mjs tests/owner-frozen-provider-labels.test.mjs tests/gh2-provider-command-routing.test.mjs tests/task-envelope-runtime-api.test.mjs
+      - name: Build/typecheck Worker bridge without running remote executor
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+      - name: Inspect GH2 existing runner registration through permitted GitHub API
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/gh2-runner-registration-probe.mjs
+      - name: Proof limit
+        run: |
+          echo 'SOURCE_CONTRACT_CHECK=COMPLETED'
+          echo 'CODEX_EXECUTION=NOT_PERFORMED_IN_HOSTED_CI'
+          echo 'D1_READBACK=NOT_PERFORMED_IN_HOSTED_CI'

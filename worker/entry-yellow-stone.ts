@@ -38,6 +38,7 @@ import { dispatchWaveCommandConsumer } from "./wave-command-dispatch";
 import { createConnectorModesApi } from "./connector-modes-api";
 import { createLocalAgentTeamApi } from "./local-agent-team-api";
 import { createAgentFabricApi } from "./fabric-api";
+import { createWaveTaskEnvelopeApi } from "./task-envelope-runtime-api";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
@@ -69,6 +70,9 @@ const discordApi = createDiscordApi();
 const connectorModesApi = createConnectorModesApi();
 const agentFabricApi = createAgentFabricApi();
 const localAgentTeamApi = createLocalAgentTeamApi(
+  (request, bindings, ctx) => athenaGuardedCommand(request, bindings as Bindings, ctx),
+);
+const taskEnvelopeApi = createWaveTaskEnvelopeApi(
   (request, bindings, ctx) => athenaGuardedCommand(request, bindings as Bindings, ctx),
 );
 
@@ -126,7 +130,7 @@ async function queueApprovedCommand(db: CommandQueueDb, plan: Record<string, unk
        id, title, capability, status, priority, resource_key, claimed_by,
        correlation_id, github_repo, source_ref, attempt_count, created_at, updated_at
      ) VALUES (?, ?, ?, 'QUEUED', 90, ?, NULL, ?,
-       'Ogenicchocolate21debug/Build-Platform', 'owner-main/1LSS_OWNER_MAIN', 0,
+       'Wave-Runner-2/Build-Platform', 'owner-main/1LSS_OWNER_MAIN', 0,
        CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
   ).bind(taskId, title, capability, resourceKey, correlationId).run();
 
@@ -147,7 +151,7 @@ async function queueApprovedCommand(db: CommandQueueDb, plan: Record<string, unk
   return { task, replayed: false };
 }
 
-const MANUAL_WORKFLOW = "https://github.com/Ogenicchocolate21debug/Build-Platform/actions/workflows/wave-command-consumer.yml";
+const MANUAL_WORKFLOW = "https://github.com/Wave-Runner-2/Build-Platform/actions/workflows/wave-command-consumer.yml";
 function manualDispatchDetails(taskId: string, code: string) {
   return {
     mode: "GITHUB_OWNER_MANUAL",
@@ -189,7 +193,7 @@ async function commandConsumerStatus(request: Request, env: Bindings) {
     result_sha256: /^[a-f0-9]{64}$/.test(resultSha) ? resultSha : null,
     git_sha: /^[a-f0-9]{40}$/.test(gitSha) ? gitSha : null,
     evidence_ref: typeof metadata.evidence_ref === "string"
-      && /^https:\/\/github\.com\/Ogenicchocolate21debug\/Build-Platform\/actions\/runs\/\d+$/.test(metadata.evidence_ref)
+      && /^https:\/\/github\.com\/(?:Ogenicchocolate21debug|Wave-Runner-2)\/Build-Platform\/actions\/runs\/\d+$/.test(metadata.evidence_ref)
       ? metadata.evidence_ref : null,
   };
   const proven = Boolean(task.status === "DONE" && receipt?.event_type === "COMMAND_RESULT_DONE"
@@ -550,6 +554,9 @@ export default {
     }
     if (pathname === "/api/capabilities/execute") {
       return executionApi.fetch(request, env, ctx as never);
+    }
+    if (pathname.startsWith("/api/wave/task-envelope")) {
+      return taskEnvelopeApi.fetch(request, env as never, ctx as never);
     }
     if (pathname === "/api/wave/command/status") {
       return commandConsumerStatus(request, env);

@@ -27,7 +27,7 @@ env:
 
 jobs:
   consume:
-    if: github.ref_name == 'phase-vi-provider-incentive-metering'
+    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 20
     steps:
@@ -45,7 +45,7 @@ jobs:
           set -euo pipefail
           [[ "$WAVE_TASK_ID" =~ ^wavecmd_[a-f0-9]{64}$ ]]
           test "$(git branch --show-current)" = "phase-vi-provider-incentive-metering"
-          test "$(hostname)" = "wave-runner-01"
+          test "$RUNNER_NAME" = "wave-runner-01"
 
       - name: Discover Infisical project
         id: infisical_project
