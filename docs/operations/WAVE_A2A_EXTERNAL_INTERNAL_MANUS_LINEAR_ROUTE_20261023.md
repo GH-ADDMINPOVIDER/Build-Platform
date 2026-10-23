@@ -91,3 +91,23 @@ Default fallback: **fail closed** to read-only/status-inbox and Linear escalatio
 - GH2 OCIAN SSH/Docker host activation [Run 39937839755](https://github.com/Wave-Runner-2/Build-Platform/actions/runs/39937839755) **QUEUED** at last read.
 - Manus bidirectional signal, Linear dispatch and independent return to two ChatGPT UI accounts: **NOT PROVEN E2E**.
 - Preserve CERT original source, previously GREEN/ORANGE milestones; do not elevate any new milestone without explicit task/result/receipt and destination-side readback.
+
+## 7. Owner correction — INTERNAL Infisical + SUDO TERMINAL MODE (2026-10-23)
+
+**Internal topology:**
+
+`WAVE Command [GS–GT or Owner] -> Manus signal bridge -> ATHENA/Yellow owner/capability preflight -> GH_ADDMIN_POVIDER (GH2) + Infisical identity/credential broker -> controlled SUDO TERMINAL MODE [SSH + IDEs + OPC + LCI + Codex GS + GitHub Copilot CLI TMN] -> private Docker Container -> result -> ATHENA/Registry/D1/Green Stone -> Linear Receive/Order -> Manus callback -> registered GH2/n8n return adapter -> matching origin`
+
+**Infisical machine-identity authorization:** place the permission broker in the INTERNAL trust boundary with Copilot/TMN, while retaining external n8n/Railway connector orchestration. Infisical controls identity auth method, environment/project role and secret read privileges; it does not independently grant Linux sudo, SSH shell, GitHub repository write rights or GitHub Copilot subscriptions.
+
+**Route A — GH2 OIDC, existing verified path:** GitHub Actions runner obtains **GitHub-signed OIDC JWT** with narrow repo/branch/environment audience+subject claims; Infisical validates it and issues a short-lived Machine Identity token; GH2 retrieves only approved staging secret bindings. The **OIDC trust direction is GitHub -> Infisical**, even if the operational secret-delivery direction is Infisical -> GH2. Existing GH2 OIDC proof remains scoped to the tested CI workflow.
+
+**Route B — Copilot TMN credential mode:** an authorized Copilot CLI/Tool process may request an approved **Provider BYOK** key via the internal Infisical credential broker and receive a short-lived scoped injection (process environment/stdin/ephemeral mount, never CLI log, Git, Linear, Manus or Card content). **Do not claim Copilot CLI natively authenticates to Infisical via GH2 OIDC.** A Copilot **subscription** still requires a separate GitHub OAuth/token entitlement; an Infisical secret alone does not confer it. BYOK provider calls can accrue vendor charges and must be limited to approved bounds.
+
+**SUDO TERMINAL MODE is a gated command capability, not a blanket root grant:** require a verified Owner+Yellow grant that includes `task_id`, operation allowlist, duration, target user/host, environment=staging and audit receipt. Default to unprivileged `wave` runtime. Where sudo is needed, permit only explicitly approved operations with timeouts and evidence. No unconditional `NOPASSWD: ALL`, no implicit privilege escalation for IDEs/OPC/LCI/Copilot/Codex, no `docker.sock` inside generic A2A containers.
+
+**Internal status by direct host evidence (2026-10-22, GitHub historic run 39701916640):** Copilot local CLI `VERSION_OK_AUTH_UNVERIFIED`; Codex GS profile `SIGNED_IN`; OpenCode local installed with provider auth unverified; SSH active; standalone remote IDE servers not yet verified installed for runner user. Do not mistake a locally installed binary or plugin listing for live Copilot Calling.
+
+**Fail-closed provider selection:** GH2 credential grant and Copilot BYOK binding require independent authorization. If Copilot auth or BYOK connector is unverified, return `CONFIGURATION_REQUIRED` and preserve task context for Linear/Manus without switching to an unapproved paid model. Cold Store, Gemini and DeepSeek are separately registered fallbacks; no production/secret mutation.
+
+**Sources:** [Infisical Machine Identities](https://infisical.com/docs/documentation/platform/identities/machine-identities), [Infisical GitHub OIDC](https://infisical.com/docs/documentation/platform/identities/oidc-auth/github), [GitHub Copilot CLI Auth](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/authenticate-copilot-cli).
