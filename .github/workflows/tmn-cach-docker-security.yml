@@ -1,0 +1,52 @@
+name: TMN / Docker Connector Security Repair (staging)
+on:
+  push:
+    branches:
+      - fix/tmn-docker-cach-security-20261023
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tmn-docker-security-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  security-repair:
+    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout this isolated staging repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/tmn-docker-cach-security-20261023
+          persist-credentials: true
+      - name: Regenerate lockfile and run tests inside restricted Docker
+        shell: bash
+        run: bash scripts/tmn-docker-security-repair.sh
+      - name: Preserve tested dependency lock on repair branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add apps/ogenic-control-tower/package-lock.json
+          if git diff --cached --quiet; then
+            echo 'Lockfile already current.'
+          else
+            git -c user.name='github-actions[bot]' \
+                -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+                commit -m 'security: regenerate patched MCP/proxy dependency lock under Docker'
+            git push origin HEAD:refs/heads/fix/tmn-docker-cach-security-20261023
+          fi
+      - name: Docker npm production dependency audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" \
+            --cap-drop ALL --security-opt no-new-privileges \
+            --memory 2g --pids-limit 256 \
+            --tmpfs /tmp:rw,nosuid,size=512m -e npm_config_cache=/tmp/npm-cache \
+            --mount "type=bind,src=$PWD/apps/ogenic-control-tower,dst=/work" \
+            -w /work node:22-alpine \
+            npm audit --omit=dev --audit-level=high
