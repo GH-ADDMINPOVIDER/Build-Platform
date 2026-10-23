@@ -1,0 +1,102 @@
+name: GH2 Infisical OIDC Owner Report Docker Roundtrip
+on:
+  push:
+    branches: [test/owner-report-40-images-docker-roundtrip-20261023]
+    paths: [.github/workflows/owner-report-oidc-docker-roundtrip.yml]
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  oidc-docker-transfer:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Authenticate GH2 workload to Infisical with OIDC (do not display secrets)
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: false
+      - name: Confirm scoped GH2 and Infisical identity handshake
+        run: |
+          test "$GITHUB_REPOSITORY" = Wave-Runner-2/Build-Platform
+          test "$GITHUB_REF_NAME" = test/owner-report-40-images-docker-roundtrip-20261023
+          echo 'GH2_INFISICAL_OIDC=PASS_NO_SECRET_OUTPUT'
+      - name: Read 40 pre-pinned Drive image files, validate original SHA256 (no stored OAuth token exported)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p owner_report_input owner_report_restored
+          jq -c '.files[]' infra/tmn-a2a-ssh/report-transfer/owner-report-manifest.json | while IFS= read -r entry; do
+            name="$(jq -r '.name' <<< "$entry")"
+            id="$(jq -r '.id' <<< "$entry")"
+            expected="$(jq -r '.sha256' <<< "$entry")"
+            [[ "$name" =~ ^IMG_[0-9]{4}\.PNG$ ]]
+            curl --fail --location --silent --show-error --retry 2 --max-time 45 \
+              "https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t"
+              --output "owner_report_input/${name}"
+            echo "${expected}  owner_report_input/${name}" | sha256sum -c --status
+          done
+          test "$(find owner_report_input -maxdepth 1 -name '*.PNG' -type f | wc -l)" -eq 40
+          echo 'OWNER_REPORT_DRIVE_INPUT_SHA256=PASS_40_OF_40'
+      - name: Create real restricted Docker container, copy files in, retrieve by docker cp
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull alpine:3.20
+          docker create --name wave-owner-report-roundtrip --network none --read-only \
+            --cap-drop ALL --security-opt no-new-privileges --memory 128m --pids-limit 32 \
+            --entrypoint /bin/sh alpine:3.20 -c 'sleep 120'
+          docker cp owner_report_input/. wave-owner-report-roundtrip:/tmp/
+          docker start wave-owner-report-roundtrip
+          docker cp wave-owner-report-roundtrip:/tmp/. owner_report_restored/
+          docker rm -f wave-owner-report-roundtrip
+          jq -c '.files[]' infra/tmn-a2a-ssh/report-transfer/owner-report-manifest.json | while IFS= read -r entry; do
+            name="$(jq -r '.name' <<< "$entry")"
+            expected="$(jq -r '.sha256' <<< "$entry")"
+            echo "${expected}  owner_report_restored/${name}" | sha256sum -c --status
+          done
+          test "$(find owner_report_restored -maxdepth 1 -name '*.PNG' -type f | wc -l)" -eq 40
+          echo 'OWNER_REPORT_GH2_INFISICAL_OIDC_DOCKER_ROUNDTRIP=PASS_40_OF_40'
+      - name: Prepare private short-lived GitHub Actions evidence ZIP
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, pathlib, zipfile
+          manifest=json.loads(pathlib.Path('infra/tmn-a2a-ssh/report-transfer/owner-report-manifest.json').read_text())
+          roots=[pathlib.Path('owner_report_input'),pathlib.Path('owner_report_restored')]
+          results=[]
+          for entry in manifest['files']:
+              name=entry['name']; expect=entry['sha256']
+              actual=[hashlib.sha256((base/name).read_bytes()).hexdigest() for base in roots]
+              if actual != [expect, expect]: raise RuntimeError('SHA256_MISMATCH: '+name)
+              results.append({'name':name,'sha256':expect,'bytes':(roots[0]/name).stat().st_size})
+          evidence={'status':'PASS','count':len(results),'source':'Ownner Report Google Drive',
+                    'transport':'GH2 Infisical OIDC -> GitHub-hosted Docker file copy in/out',
+                    'host':'GH2 GitHub-hosted runner, NOT OCIAN-S HOST','oidc':'SUCCESS',
+                    'result_hashes_match':len(results),'files':results}
+          pathlib.Path('owner_report_roundtrip_receipt.json').write_text(json.dumps(evidence,indent=2))
+          with zipfile.ZipFile('owner_report_container_restored.zip','w',compression=zipfile.ZIP_DEFLATED) as z:
+              z.write('owner_report_roundtrip_receipt.json')
+              for item in results: z.write('owner_report_restored/'+item['name'],arcname='Owner_Report/'+item['name'])
+          PY
+      - name: Publish returned container files as private 1-day artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owner-report-docker-restored-40
+          path: owner_report_container_restored.zip
+          retention-days: 1
+          if-no-files-found: error
