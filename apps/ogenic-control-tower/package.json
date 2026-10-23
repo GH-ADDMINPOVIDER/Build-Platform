@@ -13,8 +13,11 @@
     "test": "npm run check && npm run test:ui && npm run test:mcp && npm run test:e2e"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.20.2",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@modelcontextprotocol/ext-apps": "^1.0.1",
     "zod": "^3.25.76"
+  },
+  "overrides": {
+    "proxy-addr": "^2.0.8"
   }
 }
