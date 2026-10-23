@@ -10,7 +10,7 @@ const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj,key);
 const object = x => x && typeof x === "object" && !Array.isArray(x);
 const cardFields = new Set(["mode","card_id","holder","capability","stone_code","state","scope","credential_ref","lease"]);
 const batchFields = new Set(["protocol","wrapper","mode","environment","cards","secret_values_present"]);
-const badFields = /^(?:secret|token|credential|api[_-]?key|password|private[_-]?key|authorization|auth_header|bearer|raw_value|secretValue|tokenValue|payload_value)$/i;
+const badFields = /^(?:secret|token|credential|api[_-]?key|password|private[_-]?key|authorization|auth_header|bearer|raw[_-]?(?:value|token|secret)|secretValue|tokenValue|payload_value)$/i;
 
 function containsRawValue(data, depth = 0) {
   if(depth > 7) return true;
