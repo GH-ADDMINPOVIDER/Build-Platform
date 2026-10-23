@@ -38,6 +38,7 @@ import { dispatchWaveCommandConsumer } from "./wave-command-dispatch";
 import { createConnectorModesApi } from "./connector-modes-api";
 import { createLocalAgentTeamApi } from "./local-agent-team-api";
 import { createAgentFabricApi } from "./fabric-api";
+import { createWaveTaskEnvelopeApi } from "./task-envelope-runtime-api";
 
 const resolverApi = createCapabilityResolverApi();
 const executionApi = createCapabilityExecutionApi();
@@ -69,6 +70,9 @@ const discordApi = createDiscordApi();
 const connectorModesApi = createConnectorModesApi();
 const agentFabricApi = createAgentFabricApi();
 const localAgentTeamApi = createLocalAgentTeamApi(
+  (request, bindings, ctx) => athenaGuardedCommand(request, bindings as Bindings, ctx),
+);
+const taskEnvelopeApi = createWaveTaskEnvelopeApi(
   (request, bindings, ctx) => athenaGuardedCommand(request, bindings as Bindings, ctx),
 );
 
@@ -550,6 +554,9 @@ export default {
     }
     if (pathname === "/api/capabilities/execute") {
       return executionApi.fetch(request, env, ctx as never);
+    }
+    if (pathname.startsWith("/api/wave/task-envelope")) {
+      return taskEnvelopeApi.fetch(request, env as never, ctx as never);
     }
     if (pathname === "/api/wave/command/status") {
       return commandConsumerStatus(request, env);
