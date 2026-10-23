@@ -26,7 +26,7 @@ concurrency:
 jobs:
   executor:
     name: connect wave-runner-01 to OpenAI Agent session
-    if: github.ref_name == 'phase-vi-provider-incentive-metering'
+    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 20
     env:
@@ -62,7 +62,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(hostname)" = 'wave-runner-01'
+          test "$RUNNER_NAME" = 'wave-runner-01'
           codex --version
           codex exec-server --help >/tmp/wave-codex-exec-server-help.txt
           test -s /tmp/wave-codex-exec-server-help.txt
