@@ -80,3 +80,46 @@ jobs:
           done
           echo 'INFISICAL_GH2_OIDC=PASS_NAME_ONLY_NO_TOKEN_OUTPUT'
           echo 'CCS_PROTOCOL_TO_PROVIDER_CALLING=NOT_PROVEN_BY_NAME_CHECK'
+  oidc-real-values-docker-stdin:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+    steps:
+      - name: OIDC fetch original staging credentials, values masked
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: false
+      - name: Actual credential bytes into Docker stdin, offline, compare SHA256 privately
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = 'Wave-Runner-2/Build-Platform'
+          test "$GITHUB_REF_NAME" = 'feat/ccs-multi-protocol-docker-20261023'
+          docker pull alpine:3.20 >/dev/null
+          n=0
+          for binding in 'GITHUB_TOKEN' 'N8N_API_KEY' 'OPENAI_API_KEY' 'OGENIC_OPS_KEY' 'GH-ID-TOMLOAD-RUNNER-2'; do
+            if ! printenv "$binding" >/dev/null 2>&1; then
+              echo "CCS_INFISICAL_REAL_DOCKER_BINDING_MISSING=${binding}"
+              exit 17
+            fi
+            expected="$(printenv "$binding" | sha256sum | cut -d' ' -f1)"
+            observed="$(printenv "$binding" | docker run --rm --network none --read-only --user 10001:10001 -i --cap-drop ALL --security-opt no-new-privileges --memory 64m --pids-limit 32 alpine:3.20 sha256sum | cut -d' ' -f1)"
+            test -n "$expected" && test "$expected" = "$observed"
+            unset expected observed
+            n=$((n+1))
+            echo "CCS_INFISICAL_STDIN_DOCKER_SHA256_PASS=${binding}"
+          done
+          test "$n" -eq 5
+          echo 'CCS_REAL_CREDENTIAL_VALUES_DOCKER=PASS_5_OF_5_NO_LOG_OR_NETWORK'
+          echo 'PROVIDER_CALL_AND_SECRET_ROTATION=NOT_PERFORMED'
