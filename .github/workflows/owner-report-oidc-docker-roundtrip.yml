@@ -43,7 +43,7 @@ jobs:
             expected="$(jq -r '.sha256' <<< "$entry")"
             [[ "$name" =~ ^IMG_[0-9]{4}\.PNG$ ]]
             curl --fail --location --silent --show-error --retry 2 --max-time 45 \
-              "https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t"
+              "https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t" \
               --output "owner_report_input/${name}"
             echo "${expected}  owner_report_input/${name}" | sha256sum -c --status
           done
