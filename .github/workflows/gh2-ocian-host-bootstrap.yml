@@ -1,6 +1,10 @@
 name: GH2 OCIAN host bootstrap
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/gh2-ocian-host-bootstrap.yml"
   workflow_dispatch:
 
 permissions:
@@ -98,6 +102,7 @@ jobs:
           test -n "$registration_token"
           echo "::add-mask::$registration_token"
           key_file=''
+          ssh_user=''
           for key_name in SSH_KEY SSH_PRIVATE_KEY; do
             key_material="$(printenv "$key_name" 2>/dev/null || true)"
             [ -n "$key_material" ] || continue
@@ -110,25 +115,34 @@ jobs:
               esac
               chmod 600 "$candidate"
               ssh-keygen -y -f "$candidate" >/dev/null 2>&1 || continue
-              if ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i "$candidate" wave@165.232.174.32 true >/dev/null 2>&1; then
-                key_file="$candidate"
-                echo "SSH key accepted for OCIAN: $key_name ($encoding)"
-                break 2
-              fi
+              for candidate_user in wave root ubuntu; do
+                if ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i "$candidate" "$candidate_user@165.232.174.32" true >/dev/null 2>&1; then
+                  key_file="$candidate"
+                  ssh_user="$candidate_user"
+                  echo "SSH key accepted for OCIAN: $key_name ($encoding), user=$ssh_user"
+                  break 3
+                fi
+              done
             done
           done
-          test -n "$key_file" || { echo "::error::No normalized Infisical SSH key authenticates as wave on OCIAN-S-Host"; exit 63; }
-          printf '%s\n' "$registration_token" | ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=no -i "$key_file" wave@165.232.174.32 '
-            set -euo pipefail
-            read -r registration_token
-            runner_dir=/opt/wave/actions-runner
-            test -d "$runner_dir"
-            old_listener="$(pgrep -f "/opt/wave/actions-runner/bin/Runner.Listener" | head -n 1 || true)"
-            cd "$runner_dir"
-            ./config.sh --unattended --replace --url https://github.com/Wave-Runner-2/Build-Platform --token "$registration_token" --name wave-runner-01 --labels self-hosted,linux,x64,wave --work _work
-            if [ -n "$old_listener" ]; then kill -TERM "$old_listener" || true; fi
-            echo "remote GH2 rebind complete"
-          '
+          test -n "$key_file" || { echo "::error::No approved Infisical SSH key authenticates to OCIAN-S-Host"; exit 63; }
+          {
+            printf '%s\n' "$registration_token"
+            cat <<'REMOTE_SCRIPT'
+          set -euo pipefail
+          read -r registration_token
+          if [ "$(id -u)" -eq 0 ]; then
+            exec runuser -u wave -- bash -s
+          fi
+          runner_dir=/opt/wave/actions-runner
+          test -d "$runner_dir"
+          cd "$runner_dir"
+          ./config.sh remove --unattended || true
+          rm -f .runner .credentials .credentials_rsaparams
+          ./config.sh --unattended --url https://github.com/Wave-Runner-2/Build-Platform --token "$registration_token" --name wave-runner-01 --labels self-hosted,linux,x64,wave --work _work
+          echo "remote GH2 rebind complete"
+          REMOTE_SCRIPT
+          } | ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=no -i "$key_file" "$ssh_user@165.232.174.32" 'bash -s'
           echo "GH2 direct rebind completed on OCIAN-S-Host; no new runner was created."
 
   verify-rebound-runner:
