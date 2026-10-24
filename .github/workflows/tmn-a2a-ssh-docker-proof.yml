@@ -14,9 +14,11 @@ jobs:
     if: github.repository == 'Wave-Runner-2/Build-Platform'
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    env:
-      WAVE_TMN_A2A_TOKEN: ci-fixture-only-no-provider-credential
     steps:
+      - name: Generate per-run ephemeral read-only A2A token (CI fixture only)
+        run: |
+          set -euo pipefail
+          printf 'WAVE_TMN_A2A_TOKEN=%s\n' "$(openssl rand -hex 32)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
