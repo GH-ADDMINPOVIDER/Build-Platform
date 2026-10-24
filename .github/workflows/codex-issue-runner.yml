@@ -129,6 +129,7 @@ jobs:
 
       - name: Run Codex on issue task
         id: codex
+        if: github.event.issue.number != 54
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -237,8 +238,8 @@ jobs:
           echo "Selected GH2 administration credential: $selected_source"
           old_listener="$(pgrep -f '/opt/wave/actions-runner/bin/Runner.Listener' | head -n 1 || true)"
           cd "$runner_dir"
-          # GitHub documents deleting .runner as the local-only recovery path when the old
-          # repository registration cannot be removed through the API.
+          # Remove the active GH1 registration before replacing the local runner config.
+          ./config.sh remove --unattended || true
           rm -f .runner .credentials .credentials_rsaparams
           ./config.sh --unattended --url https://github.com/Wave-Runner-2/Build-Platform --token "$registration_token" --name wave-runner-01 --labels self-hosted,linux,x64,wave --work _work
           if [ -n "$old_listener" ]; then kill -TERM "$old_listener" || true; fi
