@@ -1,0 +1,86 @@
+name: GH2 Infisical SSH fingerprint probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/gh2-infisical-ssh-fingerprint.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_API_URL: https://app.infisical.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_ENV_SLUG: staging
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    environment: GH2-OCIAN-STAGING
+    steps:
+      - name: Resolve Infisical project through GH2 OIDC
+        id: infisical_project
+        shell: bash
+        run: |
+          set -euo pipefail
+          oidc_response="$(curl -fsS -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}")"
+          oidc_jwt="$(printf '%s' "$oidc_response" | jq -r '.value // empty')"
+          test -n "$oidc_jwt"
+          login_payload="$(jq -n --arg identityId "${INFISICAL_IDENTITY_ID}" --arg jwt "$oidc_jwt" --arg organizationSlug "${INFISICAL_ORG_SLUG}" '{identityId:$identityId,jwt:$jwt,organizationSlug:$organizationSlug}')"
+          login_response="$(curl -fsS -X POST -H 'Content-Type: application/json' --data "$login_payload" "${INFISICAL_API_URL}/api/v1/auth/oidc-auth/login")"
+          infisical_token="$(printf '%s' "$login_response" | jq -r '.accessToken // empty')"
+          test -n "$infisical_token"
+          projects="$(curl -fsS -H "Authorization: Bearer $infisical_token" "${INFISICAL_API_URL}/api/v1/projects" | jq -c --arg org "${INFISICAL_ORG_ID}" '[.projects[]? | select(.orgId == $org)]')"
+          if [ -n "${INFISICAL_PROJECT_SLUG}" ]; then
+            matches="$(printf '%s' "$projects" | jq -c --arg slug "${INFISICAL_PROJECT_SLUG}" '[.[] | select(.slug == $slug)]')"
+          elif [ "$(printf '%s' "$projects" | jq 'length')" -eq 1 ]; then
+            matches="$projects"
+          else
+            matches="$(printf '%s' "$projects" | jq -c '[.[] | select((.name | ascii_downcase | gsub("[ _-]"; "")) == "ogenicsio")]')"
+          fi
+          test "$(printf '%s' "$matches" | jq 'length')" -eq 1
+          echo "project_slug=$(printf '%s' "$matches" | jq -r '.[0].slug')" >> "$GITHUB_OUTPUT"
+
+      - name: Load staging secrets through Infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          secret-path: /
+          recursive: true
+
+      - name: Compare SSH key fingerprints without exposing private material
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='70:66:fc:1e:e7:18:99:65:b0:d4:82:9d:c7:b8:79:fa'
+          found_match=''
+          for key_name in SSH_KEY SSH_PRIVATE_KEY; do
+            key_material="$(printenv "$key_name" 2>/dev/null || true)"
+            [ -n "$key_material" ] || { echo "$key_name: absent"; continue; }
+            echo "$key_name: injected"
+            for encoding in raw escaped base64; do
+              candidate="$RUNNER_TEMP/${key_name}-${encoding}"
+              case "$encoding" in
+                raw) printf '%s' "$key_material" | tr -d '\\r' > "$candidate" ;;
+                escaped) printf '%s' "$key_material" | sed 's/\\\\n/\n/g' | tr -d '\\r' > "$candidate" ;;
+                base64) printf '%s' "$key_material" | base64 --decode 2>/dev/null | tr -d '\\r' > "$candidate" || true ;;
+              esac
+              chmod 600 "$candidate"
+              fingerprint="$(ssh-keygen -lf "$candidate" -E md5 2>/dev/null | awk '{print $2}' | sed 's/^MD5://' || true)"
+              if [ -n "$fingerprint" ]; then
+                echo "$key_name/$encoding fingerprint=$fingerprint"
+                [ "$fingerprint" = "$expected" ] && found_match="$key_name/$encoding"
+              fi
+            done
+          done
+          test -n "$found_match" || { echo "::error::Infisical SSH keys are present, but none matches DigitalOcean WAVE-iPhone fingerprint"; exit 64; }
+          echo "PASS: matching Infisical SSH key=$found_match; private material was not printed"
