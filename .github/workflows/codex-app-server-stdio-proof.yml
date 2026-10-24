@@ -28,6 +28,14 @@ jobs:
           codex --version
       - name: Verify JSONL initialize, initialized, thread/list readback without model execution
         run: node scripts/codex-app-server-stdio-proof.mjs
+      - name: Generate version-locked official app-server JSON Schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/codex-app-server-schema"
+          codex app-server generate-json-schema --out "$RUNNER_TEMP/codex-app-server-schema"
+          test "$(find "$RUNNER_TEMP/codex-app-server-schema" -type f -name '*.json' | wc -l)" -gt 0
+          echo 'CODEX_APP_SERVER_SCHEMA_GENERATION=PASS_0.164.0_EPHEMERAL'
       - name: Evidence boundary
         if: always()
         run: |
