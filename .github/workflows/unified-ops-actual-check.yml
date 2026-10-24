@@ -4,6 +4,7 @@ on:
     branches: [feat/ccs-multi-protocol-docker-20261023]
     paths:
       - 'worker/unified-ops-api.ts'
+      - 'worker/task-envelope-contract.ts'
       - 'worker/entry-yellow-stone.ts'
       - 'src/UnifiedOpsPanel.tsx'
       - 'src/WaveDashboard.tsx'
