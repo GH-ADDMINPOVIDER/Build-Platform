@@ -2,6 +2,10 @@ name: GH2 OCIAN host bootstrap
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/gh2-ocian-host-bootstrap.yml"
 
 permissions:
   contents: read
@@ -16,8 +20,8 @@ env:
   INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
 
 jobs:
-  verify-gh2-admin-credential:
-    name: Verify GH2 admin credential
+  rebind-existing-host:
+    name: Rebind existing OCIAN runner to GH2
     runs-on: ubuntu-latest
     environment: GH2-OCIAN-STAGING
     steps:
@@ -26,6 +30,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          : "${ACTIONS_ID_TOKEN_REQUEST_URL:?missing GitHub OIDC request URL}"
+          : "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:?missing GitHub OIDC request token}"
           oidc_response="$(curl -fsS -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}")"
           oidc_jwt="$(printf '%s' "$oidc_response" | jq -r '.value // empty')"
           test -n "$oidc_jwt"
@@ -33,6 +39,7 @@ jobs:
           login_response="$(curl -fsS -X POST -H 'Content-Type: application/json' --data "$login_payload" "${INFISICAL_API_URL}/api/v1/auth/oidc-auth/login")"
           infisical_token="$(printf '%s' "$login_response" | jq -r '.accessToken // empty')"
           test -n "$infisical_token"
+          echo "::add-mask::$infisical_token"
           projects="$(curl -fsS -H "Authorization: Bearer $infisical_token" "${INFISICAL_API_URL}/api/v1/projects" | jq -c --arg org "${INFISICAL_ORG_ID}" '[.projects[]? | select(.orgId == $org)]')"
           if [ -n "${INFISICAL_PROJECT_SLUG}" ]; then
             matches="$(printf '%s' "$projects" | jq -c --arg slug "${INFISICAL_PROJECT_SLUG}" '[.[] | select(.slug == $slug)]')"
@@ -43,9 +50,10 @@ jobs:
           fi
           test "$(printf '%s' "$matches" | jq 'length')" -eq 1
           project_slug="$(printf '%s' "$matches" | jq -r '.[0].slug')"
+          echo "Infisical OIDC PASS; staging project resolved: $project_slug"
           echo "project_slug=$project_slug" >> "$GITHUB_OUTPUT"
 
-      - name: Load GH2 credential from Infisical
+      - name: Load staging credentials through Infisical
         uses: Infisical/secrets-action@v1.0.9
         with:
           method: oidc
@@ -55,104 +63,132 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Validate GH2 credential and runner administration scope
+      - name: Select GH2 Classic PAT with runner administration
+        id: gh2
         shell: bash
         run: |
           set -euo pipefail
-          token=''
-          token_source=''
+          selected=''
+          selected_source=''
           for name in GH2_RUNNER_ADMIN_TOKEN GH-ID-TOMLOAD-RUNNER-2 GIT_HUB_RUNNER_2 GITHUB_TOKEN_OGE34 GITHUB_TOKEN_CLASSIC GH2_CLASSIC_PAT GH2_GITHUB_TOKEN; do
             value="$(printenv "$name" 2>/dev/null || true)"
             [ -n "$value" ] || continue
             login="$(curl -fsS -H "Authorization: Bearer $value" -H 'Accept: application/vnd.github+json' https://api.github.com/user | jq -r '.login // empty' || true)"
-            if [ "$login" = "Wave-Runner-2" ]; then
-              token="$value"
-              token_source="$name"
+            [ "$login" = "Wave-Runner-2" ] || continue
+            response="$(curl -sS -w '\\nHTTP_STATUS:%{http_code}' -X POST -H "Authorization: Bearer $value" -H 'Accept: application/vnd.github+json' https://api.github.com/repos/Wave-Runner-2/Build-Platform/actions/runners/registration-token || true)"
+            status="$(printf '%s\\n' "$response" | tail -n 1 | sed 's/^HTTP_STATUS://')"
+            body="$(printf '%s\\n' "$response" | sed '$d')"
+            registration_token="$(printf '%s' "$body" | jq -r '.token // empty' 2>/dev/null || true)"
+            if [ "$status" = "201" ] && [ -n "$registration_token" ]; then
+              echo "::add-mask::$value"
+              echo "::add-mask::$registration_token"
+              printf 'GH2_ADMIN_TOKEN=%s\\n' "$value" >> "$GITHUB_ENV"
+              printf 'GH2_REGISTRATION_TOKEN=%s\\n' "$registration_token" >> "$GITHUB_ENV"
+              echo "GH2 Classic PAT PASS: identity=Wave-Runner-2; source=$name; runner-registration=201"
+              selected=1
+              selected_source="$name"
               break
             fi
+            message="$(printf '%s' "$body" | jq -r '.message // "no message"' 2>/dev/null || true)"
+            echo "GH2 candidate $name is the correct identity but runner registration returned HTTP $status ($message)"
           done
-          test -n "$token" || { echo "::error::No Infisical-injected GH2 Classic/PAT credential authenticated as Wave-Runner-2"; exit 41; }
-          response="$(curl -sS -w '\nHTTP_STATUS:%{http_code}' -X POST -H "Authorization: Bearer $token" -H 'Accept: application/vnd.github+json' https://api.github.com/repos/Wave-Runner-2/Build-Platform/actions/runners/registration-token)"
-          status="$(printf '%s\n' "$response" | tail -n 1 | sed 's/^HTTP_STATUS://')"
-          body="$(printf '%s\n' "$response" | sed '$d')"
-          if [ "$status" != "201" ]; then
-            message="$(printf '%s' "$body" | jq -r '.message // "no message"')"
-            echo "::error::GH2 runner administration check returned HTTP $status ($message)"
+          test -n "$selected" || {
+            echo "::error::No Infisical-injected Wave-Runner-2 credential has runner administration permission for Wave-Runner-2/Build-Platform"
             exit 43
-          fi
-          echo "::add-mask::$(printf '%s' "$body" | jq -r '.token')"
-          echo "GH2 admin credential PASS: identity=Wave-Runner-2, source=$token_source, repository=Wave-Runner-2/Build-Platform, runner-registration=201"
+          }
+          echo "selected GH2 administration source=$selected_source"
 
-      - name: Rebind OCIAN directly over SSH
+      - name: Find approved Infisical SSH key that actually reaches OCIAN
+        id: ssh
         shell: bash
+        env:
+          OCIAN_HOST: ${{ vars.OCIAN_HOST || '165.232.174.32' }}
         run: |
           set -euo pipefail
-          gh2_token="$(printenv GH-ID-TOMLOAD-RUNNER-2 2>/dev/null || true)"
-          ssh_private_key="$(printenv SSH_PRIVATE_KEY 2>/dev/null || true)"
-          test -n "$gh2_token" || { echo "::error::GH-ID-TOMLOAD-RUNNER-2 is missing"; exit 61; }
-          test -n "$ssh_private_key" || { echo "::error::SSH_PRIVATE_KEY is missing"; exit 62; }
-          login="$(curl -fsS -H "Authorization: Bearer $gh2_token" -H 'Accept: application/vnd.github+json' https://api.github.com/user | jq -r '.login // empty')"
-          test "$login" = "Wave-Runner-2"
-          response="$(curl -fsS -X POST -H "Authorization: Bearer $gh2_token" -H 'Accept: application/vnd.github+json' https://api.github.com/repos/Wave-Runner-2/Build-Platform/actions/runners/registration-token)"
-          registration_token="$(printf '%s' "$response" | jq -r '.token // empty')"
-          test -n "$registration_token"
-          echo "::add-mask::$registration_token"
+          host="${OCIAN_HOST}"
           key_file=''
           ssh_user=''
           for key_name in SSH_KEY SSH_PRIVATE_KEY; do
             key_material="$(printenv "$key_name" 2>/dev/null || true)"
             [ -n "$key_material" ] || continue
-            for encoding in raw escaped base64; do
+            for encoding in raw escaped base64 path; do
               candidate="$RUNNER_TEMP/ocian-${key_name}-${encoding}"
               case "$encoding" in
                 raw) printf '%s' "$key_material" | tr -d '\\r' > "$candidate" ;;
-                escaped) printf '%s' "$key_material" | sed 's/\\\\n/\n/g' | tr -d '\\r' > "$candidate" ;;
+                escaped) printf '%s' "$key_material" | sed 's/\\\\n/\\n/g' | tr -d '\\r' > "$candidate" ;;
                 base64) printf '%s' "$key_material" | base64 --decode 2>/dev/null | tr -d '\\r' > "$candidate" || true ;;
+                path) [ -f "$key_material" ] && cp "$key_material" "$candidate" || : ;;
               esac
               chmod 600 "$candidate"
               ssh-keygen -y -f "$candidate" >/dev/null 2>&1 || continue
-              for candidate_user in wave root ubuntu; do
-                if ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i "$candidate" "$candidate_user@165.232.174.32" true >/dev/null 2>&1; then
+              for candidate_user in wave; do
+                if ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -o PreferredAuthentications=publickey -i "$candidate" "$candidate_user@$host" 'test "$(id -un)" = wave && hostname' >/dev/null 2>&1; then
                   key_file="$candidate"
                   ssh_user="$candidate_user"
-                  echo "SSH key accepted for OCIAN: $key_name ($encoding), user=$ssh_user"
+                  echo "SSH reachability PASS: OCIAN-S-Host; key=$key_name/$encoding; user=wave"
                   break 3
                 fi
               done
             done
           done
-          test -n "$key_file" || { echo "::error::No approved Infisical SSH key authenticates to OCIAN-S-Host"; exit 63; }
+          test -n "$key_file" || {
+            echo "::error::No Infisical private key successfully authenticates as Linux user wave on OCIAN-S-Host"
+            echo "The public fingerprint match alone is insufficient; the private key pair must be corrected in Infisical."
+            exit 63
+          }
+          printf 'OCIAN_SSH_KEY_FILE=%s\\n' "$key_file" >> "$GITHUB_ENV"
+          printf 'OCIAN_SSH_USER=%s\\n' "$ssh_user" >> "$GITHUB_ENV"
+          printf 'OCIAN_SSH_HOST=%s\\n' "$host" >> "$GITHUB_ENV"
+
+      - name: Rebind wave-runner-01 on OCIAN through SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          runner_dir='/opt/wave/actions-runner'
+          test -f "$OCIAN_SSH_KEY_FILE"
+          test -n "${GH2_REGISTRATION_TOKEN:-}"
           {
-            printf '%s\n' "$registration_token"
+            printf '%s\\n' "$GH2_REGISTRATION_TOKEN"
             cat <<'REMOTE_SCRIPT'
           set -euo pipefail
-          read -r registration_token
-          if [ "$(id -u)" -eq 0 ]; then
-            exec runuser -u wave -- bash -s
-          fi
-          runner_dir=/opt/wave/actions-runner
+          runner_dir='/opt/wave/actions-runner'
+          registration_token=''
+          IFS= read -r registration_token
+          test -n "$registration_token"
+          test "$(id -un)" = wave
           test -d "$runner_dir"
           cd "$runner_dir"
+          if [ -x ./svc.sh ]; then ./svc.sh stop || true; fi
+          pkill -TERM -u "$(id -u)" -f '/opt/wave/actions-runner/bin/Runner.Listener' || true
+          sleep 2
           ./config.sh remove --unattended || true
           rm -f .runner .credentials .credentials_rsaparams
           ./config.sh --unattended --url https://github.com/Wave-Runner-2/Build-Platform --token "$registration_token" --name wave-runner-01 --labels self-hosted,linux,x64,wave --work _work
-          echo "remote GH2 rebind complete"
+          if [ -x ./svc.sh ]; then
+            ./svc.sh install wave || true
+            ./svc.sh start
+          fi
+          test -f .runner
+          grep -q 'Wave-Runner-2/Build-Platform' .runner
+          echo 'REMOTE PASS: wave-runner-01 registered to Wave-Runner-2/Build-Platform'
           REMOTE_SCRIPT
-          } | ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=no -i "$key_file" "$ssh_user@165.232.174.32" 'bash -s'
-          echo "GH2 direct rebind completed on OCIAN-S-Host; no new runner was created."
+          } | ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o IdentitiesOnly=yes -i "$OCIAN_SSH_KEY_FILE" "$OCIAN_SSH_USER@$OCIAN_SSH_HOST" 'bash -s'
+          echo 'GH2 direct rebind completed on existing OCIAN-S-Host; no new runner created.'
 
   verify-rebound-runner:
     name: Verify existing wave-runner-01 on GH2
-    needs: verify-gh2-admin-credential
+    needs: rebind-existing-host
     runs-on: [self-hosted, linux, x64, wave]
     environment: GH2-OCIAN-STAGING
+    timeout-minutes: 15
     steps:
       - name: Verify host and GH2 registration
         shell: bash
         run: |
           set -euo pipefail
-          test "$(hostname)" = "wave-runner-01" || { echo "::error::unexpected runner hostname"; hostname; exit 71; }
+          test "$(hostname)" = "wave-runner-01"
+          test "$(id -un)" = "wave"
           test -f /opt/wave/actions-runner/.runner
           grep -q 'Wave-Runner-2/Build-Platform' /opt/wave/actions-runner/.runner
           test -d /home/wave/.codex
-          echo "PASS: OCIAN-S-Host / wave-runner-01 is registered to Wave-Runner-2/Build-Platform and Codex profile exists at /home/wave/.codex"
+          echo 'E2E PASS: OCIAN-S-Host / wave-runner-01 is registered to GH2 and Codex profile exists at /home/wave/.codex'
