@@ -1,0 +1,43 @@
+name: GH2 WAVE Unified Ops Real Test Typecheck Build
+on:
+  push:
+    branches: [feat/ccs-multi-protocol-docker-20261023]
+    paths:
+      - 'worker/unified-ops-api.ts'
+      - 'worker/entry-yellow-stone.ts'
+      - 'src/UnifiedOpsPanel.tsx'
+      - 'src/WaveDashboard.tsx'
+      - 'src/unified-ops.css'
+      - 'src/main.tsx'
+      - 'tests/unified-ops-contract.test.mjs'
+      - '.github/workflows/unified-ops-actual-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-validation:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Clean repeatable dependency install
+        run: npm ci --no-audit --no-fund
+      - name: Real entire WAVE node test suite
+        run: npm test
+      - name: WAVE TypeScript project typecheck
+        run: npm run typecheck
+      - name: WAVE frontend build
+        run: npm run build
+      - name: Scope proof
+        run: |
+          echo 'UNIFIED_OPS_CODE_TESTED=TRUE'
+          echo 'WAVE_CLOUDFLARE_DEPLOY=NOT_ATTEMPTED'
+          echo 'OCIAN_GH2_SELFHOST_E2E=NOT_PROVEN'
+          echo 'FULL_7_E2E=NOT_CLAIMED'
