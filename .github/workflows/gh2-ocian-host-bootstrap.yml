@@ -87,6 +87,31 @@ jobs:
           echo "::add-mask::$(printf '%s' "$body" | jq -r '.token')"
           echo "GH2 admin credential PASS: identity=Wave-Runner-2, source=$token_source, repository=Wave-Runner-2/Build-Platform, runner-registration=201"
 
+  cancel-stale-gh1-bridge:
+    name: Release stale GH1 bridge run
+    runs-on: ubuntu-latest
+    environment: GH2-OCIAN-STAGING
+    steps:
+      - name: Load existing GH1 control credential from Infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ogenicsio-ti-rv
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          secret-path: /
+          recursive: true
+
+      - name: Cancel only the stale bridge run
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(printenv GITHUB_TOKEN_OGE34 2>/dev/null || true)"
+          test -n "$token" || { echo "::error::GITHUB_TOKEN_OGE34 is missing"; exit 51; }
+          status="$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $token" -H 'Accept: application/vnd.github+json' https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/actions/runs/40116014850/cancel)"
+          test "$status" = "202" || { echo "::error::GH1 stale bridge cancel returned HTTP $status"; exit 52; }
+          echo "Canceled stale GH1 bridge run 40116014850; no repository or runner was deleted."
+
   rebind-existing-runner:
     name: Rebind existing wave-runner-01
     needs: verify-gh2-admin-credential
