@@ -1,0 +1,27 @@
+name: GH2 Atlassian Domain Public DNS Independent Proof
+on:
+  push:
+    branches: [feat/ccs-multi-protocol-docker-20261023]
+    paths:
+      - 'scripts/gh2-atlassian-domain-public-dns.mjs'
+      - '.github/workflows/gh2-atlassian-domain-public-dns.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-dns-independent-proof:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact Atlassian token at Cloudflare authoritative and public resolvers
+        run: node scripts/gh2-atlassian-domain-public-dns.mjs
+      - name: Security boundary
+        if: always()
+        run: echo 'READONLY_DNS_PROOF; NO_OWNER_KEY_OR_ATLASSIAN_DOMAIN_ADMIN_CHANGES'
