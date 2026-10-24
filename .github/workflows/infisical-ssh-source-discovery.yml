@@ -1,0 +1,40 @@
+name: OGENIC Infisical Recursive SSH Source Discovery
+on:
+  push:
+    branches: [feat/ccs-multi-protocol-docker-20261023]
+    paths:
+      - 'scripts/infisical-ssh-source-discovery.mjs'
+      - '.github/workflows/infisical-ssh-source-discovery.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  inspect-scoped-secret-names:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: GH2 OIDC scoped Infisical staging all permitted subfolders
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: Report SSH credential categories and binding names only
+        run: node scripts/infisical-ssh-source-discovery.mjs
+      - name: Exact boundary
+        if: always()
+        run: echo 'NO_CREDENTIAL_VALUES_OR_HOST_CHANGES=TRUE; STAGING_PATH_RECURSIVE_ONLY=TRUE'
