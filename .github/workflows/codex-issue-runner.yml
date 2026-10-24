@@ -89,8 +89,8 @@ jobs:
           set -euo pipefail
           gh2_token=''
           gh2_source=''
-          for name in GIT_HUB_RUNNER_2 GITHUB_TOKEN_OGE34 GITHUB_TOKEN GH2_GITHUB_TOKEN; do
-            value="${!name:-}"
+          for name in GIT_HUB_RUNNER_2 GH-ID-TOMLOAD-RUNNER-2 GITHUB_TOKEN_OGE34 GITHUB_TOKEN GH2_GITHUB_TOKEN; do
+            value="$(printenv "$name" 2>/dev/null || true)"
             [ -n "$value" ] || continue
             login="$(curl -fsS -H "Authorization: Bearer $value" -H 'Accept: application/vnd.github+json' https://api.github.com/user | jq -r '.login // empty' || true)"
             if [ "$login" = 'Wave-Runner-2' ]; then
@@ -215,8 +215,8 @@ jobs:
           test -d "$runner_dir"
           registration_token=''
           selected_source=''
-          for name in GIT_HUB_RUNNER_2 GITHUB_TOKEN_OGE34 GITHUB_TOKEN GH2_GITHUB_TOKEN; do
-            value="${!name:-}"
+          for name in GIT_HUB_RUNNER_2 GH-ID-TOMLOAD-RUNNER-2 GITHUB_TOKEN_OGE34 GITHUB_TOKEN GH2_GITHUB_TOKEN; do
+            value="$(printenv "$name" 2>/dev/null || true)"
             [ -n "$value" ] || continue
             login="$(curl -fsS -H "Authorization: Bearer $value" -H 'Accept: application/vnd.github+json' https://api.github.com/user | jq -r '.login // empty' || true)"
             [ "$login" = 'Wave-Runner-2' ] || continue
