@@ -2,10 +2,10 @@
   "schema": "wave.external.discord.systemlog.v1",
   "provider": "discord",
   "role": "NEW_DATA_AND_SANITIZED_SYSTEM_LOG",
-  "status": "CONFIGURATION_REQUIRED",
-  "transport": "outbound_webhook_or_authorized_bot",
-  "bound_credential": "NOT_FOUND_IN_GH2_INFISICAL_ROOT_STAGING",
-  "runtime": "WAVE_ATHENA_GREEN_STONE_OUTBOUND_ONLY",
+  "status": "PROVIDER_E2E_ORANGE_SCOPED",
+  "transport": "existing owner-gated WAVE Discord Bot API (no separate GH2 webhook secret required)",
+  "bound_credential": "WAVE_LIVE_WORKER_HAS_DISCORD_TOKEN; NO_GH2_INFISICAL_ROOT_BINDING_REQUIRED_FOR_CALL",
+  "runtime": "GH2_OIDC_OWNER_SESSION_TO_WAVE_WORKER_DISCORD_API",
   "enabled": false,
   "events": [
     "new_data_verified",
@@ -24,5 +24,30 @@
   },
   "discord_api_call": "NOT_ATTEMPTED",
   "discord_message_readback": "NOT_PROVEN",
-  "e2e": false
+  "e2e": false,
+  "manual_signed_delivery_e2e": true,
+  "existing_destinations": [
+    {
+      "kind": "NEW_DATA",
+      "channel_name": "wave-inbox",
+      "message_id": "1563456518584541277",
+      "result_sha256": "cc2a1f7280f6e7f2d888258a37b0702745d33fec7204f3d661d85f00caaba5ba",
+      "http_post": 201,
+      "http_get": 200,
+      "readback_verified": true
+    },
+    {
+      "kind": "SYSTEM_LOG",
+      "channel_name": "workflow-log",
+      "message_id": "1563456525794676787",
+      "result_sha256": "b278889b7f28ff32dbf51a0e6ed4254ef5bedfc8e6f5c63b1c07a19425cf21e8",
+      "http_post": 201,
+      "http_get": 200,
+      "readback_verified": true
+    }
+  ],
+  "evidence_run": "https://github.com/Wave-Runner-2/Build-Platform/actions/runs/40074897906",
+  "existing_discord_worker_bot_provider_e2e": true,
+  "automated_new_data_or_greenstone_log_routing": "NOT_IMPLEMENTED",
+  "d1_result_receipt": "NOT_PROVEN"
 }
