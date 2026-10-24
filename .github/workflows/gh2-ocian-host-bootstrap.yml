@@ -1,10 +1,6 @@
 name: GH2 OCIAN host bootstrap
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/gh2-ocian-host-bootstrap.yml"
   workflow_dispatch:
 
 permissions:
