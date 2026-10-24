@@ -1,0 +1,28 @@
+{
+  "schema": "wave.external.discord.systemlog.v1",
+  "provider": "discord",
+  "role": "NEW_DATA_AND_SANITIZED_SYSTEM_LOG",
+  "status": "CONFIGURATION_REQUIRED",
+  "transport": "outbound_webhook_or_authorized_bot",
+  "bound_credential": "NOT_FOUND_IN_GH2_INFISICAL_ROOT_STAGING",
+  "runtime": "WAVE_ATHENA_GREEN_STONE_OUTBOUND_ONLY",
+  "enabled": false,
+  "events": [
+    "new_data_verified",
+    "system_run_completed",
+    "system_run_failed",
+    "checkpoint_e2e_accepted"
+  ],
+  "delivery_protocol": {
+    "require_owner_bound_destination": true,
+    "source_task_id_required": true,
+    "hash_receipt_required": true,
+    "request_id_required": true,
+    "permission_class": "READ_ONLY_NOTIFICATION",
+    "redaction": "allowlist-only, no secrets/no token/no PII",
+    "delivery_receipt": "required for E2E"
+  },
+  "discord_api_call": "NOT_ATTEMPTED",
+  "discord_message_readback": "NOT_PROVEN",
+  "e2e": false
+}
