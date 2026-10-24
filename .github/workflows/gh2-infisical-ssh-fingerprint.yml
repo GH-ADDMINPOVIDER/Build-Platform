@@ -1,10 +1,6 @@
 name: GH2 Infisical SSH fingerprint probe
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/gh2-infisical-ssh-fingerprint.yml"
   workflow_dispatch:
 
 permissions:
