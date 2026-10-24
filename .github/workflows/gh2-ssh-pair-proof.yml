@@ -1,0 +1,73 @@
+name: GH2 SSH pair proof
+on:
+  push:
+    paths:
+      - .github/workflows/gh2-ssh-pair-proof.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+env:
+  INFISICAL_API_URL: https://app.infisical.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    environment: GH2-OCIAN-STAGING
+    steps:
+      - id: project
+        shell: bash
+        run: |
+          set -euo pipefail
+          r="$(curl -fsS -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}")"
+          jwt="$(printf '%s' "$r" | jq -r '.value // empty')"
+          test -n "$jwt"
+          p="$(jq -n --arg identityId "${INFISICAL_IDENTITY_ID}" --arg jwt "$jwt" --arg organizationSlug "${INFISICAL_ORG_SLUG}" '{identityId:$identityId,jwt:$jwt,organizationSlug:$organizationSlug}')"
+          l="$(curl -fsS -X POST -H 'Content-Type: application/json' --data "$p" "${INFISICAL_API_URL}/api/v1/auth/oidc-auth/login")"
+          t="$(printf '%s' "$l" | jq -r '.accessToken // empty')"
+          test -n "$t"
+          projects="$(curl -fsS -H "Authorization: Bearer $t" "${INFISICAL_API_URL}/api/v1/projects" | jq -c --arg org "${INFISICAL_ORG_ID}" '[.projects[]? | select(.orgId == $org)]')"
+          if [ -n "${INFISICAL_PROJECT_SLUG}" ]; then m="$(printf '%s' "$projects" | jq -c --arg slug "${INFISICAL_PROJECT_SLUG}" '[.[]|select(.slug==$slug)]')"; else m="$(printf '%s' "$projects" | jq -c '[.[]|select((.name|ascii_downcase|gsub("[ _-]";""))=="ogenicsio")]')"; fi
+          test "$(printf '%s' "$m" | jq length)" -eq 1
+          echo "slug=$(printf '%s' "$m" | jq -r '.[0].slug')" >> "$GITHUB_OUTPUT"
+      - uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ steps.project.outputs.slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: Derive fingerprints from private keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='70:66:fc:1e:e7:18:99:65:b0:d4:82:9d:c7:b8:79:fa'
+          match=0
+          for n in SSH_KEY SSH_PRIVATE_KEY; do
+            v="$(printenv "$n" 2>/dev/null || true)"
+            [ -n "$v" ] || { echo "$n=absent"; continue; }
+            echo "$n=present"
+            for mode in raw escaped base64; do
+              f="$RUNNER_TEMP/$n-$mode"
+              case "$mode" in
+                raw) printf '%s' "$v" | tr -d '\r' > "$f" ;;
+                escaped) printf '%s' "$v" | sed 's/\\\\n/\n/g' | tr -d '\r' > "$f" ;;
+                base64) printf '%s' "$v" | base64 -d 2>/dev/null | tr -d '\r' > "$f" || true ;;
+              esac
+              chmod 600 "$f"
+              pub="$(ssh-keygen -y -f "$f" 2>/dev/null || true)"
+              if [ -n "$pub" ]; then
+                fp="$(printf '%s\n' "$pub" | ssh-keygen -lf - -E md5 2>/dev/null | awk '{print $2}' | sed 's/^MD5://' || true)"
+                echo "$n/$mode derived=$fp"
+                [ "$fp" = "$expected" ] && match=1
+              else
+                echo "$n/$mode parse=FAIL"
+              fi
+            done
+          done
+          test "$match" -eq 1
+          echo "PASS: a private key derives to the authorized host fingerprint"
