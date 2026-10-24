@@ -1,0 +1,21 @@
+{
+  "schema": "wave.third_party.source.v1",
+  "name": "hermes-agent",
+  "classification": "CODE_GREY",
+  "operation": "source_ingest_only",
+  "primary_repo": "Wave-Runner-2/Build-Platform",
+  "primary_role": "GH_ADDMIN_POVIDER",
+  "upstream_repo": "https://github.com/NousResearch/hermes-agent",
+  "upstream_commit": "bda3a363e9695e3f63fce4a7ca85ba17b5fecb61",
+  "upstream_license": "MIT",
+  "git_mode": "submodule",
+  "gitlink_path": "third_party/hermes-agent",
+  "require_external_host": false,
+  "require_railway": false,
+  "require_n8n": false,
+  "executed": false,
+  "installed": false,
+  "provider_call_tested": false,
+  "e2e": false,
+  "operational_guard": "No curl|bash, no automatic deploy, no host execution; pinned checkout only."
+}
