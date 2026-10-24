@@ -82,6 +82,28 @@ jobs:
           secret-path: /
           recursive: true
 
+      - name: Verify GH2 GitHub credential from Infisical
+        if: github.event.issue.number == 54
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh2_token=''
+          gh2_source=''
+          for name in GIT_HUB_RUNNER_2 GITHUB_TOKEN_OGE34 GITHUB_TOKEN GH2_GITHUB_TOKEN; do
+            value="${!name:-}"
+            [ -n "$value" ] || continue
+            login="$(curl -fsS -H "Authorization: Bearer $value" -H 'Accept: application/vnd.github+json' https://api.github.com/user | jq -r '.login // empty' || true)"
+            if [ "$login" = 'Wave-Runner-2' ]; then
+              gh2_token="$value"
+              gh2_source="$name"
+              break
+            fi
+          done
+          test -n "$gh2_token" || { echo '::error::No Infisical-injected credential authenticated as Wave-Runner-2'; exit 41; }
+          echo "::add-mask::$gh2_token"
+          printf 'OGENIC_GH2_API_TOKEN=%s\n' "$gh2_token" >> "$GITHUB_ENV"
+          echo "GH2 credential verified from Infisical key: $gh2_source"
+
       - name: Validate executor and resolve issue
         id: task
         shell: bash
@@ -183,3 +205,21 @@ jobs:
             echo '~~~'
           } > "$RUNNER_TEMP/issue-comment.md"
           gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body-file "$RUNNER_TEMP/issue-comment.md"
+
+      - name: Rebind existing OCIAN runner to GH2
+        if: always() && github.event.issue.number == 54
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${OGENIC_GH2_API_TOKEN:?GH2 token was not injected}"
+          service='actions.runner.Ogenicchocolate21debug-Build-Platform.wave-runner-01.service'
+          runner_dir='/opt/wave/actions-runner'
+          test -d "$runner_dir"
+          sudo -n systemctl is-active --quiet "$service"
+          registration_token="$(curl -fsS -X POST -H "Authorization: Bearer $OGENIC_GH2_API_TOKEN" -H 'Accept: application/vnd.github+json' https://api.github.com/repos/Wave-Runner-2/Build-Platform/actions/runners/registration-token | jq -r '.token // empty')"
+          test -n "$registration_token" || { echo '::error::GH2 registration-token endpoint returned no token'; exit 42; }
+          echo "::add-mask::$registration_token"
+          cd "$runner_dir"
+          ./config.sh --unattended --replace --url https://github.com/Wave-Runner-2/Build-Platform --token "$registration_token" --name wave-runner-01 --labels self-hosted,linux,x64,wave --work _work
+          sudo -n systemctl restart "$service"
+          echo 'GH2 rebind applied for wave-runner-01; service restart requested.'
