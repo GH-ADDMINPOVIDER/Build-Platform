@@ -1,0 +1,35 @@
+name: GH2 OCIAN Runner Restore Contract (No SSH)
+on:
+  push:
+    branches: [feat/ccs-multi-protocol-docker-20261023]
+    paths:
+      - 'scripts/host-bootstrap/ocian-gh2-attach.sh'
+      - 'scripts/gh2-ocian-reconnect.mjs'
+      - '.github/workflows/gh2-ocian-restore-contract.yml'
+permissions:
+  contents: read
+jobs:
+  lint-install-recover:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify runner restore scripts without touching Host
+        run: |
+          set -euo pipefail
+          bash -n scripts/host-bootstrap/ocian-gh2-attach.sh
+          node --check scripts/gh2-ocian-reconnect.mjs
+          grep -Fq 'TARGET="Wave-Runner-2/Build-Platform"' scripts/host-bootstrap/ocian-gh2-attach.sh
+          grep -Fq 'TARGET_RUNNER="GH_ADDMIN_POVIDER"' scripts/host-bootstrap/ocian-gh2-attach.sh
+          grep -Fq 'GH1_ARCHIVE_INSTALL_MODIFIED=NO' scripts/gh2-ocian-reconnect.mjs
+          grep -Fq 'StrictHostKeyChecking=yes' scripts/gh2-ocian-reconnect.mjs
+          if grep -Fiq 'StrictHostKeyChecking=no' scripts/gh2-ocian-reconnect.mjs; then exit 2; fi
+          test -f scripts/host-bootstrap/ocian-gh2-attach.sh
+          echo 'GH2_OCIAN_RESTORE_STATIC_CONTRACT=PASS'
+          echo 'HOST_SERVICE_REGISTRATION=NOT_ATTEMPTED'
