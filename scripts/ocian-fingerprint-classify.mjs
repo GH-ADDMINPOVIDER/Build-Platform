@@ -46,6 +46,28 @@ try{
    p.stored_public_key_matches_client=!!publicValue&&publicValue.split(' ').slice(0,2).join(' ')===r.stdout.trim().split(' ').slice(0,2).join(' ');
   }
  }
+ 
+ // Cross-check across all OCIAN public host key algorithms; an Infisical key may be RSA/ECDSA instead of Ed25519.
+ const scans=run('ssh-keyscan',['-T','7','-p','22','-t','rsa,ecdsa,ed25519','165.232.174.32']);
+ p.trusted_source_match_any_host_algo=false;
+ p.infisical_key_matches_digitalocean_client=false;
+ if(scans.status===0){
+  const entries=scans.stdout.split('\\n').map(x=>x.trim().split(/\\s+/)).filter(x=>x.length>=3&&x[1].startsWith('ssh-')||x.length>=3&&x[1].startsWith('ecdsa-'));
+  const candidates=[['SSH_FINGER_PRINT_KEY',saved],['SSH_PUBLIC_KEY',publicValue],['SSH_KEY',sshKey]];
+  const digitalOceanClientMD5='70:66:fc:1e:e7:18:99:65:b0:d4:82:9d:c7:b8:79:fa';
+  p.host_algorithms=entries.map(e=>e[1]);
+  p.matches_by_name=[];
+  for(const [name,val] of candidates){
+   const token=val.match(/(?:^|\\s)(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521)\\s+([A-Za-z0-9+/=]{40,})/);
+   if(!token)continue;
+   const keyFile=file('candidate_'+name,token[1]+' '+token[2]+'\\n');
+   const md5=fprint(keyFile,'md5').replace(/^MD5:/,'');
+   if(md5===digitalOceanClientMD5){p.infisical_key_matches_digitalocean_client=true;p.digitalocean_client_binding_name=name;}
+   const match=entries.some(e=>e[1]===token[1]&&e[2]===token[2]);
+   if(match){p.trusted_source_match_any_host_algo=true;p.matches_by_name.push(name)}
+  }
+  p.can_pin_host=p.can_pin_host||p.trusted_source_match_any_host_algo;
+ }
  p.ssh_key_type=sshKey.includes('PRIVATE KEY')?'PRIVATE_KEY':sshKey.startsWith('ssh-')?'PUBLIC_KEY':sshKey.startsWith('SHA256:')?'FINGERPRINT':sshKey?'OTHER':'EMPTY';
 }catch{p.probe_error=true}
 finally{rmSync(dir,{recursive:true,force:true})}
