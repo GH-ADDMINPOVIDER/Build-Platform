@@ -27,6 +27,14 @@ try{
   if(/^(?:165\.232\.174\.32|\[165\.232\.174\.32\]:22)\s+ssh-/.test(saved)){
    p.matches_ocian_server=fprint(file('known',saved+'\n'))===s256;
   }
+  // A stored host key can use a DNS hostname or even plain OpenSSH public-key syntax.
+  // Evaluate the actual key body, independent of the prefix, without logging bytes.
+  const m=saved.match(/(?:^|\\s)(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp256)\\s+([A-Za-z0-9+/=]{40,})/);
+  if(m){
+   const stored=file('stored_fingerprint_key',m[1]+' '+m[2]+'\\n');
+   p.fingerprint_key_is_matching_server=fprint(stored)===s256;
+   p.matches_ocian_server=p.matches_ocian_server||p.fingerprint_key_is_matching_server;
+  }
   p.can_pin_host=p.matches_ocian_server||p.stored_public_key_matches_ocian;
  }
  if(privateValue.includes('PRIVATE KEY')){
