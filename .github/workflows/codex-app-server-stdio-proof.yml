@@ -1,0 +1,37 @@
+name: WAVE OpenAI Codex App Server Stdio Protocol Proof
+on:
+  push:
+    branches: [feat/ccs-multi-protocol-docker-20261023]
+    paths:
+      - 'scripts/codex-app-server-stdio-proof.mjs'
+      - '.github/workflows/codex-app-server-stdio-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  codex-app-server-protocol:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install officially published Codex CLI 0.164.0 in ephemeral GitHub hosted runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g --no-audit --no-fund @openai/codex@0.164.0
+          codex --version
+      - name: Verify JSONL initialize, initialized, thread/list readback without model execution
+        run: node scripts/codex-app-server-stdio-proof.mjs
+      - name: Evidence boundary
+        if: always()
+        run: |
+          echo 'GITHUB_HOSTED_CI_ONLY=TRUE'
+          echo 'NO_CODEX_INFERENCE=TRUE'
+          echo 'NO_CHATGPT_ACCOUNT_TOKEN_OR_OPENAI_API_KEY=TRUE'
+          echo 'OCIAN_HOST_CODEx_AUTH_AND_WAVE_7_FULL_E2E_NOT_CLAIMED=TRUE'
