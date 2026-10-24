@@ -24,7 +24,7 @@ try{
  const event=await req('/api/1lss/events?after_sequence='+Math.max(0,seq-1)+'&limit=30','GET',cookie);
  result.d1_events_readback='HTTP_'+event.http;
  const records=Array.isArray(event.json?.messages)?event.json.messages:[];
- result.readback_sequence_found=records.some(x=>Number(x.sequence_no||x.sequence||0)===seq&&typeof x.content==='string'&&x.content.includes(obj.result.sha));
+ result.readback_sequence_found=records.some(x=>Number(x.sequence_no||x.sequence||0)===seq&&typeof x.text==='string'&&x.text.includes(obj.result.sha));
  result.archive_read_to_d1_e2e=result.readback_sequence_found===true;
  }
  }
