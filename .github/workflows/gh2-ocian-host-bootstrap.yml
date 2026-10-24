@@ -1,10 +1,6 @@
 name: GH2 OCIAN host bootstrap
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/gh2-ocian-host-bootstrap.yml"
   workflow_dispatch:
 
 permissions:
@@ -86,17 +82,6 @@ jobs:
           fi
           echo "::add-mask::$(printf '%s' "$body" | jq -r '.token')"
           echo "GH2 admin credential PASS: identity=Wave-Runner-2, source=$token_source, repository=Wave-Runner-2/Build-Platform, runner-registration=201"
-
-      - name: Cancel only the stale GH1 bridge run
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -euo pipefail
-          token="$(printenv GITHUB_TOKEN_OGE34 2>/dev/null || true)"
-          test -n "$token" || { echo "::error::GITHUB_TOKEN_OGE34 is missing"; exit 51; }
-          status="$(curl -sS -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $token" -H 'Accept: application/vnd.github+json' https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/actions/runs/40116014850/cancel)"
-          test "$status" = "202" || { echo "::error::GH1 stale bridge cancel returned HTTP $status"; exit 52; }
-          echo "Canceled stale GH1 bridge run 40116014850; no repository or runner was deleted."
 
       - name: Rebind OCIAN directly over SSH
         shell: bash
