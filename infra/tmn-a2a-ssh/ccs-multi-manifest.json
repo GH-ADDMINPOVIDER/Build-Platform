@@ -1,0 +1,116 @@
+{
+  "schema_version": "CCS/1.0",
+  "protocol": "CAPABILITY_CARD_STONE",
+  "facade_for": "OGENIC_USE_CARD_V1",
+  "wrapper": "MA-OP",
+  "endpoint_version": "OGENIC_CONNECTOR_ENDPOINT_V2",
+  "task_envelope": "wave.task.envelope.v1",
+  "mode": "MULTI",
+  "environment": "staging",
+  "canonical_session": "1LSS_OWNER_MAIN",
+  "owner": "GH_ADDMIN_POVIDER",
+  "stone_code": "YS-01",
+  "evidence_verifier": "RUBY",
+  "source": "worker/connector-endpoint-api.ts",
+  "policy": {
+    "contract_probe_only": true,
+    "owner_sign_required_for_execution": true,
+    "raw_secret_values_exported": false,
+    "arbitrary_tool_calls": false,
+    "public_port": false,
+    "production": false,
+    "cert_changes": false
+  },
+  "modes": [
+    {
+      "id": "mcp",
+      "credential_name": "OGENIC_REGISTRY_MCP_URL",
+      "credential_ref": "binding://infisical/staging/OGENIC_REGISTRY_MCP_URL",
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "n8n",
+      "credential_name": "N8N_API_KEY",
+      "credential_ref": "binding://infisical/staging/N8N_API_KEY",
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "rest_api",
+      "credential_name": "GITHUB_TOKEN",
+      "credential_ref": "binding://infisical/staging/GITHUB_TOKEN",
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "token",
+      "credential_name": "GH-ID-TOMLOAD-RUNNER-2",
+      "credential_ref": "binding://infisical/staging/GH-ID-TOMLOAD-RUNNER-2",
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "secret",
+      "credential_name": "Key-token-Ownner-Ops_e579",
+      "credential_ref": "binding://infisical/staging/Key-token-Ownner-Ops_e579",
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "credential",
+      "credential_name": "OGENIC_OPS_KEY",
+      "credential_ref": "binding://infisical/staging/OGENIC_OPS_KEY",
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "repository_api_pr_api",
+      "credential_name": "GH-ID-TOMLOAD-RUNNER-2",
+      "credential_ref": "binding://infisical/staging/GH-ID-TOMLOAD-RUNNER-2",
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "agent_api",
+      "credential_name": "OPENAI_API_KEY",
+      "credential_ref": "binding://infisical/staging/OPENAI_API_KEY",
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "function_tool_calling",
+      "credential_name": "OPENAI_API_KEY",
+      "credential_ref": "binding://infisical/staging/OPENAI_API_KEY",
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "npx_cli",
+      "credential_name": null,
+      "credential_ref": null,
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "npm",
+      "credential_name": null,
+      "credential_ref": null,
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "sdk",
+      "credential_name": null,
+      "credential_ref": null,
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "a2a_agent_relay",
+      "credential_name": "Key-token-Ownner-Ops_e579",
+      "credential_ref": "binding://infisical/staging/Key-token-Ownner-Ops_e579",
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "webhook_event_calling",
+      "credential_name": "OGENIC_GENERIC_HOOK_SECRET",
+      "credential_ref": "binding://infisical/staging/OGENIC_GENERIC_HOOK_SECRET",
+      "credential_proven_for_mode": false
+    },
+    {
+      "id": "agent_sign_command_run",
+      "credential_name": "OGENIC_OPS_KEY",
+      "credential_ref": "binding://infisical/staging/OGENIC_OPS_KEY",
+      "credential_proven_for_mode": false
+    }
+  ]
+}

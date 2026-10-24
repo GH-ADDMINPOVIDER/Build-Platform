@@ -1,0 +1,39 @@
+name: GH2 OIDC to Live Staging WAVE Owner Session Readback
+on:
+  push:
+    branches: [feat/ccs-multi-protocol-docker-20261023]
+    paths:
+      - 'scripts/gh2-wave-owner-session-staging-readonly.mjs'
+      - '.github/workflows/gh2-wave-owner-session-readonly.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  owner-staging-readonly:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Approved GH2 workload OIDC/Infisical staging credentials
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: false
+      - name: Create signed Owner session on existing staging Worker and independently GET it
+        run: node scripts/gh2-wave-owner-session-staging-readonly.mjs
+      - name: Never substitute read-only auth proof for Task/D1/ChatGPT E2E
+        run: echo 'READ_ONLY_SIGNED_SESSION_ONLY=TRUE; REAL_TASK_D1_CHAT_2ACC_E2E=UNVERIFIED'

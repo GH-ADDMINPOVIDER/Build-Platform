@@ -1,0 +1,41 @@
+name: P0 GH_ADDMIN_POVIDER OCIAN-S HOST Reconnect
+on:
+  push:
+    branches: [feat/ccs-multi-protocol-docker-20261023]
+    paths:
+      - 'scripts/host-bootstrap/ocian-gh2-attach.sh'
+      - 'scripts/gh2-ocian-reconnect.mjs'
+      - '.github/workflows/gh2-ocian-reconnect.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  ocian-gh2-reconnect:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Owner authorized scoped staging workload credentials via GitHub OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: GH2 runner-admin POST + pinned SSH and isolated GH_ADDMIN_POVIDER host service
+        run: node scripts/gh2-ocian-reconnect.mjs
+      - name: Strict evidence gates
+        if: always()
+        run: echo 'GH1_ARCHIVE_UNCHANGED=TRUE; NO_HOST_FINGERPRINT_BYPASS=TRUE; NO_FULL_7_E2E_CLAIM=TRUE'

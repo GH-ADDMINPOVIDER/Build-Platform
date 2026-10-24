@@ -1,0 +1,41 @@
+name: GH2 OCIAN Seven-Gate Readonly Preflight
+on:
+  push:
+    branches: [feat/ccs-multi-protocol-docker-20261023]
+    paths:
+      - 'scripts/gh2-ocian-seven-e2e-preflight.mjs'
+      - '.github/workflows/gh2-ocian-seven-e2e-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  gh2-host-provider-readonly:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Infisical OIDC retrieval (masked; no user secret disclosure)
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: false
+      - name: Real GH2 self-host runner API plus existing OCIAN SSH TCP and Notion/Discord secret-name check
+        run: node scripts/gh2-ocian-seven-e2e-preflight.mjs
+      - name: Keep next execution gated
+        run: |
+          echo 'READONLY_PREFLIGHT_RAN=TRUE; E2E_NOT_CLAIMED; NO_RUNNER_REGISTRATION_OR_HOST_MUTATION'
+          echo 'Any incomplete result must remain PROCESS/CONFIG_REQUIRED pending exact owner capability.'

@@ -1,5 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import DiscordWorkspacePanel from "./DiscordWorkspacePanel";
+import UnifiedOpsPanel from "./UnifiedOpsPanel";
 
 type Session = { authenticated?: boolean; user?: { label?: string; role?: string } | null };
 type Dashboard = {
@@ -317,6 +318,8 @@ export default function WaveDashboard() {
           </div>
         </article>
       </section>
+
+      <UnifiedOpsPanel />
 
       <DiscordWorkspacePanel />
 

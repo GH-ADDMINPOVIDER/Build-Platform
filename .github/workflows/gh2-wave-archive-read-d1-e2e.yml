@@ -1,0 +1,40 @@
+name: GH2 WAVE Archive-Read to D1 1LSS Genuine E2E
+on:
+  push:
+    branches: [feat/ccs-multi-protocol-docker-20261023]
+    paths:
+      - 'scripts/gh2-wave-archive-read-d1-e2e.mjs'
+      - '.github/workflows/gh2-wave-archive-read-d1-e2e.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  archive-read-d1-proof:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Acquire minimal staging Owner token using Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: false
+      - name: Execute owner-signed WAVE read of RP_STORE(OLD) and independently read back D1/1LSS
+        run: node scripts/gh2-wave-archive-read-d1-e2e.mjs
+      - name: Scope of success (legacy read path, not GH2 host)
+        if: always()
+        run: echo 'LEGACY_GH1_ARCHIVE_READ_ONLY; HOST_RUNNER_E2E=NOT_PROVEN; SEVEN_WORKSTREAMS_STILL_OPEN'

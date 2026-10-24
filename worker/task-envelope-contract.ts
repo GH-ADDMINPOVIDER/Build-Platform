@@ -151,10 +151,10 @@ export function taskEnvelopeToA2AMessage(envelope: WaveTaskEnvelopeV1): Readonly
       wave_task_id: envelope.task_id,
       context_ref: envelope.context.context_ref,
       context_revision: envelope.context.context_revision,
-      scope: envelope.scope,
+      scope: { ...envelope.scope },
       authorization_ref: envelope.authorization.authority_ref,
       execution_state: envelope.execution.state,
-      fallback: envelope.fallback,
+      fallback: { ...envelope.fallback },
     },
   };
 }

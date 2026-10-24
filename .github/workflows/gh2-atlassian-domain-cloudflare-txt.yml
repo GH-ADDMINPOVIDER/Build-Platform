@@ -1,0 +1,39 @@
+name: GH2 Atlassian WAVE Domain DNS TXT Verification
+on:
+  push:
+    branches: [feat/ccs-multi-protocol-docker-20261023]
+    paths:
+      - 'scripts/gh2-atlassian-domain-cloudflare-txt.mjs'
+      - '.github/workflows/gh2-atlassian-domain-cloudflare-txt.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  exact-txt-domain-verification:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: Add only exact requested Atlassian TXT to Cloudflare and GET readback
+        run: node scripts/gh2-atlassian-domain-cloudflare-txt.mjs
+      - name: Label boundaries
+        if: always()
+        run: echo 'NO_OTHER_DNS_RECORDS_MUTATED=TRUE; NEVER_ASSUME_ATLASSIAN_ORG_VERIFIED_FROM_DNS_POST'
