@@ -9,12 +9,20 @@ export type OpsSelection="auto"|"solo"|"dual"|"triple";
 export function selectOpsLane(raw:unknown,available:Provider[],preferred:Provider[]=[]){
  const request=typeof raw==="string"?raw:"auto";
  if(!["auto","solo","dual","triple"].includes(request))return{ok:false,code:"INVALID_MODE"} as const;
- const ordered:[Provider,Provider,Provider]=["codex","gh2","infisical"];
- const wanted=[...new Set(preferred)].filter(p=>ordered.includes(p));
- const pool=[...new Set([...wanted,...ordered])].filter(p=>available.includes(p));
- const size=request==="solo"?1:request==="dual"?2:request==="triple"?3:pool.length;
- const picked=pool.slice(0,size);
- return{ok:picked.length===size&&picked.length>0,requested_mode:request,selected:picked,needed:size,missing:size-picked.length,policy:"OWNER_ATHENA_PREEXEC_REQUIRED",can_execute:false,reason:"HOST_AND_PERMISSION_E2E_NOT_PROVEN"} as const;
+ const priority:Provider[]=["gh2","codex","infisical"];
+ const preference=[...new Set(preferred)].filter(p=>priority.includes(p));
+ const ordered=[...new Set([...preference,...priority])];
+ const eligible=ordered.filter(p=>available.includes(p));
+ // Infisical is a credential broker, NOT an executable Solo lane.
+ const hasExecutor=eligible.some(p=>p==="gh2"||p==="codex");
+ const count=request==="solo"?1:request==="dual"?2:request==="triple"?3:eligible.length;
+ const picked=hasExecutor?eligible.slice(0,count):[];
+ const executable=picked.some(p=>p==="gh2"||p==="codex");
+ const missing=Math.max(0,count-picked.length)+(executable?0:count===0?1:0);
+ return{ok:executable&&picked.length===count,requested_mode:request,
+   selected:picked,needed:Math.max(count,1),missing:Math.max(missing,count===0?1:0),
+   policy:"OWNER_ATHENA_PREEXEC_REQUIRED",can_execute:false,
+   reason:"HOST_AND_PERMISSION_E2E_NOT_PROVEN"} as const;
 }
 export function createUnifiedOpsApi(){
  const app=new Hono<Env>();
@@ -73,6 +81,8 @@ export function createUnifiedOpsApi(){
    if(/(?:password|private.key|secret|bearer\s+\S+|api[_ -]?key|token)\s*[:=]/i.test(intent))return c.json({ok:false,code:"CREDENTIAL_INPUT_FORBIDDEN"},400);
    const preferred=Array.isArray(body?.preferred)?body.preferred.filter((x):x is Provider=>x==="codex"||x==="gh2"||x==="infisical"):[];
    // Real GH2 runner and OCIAN signed-in Codex absent: do not label them READY because credentials exist.
+   // GH2 hosted protocol CI does not attest actual OCIAN/Codex executor readiness.
+   // Infisical's secret binding is observed but is NOT an executor.
    const result=selectOpsLane(body?.mode,["infisical"],preferred);
    return c.json({ok:true,plan_only:true,requires_owner_athena:true,
      execution:{status:"NOT_STARTED",allowed:false,reason:"GH2_OCIAN_RUNTIME_UNVERIFIED"},
