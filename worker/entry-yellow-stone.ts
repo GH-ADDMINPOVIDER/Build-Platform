@@ -34,6 +34,7 @@ import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-di
 import { planAthenaCommand } from "./athena-command-planner";
 import { normalizeWaveCommandBody, waveCommandPolicy } from "./wave-command-contract";
 import { createDiscordApi } from "./discord-api";
+import { createUnifiedOpsApi } from "./unified-ops-api";
 import { dispatchWaveCommandConsumer } from "./wave-command-dispatch";
 import { createConnectorModesApi } from "./connector-modes-api";
 import { createLocalAgentTeamApi } from "./local-agent-team-api";
@@ -66,6 +67,7 @@ const capabilityCardStoneApi = createCapabilityCardStoneApi();
 // CCS facade route proof trigger
 const n8nMigrationApi = createN8nMigrationApi();
 const discordApi = createDiscordApi();
+const unifiedOpsApi = createUnifiedOpsApi();
 const connectorModesApi = createConnectorModesApi();
 const agentFabricApi = createAgentFabricApi();
 const localAgentTeamApi = createLocalAgentTeamApi(
@@ -542,6 +544,9 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
 export default {
   async fetch(request: Request, env: Bindings, ctx: unknown) {
     const pathname = new URL(request.url).pathname;
+    if (pathname.startsWith("/api/ops/")) {
+      return unifiedOpsApi.fetch(request, env as never, ctx as never);
+    }
     if (pathname.startsWith("/api/discord/")) {
       return discordApi.fetch(request, env as never, ctx as never);
     }
