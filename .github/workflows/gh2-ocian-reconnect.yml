@@ -33,7 +33,7 @@ jobs:
           project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
           env-slug: staging
           secret-path: /
-          recursive: false
+          recursive: true
       - name: GH2 runner-admin POST + pinned SSH and isolated GH_ADDMIN_POVIDER host service
         run: node scripts/gh2-ocian-reconnect.mjs
       - name: Strict evidence gates
