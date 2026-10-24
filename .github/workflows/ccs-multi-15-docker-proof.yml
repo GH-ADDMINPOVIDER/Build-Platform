@@ -13,9 +13,11 @@ jobs:
     if: github.repository == 'Wave-Runner-2/Build-Platform'
     runs-on: ubuntu-latest
     timeout-minutes: 14
-    env:
-      WAVE_TMN_A2A_TOKEN: ccs-ci-fixture-no-real-credential-20261023
     steps:
+      - name: Generate ephemeral CCS/A2A proof token (never committed)
+        run: |
+          set -euo pipefail
+          printf 'WAVE_TMN_A2A_TOKEN=%s\n' "$(openssl rand -hex 32)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
