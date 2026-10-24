@@ -1,0 +1,17 @@
+{
+  "schema": "wave.external.source.notional.v1",
+  "provider": "notion",
+  "canonical_page_title": "RAG MASTER",
+  "canonical_page_id": "3c452a91-3871-81e2-a393-e97f6f87bcdf",
+  "canonical_page_url": "https://app.notion.com/p/3c452a91387181e2a393e97f6f87bcdf",
+  "read_verification": "CONNECTED_CHATGPT_NOTION_MCP_PAGE_FETCH_SUCCESS",
+  "source_page_last_edited_at": "2026-09-10T17:14:15.160Z",
+  "notion_native_verification": "UNVERIFIED",
+  "destination": "WAVE_STAGING_D1",
+  "wave_runtime_read": "NOT_PROVEN",
+  "wave_d1_receipt": "NOT_PROVEN",
+  "permission_model": "owner_verified_read_only_then_signed_yellow_approval_for_write",
+  "source_handling": "retrieval-only approved current knowledge; never copy secrets or raw conversation archive into RAG",
+  "status": "PROCESS_BLUE",
+  "e2e": false
+}
