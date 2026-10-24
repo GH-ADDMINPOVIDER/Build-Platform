@@ -87,22 +87,7 @@ jobs:
           echo "::add-mask::$(printf '%s' "$body" | jq -r '.token')"
           echo "GH2 admin credential PASS: identity=Wave-Runner-2, source=$token_source, repository=Wave-Runner-2/Build-Platform, runner-registration=201"
 
-  cancel-stale-gh1-bridge:
-    name: Release stale GH1 bridge run
-    runs-on: ubuntu-latest
-    environment: GH2-OCIAN-STAGING
-    steps:
-      - name: Load existing GH1 control credential from Infisical
-        uses: Infisical/secrets-action@v1.0.9
-        with:
-          method: oidc
-          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
-          project-slug: ogenicsio-ti-rv
-          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
-          secret-path: /
-          recursive: true
-
-      - name: Cancel only the stale bridge run
+      - name: Cancel only the stale GH1 bridge run
         shell: bash
         run: |
           set -euo pipefail
