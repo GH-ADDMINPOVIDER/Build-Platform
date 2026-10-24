@@ -1,0 +1,40 @@
+name: Owner Atlassian WAVE Domain TXT Verify — Cloudflare
+on:
+  push:
+    branches: [feat/ccs-multi-protocol-docker-20261023]
+    paths:
+      - 'scripts/atlassian-wave-cloudflare-txt.mjs'
+      - '.github/workflows/atlassian-wave-cloudflare-txt.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  cloudflare-atlassian-txt:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+      INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || 'ogenic-sio-ti-rv' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Authorized GH2 OIDC Infisical staging DNS credentials
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
+      - name: Add or verify TXT on Cloudflare, never modify WAVE A/CNAME
+        run: node scripts/atlassian-wave-cloudflare-txt.mjs
+      - name: Verification boundary
+        if: always()
+        run: echo 'ATLASSIAN_DOMAIN_ADMIN_VERIFICATION_NOT_AUTOMATIC=TRUE; NO_WEB_DNS_TRAFFIC_RECORDS_MODIFIED=TRUE'
