@@ -116,16 +116,23 @@ jobs:
           for key_name in SSH_KEY SSH_PRIVATE_KEY; do
             key_material="$(printenv "$key_name" 2>/dev/null || true)"
             [ -n "$key_material" ] || continue
-            candidate="$RUNNER_TEMP/ocian-$key_name"
-            printf '%s\n' "$key_material" > "$candidate"
-            chmod 600 "$candidate"
-            if ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i "$candidate" wave@165.232.174.32 true >/dev/null 2>&1; then
-              key_file="$candidate"
-              echo "SSH key accepted for OCIAN: $key_name"
-              break
-            fi
+            for encoding in raw escaped base64; do
+              candidate="$RUNNER_TEMP/ocian-${key_name}-${encoding}"
+              case "$encoding" in
+                raw) printf '%s' "$key_material" | tr -d '\\r' > "$candidate" ;;
+                escaped) printf '%s' "$key_material" | sed 's/\\\\n/\n/g' | tr -d '\\r' > "$candidate" ;;
+                base64) printf '%s' "$key_material" | base64 --decode 2>/dev/null | tr -d '\\r' > "$candidate" || true ;;
+              esac
+              chmod 600 "$candidate"
+              ssh-keygen -y -f "$candidate" >/dev/null 2>&1 || continue
+              if ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no -i "$candidate" wave@165.232.174.32 true >/dev/null 2>&1; then
+                key_file="$candidate"
+                echo "SSH key accepted for OCIAN: $key_name ($encoding)"
+                break 2
+              fi
+            done
           done
-          test -n "$key_file" || { echo "::error::No Infisical SSH key authenticates as wave on OCIAN-S-Host"; exit 63; }
+          test -n "$key_file" || { echo "::error::No normalized Infisical SSH key authenticates as wave on OCIAN-S-Host"; exit 63; }
           printf '%s\n' "$registration_token" | ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=no -i "$key_file" wave@165.232.174.32 '
             set -euo pipefail
             read -r registration_token
