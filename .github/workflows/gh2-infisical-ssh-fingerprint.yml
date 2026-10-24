@@ -63,7 +63,7 @@ jobs:
           set -euo pipefail
           expected='70:66:fc:1e:e7:18:99:65:b0:d4:82:9d:c7:b8:79:fa'
           found_match=''
-          for key_name in SSH_KEY SSH_PRIVATE_KEY; do
+          for key_name in SSH_KEY SSH_PRIVATE_KEY SSH_PUBLIC_KEY; do
             key_material="$(printenv "$key_name" 2>/dev/null || true)"
             [ -n "$key_material" ] || { echo "$key_name: absent"; continue; }
             echo "$key_name: injected"
