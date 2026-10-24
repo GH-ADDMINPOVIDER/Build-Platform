@@ -1,0 +1,112 @@
+name: GH2 OCIAN host bootstrap
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_API_URL: https://app.infisical.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_ENV_SLUG: staging
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+
+jobs:
+  verify-gh2-admin-credential:
+    name: Verify GH2 admin credential
+    runs-on: ubuntu-latest
+    environment: GH2-OCIAN-STAGING
+    steps:
+      - name: Resolve Infisical project through GH2 OIDC
+        id: infisical_project
+        shell: bash
+        run: |
+          set -euo pipefail
+          oidc_response="$(curl -fsS -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}")"
+          oidc_jwt="$(printf '%s' "$oidc_response" | jq -r '.value // empty')"
+          test -n "$oidc_jwt"
+          login_payload="$(jq -n --arg identityId "${INFISICAL_IDENTITY_ID}" --arg jwt "$oidc_jwt" --arg organizationSlug "${INFISICAL_ORG_SLUG}" '{identityId:$identityId,jwt:$jwt,organizationSlug:$organizationSlug}')"
+          login_response="$(curl -fsS -X POST -H 'Content-Type: application/json' --data "$login_payload" "${INFISICAL_API_URL}/api/v1/auth/oidc-auth/login")"
+          infisical_token="$(printf '%s' "$login_response" | jq -r '.accessToken // empty')"
+          test -n "$infisical_token"
+          projects="$(curl -fsS -H "Authorization: Bearer $infisical_token" "${INFISICAL_API_URL}/api/v1/projects" | jq -c --arg org "${INFISICAL_ORG_ID}" '[.projects[]? | select(.orgId == $org)]')"
+          if [ -n "${INFISICAL_PROJECT_SLUG}" ]; then
+            matches="$(printf '%s' "$projects" | jq -c --arg slug "${INFISICAL_PROJECT_SLUG}" '[.[] | select(.slug == $slug)]')"
+          elif [ "$(printf '%s' "$projects" | jq 'length')" -eq 1 ]; then
+            matches="$projects"
+          else
+            matches="$(printf '%s' "$projects" | jq -c '[.[] | select((.name | ascii_downcase | gsub("[ _-]"; "")) == "ogenicsio")]')"
+          fi
+          test "$(printf '%s' "$matches" | jq 'length')" -eq 1
+          project_slug="$(printf '%s' "$matches" | jq -r '.[0].slug')"
+          echo "project_slug=$project_slug" >> "$GITHUB_OUTPUT"
+
+      - name: Load GH2 credential from Infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          secret-path: /
+          recursive: true
+
+      - name: Validate GH2 credential and runner administration scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="${GH2_RUNNER_ADMIN_TOKEN:-}"
+          test -n "$token" || { echo "::error::Infisical key GH2_RUNNER_ADMIN_TOKEN is missing"; exit 41; }
+          login="$(curl -fsS -H "Authorization: Bearer $token" -H 'Accept: application/vnd.github+json' https://api.github.com/user | jq -r '.login // empty')"
+          test "$login" = "Wave-Runner-2" || { echo "::error::GH2_RUNNER_ADMIN_TOKEN is not owned by Wave-Runner-2"; exit 42; }
+          response="$(curl -sS -w '\nHTTP_STATUS:%{http_code}' -X POST -H "Authorization: Bearer $token" -H 'Accept: application/vnd.github+json' https://api.github.com/repos/Wave-Runner-2/Build-Platform/actions/runners/registration-token)"
+          status="$(printf '%s\n' "$response" | tail -n 1 | sed 's/^HTTP_STATUS://')"
+          body="$(printf '%s\n' "$response" | sed '$d')"
+          if [ "$status" != "201" ]; then
+            message="$(printf '%s' "$body" | jq -r '.message // "no message"')"
+            echo "::error::GH2 runner administration check returned HTTP $status ($message)"
+            exit 43
+          fi
+          echo "::add-mask::$(printf '%s' "$body" | jq -r '.token')"
+          echo "GH2 admin credential PASS: identity=Wave-Runner-2, repository=Wave-Runner-2/Build-Platform, runner-registration=201"
+
+  rebind-existing-runner:
+    name: Rebind existing wave-runner-01
+    needs: verify-gh2-admin-credential
+    runs-on: [self-hosted, linux, x64, wave]
+    environment: GH2-OCIAN-STAGING
+    steps:
+      - name: Load GH2 credential from Infisical
+        id: infisical
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG }}
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          secret-path: /
+          recursive: true
+
+      - name: Rebind the same OCIAN runner to GH2
+        shell: bash
+        run: |
+          set -euo pipefail
+          runner_dir='/opt/wave/actions-runner'
+          test -d "$runner_dir"
+          token="${GH2_RUNNER_ADMIN_TOKEN:-}"
+          test -n "$token" || { echo "::error::GH2_RUNNER_ADMIN_TOKEN is missing"; exit 44; }
+          login="$(curl -fsS -H "Authorization: Bearer $token" -H 'Accept: application/vnd.github+json' https://api.github.com/user | jq -r '.login // empty')"
+          test "$login" = "Wave-Runner-2"
+          response="$(curl -fsS -X POST -H "Authorization: Bearer $token" -H 'Accept: application/vnd.github+json' https://api.github.com/repos/Wave-Runner-2/Build-Platform/actions/runners/registration-token)"
+          registration_token="$(printf '%s' "$response" | jq -r '.token // empty')"
+          test -n "$registration_token"
+          echo "::add-mask::$registration_token"
+          old_listener="$(pgrep -f '/opt/wave/actions-runner/bin/Runner.Listener' | head -n 1 || true)"
+          cd "$runner_dir"
+          ./config.sh --unattended --replace --url https://github.com/Wave-Runner-2/Build-Platform --token "$registration_token" --name wave-runner-01 --labels self-hosted,linux,x64,wave --work _work
+          if [ -n "$old_listener" ]; then kill -TERM "$old_listener" || true; fi
+          echo "GH2 rebind completed for the existing runner wave-runner-01 on OCIAN-S-Host"
