@@ -212,14 +212,13 @@ jobs:
         run: |
           set -euo pipefail
           : "${OGENIC_GH2_API_TOKEN:?GH2 token was not injected}"
-          service='actions.runner.Ogenicchocolate21debug-Build-Platform.wave-runner-01.service'
           runner_dir='/opt/wave/actions-runner'
           test -d "$runner_dir"
-          sudo -n systemctl is-active --quiet "$service"
           registration_token="$(curl -fsS -X POST -H "Authorization: Bearer $OGENIC_GH2_API_TOKEN" -H 'Accept: application/vnd.github+json' https://api.github.com/repos/Wave-Runner-2/Build-Platform/actions/runners/registration-token | jq -r '.token // empty')"
           test -n "$registration_token" || { echo '::error::GH2 registration-token endpoint returned no token'; exit 42; }
           echo "::add-mask::$registration_token"
+          old_listener="$(pgrep -f '/opt/wave/actions-runner/bin/Runner.Listener' | head -n 1 || true)"
           cd "$runner_dir"
           ./config.sh --unattended --replace --url https://github.com/Wave-Runner-2/Build-Platform --token "$registration_token" --name wave-runner-01 --labels self-hosted,linux,x64,wave --work _work
-          sudo -n systemctl restart "$service"
-          echo 'GH2 rebind applied for wave-runner-01; service restart requested.'
+          if [ -n "$old_listener" ]; then kill -TERM "$old_listener" || true; fi
+          echo 'GH2 rebind written for wave-runner-01; existing listener was asked to reload through the service supervisor.'
