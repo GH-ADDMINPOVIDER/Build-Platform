@@ -14,6 +14,15 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
+  id-token: write
+
+env:
+  INFISICAL_API_URL: https://app.infisical.com
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_ENV_SLUG: staging
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
 
 concurrency:
   group: codex-issue-${{ github.event.issue.number || inputs.issue_number || github.run_id }}
@@ -34,6 +43,44 @@ jobs:
         with:
           persist-credentials: true
           fetch-depth: 0
+
+      - name: Discover Infisical staging project through GitHub OIDC
+        id: infisical_project
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${ACTIONS_ID_TOKEN_REQUEST_URL:?missing GitHub OIDC request URL}"
+          : "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:?missing GitHub OIDC request token}"
+          oidc_response="$(curl -fsS -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" "${ACTIONS_ID_TOKEN_REQUEST_URL}")"
+          oidc_jwt="$(printf '%s' "$oidc_response" | jq -r '.value // empty')"
+          test -n "$oidc_jwt"
+          login_payload="$(jq -n --arg identityId "${INFISICAL_IDENTITY_ID}" --arg jwt "$oidc_jwt" --arg organizationSlug "${INFISICAL_ORG_SLUG}" '{identityId:$identityId,jwt:$jwt,organizationSlug:$organizationSlug}')"
+          login_response="$(curl -fsS -X POST -H 'Content-Type: application/json' --data "$login_payload" "${INFISICAL_API_URL}/api/v1/auth/oidc-auth/login")"
+          infisical_token="$(printf '%s' "$login_response" | jq -r '.accessToken // empty')"
+          test -n "$infisical_token"
+          echo "::add-mask::$infisical_token"
+          projects="$(curl -fsS -H "Authorization: Bearer $infisical_token" "${INFISICAL_API_URL}/api/v1/projects" | jq -c --arg org "${INFISICAL_ORG_ID}" '[.projects[]? | select(.orgId == $org)]')"
+          if [ -n "${INFISICAL_PROJECT_SLUG}" ]; then
+            matches="$(printf '%s' "$projects" | jq -c --arg slug "${INFISICAL_PROJECT_SLUG}" '[.[] | select(.slug == $slug)]')"
+          elif [ "$(printf '%s' "$projects" | jq 'length')" -eq 1 ]; then
+            matches="$projects"
+          else
+            matches="$(printf '%s' "$projects" | jq -c '[.[] | select((.name | ascii_downcase | gsub("[ _-]"; "")) == "ogenicsio")]')"
+          fi
+          test "$(printf '%s' "$matches" | jq 'length')" -eq 1
+          project_slug="$(printf '%s' "$matches" | jq -r '.[0].slug')"
+          echo "Resolved Infisical staging project: $project_slug"
+          echo "project_slug=$project_slug" >> "$GITHUB_OUTPUT"
+
+      - name: Load staging credentials through Infisical OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ steps.infisical_project.outputs.project_slug }}
+          env-slug: staging
+          secret-path: /
+          recursive: true
 
       - name: Validate executor and resolve issue
         id: task
