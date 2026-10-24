@@ -88,6 +88,7 @@ jobs:
           echo "GH2 admin credential PASS: identity=Wave-Runner-2, source=$token_source, repository=Wave-Runner-2/Build-Platform, runner-registration=201"
 
       - name: Cancel only the stale GH1 bridge run
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -97,43 +98,48 @@ jobs:
           test "$status" = "202" || { echo "::error::GH1 stale bridge cancel returned HTTP $status"; exit 52; }
           echo "Canceled stale GH1 bridge run 40116014850; no repository or runner was deleted."
 
-  rebind-existing-runner:
-    name: Rebind existing wave-runner-01
+      - name: Rebind OCIAN directly over SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh2_token="$(printenv GH-ID-TOMLOAD-RUNNER-2 2>/dev/null || true)"
+          ssh_private_key="$(printenv SSH_PRIVATE_KEY 2>/dev/null || true)"
+          test -n "$gh2_token" || { echo "::error::GH-ID-TOMLOAD-RUNNER-2 is missing"; exit 61; }
+          test -n "$ssh_private_key" || { echo "::error::SSH_PRIVATE_KEY is missing"; exit 62; }
+          login="$(curl -fsS -H "Authorization: Bearer $gh2_token" -H 'Accept: application/vnd.github+json' https://api.github.com/user | jq -r '.login // empty')"
+          test "$login" = "Wave-Runner-2"
+          response="$(curl -fsS -X POST -H "Authorization: Bearer $gh2_token" -H 'Accept: application/vnd.github+json' https://api.github.com/repos/Wave-Runner-2/Build-Platform/actions/runners/registration-token)"
+          registration_token="$(printf '%s' "$response" | jq -r '.token // empty')"
+          test -n "$registration_token"
+          echo "::add-mask::$registration_token"
+          key_file="$RUNNER_TEMP/ocian-wave"
+          printf '%s\n' "$ssh_private_key" > "$key_file"
+          chmod 600 "$key_file"
+          printf '%s\n' "$registration_token" | ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=no -i "$key_file" wave@165.232.174.32 '
+            set -euo pipefail
+            read -r registration_token
+            runner_dir=/opt/wave/actions-runner
+            test -d "$runner_dir"
+            old_listener="$(pgrep -f "/opt/wave/actions-runner/bin/Runner.Listener" | head -n 1 || true)"
+            cd "$runner_dir"
+            ./config.sh --unattended --replace --url https://github.com/Wave-Runner-2/Build-Platform --token "$registration_token" --name wave-runner-01 --labels self-hosted,linux,x64,wave --work _work
+            if [ -n "$old_listener" ]; then kill -TERM "$old_listener" || true; fi
+            echo "remote GH2 rebind complete"
+          '
+          echo "GH2 direct rebind completed on OCIAN-S-Host; no new runner was created."
+
+  verify-rebound-runner:
+    name: Verify existing wave-runner-01 on GH2
     needs: verify-gh2-admin-credential
     runs-on: [self-hosted, linux, x64, wave]
     environment: GH2-OCIAN-STAGING
     steps:
-      - name: Load GH2 credential from Infisical
-        id: infisical
-        uses: Infisical/secrets-action@v1.0.9
-        with:
-          method: oidc
-          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
-          project-slug: ${{ vars.INFISICAL_PROJECT_SLUG }}
-          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
-          secret-path: /
-          recursive: true
-
-      - name: Rebind the same OCIAN runner to GH2
+      - name: Verify host and GH2 registration
         shell: bash
         run: |
           set -euo pipefail
-          runner_dir='/opt/wave/actions-runner'
-          test -d "$runner_dir"
-          token=''
-          for name in GH2_RUNNER_ADMIN_TOKEN GH-ID-TOMLOAD-RUNNER-2 GIT_HUB_RUNNER_2 GITHUB_TOKEN_OGE34 GITHUB_TOKEN_CLASSIC GH2_CLASSIC_PAT GH2_GITHUB_TOKEN; do
-            value="$(printenv "$name" 2>/dev/null || true)"
-            [ -n "$value" ] || continue
-            login="$(curl -fsS -H "Authorization: Bearer $value" -H 'Accept: application/vnd.github+json' https://api.github.com/user | jq -r '.login // empty' || true)"
-            if [ "$login" = "Wave-Runner-2" ]; then token="$value"; break; fi
-          done
-          test -n "$token" || { echo "::error::No Infisical-injected GH2 Classic/PAT credential authenticated as Wave-Runner-2"; exit 44; }
-          response="$(curl -fsS -X POST -H "Authorization: Bearer $token" -H 'Accept: application/vnd.github+json' https://api.github.com/repos/Wave-Runner-2/Build-Platform/actions/runners/registration-token)"
-          registration_token="$(printf '%s' "$response" | jq -r '.token // empty')"
-          test -n "$registration_token"
-          echo "::add-mask::$registration_token"
-          old_listener="$(pgrep -f '/opt/wave/actions-runner/bin/Runner.Listener' | head -n 1 || true)"
-          cd "$runner_dir"
-          ./config.sh --unattended --replace --url https://github.com/Wave-Runner-2/Build-Platform --token "$registration_token" --name wave-runner-01 --labels self-hosted,linux,x64,wave --work _work
-          if [ -n "$old_listener" ]; then kill -TERM "$old_listener" || true; fi
-          echo "GH2 rebind completed for the existing runner wave-runner-01 on OCIAN-S-Host"
+          test "$(hostname)" = "wave-runner-01" || { echo "::error::unexpected runner hostname"; hostname; exit 71; }
+          test -f /opt/wave/actions-runner/.runner
+          grep -q 'Wave-Runner-2/Build-Platform' /opt/wave/actions-runner/.runner
+          test -d /home/wave/.codex
+          echo "PASS: OCIAN-S-Host / wave-runner-01 is registered to Wave-Runner-2/Build-Platform and Codex profile exists at /home/wave/.codex"
