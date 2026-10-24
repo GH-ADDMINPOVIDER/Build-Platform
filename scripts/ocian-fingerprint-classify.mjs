@@ -48,7 +48,7 @@ try{
  }
  
  // Cross-check across all OCIAN public host key algorithms; an Infisical key may be RSA/ECDSA instead of Ed25519.
- const scans=run('ssh-keyscan',['-T','7','-p','22','-t','rsa,ecdsa,ed25519','165.232.174.32']);
+ const scans=run('ssh-keyscan',['-T','7','-p','22','165.232.174.32']);
  p.trusted_source_match_any_host_algo=false;
  p.infisical_key_matches_digitalocean_client=false;
  if(scans.status===0){
