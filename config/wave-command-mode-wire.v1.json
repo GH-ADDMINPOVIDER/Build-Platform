@@ -1,0 +1,55 @@
+{
+  "schema": "ogenic.wave.command_mode_wire.v1",
+  "environment": "staging",
+  "strategy": "ADDITIVE_PROVENANCE_TO_EXISTING_SIGNED_INGRESS",
+  "canonical_path": "POST /api/wave/command",
+  "existing_ingress": "POST /api/connector-endpoint/v1/command",
+  "dispatch": "Wave-Runner-2/Build-Platform/.github/workflows/wave-command-consumer.yml",
+  "physical_host": "OCIAN-S HOST",
+  "executor": "CODEX-TMN",
+  "runner": "wave-runner-01",
+  "historical_store": "Ogenicchocolate21debug/Build-Platform (READ_ONLY)",
+  "payload_contract": {
+    "transport": "agent_sign_command_run",
+    "source_mode": "<one of source_modes>",
+    "mode": "<one of wave_command_modes>",
+    "command": "bounded intent text",
+    "capability": "codex_selfhost",
+    "provider": "openai",
+    "environment": "staging"
+  },
+  "source_modes": [
+    "mcp",
+    "n8n",
+    "rest_api",
+    "token",
+    "secret",
+    "credential",
+    "repository_api_pr_api",
+    "agent_api",
+    "function_tool_calling",
+    "npx_cli",
+    "npm",
+    "sdk",
+    "a2a_agent_relay",
+    "webhook_event_calling",
+    "agent_sign_command_run"
+  ],
+  "wave_command_modes": [
+    "autonomous",
+    "read",
+    "execute",
+    "team"
+  ],
+  "guards": [
+    "requires existing signed Owner Session on WAVE",
+    "source_mode is UNTRUSTED provenance; does NOT confer execution authority or export secrets",
+    "unverified transport can only label source, not gain arbitrary direct execution",
+    "old per-transport allowlist remains enforced",
+    "same ATHENA/YELLOW/D1 authority and existing GH2 consumer",
+    "no private URL, token or secret in payload",
+    "no new host, runner, executor, workflow dispatch, schema or merge",
+    "staging source smoke does not mean authenticated E2E"
+  ],
+  "acceptance": "SOURCE_SMOKE_PENDING; NO_CURRENT_ALL_MODES_E2E"
+}

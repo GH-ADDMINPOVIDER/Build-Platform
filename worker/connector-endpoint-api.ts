@@ -47,7 +47,7 @@ export function normalizeConnectorMode(input: unknown): string {
   const normalized=aliases[name]??name;
   return connectorModes.some(item=>item.id===normalized)?normalized:"";
 }
-const safe = new Set(["transport","command","intent","capability","provider","mode","environment","input","approval"]);
+const safe = new Set(["transport","source_mode","command","intent","capability","provider","mode","environment","input","approval"]);
 const word=(value:unknown,max:number):string => typeof value==="string" && value.length<=max ? value.trim() : "";
 const executable=new Set(["rest_api","repository_api_pr_api","agent_api","agent_sign_command_run"]);
 const readonly=new Set(["rest_api","repository_api_pr_api"]);
@@ -58,6 +58,11 @@ export function normalizeConnectorEnvelope(raw:unknown) {
   if(Object.keys(body).some(key=>!safe.has(key)))return {ok:false as const,code:"UNSUPPORTED_FIELD"};
   const transport=normalizeConnectorMode(body.transport);
   if(!transport)return {ok:false as const,code:"TRANSPORT_UNKNOWN"};
+  // Additive provenance wire: ALL 15 connector categories may identify their source
+  // while still using an ALREADY VERIFIED transport. The source label is never
+  // passed as an execution authority, secret, approval, or capability.
+  const sourceMode=body.source_mode===undefined?transport:normalizeConnectorMode(body.source_mode);
+  if(!sourceMode)return {ok:false as const,code:"SOURCE_MODE_UNKNOWN"};
   if(["token","secret","credential"].includes(transport))
     return {ok:false as const,code:"IDENTITY_REFERENCE_ONLY_NO_SECRET_EXPORT"};
   if(!executable.has(transport))
@@ -96,7 +101,7 @@ export function normalizeConnectorEnvelope(raw:unknown) {
     environment:"staging",...(Object.keys(values).length?{input:values}:{ }),
     ...(approved?{approval:{confirmed:true,approval_id:approved.approval_id}}:{})
   };
-  return {ok:true as const,transport,delegated};
+  return {ok:true as const,transport,source_mode:sourceMode,delegated};
 }
 export const connectorManifest={
   ok:true,version:"OGENIC_CONNECTOR_ENDPOINT_V2",environment:"staging",
