@@ -1,0 +1,40 @@
+name: Stone Command Mode Wiring Smoke (source-only)
+on:
+  push:
+    branches:
+      - fix/stone-command-mode-wire-20261025
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-smoke:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout same source SHA
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install existing lockfile dependencies
+        run: npm ci --ignore-scripts
+      - name: Smoke real mode normalizer 15 source labels and 4 command modes
+        run: node --test tests/stone-command-mode-wiring.test.mjs tests/wave-connector-behavior.test.mjs tests/wave-connector-endpoint.test.mjs tests/gh2-provider-command-routing.test.mjs
+      - name: TypeScript contract
+        run: npm run typecheck
+      - name: Existing WAVE build
+        run: npm run build
+      - name: Assert same SHA and source-only boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          printf 'MODE_SOURCE_SMOKE_ONLY=PASS\nSHA=%s\n' "$GITHUB_SHA"
+          printf 'NO_OWNER_SESSION_NO_HOST_NO_DISPATCH_NO_D1_E2E\n'
