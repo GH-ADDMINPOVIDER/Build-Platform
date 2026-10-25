@@ -1,6 +1,7 @@
 name: OGE130 GH1 Owner Rescue Probe
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - owner/oge-130-gh1-rescue-20261025
