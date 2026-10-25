@@ -1,3 +1,16 @@
+# OWNER STONE CHECK OVERRIDE — 2026-10-25 (READ THIS FIRST)
+
+This Owner directive is **newer and overrides conflicting historical labels or route assumptions later in this file without deleting the prior evidence**. This is a staging documentation-branch change until explicitly merged and deployed. Do not claim automatic runtime enforcement from this text alone.
+
+**EVERY CHAT / CODEX / WORK / GS / GT MODE before CHECK-IN, CHECK-OUT or question about entitlement MUST:**
+1. Inspect [Owner Report folder](https://drive.google.com/drive/folders/1fNQVX0AkpEV6hqweiYcNk-DFtzYeWwin) and **open every image, read all visible text in the image**, record screenshot event time separately from Drive upload time. The [73-image direct-link manifest](docs/checkpoints/OWNER_REPORT_IMAGE_MANIFEST_2026-10-25.md) is the baseline. Re-list for new images. Record images read vs unreadable; do not claim full review from filenames or thumbnails.
+2. Perform Stone Check against [Owner Codex checkpoint ledger](docs/checkpoints/OWNER_STONE_CHECK_CODEX_2026-10-25.md) and [EV-001..050 source proof matrix](docs/checkpoints/CODEX_WAVE_CERT_EV001_EV050_SNAPSHOT_2026-10-25.md), original Owner CERT and GH2/GH1/D1/ChatGPT Project scoped proof. Do not relabel old green/orange certificates or ask Owner to repeat previously proven identity/permissions without a specific **new** contradictory authenticated receipt.
+3. Use active display labels **GH-ADDMINT POVIDER** (technical repo `Wave-Runner-2/Build-Platform`), **store** (technical historic repo `Ogenicchocolate21debug/Build-Platform` read-only), **OCIAN-S HOST** and **CODEX-TMN**. Technical actor/runner IDs and original SHA/Run/Job stay unchanged. Store is not the new executor. Older GH1 primary wording below is historical, **not an instruction to redirect current GH2 tasks**.
+4. The executor **independently** diagnoses full existing WAVE Owner signed command -> ATHENA -> GH2 -> OCIAN single selfhost runner -> Docker CODEX-TMN -> D1 independent RESULT route and the canonical `ogenic-ctl check-in/check-out` across all modes. Implement/test without prescriptive repeated questions, rebuilding old work, new hosts/runners/tokens or unsafe broad privileges. Screenshot's 618/618 tests + build were **LOCAL REPORTED**, three files untracked, and authenticated CHECK-IN/OUT plus CI/D1 E2E still **NOT PROVEN**.
+5. Always issue append-only DONE (proven scope), LOCAL/SOURCE ONLY, BLOCKED, UNVERIFIED delta with source SHA/run/job/task hash/readback. Preserve historic PASS_GREEN/E2E_ORANGE (CP005/006/007/042/046 and more scoped EV results); do not treat new queue/cancellation as historic regression. If project-native/D1 storage is not connected, declare checkpoint write unverified rather than invent completion.
+
+---
+
 # OGENIC / WAVE Agent Operating Rules
 
 Scope: `phase-vi-provider-incentive-metering` only.
