@@ -72,6 +72,13 @@ export async function readCertificateLincenc(db: ConnectorD1 | undefined) {
         codex_gs:{identity:limited(gs.canonical_identity),profile:limited(gs.runtime_profile),current_execution_verified:false},
         codex_ts:{identity:limited(ts.canonical_identity),profile:limited(ts.historical_original_profile),historical_execution_proof:limited(ts.historical_execution_proof),historical_execution_result:limited(ts.historical_result),current_execution_verified:false},
       },
+      identity_migration_20261026:{
+        status:"PENDING_EXTERNAL_VERIFICATION",
+        github_first:{email:"tawatchaisamornrum11@gmail.com",github_login:"Ogenicchocolate21debug",github_id:306097555,display_label:"STORE ONLY",machine_reference:"STORE_ONLY",dispatch_eligible:false},
+        github_second:{email:"tomload21@gmail.com",github_login:"Wave-Runner-2",github_id:342175560,display_label:"GH_ADDMINPROVIDER",machine_reference:"GH_ADDMINPROVIDER",requested_role:"Admin",observed_repository_permission:"write",admin_verified:false,actions_write_verified:false},
+        infisical_live_readback:false,
+        d1_write_performed:false,
+      },
       license_scope:"EVIDENCE_ONLY_NOT_PROVIDER_ENTITLEMENT",x509_leaf_issued:false,
       command_execution_authorized_by_this_document:false,
       github_dispatch_actions_write_proven_by_this_document:false,

@@ -42,6 +42,7 @@ test("identity contract keeps certificate access read-only and references existi
   const athena = read("worker/athena-chat-api.ts");
   const bindings = read("config/staging-runtime-bindings.json");
   assert.match(certSource, /FROM certificate_lincenc WHERE certificate_id = \? LIMIT 1/);
+  assert.match(certSource, /identity_migration_20261026/);
   assert.doesNotMatch(certSource, /CREATE TABLE|INSERT INTO|UPDATE certificate_lincenc/);
   assert.match(athena, /certificate_lincenc_status/);
   assert.match(bindings, /OPENAI_EXECUTOR_API_KEY/);
