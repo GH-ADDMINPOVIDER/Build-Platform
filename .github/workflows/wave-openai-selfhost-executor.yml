@@ -18,6 +18,14 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: staging
 
 concurrency:
   group: wave-openai-selfhost-${{ inputs.environment_id }}
@@ -30,7 +38,6 @@ jobs:
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 20
     env:
-      CODEX_API_KEY: ${{ secrets.OPENAI_EXECUTOR_API_KEY }}
       ENVIRONMENT_ID: ${{ inputs.environment_id }}
       REMOTE_URL: ${{ inputs.remote_url }}
       AGENT_SESSION_ID: ${{ inputs.session_id }}
@@ -42,10 +49,27 @@ jobs:
           ref: phase-vi-provider-incentive-metering
           fetch-depth: 0
 
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load OpenAI executor credential from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          secret-path: /
+          recursive: true
+
       - name: Fail closed on invalid provisioning metadata
         shell: bash
         run: |
           set -euo pipefail
+          CODEX_API_KEY="${OPENAI_EXECUTOR_API_KEY:-}"
+          export CODEX_API_KEY
           test -n "$CODEX_API_KEY" || { echo 'CONFIGURATION_REQUIRED: OPENAI_EXECUTOR_API_KEY'; exit 78; }
           [[ "$ENVIRONMENT_ID" == ccarenv_* ]] || { echo 'INVALID_ENVIRONMENT_ID'; exit 64; }
           [[ "$AGENT_SESSION_ID" == sess_* || "$AGENT_SESSION_ID" == agent_* ]] || { echo 'INVALID_AGENT_SESSION_ID'; exit 64; }
@@ -73,6 +97,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          CODEX_API_KEY="${OPENAI_EXECUTOR_API_KEY:-}"
+          export CODEX_API_KEY
+          test -n "$CODEX_API_KEY" || { echo 'CONFIGURATION_REQUIRED: OPENAI_EXECUTOR_API_KEY'; exit 78; }
           echo "Starting executor for session=${AGENT_SESSION_ID} environment=${ENVIRONMENT_ID}"
           exec codex exec-server \
             --remote "$REMOTE_URL" \
