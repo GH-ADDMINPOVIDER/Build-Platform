@@ -19,6 +19,10 @@ The current live CCS surface remains a bounded/read-oriented control facade. Fut
 - Existing staging deploy selects GH-2 by a real principal + Actions write check before assembling the Worker protected runtime bundle. Any missing/mismatched GH-2 binding **fails closed**, instead of silently reverting to GH-1 Dispatch 403.
 - Production, Candy, Cloudflare database schema, SSH identities and Runner configuration are unchanged. Worker queues are not `COMMAND_RESULT_DONE` unless a genuine Runner execution receipt is observed.
 
+## Requested terminal route — 26 Oct 2026
+
+`GPT/Owner → GH_ADDMINPROVIDER → Infisical staging OIDC → wave-runner-01 → Codex → Docker/self-host ocean` is the requested route. The repository now selects the `GH_ADDMINPROVIDER` reference when it is present and rejects `STORE_ONLY` as a GH-2 dispatch principal. This route remains `E2E_PENDING` until the external secret exists, the GitHub principal matches ID `342175560`, the Actions-write invalid-ref canary returns `422`, and a real bounded Codex/Runner receipt is recorded.
+
 ## Platform Engineer — GH-2 / Tomload21 (Owner assignment, 21 Oct 2026)
 
 **Operational role:** `Platform Engineer` for the existing OGENIC/WAVE **staging** platform. This is an Owner-assigned operational job function, **not** a GitHub built-in repository permission or an assertion of additional OAuth/token scopes.
