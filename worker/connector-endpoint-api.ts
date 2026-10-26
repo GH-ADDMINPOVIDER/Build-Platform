@@ -1,6 +1,15 @@
 // OGE-131 — Full, source-backed Connector Endpoint inventory.
 // Exactly 15 categories from OGE-130 Certificate lincenc evidence event #14.
 // A category is NOT automatically a remote executable and a source proof is NOT E2E.
+// Keep this inventory module dependency-free: its contract test evaluates the
+// source in a sandbox without a module loader. These values mirror the shared
+// self-host identity contract in worker/self-host-machine.ts.
+const SELF_HOST_RUNNER_ID = "wave-runner-01" as const;
+const SELF_HOST_MACHINE = {
+  id: "SELF_HOST_MACHINE",
+  display_name: "SELF HOST_MACHINE",
+  physical_hostname: "OCIAN-S-Host",
+} as const;
 export type ConnectorModeKind = "TRANSPORT" | "IDENTITY" | "RUNNER_TOOL" | "AGENT_PROTOCOL" | "EXECUTION_CONTROL";
 export type ConnectorMode = {
   id: string;
@@ -109,7 +118,8 @@ export const connectorManifest={
   canonical_command:"/api/wave/command",
   authorization:"YELLOW_STONE_ONLY",owner_sign:"PLAN_BOUND_OWNER_SESSION",
   registry_evidence:"oge130_connector_modes_repository_inventory_20261019",
-  runner:"wave-runner-01",npx_worker_execution:false,credential_values_exposed:false,
+  runner:SELF_HOST_RUNNER_ID,machine_id:SELF_HOST_MACHINE.id,machine_display_name:SELF_HOST_MACHINE.display_name,
+  physical_hostname:SELF_HOST_MACHINE.physical_hostname,npx_worker_execution:false,credential_values_exposed:false,
   independently_executable:false,provider_adapters_require_live_proof:true,
   all_fifteen_modes_live_e2e_proven:false,
 } as const;

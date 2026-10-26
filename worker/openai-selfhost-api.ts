@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { readCanonicalD1Context, type D1ContextDb } from "./d1-context";
+import { SELF_HOST_RUNNER_ID, selfHostMachineMetadata } from "./self-host-machine";
 
 type SelfHostBindings = AuthBindings & {
   DB?: D1ContextDb;
@@ -391,7 +392,8 @@ async function verifyPreparedSession(env: SelfHostBindings, input: {
     verification: "verified",
     agent_session_id: input.sessionId,
     environment_id: input.environmentId,
-    runner: "wave-runner-01",
+    runner: SELF_HOST_RUNNER_ID,
+    machine: selfHostMachineMetadata(),
     branch: CANONICAL_STAGING_BRANCH,
     result_sha256: resultHash,
     evidence_sequence: evidence.sequence,
@@ -419,6 +421,8 @@ export function createOpenAISelfHostApi() {
     return c.json({
       ok: true,
       branch,
+      machine: selfHostMachineMetadata(),
+      runner_registration: SELF_HOST_RUNNER_ID,
       openai_app_key: c.env.OPENAI_API_KEY ? "BOUND" : "CONFIGURATION_REQUIRED",
       github_dispatch: c.env.GITHUB_TOKEN ? "BOUND" : "CONFIGURATION_REQUIRED",
       d1: c.env.DB ? "BOUND" : "CONFIGURATION_REQUIRED",

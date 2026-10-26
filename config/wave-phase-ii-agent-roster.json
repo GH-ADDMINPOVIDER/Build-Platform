@@ -275,13 +275,17 @@
     "Only verified outcomes enter Green/1LSS."
   ],
   "operator_host": {
+    "canonical_machine_id": "SELF_HOST_MACHINE",
+    "canonical_display_name": "SELF HOST_MACHINE",
     "display_name": "OCIAN_S-Host",
     "digitalocean_name": "OCIAN-S-Host",
+    "physical_hostname": "OCIAN-S-Host",
     "droplet_id": 604432491,
     "github_runner_registration": "wave-runner-01",
     "runner_count": 1,
     "ip_unchanged": true,
-    "hostname_change_does_not_require_runner_service_rename": true
+    "hostname_change_does_not_require_runner_service_rename": true,
+    "identity_boundary": "machine label is distinct from GitHub account and agent identity"
   },
   "last_agent_label_audit": {
     "as_of_utc": "2026-10-21T19:41:03Z",

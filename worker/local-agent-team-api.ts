@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { hasOwnerSession, hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { buildWhiteDiamondRegistry } from "./white-diamond-registry";
+import { SELF_HOST_MACHINE, SELF_HOST_RUNNER_ID, selfHostMachineMetadata } from "./self-host-machine";
 
 type D1Prepared = {
   bind: (...values: unknown[]) => D1Prepared;
@@ -58,7 +59,7 @@ const OWNER_SESSION = "owner-main/1LSS_OWNER_MAIN";
 const MAX_SUMMARY = 800;
 const TERMINAL = new Set(["DONE", "BLOCKED", "FAILED", "CANCELLED"]);
 const PROVIDERS = [
-  ["codex", "Codex", ["OPENAI_EXECUTOR_API_KEY", "OPENAI_API_KEY"], "wave-runner-01 / existing Codex lane"],
+    ["codex", "Codex", ["OPENAI_EXECUTOR_API_KEY", "OPENAI_API_KEY"], `${SELF_HOST_MACHINE.display_name} / ${SELF_HOST_RUNNER_ID} / existing Codex lane`],
   ["claude", "Claude Code", ["ANTHROPIC_API_KEY"], "existing runner adapter pending"],
   ["gemini", "Gemini CLI", ["GEMINI_API_KEY"], "existing runner adapter pending"],
   ["grok", "Grok", ["XAI_API_KEY"], "existing runner adapter pending"],
@@ -177,7 +178,8 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
     ok: true,
     room: ROOM,
     providers: providerReadiness(c.env, await lastVerifiedCodexReceipt(c.env.DB)),
-    execution_policy: "existing wave-runner-01 only; provider authorization is read-only and requires a live D1 receipt",
+    machine: selfHostMachineMetadata(),
+    execution_policy: `existing ${SELF_HOST_RUNNER_ID} only; provider authorization is read-only and requires a live D1 receipt`,
   }, 200, { "Cache-Control": "no-store" }));
 
   api.get("/api/local-agent-team/state", async (c) => {

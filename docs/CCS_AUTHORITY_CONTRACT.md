@@ -21,18 +21,18 @@ The current live CCS surface remains a bounded/read-oriented control facade. Fut
 
 ## Requested terminal route — 26 Oct 2026
 
-`GPT/Owner → GH_ADDMINPROVIDER → Infisical staging OIDC → wave-runner-01 → Codex → Docker/self-host ocean` is the requested route. The repository now selects the `GH_ADDMINPROVIDER` reference when it is present and rejects `STORE_ONLY` as a GH-2 dispatch principal. This route remains `E2E_PENDING` until the external secret exists, the GitHub principal matches ID `342175560`, the Actions-write invalid-ref canary returns `422`, and a real bounded Codex/Runner receipt is recorded.
+`GPT/Owner → GH_ADDMINPROVIDER → Infisical staging OIDC → SELF_HOST_MACHINE (registration wave-runner-01) → Codex → Docker/self-host ocean` is the requested route. The repository now selects the `GH_ADDMINPROVIDER` reference when it is present and rejects `STORE_ONLY` as a GH-2 dispatch principal. This route remains `E2E_PENDING` until the external secret exists, the GitHub principal matches ID `342175560`, the Actions-write invalid-ref canary returns `422`, and a real bounded Codex/Runner receipt is recorded.
 
 ## Platform Engineer — GH-2 / Tomload21 (Owner assignment, 21 Oct 2026)
 
 **Operational role:** `Platform Engineer` for the existing OGENIC/WAVE **staging** platform. This is an Owner-assigned operational job function, **not** a GitHub built-in repository permission or an assertion of additional OAuth/token scopes.
 
-**Bound principal:** GitHub account 2, login `Wave-Runner-2`, GitHub user ID `342175560` (Owner label `Tomload21`, GH Runner-2). Identity must match the actual authenticated GitHub principal before any delegated invocation. **Do not confuse this GitHub account with a second physical GitHub Actions runner.** The existing execution host is `wave-runner-01`.
+**Bound principal:** GitHub account 2, login `Wave-Runner-2`, GitHub user ID `342175560` (Owner label `Tomload21`, GH Runner-2). Identity must match the actual authenticated GitHub principal before any delegated invocation. **Do not confuse this GitHub account with a second physical GitHub Actions runner.** The existing execution machine is `SELF_HOST_MACHINE`, physical hostname `OCIAN-S-Host`, with GitHub registration `wave-runner-01`.
 
 **Accountable platform duties (within previously verified capabilities):**
 - Maintain and troubleshoot staging source integrations, GitHub Actions/workflow dispatch, branch CI, and deployment coordination for `Ogenicchocolate21debug/Build-Platform`.
 - Use the requested **GH-2 staging Actions Dispatch** credential binding `GH_ADDMINPROVIDER` through the existing Infisical/Worker route, including a real principal and Actions-write preflight; never substitute the GH-1 `STORE_ONLY` legacy/read-only credential or copy raw PATs into repo files. The new name is not considered live until a principal check plus Actions-write `422` canary succeeds.
-- Route approved work to the existing `wave-runner-01` and coordinate Codex GS/TS and the ATHENA/Yellow/Ruby/Green operating chain; collect exact SHA, job, dispatch, result, and canonical D1 evidence before claiming E2E/DONE.
+- Route approved work to the existing `SELF_HOST_MACHINE` (`wave-runner-01`) and coordinate Codex GS/TS and the ATHENA/Yellow/Ruby/Green operating chain; collect exact SHA, job, dispatch, result, and canonical D1 evidence before claiming E2E/DONE.
 - Apply scoped fixes, tests and source commits **only using permissions actually verified for the invoking token**. Escalate real permission/scope failures to Owner with the failing capability and HTTP result, without pretending that a broad installation checkbox means that every invocation can write.
 
 **Authority boundaries:** GH-2 is **not Owner, repo Admin, Cloudflare credential custodian, an additional Runner host, or an independent security gate**. GitHub collaborator level observed is `write`, not `admin`; the 422 invalid-ref canary proved Actions-write admission only, not live command completion. No production/main/Candy, Cloudflare/D1 schema or data, Infisical/secret rotation, credential grants, billing, or other privileged state changes without the corresponding existing scope and fresh Owner authorization. Yellow enforces actual capability/lease scope; Ruby verifies; Green/1LSS stores verified evidence. Revocation and least privilege still apply.

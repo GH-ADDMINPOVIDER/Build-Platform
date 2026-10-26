@@ -74,6 +74,8 @@ type VioletStatus = { ok?: boolean; agents?: AgentTelemetry[]; evidence?: string
 type Connector = { id: string; label: string; state: string; summary?: string; route_mode?: string; kind?: string };
 type SelfHost = {
   ok?: boolean;
+  machine?: { id?: string; display_name?: string; physical_hostname?: string; runner_registration?: string; runner_count?: number };
+  runner_registration?: string;
   branch?: string;
   openai_app_key?: string;
   github_dispatch?: string;
@@ -646,7 +648,8 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
             <div><dt>Host</dt><dd>{SSH_HOST}</dd></div>
             <div><dt>User</dt><dd>{SSH_USER}</dd></div>
             <div><dt>Port</dt><dd>use host SSH config</dd></div>
-            <div><dt>Runner</dt><dd>wave-runner-01</dd></div>
+            <div><dt>Machine</dt><dd>{selfHost?.machine?.display_name || "SELF HOST_MACHINE"}</dd></div>
+            <div><dt>Runner registration</dt><dd>{selfHost?.runner_registration || selfHost?.machine?.runner_registration || "wave-runner-01"}</dd></div>
           </dl>
         </article>
 

@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import { hasOwnerOrOpsAccess } from "./app-auth";
+import { SELF_HOST_RUNNER_ID, selfHostMachineMetadata } from "./self-host-machine";
 
 const CANONICAL_REPOSITORY = "Ogenicchocolate21debug/Build-Platform";
 const CANONICAL_BRANCH = "phase-vi-provider-incentive-metering";
 const CANONICAL_CONVERSATION = "owner-main";
 const CANONICAL_SESSION = "1LSS_OWNER_MAIN";
-const RUNNER_ID = "wave-runner-01";
+const RUNNER_ID = SELF_HOST_RUNNER_ID;
 
 type D1Statement = {
   bind(...values: unknown[]): D1Statement;
@@ -154,7 +155,7 @@ export function createCodexLeftArmApi() {
       branch: CANONICAL_BRANCH,
       conversation: CANONICAL_CONVERSATION,
       session: CANONICAL_SESSION,
-      runner: { id: RUNNER_ID, state: "UNVERIFIED_BY_THIS_REQUEST" },
+      runner: { id: RUNNER_ID, machine: selfHostMachineMetadata() },
       bindings: {
         d1: c.env.DB ? "BOUND" : "MISSING",
         openai_application: appKey ? "BOUND" : "MISSING",

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { readLiveTools, type LiveToolBindings } from "./live-tools";
 import { readConnectorRegistry, type ConnectorBindings } from "./connector-runtime";
+import { SELF_HOST_MACHINE } from "./self-host-machine";
 
 type D1Prepared = { all: <T = Record<string, unknown>>() => Promise<{ results?: T[] }>; };
 type D1 = { prepare: (query: string) => D1Prepared };
@@ -61,12 +62,12 @@ function bindingKeysFor(mode: string) {
     REPOSITORY_API_PR_API: ["GITHUB_TOKEN"],
     AGENT_API: ["DB", "OPENAI_API_KEY"],
     FUNCTION_TOOL_CALLING: ["OPENAI_API_KEY"],
-    NPX_NPX_CLI: ["wave-runner-01"],
+    NPX_NPX_CLI: [SELF_HOST_MACHINE.id],
     NPM: ["package-lock.json"],
     SDK: ["ogenic-registry-mcp dependency"],
     A2A_AGENT_RELAY: ["relay credentials"],
     WEBHOOK_EVENT_CALLING: ["OGENIC_GENERIC_HOOK_SECRET"],
-    AGENT_SIGN_COMMAND_RUN: ["OGENIC_OPS_KEY", "DB", "wave-runner-01"],
+    AGENT_SIGN_COMMAND_RUN: ["OGENIC_OPS_KEY", "DB", SELF_HOST_MACHINE.id],
   };
   return bindings[mode] ?? [];
 }
