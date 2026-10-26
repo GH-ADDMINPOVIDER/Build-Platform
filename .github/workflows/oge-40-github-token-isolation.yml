@@ -36,7 +36,7 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Compare canonical and OGE34 GitHub bindings without exposing values
+      - name: Compare canonical and GH_ADDMINPROVIDER bindings without exposing values
         shell: bash
         run: |
           set -euo pipefail
@@ -47,7 +47,7 @@ jobs:
           from pathlib import Path
 
           canonical = os.environ.get("GITHUB_TOKEN", "")
-          alias = os.environ.get("GITHUB_TOKEN_OGE34", "")
+          alias = os.environ.get("GH_ADDMINPROVIDER", "")
           url = "https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/contents/tests/athena-guarded-command-handoff.test.mjs?ref=phase-vi-provider-incentive-metering"
 
           def has_control(value):
@@ -89,14 +89,14 @@ jobs:
           evidence = {
               "schema": "OGE40_GITHUB_TOKEN_ISOLATION_V2",
               "canonical": probe(canonical),
-              "oge34_alias": probe(alias),
+              "gh_adminprovider": probe(alias),
               "same_value": bool(canonical and alias and canonical == alias),
               "values_or_hashes_persisted": False,
           }
 
-          if evidence["canonical"]["http_status"] != 200 and evidence["oge34_alias"]["http_status"] == 200:
-              evidence["classification"] = "CANONICAL_GITHUB_TOKEN_REGRESSION_ALIAS_HEALTHY"
-          elif evidence["canonical"]["http_status"] == 200 and evidence["oge34_alias"]["http_status"] == 200:
+          if evidence["canonical"]["http_status"] != 200 and evidence["gh_adminprovider"]["http_status"] == 200:
+              evidence["classification"] = "CANONICAL_GITHUB_TOKEN_REGRESSION_GH_ADDMINPROVIDER_HEALTHY"
+          elif evidence["canonical"]["http_status"] == 200 and evidence["gh_adminprovider"]["http_status"] == 200:
               evidence["classification"] = "BOTH_GITHUB_BINDINGS_HEALTHY"
           elif evidence["canonical"]["http_status"] == 200:
               evidence["classification"] = "CANONICAL_GITHUB_TOKEN_HEALTHY"

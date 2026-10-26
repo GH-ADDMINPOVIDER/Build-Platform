@@ -9,6 +9,7 @@ test("canonical GitHub identities and credential references are explicit", () =>
   const binding = read("scripts/oge34-github-worker-binding.mjs");
   const ccs = read("docs/CCS_AUTHORITY_CONTRACT.md");
   const cert = read("docs/operations/CERTIFICATE_LINCENC_ACCESS.md");
+  const isolation = read(".github/workflows/oge-40-github-token-isolation.yml");
   assert.match(binding, /runner1: \{ id: 306097555, login: "ogenicchocolate21debug" \}/);
   assert.match(binding, /runner2: \{ id: 342175560, login: "wave-runner-2" \}/);
   assert.match(binding, /CANONICAL_GH1_CREDENTIAL = "STORE_ONLY"/);
@@ -35,6 +36,8 @@ test("canonical GitHub identities and credential references are explicit", () =>
   ]), null);
   assert.equal(bindingApi.inspectRunnerTwoCredential("GH_ADDMINPROVIDER", "ghp_testValue").valid, true);
   assert.equal(bindingApi.inspectRunnerTwoCredential("GH_ADDMINPROVIDER", "github_pat_testValue").valid, true);
+  assert.match(isolation, /GH_ADDMINPROVIDER/);
+  assert.doesNotMatch(isolation, /GITHUB_TOKEN_OGE34/);
 });
 
 test("identity contract keeps certificate access read-only and references existing bindings", () => {
