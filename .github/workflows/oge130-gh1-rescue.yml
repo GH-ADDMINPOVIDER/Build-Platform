@@ -10,24 +10,14 @@ on:
 
 permissions:
   contents: write
-  actions: write
-  id-token: write
 
 concurrency:
   group: oge130-gh1-owner-rescue
   cancel-in-progress: false
 
-env:
-  WAVE_URL: https://wave.ogenicchocolate.com
-  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
-  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
-  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
-  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
-  INFISICAL_ENV_SLUG: staging
-
 jobs:
-  dispatch-and-readback:
-    runs-on: ubuntu-latest
+  selfhost-codex-readonly:
+    runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 18
     steps:
       - name: Checkout isolated rescue branch
@@ -36,170 +26,90 @@ jobs:
           ref: owner/oge-130-gh1-rescue-20261025
           fetch-depth: 1
 
-      - name: Discover Infisical project
-        id: infisical_project
+      - name: Verify existing runner and execute Codex read-only probe
         shell: bash
-        run: bash scripts/infisical-discover-project.sh
-
-      - name: Load staging authorization through Infisical OIDC
-        uses: Infisical/secrets-action@v1.0.9
-        with:
-          method: oidc
-          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
-          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
-          env-slug: staging
-          secret-path: /
-          recursive: true
-
-      - name: Create fresh Owner command, dispatch existing GH1 consumer, and read back
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-          RESCUE_COMMAND: >-
-            OGE129 READONLY PROOF: OGE-130 and Termius recovery. On the existing
-            wave-runner-01 only, inspect current runner service scope, RUNNER_NAME,
-            hostname, Codex CLI version and CODEX_HOME availability, Docker availability,
-            and the checked-out staging repository state. Do not modify files, Git,
-            services, runner registration, credentials, D1 schema, main, production,
-            or historical CERT evidence. Return exact safe metadata and the single
-            next repair gate; never print secrets.
-        shell: bash
+          PROBE_PROMPT: >-
+            OGE-130 and Termius recovery read-only probe. Inspect only the current
+            staging checkout and safe local runtime metadata. Report whether the
+            existing runner context, Codex CLI, CODEX_HOME, Docker CLI, and repository
+            checkout are available. Do not modify files, Git, services, runner
+            registration, credentials, D1, main, production, or historical CERT
+            evidence. Never print secrets. Return the single next repair gate.
         run: |
           set -euo pipefail
+          umask 077
+          test "${RUNNER_NAME:-}" = "wave-runner-01"
+          command -v codex >/dev/null
+          test -d /home/wave/.codex
           mkdir -p docs/checkpoints
+          codex_version="$(codex --version | head -n 1)"
+          docker_version="$(docker --version 2>/dev/null | head -n 1 || echo UNAVAILABLE)"
+          git_sha="$(git rev-parse HEAD)"
+          output_file="$(mktemp)"
+          set +e
+          env -i \
+            PATH="$PATH" \
+            HOME="$HOME" \
+            USER="${USER:-wave}" \
+            LOGNAME="${LOGNAME:-wave}" \
+            SHELL="${SHELL:-/bin/bash}" \
+            LANG="${LANG:-C.UTF-8}" \
+            CODEX_HOME=/home/wave/.codex \
+            OGENIC_EXECUTION_SCOPE=staging-only \
+            codex exec --sandbox read-only --skip-git-repo-check "$PROBE_PROMPT" \
+              >"$output_file" 2>&1
+          codex_exit=$?
+          set -e
+          result_sha256="$(sha256sum "$output_file" | cut -d' ' -f1)"
+          rm -f "$output_file"
+          export CODEX_VERSION="$codex_version"
+          export DOCKER_VERSION="$docker_version"
+          export GIT_SHA="$git_sha"
+          export CODEX_EXIT="$codex_exit"
+          export RESULT_SHA256="$result_sha256"
           node <<'NODE'
-          import { randomUUID } from "node:crypto";
           import { writeFileSync } from "node:fs";
-
-          const waveUrl = process.env.WAVE_URL.replace(/\/$/, "");
-          const ownerKey = process.env.OGENIC_OPS_KEY || "";
-          const githubToken = process.env.GITHUB_TOKEN || "";
-          const command = process.env.RESCUE_COMMAND || "";
-          const receiptPath = "docs/checkpoints/OGE130_GH1_RESCUE_RECEIPT.json";
           const receipt = {
             schema: "ogenic.owner-rescue-receipt.v1",
             issue: "OGE-130",
             environment: "staging",
             source: "Linear",
-            dispatcher_repository: process.env.GITHUB_REPOSITORY,
-            orchestration_run: process.env.GITHUB_SERVER_URL + "/" + process.env.GITHUB_REPOSITORY + "/actions/runs/" + process.env.GITHUB_RUN_ID,
-            target_runner: "wave-runner-01",
-            target_executor: "Codex",
+            execution_repository: process.env.GITHUB_REPOSITORY,
+            execution_run: process.env.GITHUB_SERVER_URL + "/" + process.env.GITHUB_REPOSITORY + "/actions/runs/" + process.env.GITHUB_RUN_ID,
+            runner_name: process.env.RUNNER_NAME,
+            runner_os: process.env.RUNNER_OS,
+            executor: "Codex",
+            codex_home: "/home/wave/.codex",
+            codex_version: process.env.CODEX_VERSION,
+            docker_version: process.env.DOCKER_VERSION,
+            git_sha: process.env.GIT_SHA,
+            codex_exit_code: Number(process.env.CODEX_EXIT),
+            result_sha256: process.env.RESULT_SHA256,
+            final_status: process.env.CODEX_EXIT === "0" ? "DONE" : "FAILED",
+            mode: "read-only",
+            model_override: null,
+            secrets_loaded: false,
             historical_evidence_mutated: false,
-            created_at: new Date().toISOString()
+            completed_at: new Date().toISOString()
           };
-
-          async function jsonResponse(response) {
-            const data = await response.json().catch(() => ({}));
-            return { status: response.status, data };
-          }
-
-          try {
-            if (!ownerKey) throw new Error("CONFIGURATION_REQUIRED:OGENIC_OPS_KEY");
-            const signed = await jsonResponse(await fetch(waveUrl + "/api/session", {
-              method: "POST",
-              headers: { "content-type": "application/json", "x-ogenic-client": "native" },
-              body: JSON.stringify({ owner_key: ownerKey }),
-              redirect: "error"
-            }));
-            const sessionToken = signed.data?.authenticated === true && typeof signed.data?.session_token === "string"
-              ? signed.data.session_token : "";
-            if (signed.status !== 200 || !sessionToken) throw new Error("OWNER_SESSION_FAILED_HTTP_" + signed.status);
-
-            const created = await jsonResponse(await fetch(waveUrl + "/api/wave/command", {
-              method: "POST",
-              headers: {
-                "content-type": "application/json",
-                "authorization": "Bearer " + sessionToken,
-                "Idempotency-Key": randomUUID()
-              },
-              body: JSON.stringify({
-                command,
-                capability: "codex_selfhost",
-                provider: "openai",
-                mode: "read",
-                environment: "staging"
-              }),
-              redirect: "error"
-            }));
-
-            const taskId = String(created.data?.task?.id || "");
-            receipt.command_http = created.status;
-            receipt.command_code = String(created.data?.code || "UNKNOWN");
-            receipt.task_id = taskId;
-            if (!/^wavecmd_[a-f0-9]{64}$/.test(taskId)) throw new Error("WAVE_TASK_NOT_CREATED_HTTP_" + created.status);
-
-            const manualRequired =
-              receipt.command_code === "COMMAND_MANUAL_DISPATCH_REQUIRED" ||
-              created.data?.execution?.status === "AWAITING_DISPATCH";
-            receipt.manual_dispatch_required = manualRequired;
-
-            if (manualRequired) {
-              if (!githubToken) throw new Error("CONFIGURATION_REQUIRED:GITHUB_TOKEN");
-              const dispatch = await fetch(
-                "https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/actions/workflows/wave-command-consumer.yml/dispatches",
-                {
-                  method: "POST",
-                  headers: {
-                    "authorization": "Bearer " + githubToken,
-                    "accept": "application/vnd.github+json",
-                    "content-type": "application/json",
-                    "x-github-api-version": "2022-11-28",
-                    "user-agent": "ogenic-owner-rescue"
-                  },
-                  body: JSON.stringify({
-                    ref: "phase-vi-provider-incentive-metering",
-                    inputs: { task_id: taskId }
-                  })
-                }
-              );
-              receipt.manual_dispatch_http = dispatch.status;
-              if (dispatch.status !== 204) throw new Error("GH1_MANUAL_DISPATCH_HTTP_" + dispatch.status);
-            }
-
-            let final = {};
-            for (let attempt = 0; attempt < 72; attempt += 1) {
-              const status = await jsonResponse(await fetch(
-                waveUrl + "/api/wave/command/status?task_id=" + encodeURIComponent(taskId),
-                { headers: { "authorization": "Bearer " + sessionToken }, redirect: "error" }
-              ));
-              if (status.status === 200) {
-                final = status.data;
-                const state = String(status.data?.task?.status || "");
-                if (["DONE", "FAILED", "BLOCKED"].includes(state)) break;
-              }
-              await new Promise(resolve => setTimeout(resolve, 10000));
-            }
-
-            receipt.final_task_status = String(final?.task?.status || "TIMEOUT");
-            receipt.consumer_proven = final?.execution?.consumer_proven === true;
-            receipt.last_event = String(final?.last_event || "");
-            receipt.result_sha256 = String(final?.evidence?.result_sha256 || "");
-            receipt.git_sha = String(final?.evidence?.git_sha || "");
-            receipt.execution_evidence_ref = String(final?.evidence?.evidence_ref || "");
-            receipt.completed_at = new Date().toISOString();
-          } catch (error) {
-            receipt.final_task_status = "ORCHESTRATION_FAILED";
-            receipt.safe_error = String(error?.message || error).slice(0, 200);
-            receipt.completed_at = new Date().toISOString();
-          }
-
-          writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + "\n", { mode: 0o600 });
-          console.log("OGE130_RESCUE_TASK=" + String(receipt.task_id || "NOT_CREATED"));
-          console.log("OGE130_RESCUE_STATUS=" + receipt.final_task_status);
+          writeFileSync("docs/checkpoints/OGE130_GH1_RESCUE_RECEIPT.json", JSON.stringify(receipt, null, 2) + "\n", {mode:0o600});
           NODE
 
       - name: Commit append-only rescue receipt
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
+          test -f docs/checkpoints/OGE130_GH1_RESCUE_RECEIPT.json
           git config user.name "Wave-Runner-2"
           git config user.email "tomload21@gmail.com"
           git add docs/checkpoints/OGE130_GH1_RESCUE_RECEIPT.json
-          git commit -m "chore(staging): record OGE-130 GH1 owner rescue receipt"
+          git commit -m "chore(staging): record OGE-130 GH1 self-host Codex receipt"
           git push origin HEAD:owner/oge-130-gh1-rescue-20261025
 
-      - name: Require verified runner result
+      - name: Require Codex completion
         shell: bash
         run: |
           set -euo pipefail
-          node -e 'const r=require("./docs/checkpoints/OGE130_GH1_RESCUE_RECEIPT.json"); if(r.final_task_status!=="DONE"||r.consumer_proven!==true) process.exit(1)'
+          node -e 'const r=require("./docs/checkpoints/OGE130_GH1_RESCUE_RECEIPT.json"); if(r.final_status!=="DONE") process.exit(1)'
