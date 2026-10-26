@@ -61,8 +61,8 @@ export async function readCertificateLincenc(db: ConnectorD1 | undefined) {
       document_sha256:row.document_sha256,
       source_commit:limited(row.source_commit,80),
       canonical_source:{
-        repository:"Ogenicchocolate21debug/Build-Platform",branch:SOURCE_BRANCH,path:SOURCE_PATH,
-        url:"https://github.com/Ogenicchocolate21debug/Build-Platform/blob/"+SOURCE_BRANCH+"/"+SOURCE_PATH,
+        repository:"Wave-Runner-2/Build-Platform",branch:SOURCE_BRANCH,path:SOURCE_PATH,
+        url:"https://github.com/Wave-Runner-2/Build-Platform/blob/"+SOURCE_BRANCH+"/"+SOURCE_PATH,
       },
       storage:{provider:"Cloudflare",database:DB_NAME,table:"certificate_lincenc",source:"LIVE_D1_READ",duplicate_certificate:false},
       plugins:{total:entries.length,historical_verified_read_api:historicalVerified,entries,current_execution_scope_unverified:true},

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-const CANONICAL_REPOSITORY = "Ogenicchocolate21debug/Build-Platform";
+const CANONICAL_REPOSITORY = "Wave-Runner-2/Build-Platform";
 const CANONICAL_BRANCH = "phase-vi-provider-incentive-metering";
 const WORKERS = new Set(["linearcodex", "codex", "claude"]);
 

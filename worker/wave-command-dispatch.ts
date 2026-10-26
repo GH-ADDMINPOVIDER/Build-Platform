@@ -8,7 +8,7 @@ export async function dispatchWaveCommandConsumer(env: DispatchEnv, taskId: stri
   const token = compact(env.GITHUB_TOKEN, 4000);
   if (!token) return { ok: false as const, code: "CONFIGURATION_REQUIRED", missing: "GITHUB_TOKEN" };
   const response = await fetch(
-    "https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/actions/workflows/wave-command-consumer.yml/dispatches",
+    "https://api.github.com/repos/Wave-Runner-2/Build-Platform/actions/workflows/wave-command-consumer.yml/dispatches",
     {
       method: "POST",
       headers: {

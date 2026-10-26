@@ -45,6 +45,6 @@ test("push catchup is WAVE self-hosted, latest-only and supersedes stale runs",(
 });
 test("canonical immutable branch and bootstrap still preserved",()=>{
  assert.equal(BRANCH,"phase-vi-provider-incentive-metering");
- assert.equal(REPO,"Ogenicchocolate21debug/Build-Platform");
+ assert.equal(REPO,"Wave-Runner-2/Build-Platform");
  assert.match(BOOTSTRAP,/^[a-f0-9]{40}$/);
 });

@@ -2,7 +2,7 @@
   "schema_version": "OGE_N8N_PLACEMENT_V1",
   "generated_for": "OGE-70",
   "canonical": {
-    "repository": "Ogenicchocolate21debug/Build-Platform",
+    "repository": "Wave-Runner-2/Build-Platform",
     "branch": "phase-vi-provider-incentive-metering",
     "control_plane": "MAOP_YELLOW",
     "verification": "RUBY_STONE",

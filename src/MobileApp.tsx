@@ -44,7 +44,7 @@ const EFFORTS: Array<{ id: Effort; label: string }> = [
   { id: "max", label: "Max" },
 ];
 const APP_LINKS = [
-  { label: "GitHub", sub: "Build-Platform", domain: "github.com", url: "https://github.com/Ogenicchocolate21debug/Build-Platform" },
+  { label: "GitHub", sub: "Build-Platform", domain: "github.com", url: "https://github.com/Wave-Runner-2/Build-Platform" },
   { label: "OpenAI", sub: "Platform", domain: "platform.openai.com", url: "https://platform.openai.com" },
   { label: "Linear", sub: "Tasks", domain: "linear.app", url: "https://linear.app/ogenic-sio" },
   { label: "Notion", sub: "Knowledge", domain: "notion.so", url: "https://www.notion.so" },

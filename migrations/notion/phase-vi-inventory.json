@@ -5,7 +5,7 @@
   "migration_policy": {
     "destination": "cloudflare-d1",
     "canonical_runtime": "cloudflare",
-    "canonical_repo": "Ogenicchocolate21debug/Build-Platform",
+    "canonical_repo": "Wave-Runner-2/Build-Platform",
     "raw_secrets_allowed": false,
     "stale_candy_product_content_allowed": false,
     "strategy": "inventory_once_then_normalize_incrementally"

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import {SCHEMA,REPO,BRANCH,BOOTSTRAP,MAX_BATCH,plan,receipt,checkpoint} from "../scripts/oge95-commit-drain.mjs";
 const sha=n=>n.toString(16).padStart(40,"0");
 test("staging only, no other repo/branch or code promotion",()=>{
- assert.equal(REPO,"Ogenicchocolate21debug/Build-Platform");
+ assert.equal(REPO,"Wave-Runner-2/Build-Platform");
  assert.equal(BRANCH,"phase-vi-provider-incentive-metering");
  assert.match(BOOTSTRAP,/^[0-9a-f]{40}$/);
  assert.equal(MAX_BATCH,6);

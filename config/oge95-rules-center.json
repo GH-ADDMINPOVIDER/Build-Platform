@@ -17,7 +17,7 @@
     "technical_checks_retained": ["AUTHENTICATION", "PROVIDER_PERMISSIONS", "STAGING_SCOPE", "ADAPTER_READINESS", "SECRETS", "COST", "IDEMPOTENCY", "EXPIRY"]
   },
   "canonical_paths": {
-    "repository": "Ogenicchocolate21debug/Build-Platform",
+    "repository": "Wave-Runner-2/Build-Platform",
     "branch": "phase-vi-provider-incentive-metering",
     "policy_file": "config/oge95-rules-center.json",
     "operator_guide": "docs/OGE95_RULES_CENTER.md",
@@ -33,7 +33,7 @@
     "01_scope_identity": {
       "description": "Where the production line lives; one 1LSS operational state",
       "branch": "phase-vi-provider-incentive-metering",
-      "repository": "Ogenicchocolate21debug/Build-Platform",
+      "repository": "Wave-Runner-2/Build-Platform",
       "issue": "OGE-95",
       "canonical_conversation": "owner-main",
       "session_line": "1LSS_OWNER_MAIN",
@@ -478,7 +478,7 @@
         "linear.attach_pr@1"
       ],
       "allowed_repositories": [
-        "Ogenicchocolate21debug/Build-Platform"
+        "Wave-Runner-2/Build-Platform"
       ],
       "allowed_linear_projects": []
     },
@@ -489,7 +489,7 @@
       "job_host": "self-hosted/linux/x64/wave",
       "local_runtime": "Cloudflare workerd through Wrangler dev --local",
       "source": {
-        "repository": "Ogenicchocolate21debug/Build-Platform",
+        "repository": "Wave-Runner-2/Build-Platform",
         "branch": "phase-vi-provider-incentive-metering"
       },
       "toolchain": {

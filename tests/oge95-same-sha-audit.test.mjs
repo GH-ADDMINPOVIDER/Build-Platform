@@ -4,7 +4,8 @@ import test from "node:test";
 import { bindAuditToCheckedSha, produceSameShaAudit, REPO, BRANCH } from "../scripts/oge95-same-sha-audit.mjs";
 import { evaluateFinalIntake } from "../scripts/oge95-final-review-intake.mjs";
 const sha="a".repeat(40);
-const historical=JSON.parse(readFileSync("docs/evidence/oge-62-flow-audit-latest.json","utf8"));
+const historicalSource=JSON.parse(readFileSync("docs/evidence/oge-62-flow-audit-latest.json","utf8"));
+const historical={...historicalSource,canonical:{...historicalSource.canonical,repository:REPO}};
 const profiles=["linearcodex","codex","claude","codex","claude","linearcodex","codex","claude","codex","claude"];
 const results=historical.audit.map((row,index)=>({
   runtime_id:row.runtime_id,execution_profile:profiles[index],

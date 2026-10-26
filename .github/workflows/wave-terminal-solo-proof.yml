@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   terminal-solo-policy:
-    if: github.repository == 'Ogenicchocolate21debug/Build-Platform'
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 9
     env:
@@ -32,7 +32,7 @@ jobs:
           set -euo pipefail
           test "$RUNNER_NAME" = wave-runner-01
           test "$GITHUB_REF_NAME" = feature/wave-liquid-glass-command-ux-20261018
-          test "$GITHUB_REPOSITORY" = Ogenicchocolate21debug/Build-Platform
+          test "$GITHUB_REPOSITORY" = Wave-Runner-2/Build-Platform
           command -v bash >/dev/null
           command -v node >/dev/null
           command -v flock >/dev/null
@@ -109,7 +109,7 @@ jobs:
             production_mutated:false
           };
           const body=Object.entries(raw).map(([k,v])=>k+'='+v).join('\n');
-          fetch('https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/issues/39/comments',{
+          fetch('https://api.github.com/repos/Wave-Runner-2/Build-Platform/issues/39/comments',{
             method:'POST',headers:{Authorization:'Bearer '+process.env.GH_TOKEN,
               Accept:'application/vnd.github+json','Content-Type':'application/json',
               'User-Agent':'ogenic-terminal-solo-proof'},

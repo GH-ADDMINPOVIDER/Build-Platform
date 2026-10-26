@@ -191,7 +191,7 @@ export default function GagVault() {
     </div>
 
     <article className="gagCard gagSessions">
-      <div className="gagCardHead"><div><span className="eyebrow">SESSION BASE</span><h2>A–Z</h2></div><div className="gagQuick"><button onClick={() => quick("ChatGPT", "C", "https://chatgpt.com/")}>C · ChatGPT</button><button onClick={() => quick("Manus", "M", "https://manus.im/app")}>M · Manus</button><button onClick={() => quick("GitHub", "G", "https://github.com/Ogenicchocolate21debug/Build-Platform")}>G · GitHub</button></div></div>
+      <div className="gagCardHead"><div><span className="eyebrow">SESSION BASE</span><h2>A–Z</h2></div><div className="gagQuick"><button onClick={() => quick("ChatGPT", "C", "https://chatgpt.com/")}>C · ChatGPT</button><button onClick={() => quick("Manus", "M", "https://manus.im/app")}>M · Manus</button><button onClick={() => quick("GitHub", "G", "https://github.com/Wave-Runner-2/Build-Platform")}>G · GitHub</button></div></div>
       <div className="gagAlphabet">{LETTERS.map((letter) => <button key={letter} className={bucket === letter ? "active" : ""} onClick={() => setBucket(letter)}>{letter}<small>{sessions.filter((item) => item.bucket === letter).length || ""}</small></button>)}</div>
       <div className="gagSessionGrid">
         <div className="gagForm"><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`${bucket} · ชื่อ session`} /><input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" inputMode="url" /><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="โน้ตสั้น ๆ" /><button disabled={!title.trim() || !/^https?:\/\//i.test(url.trim())} onClick={addSession}>+ เก็บใน {bucket}</button></div>

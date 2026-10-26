@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
 const shaPattern = /^[a-f0-9]{40}$/;
-const REPO = "Ogenicchocolate21debug/Build-Platform";
+const REPO = "Wave-Runner-2/Build-Platform";
 const BRANCH = "phase-vi-provider-incentive-metering";
 const PASS = "PASS";
 const FAIL = "FAIL";

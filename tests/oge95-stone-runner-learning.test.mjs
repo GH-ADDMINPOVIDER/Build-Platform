@@ -4,7 +4,8 @@ import test from "node:test";
 import { digest, evaluateFinalIntake } from "../scripts/oge95-final-review-intake.mjs";
 import { deriveStoneRunnerLearning, LEARNING_SCHEMA } from "../scripts/oge95-stone-runner-learning.mjs";
 
-const historicalAudit = JSON.parse(readFileSync("docs/evidence/oge-62-flow-audit-latest.json", "utf8"));
+const historicalSource = JSON.parse(readFileSync("docs/evidence/oge-62-flow-audit-latest.json", "utf8"));
+const historicalAudit = { ...historicalSource, canonical: { ...historicalSource.canonical, repository: "Wave-Runner-2/Build-Platform" } };
 const sha = "a".repeat(40);
 const audit = { ...historicalAudit, source_sha: sha, source_sha_attestation: { method: "CHECKED_OUT_GIT_HEAD_AND_GITHUB_SHA", exact_checkout_match: true,
   execution_mode: "SEQUENTIAL_TEN_PROCESS_REPLAY_ON_ONE_HOST", genuinely_parallel_runtime_jobs: false,

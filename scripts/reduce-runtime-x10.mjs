@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { dirname, join, resolve } from "node:path";
 
 const EXPECTED = Array.from({ length: 10 }, (_, i) => `runtime-${String(i + 1).padStart(2, "0")}`);
-const REPOSITORY = "Ogenicchocolate21debug/Build-Platform";
+const REPOSITORY = "Wave-Runner-2/Build-Platform";
 const BRANCH = "phase-vi-provider-incentive-metering";
 
 function arg(name, fallback = "") {

@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const REPO = "Ogenicchocolate21debug/Build-Platform";
+const REPO = "Wave-Runner-2/Build-Platform";
 const BRANCH = "phase-vi-provider-incentive-metering";
 const WORKER = "ogenic-phase-vi-staging";
 const GITHUB_API = "https://api.github.com/repos/" + REPO;

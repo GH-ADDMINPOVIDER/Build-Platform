@@ -1,7 +1,7 @@
 // OGE-129 — WAVE Command/Connector real-runtime smoke proof (staging only).
 // No actual deployment, workflow dispatch, remote writes, credential/body logging or command execution.
 import { createHash } from "node:crypto";
-const ghrepo="Ogenicchocolate21debug/Build-Platform";
+const ghrepo="Wave-Runner-2/Build-Platform";
 const runId=String(process.env.GITHUB_RUN_ID||"");
 const base="https://wave.ogenicchocolate.com";
 const results=[];

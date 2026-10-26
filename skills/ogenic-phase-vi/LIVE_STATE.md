@@ -18,7 +18,7 @@ On activation:
 
 ## Canonical control plane
 
-- Repository: `Ogenicchocolate21debug/Build-Platform`
+- Repository: `Wave-Runner-2/Build-Platform`
 - Active Phase VI branch: `phase-vi-provider-incentive-metering`
 - Current staging implementation/cleanup HEAD: `346be0b7fadc4ac8030786961f12424cff42a833`
 - Last verified core implementation commit: `13b666267d1534c8fea0a9bfa2b93dd6fdee0539`

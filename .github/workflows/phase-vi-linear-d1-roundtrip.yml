@@ -71,7 +71,7 @@ jobs:
                 --arg corr "$CORR" \
                 --arg resource "$RESOURCE" \
                 --arg source "$LINEAR_URL" \
-                '{title:$title,capability:"linear-d1-task-binding",priority:80,resource_key:$resource,correlation_id:$corr,linear_issue_id:$issue,github_repo:"Ogenicchocolate21debug/Build-Platform",source_ref:$source}')" \
+                '{title:$title,capability:"linear-d1-task-binding",priority:80,resource_key:$resource,correlation_id:$corr,linear_issue_id:$issue,github_repo:"Wave-Runner-2/Build-Platform",source_ref:$source}')" \
               "${STAGING_URL}/api/ops/tasks")"
             TASK_ID="$(printf '%s' "$CREATE" | jq -r '.task.id // empty')"
             test -n "$TASK_ID" || { echo "::error::Failed to create D1 task"; exit 1; }

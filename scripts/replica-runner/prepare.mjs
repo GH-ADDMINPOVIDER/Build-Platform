@@ -28,7 +28,7 @@ cfg.observability = { enabled: false };
 cfg.vars = {
   OGENIC_PHASE: "VI",
   OGENIC_RUNTIME: "cloudflare-replica",
-  OGENIC_GITHUB_REPO: "Ogenicchocolate21debug/Build-Platform",
+  OGENIC_GITHUB_REPO: "Wave-Runner-2/Build-Platform",
   OGENIC_GITHUB_BRANCH: "phase-vi-provider-incentive-metering",
   OGENIC_GIT_SHA: process.env.GITHUB_SHA || "local",
   N8N_SELFHOST_BASE_URL: "http://127.0.0.1:65534"

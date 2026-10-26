@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-REPO="Ogenicchocolate21debug/Build-Platform"
+REPO="Wave-Runner-2/Build-Platform"
 BRANCH="phase-vi-provider-incentive-metering"
 RUNNER_NAME="wave-runner-01"
 RUNNER_LABELS="wave,sgp1"

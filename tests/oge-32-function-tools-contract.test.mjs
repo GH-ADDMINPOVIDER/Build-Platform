@@ -10,7 +10,7 @@ const { executeVerifiedTool, verifiedFunctionTools } = await import(`data:text/j
 
 test("server-side proof uses signed auth and only allowlisted reads with safe evidence", async () => {
   const requests = [];
-  const env = { GITHUB_REPOSITORY: "Ogenicchocolate21debug/Build-Platform", GITHUB_REF_NAME: "codex/continue-implementation-for-oge-32-dkxg99", GITHUB_SHA: "a".repeat(40), OGENIC_OPS_KEY: "fixture-owner-key", GITHUB_TOKEN: "fixture-github-token", LINEAR_API_KEY: "fixture-linear-key", CLOUDFLARE_API_TOKEN: "fixture-cloudflare-token", CLOUDFLARE_ACCOUNT_ID: "b".repeat(32), INFISICAL_SECRET_PATH: "/", INFISICAL_SECRET_ENV_SLUG: "staging" };
+  const env = { GITHUB_REPOSITORY: "Wave-Runner-2/Build-Platform", GITHUB_REF_NAME: "codex/continue-implementation-for-oge-32-dkxg99", GITHUB_SHA: "a".repeat(40), OGENIC_OPS_KEY: "fixture-owner-key", GITHUB_TOKEN: "fixture-github-token", LINEAR_API_KEY: "fixture-linear-key", CLOUDFLARE_API_TOKEN: "fixture-cloudflare-token", CLOUDFLARE_ACCOUNT_ID: "b".repeat(32), INFISICAL_SECRET_PATH: "/", INFISICAL_SECRET_ENV_SLUG: "staging" };
   const request = async (url, init = {}) => {
     requests.push({ url, method: init.method ?? "GET", body: init.body });
     if (url.endsWith("/api/health")) return Response.json({ ok: true, runtime: "cloudflare", shared_state: "D1_BOUND" });
@@ -51,7 +51,7 @@ test("server-side proof uses signed auth and only allowlisted reads with safe ev
   assert.equal(partial.seven_tools.yellowstone_status, "PASS");
   assert.equal(partial.write_denial, "HUMAN_APPROVAL_REQUIRED");
   assert.equal(permittedRequest("https://wave.ogenicchocolate.com/api/chat/functions", { method: "POST" }), false);
-  assert.equal(permittedRequest("https://api.github.com/repos/Ogenicchocolate21debug/Build-Platform/branches/main"), false);
+  assert.equal(permittedRequest("https://api.github.com/repos/Wave-Runner-2/Build-Platform/branches/main"), false);
   assert.equal(permittedRequest("https://api.linear.app/graphql", { method: "POST", body: JSON.stringify({ query: "mutation { issueCreate { success } }" }) }), false);
   const db = readOnlyD1(request, env.CLOUDFLARE_ACCOUNT_ID, env.CLOUDFLARE_API_TOKEN, { reads: 0, failures: 0 });
   assert.throws(() => db.prepare("DELETE FROM chat_messages"), /D1_READ_ONLY_ALLOWLIST/);
@@ -103,7 +103,7 @@ test("live dispatch locks reads, sanitizes provider output, and contains upstrea
       if (name === "github_fetch_file") assert.match(result.data.content, /สวัสดี/);
       if (name === "lss_recent_turns") assert.equal(result.data.session, "1LSS_OWNER_MAIN");
     }
-    assert.ok(requests.filter(({ url }) => url.includes("api.github.com")).every(({ url, method }) => method === "GET" && url.includes("Ogenicchocolate21debug/Build-Platform") && url.includes("phase-vi-provider-incentive-metering")));
+    assert.ok(requests.filter(({ url }) => url.includes("api.github.com")).every(({ url, method }) => method === "GET" && url.includes("Wave-Runner-2/Build-Platform") && url.includes("phase-vi-provider-incentive-metering")));
     assert.ok(requests.filter(({ method }) => method === "POST").every(({ body }) => !body.includes("mutation")));
     assert.ok(queries.some(sql => sql.includes("WHERE conversation_id = ?")));
     globalThis.fetch = async () => { throw new Error("synthetic-github-binding"); };

@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   signed-command:
-    if: github.repository == 'Ogenicchocolate21debug/Build-Platform'
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 7
     env:
@@ -33,7 +33,7 @@ jobs:
           set -euo pipefail
           test "$RUNNER_NAME" = "wave-runner-01"
           test "$GITHUB_REF_NAME" = "feature/wave-liquid-glass-command-ux-20261018"
-          test "$GITHUB_REPOSITORY" = "Ogenicchocolate21debug/Build-Platform"
+          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
           node --check scripts/oge129_agent_sign_run_command_proof.mjs
       - name: Discover existing Infisical OIDC identity scope
         id: discovery

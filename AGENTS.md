@@ -61,7 +61,7 @@ Act as an operator, not a status reporter. Read the real state, choose the cheap
 - Fail closed on ambiguous permissions or environment scope.
 
 ## Canonical system
-- Repo: `Ogenicchocolate21debug/Build-Platform`
+- Repo: `Wave-Runner-2/Build-Platform`
 - Branch: `phase-vi-provider-incentive-metering`
 - Conversation: `owner-main`
 - Session line: `1LSS_OWNER_MAIN`
@@ -74,7 +74,7 @@ Act as an operator, not a status reporter. Read the real state, choose the cheap
 ## Mandatory Codex checkout attestation — EVERY invocation / resumed session / before write
 The Codex sandbox checkout is NOT the GitHub connector. GitHub App permissions do not establish shell git remote access. Do not presume a checkout is valid because prior tasks succeeded.
 1. Identify the actual worktree: `pwd`, `git rev-parse --show-toplevel`, `git status --short --branch`, `git branch --show-current`, `git rev-parse HEAD`, `git remote -v`.
-2. Require the canonical repo `Ogenicchocolate21debug/Build-Platform`, expected branch `phase-vi-provider-incentive-metering`, and a verified remote (or authorized GitHub connector selecting this exact repo+branch explicitly). A sandbox branch named `work` is NOT sufficient; never write to `main` or an unrelated sandbox snapshot.
+2. Require the canonical repo `Wave-Runner-2/Build-Platform`, expected branch `phase-vi-provider-incentive-metering`, and a verified remote (or authorized GitHub connector selecting this exact repo+branch explicitly). A sandbox branch named `work` is NOT sufficient; never write to `main` or an unrelated sandbox snapshot.
 3. Independently resolve remote staging HEAD from the connected GitHub API/connector and compare it with local HEAD before editing. Detect dirty/uncommitted work and check intended file ownership against concurrent agents. If HEAD advanced, re-read affected files and rebase/reconcile safely; no blind force push.
 4. Run a read-only auth/connectivity probe for whichever write transport is actually used. If the shell gets HTTP 403, missing `origin`, or wrong checkout, STOP shell git; use an already-authorized GitHub connector to read/write *explicit* repo+branch when available, checking blob SHA per write. Do not recreate remotes with guessed credentials, exfiltrate tokens, or repeatedly retry 403.
 5. Re-attest branch, exact upstream SHA, scope and diff immediately BEFORE each commit/push. Immediately AFTER, independently re-read committed SHA/branch and CI evidence through GitHub. Dispatch/delegation is not a successful code change. Report `BLOCKED_CHECKOUT` or `BLOCKED_AUTH` with sanitized actual evidence when either path is unavailable.

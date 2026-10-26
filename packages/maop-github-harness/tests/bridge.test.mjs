@@ -8,7 +8,7 @@ const verifiedYellow = async (request) => ({
   ok: true,
   run_id: "ys_run_fixture",
   verification: { status: "verified" },
-  output: { path: request.input.path ?? null, repository: "Ogenicchocolate21debug/Build-Platform" },
+  output: { path: request.input.path ?? null, repository: "Wave-Runner-2/Build-Platform" },
 });
 
 const verifiedRuby = async () => ({ verified: true, evidence_ref: "ruby:fixture:pass" });

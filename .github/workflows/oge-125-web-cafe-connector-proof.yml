@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REPOSITORY" = "Ogenicchocolate21debug/Build-Platform"
+          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
           git diff --exit-code "origin/phase-vi-provider-incentive-metering...HEAD" -- database/migrations
           grep -q '"primary_runtime": "cloudflare"' config/external-resource-capabilities.json
           grep -q 'hasOwnerOrOpsAccess' worker/web-cafe-connector-api.ts

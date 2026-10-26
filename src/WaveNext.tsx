@@ -638,7 +638,7 @@ export default function WaveNext({ initialTab = "run", surface = "operate" }: Pr
             <div><dt>Codex TS historical</dt><dd>{certificate?.owner_identity_labels?.codex_ts?.historical_execution_result || "NOT_VERIFIED"}</dd></div>
             <div><dt>Current E2E</dt><dd>{certificate?.runtime_e2e_verified ? "VERIFIED" : "NOT_PROVEN_BY_CERTIFICATE"}</dd></div>
           </dl>
-          <p className="wnBody"><a href={certificate?.canonical_source?.url || "https://github.com/Ogenicchocolate21debug/Build-Platform/blob/task/oge-128-runtime-certificate-20261018/.ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json"} target="_blank" rel="noreferrer">Original Certificate in GitHub ↗</a></p>
+          <p className="wnBody"><a href={certificate?.canonical_source?.url || "https://github.com/Wave-Runner-2/Build-Platform/blob/task/oge-128-runtime-certificate-20261018/.ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json"} target="_blank" rel="noreferrer">Original Certificate in GitHub ↗</a></p>
         </article>
 
         <article className="wnCard">

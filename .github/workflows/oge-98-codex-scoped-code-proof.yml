@@ -24,7 +24,7 @@ env:
 
 jobs:
   codex-scoped-task:
-    if: ${{ github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering' && (github.event_name == 'push' || inputs.confirm_one_moderated_agent_call == true) }}
+    if: ${{ github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering' && (github.event_name == 'push' || inputs.confirm_one_moderated_agent_call == true) }}
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 12
     steps:
@@ -186,7 +186,7 @@ jobs:
             text=File.binread(filename)
             abort "RUBY_SHA_OR_BRANCH_MISMATCH" unless receipt.fetch("source_sha")==ENV.fetch("GITHUB_SHA") &&
               receipt.fetch("branch")=="phase-vi-provider-incentive-metering" &&
-              receipt.fetch("repository")=="Ogenicchocolate21debug/Build-Platform"
+              receipt.fetch("repository")=="Wave-Runner-2/Build-Platform"
             abort "RUBY_FILE_DIGEST_MISMATCH" unless Digest::SHA256.hexdigest(text)==receipt.fetch("file_sha256")
             abort "RUBY_AGENT_TEST_NOT_RUN" unless receipt.fetch("agent_generated_test")=="PASS"
             abort "RUBY_AGENT_FIXTURE_CONTRACT_MISSING" unless text.include?("node:test") &&

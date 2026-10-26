@@ -8,10 +8,10 @@ import { createRequire } from 'node:module';
 import { admitRequest, taskDigest } from '../scripts/codex-request.mjs';
 
 function fixture(login = 'fixture-gs', id = 101, reservations = new Set()) {
-  const issue = { number: 25, title: 'Bounded test task', body: 'Change a test fixture only.', state: 'open', html_url: 'https://github.com/Ogenicchocolate21debug/Build-Platform/issues/25' };
+  const issue = { number: 25, title: 'Bounded test task', body: 'Change a test fixture only.', state: 'open', html_url: 'https://github.com/Wave-Runner-2/Build-Platform/issues/25' };
   const sha = 'a'.repeat(40);
   const context = {
-    repo: { owner: 'Ogenicchocolate21debug', repo: 'Build-Platform' },
+    repo: { owner: 'Wave-Runner-2', repo: 'Build-Platform' },
     eventName: 'workflow_dispatch', ref: 'refs/heads/phase-vi-provider-incentive-metering', sha,
     runId: 123, runAttempt: 1, actor: login,
     payload: { sender: { login, id, type: 'User' }, inputs: {
@@ -41,7 +41,7 @@ for (const [label, id] of [['gs', 101], ['gt', 202]]) {
     assert.equal(result.receipt.actor_id, String(id));
     assert.equal(result.receipt.status, 'RESERVED_NOT_EXECUTED');
     assert.equal(result.receipt.task_branch, 'codex/oge-25-123');
-    assert.equal(result.receipt.run_url, 'https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/123');
+    assert.equal(result.receipt.run_url, 'https://github.com/Wave-Runner-2/Build-Platform/actions/runs/123');
     assert.equal(result.receipt.memory, 'owner-main / 1LSS_OWNER_MAIN');
     assert.equal(result.issue.body, 'Change a test fixture only.');
     assert.deepEqual(f.effects, [{ ref: result.receipt.reservation_ref, sha: 'a'.repeat(40) }]);
@@ -125,7 +125,7 @@ test('actual workflow admission script preserves GitHub context getters and save
     assert.equal(receipt.actor_id, '101');
     assert.deepEqual(JSON.parse(await readFile(join(folder, 'codex-issue.json'), 'utf8')), {
       number: 25, title: 'Bounded test task', body: 'Change a test fixture only.',
-      url: 'https://github.com/Ogenicchocolate21debug/Build-Platform/issues/25',
+      url: 'https://github.com/Wave-Runner-2/Build-Platform/issues/25',
     });
   } finally {
     await rm(folder, { recursive: true, force: true });

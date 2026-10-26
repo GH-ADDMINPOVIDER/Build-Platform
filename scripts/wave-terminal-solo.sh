@@ -12,7 +12,7 @@ fi
 if [[ "${GITHUB_REF_NAME:-}" != "phase-vi-provider-incentive-metering" ]]; then
   echo "TERMINAL_SOLO_DENIED_ENVIRONMENT" >&2; exit 78
 fi
-if [[ "${GITHUB_REPOSITORY:-}" != "Ogenicchocolate21debug/Build-Platform" ]]; then
+if [[ "${GITHUB_REPOSITORY:-}" != "Wave-Runner-2/Build-Platform" ]]; then
   echo "TERMINAL_SOLO_DENIED_REPOSITORY" >&2; exit 78
 fi
 if [[ ! "${WAVE_TASK_ID:-}" =~ ^wavecmd_[a-f0-9]{64}$ ]]; then

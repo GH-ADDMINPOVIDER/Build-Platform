@@ -27,7 +27,7 @@ env:
 
 jobs:
   refresh:
-    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering'
+    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 10
     steps:

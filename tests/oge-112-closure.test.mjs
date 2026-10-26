@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import {auditClosure} from "../scripts/oge112-check-closure.mjs";
 const catalog=JSON.parse(fs.readFileSync(new URL("../config/pstack-task-taxonomy.json",import.meta.url),"utf8"));
-const sha="a".repeat(40),link=s=>"https://github.com/Ogenicchocolate21debug/Build-Platform/"+s;
+const sha="a".repeat(40),link=s=>"https://github.com/Wave-Runner-2/Build-Platform/"+s;
 function fixture(){
  const root=fs.mkdtempSync(path.join(os.tmpdir(),"oge112-"));
  const dir=path.join(root,"docs/evidence/OGE-112");fs.mkdirSync(dir,{recursive:true});

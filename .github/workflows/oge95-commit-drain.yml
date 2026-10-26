@@ -33,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REPOSITORY" = "Ogenicchocolate21debug/Build-Platform"
+          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
           test "$GITHUB_REF_NAME" = "phase-vi-provider-incentive-metering"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git cat-file -e '9be0a339016ebf23a3a5f4108aaab56af19bd93a^{commit}'
@@ -151,7 +151,7 @@ jobs:
           import {readFileSync} from "node:fs";
           const r=JSON.parse(readFileSync("oge95-commit-drain-final.json","utf8"));
           if(r.schema!=="OGE95_COMMIT_DRAIN_FINAL_V1" ||
-             r.repository!=="Ogenicchocolate21debug/Build-Platform" ||
+             r.repository!=="Wave-Runner-2/Build-Platform" ||
              r.branch!=="phase-vi-provider-incentive-metering" ||
              r.head_sha!==process.env.GITHUB_SHA ||
              r.last_processed_sha!==process.env.GITHUB_SHA ||

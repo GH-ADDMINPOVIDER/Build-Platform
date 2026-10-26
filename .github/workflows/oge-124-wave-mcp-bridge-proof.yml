@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REPOSITORY" = "Ogenicchocolate21debug/Build-Platform"
+          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
           grep -q '"name": "ogenic-phase-vi-staging"' wrangler.jsonc
           grep -q '"run_worker_first"' wrangler.jsonc
           grep -q '"/mcp"' wrangler.jsonc

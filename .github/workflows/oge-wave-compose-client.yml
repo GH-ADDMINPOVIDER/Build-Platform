@@ -7,7 +7,7 @@ permissions:
   contents: read
 jobs:
   install_client:
-    if: github.repository == 'Ogenicchocolate21debug/Build-Platform' && github.actor == 'Ogenicchocolate21debug'
+    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.actor == 'Wave-Runner-2'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 8
     steps:

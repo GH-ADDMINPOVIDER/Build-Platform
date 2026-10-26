@@ -13,7 +13,7 @@ const save=()=>writeFileSync(out,JSON.stringify(proof,null,2)+"\n");
 const prompt=[
  "You are a READ-ONLY DeepSeek architecture reviewer. Respond in Thai, at most 650 words. Do not claim web browsing.",
  "Goal: repair OGENIC/WAVE OGE-98 existing OpenAI Agent integration without creating a new Runner, DB, tool authority or cloud service.",
- "Verified GitHub HEAD on allowed staging branch: "+sha+". Repo Ogenicchocolate21debug/Build-Platform, allowed branch phase-vi-provider-incentive-metering.",
+ "Verified GitHub HEAD on allowed staging branch: "+sha+". Repo Wave-Runner-2/Build-Platform, allowed branch phase-vi-provider-incentive-metering.",
  "The existing self-host GitHub host wave-runner-01 has codex CLI+exec-server and Git remote READ ready on correct staging HEAD.",
  "Four Linear @Codex Cloud delegated tasks all received WRONG_BASE_BRANCH; their cloud workspace was /workspace/Build-Platform but branch work at d7b331947bafec293edfb1799246f30c8a6a652a, no origin remote, and not the staging Worker source tree. No files changed.",
  "Existing OGE-28 workflow has two GitHub Actions jobs, control prepares an OpenAI Agents API self-host session, executor connects codex exec-server using restricted environment key via Infisical; OGE-28 run has been triggered and final proof not yet established.",

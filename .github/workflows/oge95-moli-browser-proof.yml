@@ -35,7 +35,7 @@ jobs:
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/phase-vi-provider-incentive-metering"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$GITHUB_REPOSITORY" = "Ogenicchocolate21debug/Build-Platform"
+          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
 
       - name: Test Yellow registration and browser task input guards
         shell: bash

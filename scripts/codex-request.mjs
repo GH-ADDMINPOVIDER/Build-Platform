@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-export const repository = 'Ogenicchocolate21debug/Build-Platform';
+export const repository = 'Wave-Runner-2/Build-Platform';
 export const staging = 'phase-vi-provider-incentive-metering';
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 export const taskDigest = issue => sha256(JSON.stringify([issue.number, issue.title, issue.body || '']));

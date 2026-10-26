@@ -23,7 +23,7 @@ const hash = (data) => createHash("sha256").update(data).digest("hex");
 
 function compactPrevious(previous) {
   if (previous?.schema !== LEARNING_SCHEMA ||
-      previous?.repository !== "Ogenicchocolate21debug/Build-Platform" ||
+      previous?.repository !== "Wave-Runner-2/Build-Platform" ||
       previous?.branch !== "phase-vi-provider-incentive-metering" ||
       !Array.isArray(previous.entries)) return [];
   // Snapshot is UNTRUSTED: only allow whitelisted bounded structure, no provider prose.
@@ -97,7 +97,7 @@ export function deriveStoneRunnerLearning({ sourceSha, intake, previous = null }
     placement: "RUNTIME_X10_FAN_IN_TO_GITHUB_MANUS_OPENAI_THEN_RUBY_YELLOW_GREEN",
     product: "STONE RUNNER",
     capability: "EPHEMERAL_RUNTIME_EXECUTION",
-    repository: "Ogenicchocolate21debug/Build-Platform",
+    repository: "Wave-Runner-2/Build-Platform",
     branch: "phase-vi-provider-incentive-metering",
     source_sha: sourceSha,
     observation_count: entries.length,
