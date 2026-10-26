@@ -12,7 +12,7 @@ The current live CCS surface remains a bounded/read-oriented control facade. Fut
 
 ## WAVE Staging GitHub Primary Routing — Owner decision 2026-10-20
 
-- **Operational primary = GH-2 / Tomload21**, GitHub login `Wave_Runner-2`, numeric identity `342175560`. WAVE GitHub Actions Dispatch uses the **GH-2 PAT** only after a live principal match and an Actions-write invalid-ref `422` canary. It is not a second physical Runner host.
+- **Operational primary = GH-2 / Tomload21**, GitHub login `Wave-Runner-2`, numeric identity `342175560`. WAVE GitHub Actions Dispatch uses the **GH-2 PAT** only after a live principal match and an Actions-write invalid-ref `422` canary. It is not a second physical Runner host.
 - **Repository owner and Cloudflare credential custodian = GH-1 / Tawatchai**, login `Ogenicchocolate21debug`, numeric identity `306097555`. GH-1 remains repo Admin; GH-2 currently has repository Write via the linked connector. No Admin elevation or default-branch change is implied.
 - Canonical source of GH-2 runtime PAT: existing Infisical **staging** bindings `GH-ID-TOMLOAD-RUNNER-2` (Classic PAT, verified Actions-write) or verified fine-grained alternative `GIT_HUB_RUNNER-2` when valid. Do not substitute `GITHUB_TOKEN_OGE34` (GH-1 read-only) for WAVE Dispatch.
 - Canonical Cloudflare deployment credential source remains the pre-existing Infisical staging project via GitHub OIDC; do not duplicate, transfer or expose Cloudflare tokens.
