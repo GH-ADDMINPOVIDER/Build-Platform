@@ -14,7 +14,7 @@ The current live CCS surface remains a bounded/read-oriented control facade. Fut
 
 - **Operational primary = GH-2 / Tomload21**, GitHub login `Wave-Runner-2`, numeric identity `342175560`. WAVE GitHub Actions Dispatch uses the **GH-2 PAT** only after a live principal match and an Actions-write invalid-ref `422` canary. It is not a second physical Runner host.
 - **Repository owner and Cloudflare credential custodian = GH-1 / Tawatchai**, login `Ogenicchocolate21debug`, numeric identity `306097555`. GH-1 remains repo Admin; GH-2 currently has repository Write via the linked connector. No Admin elevation or default-branch change is implied.
-- Canonical source of GH-2 runtime PAT: existing Infisical **staging** bindings `GH-ID-TOMLOAD-RUNNER-2` (Classic PAT, verified Actions-write) or verified fine-grained alternative `GIT_HUB_RUNNER-2` when valid. Do not substitute `GITHUB_TOKEN_OGE34` (GH-1 read-only) for WAVE Dispatch.
+- **Requested canonical Infisical references (2026-10-26):** GH-1 legacy/read-only label is `STORE_ONLY` (display label `STORE ONLY`); GH-2 staging dispatch label is `GH_ADDMINPROVIDER`. The former `GH-ID-TOMLOAD-RUNNER-2` and `GIT_HUB_RUNNER-2` names remain migration aliases only until their values are retired after a verified cutover. Do not substitute `STORE_ONLY` for GH-2 dispatch.
 - Canonical Cloudflare deployment credential source remains the pre-existing Infisical staging project via GitHub OIDC; do not duplicate, transfer or expose Cloudflare tokens.
 - Existing staging deploy selects GH-2 by a real principal + Actions write check before assembling the Worker protected runtime bundle. Any missing/mismatched GH-2 binding **fails closed**, instead of silently reverting to GH-1 Dispatch 403.
 - Production, Candy, Cloudflare database schema, SSH identities and Runner configuration are unchanged. Worker queues are not `COMMAND_RESULT_DONE` unless a genuine Runner execution receipt is observed.
@@ -27,7 +27,7 @@ The current live CCS surface remains a bounded/read-oriented control facade. Fut
 
 **Accountable platform duties (within previously verified capabilities):**
 - Maintain and troubleshoot staging source integrations, GitHub Actions/workflow dispatch, branch CI, and deployment coordination for `Ogenicchocolate21debug/Build-Platform`.
-- Use the already-verified **GH-2 staging Actions Dispatch** credential binding `GH-ID-TOMLOAD-RUNNER-2` through the existing Infisical/Worker route, including a real principal and Actions-write preflight; never substitute the GH-1 legacy read-only dispatch credential or copy raw PATs into repo files.
+- Use the requested **GH-2 staging Actions Dispatch** credential binding `GH_ADDMINPROVIDER` through the existing Infisical/Worker route, including a real principal and Actions-write preflight; never substitute the GH-1 `STORE_ONLY` legacy/read-only credential or copy raw PATs into repo files. The new name is not considered live until a principal check plus Actions-write `422` canary succeeds.
 - Route approved work to the existing `wave-runner-01` and coordinate Codex GS/TS and the ATHENA/Yellow/Ruby/Green operating chain; collect exact SHA, job, dispatch, result, and canonical D1 evidence before claiming E2E/DONE.
 - Apply scoped fixes, tests and source commits **only using permissions actually verified for the invoking token**. Escalate real permission/scope failures to Owner with the failing capability and HTTP result, without pretending that a broad installation checkbox means that every invocation can write.
 

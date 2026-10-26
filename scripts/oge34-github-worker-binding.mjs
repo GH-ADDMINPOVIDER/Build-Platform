@@ -13,9 +13,16 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 export function inspectTokenFormat(value) {
   return typeof value === "string" && /^[\x21-\x7e]+$/.test(value);
 }
-// Owner-defined credentials for the SECOND GitHub account. The labels are not
-// interchangeable, and the bytes must never be logged or copied between names.
+// Owner-defined credential references. The labels are not interchangeable, and
+// the bytes must never be logged or copied between names. GH_ADDMINPROVIDER is
+// the requested canonical GH-2 reference. STORE_ONLY is the GH-1 legacy/read-
+// only label; it is deliberately not an eligible runner dispatch credential.
+export const CANONICAL_GH1_CREDENTIAL = "STORE_ONLY";
+export const CANONICAL_GH2_CREDENTIAL = "GH_ADDMINPROVIDER";
 export const RUNNER_TWO_PAT_BINDINGS = Object.freeze({
+  // New owner-selected canonical name. The token kind is discovered only from
+  // its safe GitHub PAT prefix; no secret value is stored in source.
+  "GH_ADDMINPROVIDER": { type: "PAT", prefixes: ["ghp_", "github_pat_"] },
   "GH-ID-TOMLOAD-RUNNER-2": { type: "CLASSIC_PAT", prefix: "ghp_" },
   "GIT_HUB_RUNNER-2": { type: "FINE_GRAINED_PAT", prefix: "github_pat_" },
   // Alternate environment key spellings only; the Infisical names above remain canonical.
@@ -25,16 +32,20 @@ export const RUNNER_TWO_PAT_BINDINGS = Object.freeze({
 export function inspectRunnerTwoCredential(name, raw) {
   const binding = RUNNER_TWO_PAT_BINDINGS[name];
   if (!binding) return { recognized: false, type: "UNMAPPED", valid: false };
+  const prefixes = binding.prefixes ?? [binding.prefix];
   return {
     recognized: true,
     type: binding.type,
-    valid: inspectTokenFormat(raw) && raw.startsWith(binding.prefix),
+    valid: inspectTokenFormat(raw) && prefixes.some(prefix => raw.startsWith(prefix)),
   };
 }
 export function selectRunnerTwoAuthorizedCredential(authorized) {
   // Only choose after a real GitHub principal check and Actions-write canary.
-  // Fine-grained PAT is narrower; Classic is a distinct fallback if proven.
+  // The new owner-selected name is preferred; legacy typed references remain
+  // migration fallbacks until their Infisical values are retired explicitly.
   const candidates = authorized.filter(x => x.principal === "wave-runner-2");
+  const canonical = candidates.find(x => x.key.startsWith(CANONICAL_GH2_CREDENTIAL + "_"));
+  if (canonical) return canonical;
   const fine = candidates.find(x => x.type === "FINE_GRAINED_PAT");
   if (fine) return fine;
   const classic = candidates.find(x => x.type === "CLASSIC_PAT");
@@ -184,13 +195,13 @@ export async function main() {
   // Check only pre-existing Infisical staging GitHub credential bindings.
   // Select a single token proven for Actions WRITE; never print token bytes,
   // persist test tokens or substitute GitHub Actions' ephemeral github.token.
-  const primaryNames=["GH-ID-TOMLOAD-RUNNER-2","GIT_HUB_RUNNER-2",
+  const primaryNames=[CANONICAL_GH2_CREDENTIAL,"GH-ID-TOMLOAD-RUNNER-2","GIT_HUB_RUNNER-2",
     "GH_ID_TOMLOAD_RUNNER_2","GIT_HUB_RUNNER_2",
     "GITHUB_TOKEN_OGE34","GIBHUB_TOKEN_OGE34","GITHUB_TOKEN",
     "GITHUB_PAT","GITHUB_ACCESS_TOKEN","GH_TOKEN","GH_PAT","WAVE_GITHUB_TOKEN"];
   const discovered=Object.keys(process.env).filter((k) =>
     (/GITHUB/.test(k) && /(?:^|_)(?:TOKEN|PAT|AUTH|CREDENTIAL)(?:_|$)/.test(k)) ||
-    /^(GH_TOKEN|GH_PAT|GH-ID-TOMLOAD-RUNNER-2|GIT_HUB_RUNNER-2|GH_ID_TOMLOAD_RUNNER_2|GIT_HUB_RUNNER_2)$/.test(k));
+    /^(GH_ADDMINPROVIDER|GH_TOKEN|GH_PAT|GH-ID-TOMLOAD-RUNNER-2|GIT_HUB_RUNNER-2|GH_ID_TOMLOAD_RUNNER_2|GIT_HUB_RUNNER_2)$/.test(k));
   const keys=[...new Set([...primaryNames,...discovered])].filter((k) =>
     Object.prototype.hasOwnProperty.call(process.env,k) && String(process.env[k]||"").length>0
   ).slice(0,24);
@@ -217,11 +228,12 @@ export async function main() {
       console.log("OGE34_CANDIDATE_"+key+"_FORMAT_MISMATCH="+recognized.type);
       continue;
     }
-    // GITHUB_TOKEN_OGE34 is GH-1 (Tawatchai, admin), not the dispatch primary.
-    // GH-ID-TOMLOAD-RUNNER-2 and GIT_HUB_RUNNER-2 belong to primary GH-2 (Tomload21).
+    // STORE_ONLY/GITHUB_TOKEN_OGE34 are GH-1 (Tawatchai, admin account), not
+    // the dispatch primary. GH_ADDMINPROVIDER and the typed legacy names
+    // belong to primary GH-2 (Tomload21).
     // Never conflate repository roles with token scope or assume email=login.
     const expectedPrincipal = recognized.recognized ? "runner2"
-      : (key === "GITHUB_TOKEN_OGE34" || key === "GIBHUB_TOKEN_OGE34") ? "runner1" : "either";
+      : (key === CANONICAL_GH1_CREDENTIAL || key === "GITHUB_TOKEN_OGE34" || key === "GIBHUB_TOKEN_OGE34") ? "runner1" : "either";
     const variants=[{type:"EXACT",value:raw}];
     // OGE-40 proved the canonical value contains control characters. Check
     // whether it is merely line-wrapped; do not overwrite Infisical or guess

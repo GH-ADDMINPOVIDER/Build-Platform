@@ -2,6 +2,11 @@
 
 Scope: `phase-vi-provider-incentive-metering` only.
 
+## Owner identity correction — requested 26 Oct 2026
+- GH-1 remains GitHub principal `Ogenicchocolate21debug` / ID `306097555` / `tawatchaisamornrum11@gmail.com`. Its requested display/legacy secret label is **`STORE ONLY`**; the machine-safe reference is `STORE_ONLY`. It is read-only/legacy for dispatch and must not be selected as the GH-2 runner credential.
+- GH-2 remains GitHub principal `Wave-Runner-2` / ID `342175560` / `tomload21@gmail.com`. Its requested canonical Infisical secret name is **`GH_ADDMINPROVIDER`**. The observed repository permission is still `write`; an Admin grant and the new secret's live principal/Actions-write proof are **not verified** in this checkout.
+- The existing old Infisical names are migration references: `GH_ID_TAWATCHAI_STORE(OLD)`, `GH-ID-TOMLOAD-RUNNER-2`, `GIT_HUB_RUNNER-2`, and `GITHUB_TOKEN_OGE34`. Do not delete or rename their values from code; perform an owner-controlled Infisical migration, verify `GH_ADDMINPROVIDER`, then retire old references. Never log or commit token values.
+
 ## Owner operating authority — verified account topology (20 Oct 2026)
 - **Owner sets objectives and final authorization.** GS and GT are implementers/operators, not a second source of ownership or a second consent gate. Carry out already-authorized staging work through existing systems and continue after PASS/FAIL until the requested runtime outcome is verified or a genuine access/budget/safety boundary is reached. Do not substitute a status report, repeated planning, or delegation ping-pong for execution.
 - **Existing signed Owner session is sufficient for scoped WAVE staging commands** where the implemented route permits it; do not demand a duplicate Yellow Stone/Agent confirmation. Yellow remains the tools/capability adapter and scope enforcement; it cannot mint identity or impersonate Owner. Reject unauthenticated requests, unsupported operations, missing adapter binding, wrong environment or spending beyond authority. Do not interpret bare text or `-Ow` as a cryptographic login.
