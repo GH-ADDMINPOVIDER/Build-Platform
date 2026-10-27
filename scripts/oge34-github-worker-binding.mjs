@@ -15,19 +15,12 @@ export function inspectTokenFormat(value) {
 }
 // Owner-defined credential references. The labels are not interchangeable, and
 // the bytes must never be logged or copied between names. GH_ADDMINPROVIDER is
-// the requested canonical GH-2 reference. STORE_ONLY is the GH-1 legacy/read-
-// only label; it is deliberately not an eligible runner dispatch credential.
-export const CANONICAL_GH1_CREDENTIAL = "STORE_ONLY";
-export const CANONICAL_GH2_CREDENTIAL = "GH_ADDMINPROVIDER";
+// the sole canonical GitHub provider reference after the store migration.
+export const CANONICAL_GITHUB_CREDENTIAL = "GH_ADDMINPROVIDER";
 export const RUNNER_TWO_PAT_BINDINGS = Object.freeze({
   // New owner-selected canonical name. The token kind is discovered only from
   // its safe GitHub PAT prefix; no secret value is stored in source.
   "GH_ADDMINPROVIDER": { type: "PAT", prefixes: ["ghp_", "github_pat_"] },
-  "GH-ID-TOMLOAD-RUNNER-2": { type: "CLASSIC_PAT", prefix: "ghp_" },
-  "GIT_HUB_RUNNER-2": { type: "FINE_GRAINED_PAT", prefix: "github_pat_" },
-  // Alternate environment key spellings only; the Infisical names above remain canonical.
-  "GH_ID_TOMLOAD_RUNNER_2": { type: "CLASSIC_PAT", prefix: "ghp_" },
-  "GIT_HUB_RUNNER_2": { type: "FINE_GRAINED_PAT", prefix: "github_pat_" },
 });
 export function inspectRunnerTwoCredential(name, raw) {
   const binding = RUNNER_TWO_PAT_BINDINGS[name];
@@ -41,16 +34,8 @@ export function inspectRunnerTwoCredential(name, raw) {
 }
 export function selectRunnerTwoAuthorizedCredential(authorized) {
   // Only choose after a real GitHub principal check and Actions-write canary.
-  // The new owner-selected name is preferred; legacy typed references remain
-  // migration fallbacks until their Infisical values are retired explicitly.
-  const candidates = authorized.filter(x => x.principal === "wave-runner-2");
-  const canonical = candidates.find(x => x.key.startsWith(CANONICAL_GH2_CREDENTIAL + "_"));
-  if (canonical) return canonical;
-  const fine = candidates.find(x => x.type === "FINE_GRAINED_PAT");
-  if (fine) return fine;
-  const classic = candidates.find(x => x.type === "CLASSIC_PAT");
-  if (classic) return classic;
-  return null;
+  return authorized.find(x => x.principal === "wave-runner-2" &&
+    x.key.startsWith(CANONICAL_GITHUB_CREDENTIAL + "_")) ?? null;
 }
 export function classifyDispatchProbe(http) {
   if (http === 422) return "AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN";
@@ -151,7 +136,7 @@ export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
 }
 // Stable GitHub numeric IDs are more reliable than emails, display names
 // or guessed GitHub login spellings. GH-1 retains repository admin and Cloudflare
-// credential custody; GH-2 is the primary WAVE Actions dispatch principal.
+// credential custody; GH_ADDMINPROVIDER is the primary WAVE Actions dispatch principal.
 // A 200 from /user proves token validity, NOT the expected GitHub identity.
 export const OWNER_GITHUB_IDENTITIES = Object.freeze({
   runner1: { id: 306097555, login: "ogenicchocolate21debug" },
@@ -195,13 +180,8 @@ export async function main() {
   // Check only pre-existing Infisical staging GitHub credential bindings.
   // Select a single token proven for Actions WRITE; never print token bytes,
   // persist test tokens or substitute GitHub Actions' ephemeral github.token.
-  const primaryNames=[CANONICAL_GH2_CREDENTIAL,"GH-ID-TOMLOAD-RUNNER-2","GIT_HUB_RUNNER-2",
-    "GH_ID_TOMLOAD_RUNNER_2","GIT_HUB_RUNNER_2",
-    "GITHUB_TOKEN_OGE34","GIBHUB_TOKEN_OGE34","GITHUB_TOKEN",
-    "GITHUB_PAT","GITHUB_ACCESS_TOKEN","GH_TOKEN","GH_PAT","WAVE_GITHUB_TOKEN"];
-  const discovered=Object.keys(process.env).filter((k) =>
-    (/GITHUB/.test(k) && /(?:^|_)(?:TOKEN|PAT|AUTH|CREDENTIAL)(?:_|$)/.test(k)) ||
-    /^(GH_ADDMINPROVIDER|GH_TOKEN|GH_PAT|GH-ID-TOMLOAD-RUNNER-2|GIT_HUB_RUNNER-2|GH_ID_TOMLOAD_RUNNER_2|GIT_HUB_RUNNER_2)$/.test(k));
+  const primaryNames=[CANONICAL_GITHUB_CREDENTIAL];
+  const discovered=Object.keys(process.env).filter((k) => k === CANONICAL_GITHUB_CREDENTIAL);
   const keys=[...new Set([...primaryNames,...discovered])].filter((k) =>
     Object.prototype.hasOwnProperty.call(process.env,k) && String(process.env[k]||"").length>0
   ).slice(0,24);
@@ -228,12 +208,9 @@ export async function main() {
       console.log("OGE34_CANDIDATE_"+key+"_FORMAT_MISMATCH="+recognized.type);
       continue;
     }
-    // STORE_ONLY/GITHUB_TOKEN_OGE34 are GH-1 (Tawatchai, admin account), not
-    // the dispatch primary. GH_ADDMINPROVIDER and the typed legacy names
-    // belong to primary GH-2 (Tomload21).
-    // Never conflate repository roles with token scope or assume email=login.
-    const expectedPrincipal = recognized.recognized ? "runner2"
-      : (key === CANONICAL_GH1_CREDENTIAL || key === "GITHUB_TOKEN_OGE34" || key === "GIBHUB_TOKEN_OGE34") ? "runner1" : "either";
+    // GH_ADDMINPROVIDER is the only eligible dispatch credential after the
+    // store migration. Never infer principal or scope from a secret label.
+    const expectedPrincipal = recognized.recognized ? "runner2" : "either";
     const variants=[{type:"EXACT",value:raw}];
     // OGE-40 proved the canonical value contains control characters. Check
     // whether it is merely line-wrapped; do not overwrite Infisical or guess
@@ -290,27 +267,21 @@ export async function main() {
     }
   }
   if(authorized.length===0)throw new Error("STAGING_SECRET_NOT_CHANGED_ACTIONS_WRITE_DENIED_ALL_EXISTING_GITHUB_CANDIDATES");
-  // Do not merge Classic and fine-grained PATs, or treat Runner-1 as Runner-2.
-  // Prefer a verified fine-grained Runner-2 PAT; separately verified Classic PAT
-  // is eligible only when fine-grained cannot dispatch. Ambiguous legacy tokens
-  // fail closed as before.
-  // GH-2 is the operational primary for WAVE Actions dispatch. GH-1
-  // admin/Cloudflare credentials must not silently become the runtime PAT.
   const chosen=selectRunnerTwoAuthorizedCredential(authorized);
-  if (!chosen) throw new Error("STAGING_SECRET_NOT_CHANGED_GH2_ACTIONS_WRITE_NOT_VERIFIED");
+  if (!chosen) throw new Error("STAGING_SECRET_NOT_CHANGED_GH_ADDMINPROVIDER_ACTIONS_WRITE_NOT_VERIFIED");
   const token=chosen.token;
   console.log("OGE34_VERIFIED_TOKEN_SOURCE="+chosen.key);
   console.log("OGE34_VERIFIED_TOKEN_TYPE="+chosen.type);
   console.log("OGE34_DISPATCH_SCOPE=AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN");
-  // Called by the EXISTING staging deploy workflow. Verify GH-2's numeric
+  // Called by the EXISTING staging deploy workflow. Verify the canonical
   // principal + Actions-write canary, then export the vetted PAT to GitHub's
   // transient job environment; its protected runtime bundle carries the secret.
   // Do not expose the token in logs, source, D1 or artifacts.
   if (process.env.OGE34_EXPORT_CANONICAL === "1") {
     const envFile = String(process.env.GITHUB_ENV || "");
     if (!envFile) throw new Error("STAGING_GITHUB_ENV_FILE_MISSING");
-    appendFileSync(envFile, "GITHUB_TOKEN=" + token + "\nOGE34_GH2_PRIMARY_BOUND=1\n", { mode: 0o600 });
-    console.log("OGE34_GH2_PRIMARY_FOR_STAGING_DEPLOY=VERIFIED_ACTIONS_WRITE");
+    appendFileSync(envFile, "GITHUB_TOKEN=" + token + "\nOGE34_GH_ADDMINPROVIDER_BOUND=1\n", { mode: 0o600 });
+    console.log("OGE34_GH_ADDMINPROVIDER_FOR_STAGING_DEPLOY=VERIFIED_ACTIONS_WRITE");
     return;
   }
   if(!process.env.CLOUDFLARE_API_TOKEN||!process.env.CLOUDFLARE_ACCOUNT_ID){

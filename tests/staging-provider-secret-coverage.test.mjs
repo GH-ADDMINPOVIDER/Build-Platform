@@ -58,8 +58,8 @@ test("both staging deploy paths use the same secret manifest and verify configur
     assert.match(workflow, /canonical == 'GITHUB_TOKEN'/);
     assert.match(workflow, /OGE34_EXPORT_CANONICAL: "1"/);
     assert.match(workflow, /node scripts\/oge34-github-worker-binding\.mjs/);
-    assert.match(workflow, /OGE34_GH2_PRIMARY_BOUND/);
-    assert.doesNotMatch(workflow, /proven_github = os\.environ\.get\('GITHUB_TOKEN_OGE34'\)/);
+    assert.match(workflow, /OGE34_GH_ADDMINPROVIDER_BOUND/);
+    assert.doesNotMatch(workflow, /proven_github = os\.environ\.get\('RETIRED_STORE_CREDENTIAL'\)/);
   }
   assert.match(fallback, /Deploy staging Worker without D1 schema changes/);
   assert.doesNotMatch(fallback, /wrangler d1 migrations apply/);

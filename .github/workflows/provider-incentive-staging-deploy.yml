@@ -196,9 +196,9 @@ jobs:
           report("verified", f"Bot username: {username}; bot ID: {bot_id}.")
           PY
 
-      - name: Verify GH-2 primary Actions-write and export protected staging runtime binding
+      - name: Verify GH_ADDMINPROVIDER Actions-write and export protected staging runtime binding
         # Uses existing Infisical staging OIDC from the previous steps.
-        # Rejects GH-1 PAT fallback, incorrect principal, missing branch and
+        # Rejects retired store fallback, incorrect principal, missing branch and
         # Actions 403 before deploying. No new PAT, secret or gateway.
         shell: bash
         env:
@@ -219,12 +219,12 @@ jobs:
           normalized = 0
           with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
               for canonical, aliases in manifest.get('aliases', {}).items():
-                  # Never overwrite a GH-2 dispatch PAT with the GH-1 OGE34 READ alias.
-                  # The previous step verifies GH-2 identity and Actions write before
+                  # Never overwrite the canonical dispatch PAT with a retired store alias.
+                  # The previous step verifies identity and Actions write before
                   # exporting GITHUB_TOKEN into the protected staging job environment.
                   if canonical == 'GITHUB_TOKEN':
-                      if os.environ.get('OGE34_GH2_PRIMARY_BOUND') != '1' or not os.environ.get('GITHUB_TOKEN'):
-                          raise SystemExit('CONFIGURATION_REQUIRED: GH-2 Actions write was not verified')
+                      if os.environ.get('OGE34_GH_ADDMINPROVIDER_BOUND') != '1' or not os.environ.get('GITHUB_TOKEN'):
+                          raise SystemExit('CONFIGURATION_REQUIRED: GH_ADDMINPROVIDER Actions write was not verified')
                       continue
                   if os.environ.get(canonical):
                       continue

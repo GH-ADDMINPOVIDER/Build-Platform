@@ -1,4 +1,4 @@
-name: OGE-28 GH-2 and GS existing self-host MCP readiness proof
+name: OGE-28 GH_ADDMINPROVIDER and GS existing self-host MCP readiness proof
 on:
   push:
     branches: [phase-vi-provider-incentive-metering]
@@ -63,14 +63,14 @@ jobs:
           else
             echo STORED_ACCOUNT_RUNNER_LIST_API=INSUFFICIENT_SCOPE_OR_UNAVAILABLE
           fi
-          # Read-only capability receipt for existing GH-2-triggered workflow
+          # Read-only capability receipt for existing GH_ADDMINPROVIDER-triggered workflow
           # vs host-local identities. A GitHub Actions actor is not a local login.
           test "${RUNNER_NAME:-}" = wave-runner-01
           echo "SELFHOST_RUNNER1=VERIFIED"
           if test "${GITHUB_ACTOR:-}" = Wave-Runner-2; then
-            echo "GH2_ACTIONS_ACTOR=VERIFIED"
+            echo "GH_ADDMINPROVIDER_ACTIONS_ACTOR=VERIFIED"
           else
-            echo "GH2_ACTIONS_ACTOR=NOT_THIS_RUN"
+            echo "GH_ADDMINPROVIDER_ACTIONS_ACTOR=NOT_THIS_RUN"
           fi
           if command -v codex >/dev/null 2>&1; then
             echo "GS_CODEX_CLI_INSTALLED=YES"
@@ -105,22 +105,22 @@ jobs:
             echo "COPILOT_USER_MCP_CONFIG=ABSENT"
           fi
           if command -v gh >/dev/null 2>&1; then
-            # The runner can have a stored GH1 account even when GH2 pushes.
+            # The runner can have historical local auth even when GH_ADDMINPROVIDER pushes.
             # Unset job-token aliases to avoid misidentifying Github Actions.
             stored_login="$(env -u GH_TOKEN -u GITHUB_TOKEN -u COPILOT_GITHUB_TOKEN timeout 12 gh api user --jq .login 2>/dev/null || true)"
             if test "$stored_login" = Wave-Runner-2; then
-              echo "GH2_HOST_LOCAL_GH_AUTH=VERIFIED"
+              echo "GH_ADDMINPROVIDER_HOST_LOCAL_GH_AUTH=VERIFIED"
             elif test -n "$stored_login"; then
-              echo "GH2_HOST_LOCAL_GH_AUTH=OTHER_ACCOUNT"
+              echo "GH_ADDMINPROVIDER_HOST_LOCAL_GH_AUTH=OTHER_ACCOUNT"
             else
-              echo "GH2_HOST_LOCAL_GH_AUTH=NOT_VERIFIED"
+              echo "GH_ADDMINPROVIDER_HOST_LOCAL_GH_AUTH=NOT_VERIFIED"
             fi
           else
-            echo "GH2_HOST_LOCAL_GH_AUTH=GH_CLI_NOT_INSTALLED"
+            echo "GH_ADDMINPROVIDER_HOST_LOCAL_GH_AUTH=GH_CLI_NOT_INSTALLED"
           fi
           echo "MCP_PROBE_SCOPE=READ_ONLY_NO_INSTALL_NO_TOKEN_OUTPUT"
           echo OGE28_RUNNER2_HOST_CAPABILITY_END
-      - name: Install Copilot CLI user-local only for GH-2 on existing Runner-1
+      - name: Install Copilot CLI user-local only for GH_ADDMINPROVIDER on existing runner
         if: github.actor == 'Wave-Runner-2'
         shell: bash
         run: |
@@ -133,14 +133,14 @@ jobs:
           umask 077
           bin="$HOME/.local/bin/copilot"
           if test -x "$bin" && timeout 15 "$bin" --version >/dev/null 2>&1; then
-            echo "GH2_COPILOT_USERLOCAL_INSTALL=ALREADY_PRESENT"
+            echo "GH_ADDMINPROVIDER_COPILOT_USERLOCAL_INSTALL=ALREADY_PRESENT"
           else
             if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
-              echo "GH2_COPILOT_INSTALL=BLOCKED_NODE_NPM_UNAVAILABLE"
+              echo "GH_ADDMINPROVIDER_COPILOT_INSTALL=BLOCKED_NODE_NPM_UNAVAILABLE"
               exit 80
             fi
             if ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)'; then
-              echo "GH2_COPILOT_INSTALL=BLOCKED_NODE_BELOW_22"
+              echo "GH_ADDMINPROVIDER_COPILOT_INSTALL=BLOCKED_NODE_BELOW_22"
               exit 81
             fi
             mkdir -p "$HOME/.local"
@@ -149,20 +149,20 @@ jobs:
             if ! timeout 240 npm install -g --prefix "$HOME/.local" \
                 --no-audit --no-fund --silent @github/copilot \
                 > "$RUNNER_TEMP/ogenic-copilot-install.log" 2>&1; then
-              echo "GH2_COPILOT_INSTALL=FAILED_NETWORK_OR_PACKAGE"
+              echo "GH_ADDMINPROVIDER_COPILOT_INSTALL=FAILED_NETWORK_OR_PACKAGE"
               exit 82
             fi
-            echo "GH2_COPILOT_USERLOCAL_INSTALL=NEW"
+            echo "GH_ADDMINPROVIDER_COPILOT_USERLOCAL_INSTALL=NEW"
           fi
           if ! test -x "$bin" || ! timeout 15 "$bin" --version >/dev/null 2>&1; then
-            echo "GH2_COPILOT_CLI_VERSION_PROOF=FAILED"
+              echo "GH_ADDMINPROVIDER_COPILOT_CLI_VERSION_PROOF=FAILED"
             exit 83
           fi
-          echo "GH2_COPILOT_CLI_VERSION_PROOF=PASS"
-          echo "GH2_COPILOT_CLI_PATH=~/.local/bin/copilot"
-          echo "GH2_COPILOT_GITHUB_AUTH=NOT_ATTEMPTED"
-          echo "GH2_COPILOT_MCP_INSTALL=NOT_ATTEMPTED_GITHUB_BUILTIN"
-          echo "GH2_COPILOT_MCP_OUTBOUND_TOOLS=NOT_ENABLED"
+          echo "GH_ADDMINPROVIDER_COPILOT_CLI_VERSION_PROOF=PASS"
+          echo "GH_ADDMINPROVIDER_COPILOT_CLI_PATH=~/.local/bin/copilot"
+          echo "GH_ADDMINPROVIDER_COPILOT_GITHUB_AUTH=NOT_ATTEMPTED"
+          echo "GH_ADDMINPROVIDER_COPILOT_MCP_INSTALL=NOT_ATTEMPTED_GITHUB_BUILTIN"
+          echo "GH_ADDMINPROVIDER_COPILOT_MCP_OUTBOUND_TOOLS=NOT_ENABLED"
 
       - name: Probe OGENIC SSH IDE OpenCode MCP and Cloudflare live readiness
         if: github.actor == 'Wave-Runner-2'
@@ -395,7 +395,7 @@ jobs:
             # Existing staging provider+binding D1 table; official remote
             # Github MCP service defaults to READ-ONLY via path /readonly.
             # Reference existing Worker environment key; no token in payload.
-            code="$(jq -nc '{provider:"github",action:"register",approved:true,endpoint:"https://api.githubcopilot.com/mcp/readonly",secret_ref:"env:GITHUB_TOKEN",label:"GH2 ReadOnly MCP"}' | timeout 15 curl -sS --max-time 12 --cookie "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$response" -w '%{http_code}' "$root/api/mcp-config/action" || true)"
+            code="$(jq -nc '{provider:"github",action:"register",approved:true,endpoint:"https://api.githubcopilot.com/mcp/readonly",secret_ref:"env:GITHUB_TOKEN",label:"GH_ADDMINPROVIDER ReadOnly MCP"}' | timeout 15 curl -sS --max-time 12 --cookie "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$response" -w '%{http_code}' "$root/api/mcp-config/action" || true)"
             if test "$code" != 200; then
               echo "CCS_GITHUB_MCP_REGISTER=BLOCKED_HTTP_$code"
               jq -r '"CCS_GITHUB_MCP_REGISTER_CODE="+(.code // "UNKNOWN")' "$response" 2>/dev/null || true
@@ -482,17 +482,17 @@ jobs:
           jq -e '.ok == true and .authenticated == true and .user.role == "owner"' "$login" >/dev/null
           code="$(jq -nc '{provider:"github",action:"read_proof"}' | timeout 35 curl -sS --max-time 32 --cookie "$jar" -H 'Content-Type: application/json' --data-binary @- -o "$result" -w '%{http_code}' "$url/api/mcp-config/action" || true)"
           if test "$code" = 200 && jq -e '.ok == true and .code == "MCP_GITHUB_READ_E2E_PASS" and (.result_sha256|test("^[a-f0-9]{64}$")) and (.bytes_read > 400) and .result_body_exposed == false and .secret_exposed == false' "$result" >/dev/null 2>&1; then
-            echo CCS_GH2_MCP_TOOLS_CALL_E2E=PASS
-            jq -r '"CCS_GH2_MCP_READ_RECEIPT_SHA256="+.result_sha256' "$result"
-            jq -r '"CCS_GH2_MCP_READ_BYTES="+(.bytes_read|tostring)' "$result"
+            echo CCS_GH_ADDMINPROVIDER_MCP_TOOLS_CALL_E2E=PASS
+            jq -r '"CCS_GH_ADDMINPROVIDER_MCP_READ_RECEIPT_SHA256="+.result_sha256' "$result"
+            jq -r '"CCS_GH_ADDMINPROVIDER_MCP_READ_BYTES="+(.bytes_read|tostring)' "$result"
           else
-            echo "CCS_GH2_MCP_TOOLS_CALL_E2E=BLOCKED_HTTP_$code"
-            jq -r '"CCS_GH2_MCP_READ_FAILURE_CODE="+(.code // "UNKNOWN")' "$result" 2>/dev/null || true
+            echo "CCS_GH_ADDMINPROVIDER_MCP_TOOLS_CALL_E2E=BLOCKED_HTTP_$code"
+            jq -r '"CCS_GH_ADDMINPROVIDER_MCP_READ_FAILURE_CODE="+(.code // "UNKNOWN")' "$result" 2>/dev/null || true
             exit 88
           fi
-          echo CCS_GH2_MCP_READ_ONLY_SERVER_PROOF=TRUE
-          echo CCS_GH2_MCP_PROVIDER_WRITE=FALSE
-          echo CCS_GH2_MCP_PAID_MODEL_CALLS=ZERO
+          echo CCS_GH_ADDMINPROVIDER_MCP_READ_ONLY_SERVER_PROOF=TRUE
+          echo CCS_GH_ADDMINPROVIDER_MCP_PROVIDER_WRITE=FALSE
+          echo CCS_GH_ADDMINPROVIDER_MCP_PAID_MODEL_CALLS=ZERO
 
       - name: Bind existing generic webhook secret through scoped Infisical OIDC
         if: github.actor == 'Wave-Runner-2'

@@ -47,8 +47,7 @@
   ],
   "aliases": {
     "GITHUB_TOKEN": [
-      "GH_ADDMINPROVIDER",
-      "GITHUB_TOKEN_OGE34"
+      "GH_ADDMINPROVIDER"
     ],
     "LINE_SECRET_CHANNEL": [
       "LINE_CHANNEL_SECRET"

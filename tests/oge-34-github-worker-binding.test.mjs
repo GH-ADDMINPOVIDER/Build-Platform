@@ -20,9 +20,9 @@ test("staging secret binding cannot use GitHub ephemeral token or dev sources",(
   assert.match(wf,/INFISICAL_CLOUDFLARE_PROJECT_ID: e8cfba67-ea99-4d79-bc9f-87b862f9129c/);
   assert.match(wf,/node scripts\/oge34-github-worker-binding\.mjs/);
   const src=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
-  assert.match(src,/GITHUB_TOKEN_OGE34/);
+  assert.match(src,/GH_ADDMINPROVIDER/);
   assert.match(src,/GITHUB_CANDIDATE_KEYS/);
-  assert.match(src,/STAGING_SECRET_NOT_CHANGED_GH2_ACTIONS_WRITE_NOT_VERIFIED/);
+  assert.match(src,/STAGING_SECRET_NOT_CHANGED_GH_ADDMINPROVIDER_ACTIONS_WRITE_NOT_VERIFIED/);
   assert.match(src,/STAGING_SECRET_NOT_CHANGED_/);
   assert.match(src,/UNRESOLVABLE_REF_/);
   assert.match(src,/wrangler","secret","put","GITHUB_TOKEN"/);
@@ -53,37 +53,29 @@ test("only known owner GitHub principals can use local host credentials for Acti
  assert.match(src,/wrangler","secret","put","GITHUB_TOKEN"/);
 });
 
-test("Runner-2 Classic and fine-grained PAT remain separate, strictly typed credentials",()=>{
+test("the canonical GitHub provider is the only typed dispatch credential",()=>{
   const {RUNNER_TWO_PAT_BINDINGS,inspectRunnerTwoCredential}=hostAuth;
-  assert.equal(RUNNER_TWO_PAT_BINDINGS["GH-ID-TOMLOAD-RUNNER-2"].type,"CLASSIC_PAT");
-  assert.equal(RUNNER_TWO_PAT_BINDINGS["GIT_HUB_RUNNER-2"].type,"FINE_GRAINED_PAT");
-  assert.deepEqual(inspectRunnerTwoCredential("GH-ID-TOMLOAD-RUNNER-2","ghp_testValue1234"),
-    {recognized:true,type:"CLASSIC_PAT",valid:true});
-  assert.deepEqual(inspectRunnerTwoCredential("GIT_HUB_RUNNER-2","github_pat_testValue1234"),
-    {recognized:true,type:"FINE_GRAINED_PAT",valid:true});
-  assert.equal(inspectRunnerTwoCredential("GH-ID-TOMLOAD-RUNNER-2","github_pat_testValue").valid,false);
-  assert.equal(inspectRunnerTwoCredential("GIT_HUB_RUNNER-2","ghp_testValue").valid,false);
+  assert.deepEqual(inspectRunnerTwoCredential("GH_ADDMINPROVIDER","github_pat_testValue1234"),
+    {recognized:true,type:"PAT",valid:true});
+  assert.equal(Object.keys(RUNNER_TWO_PAT_BINDINGS).length,1);
+  assert.equal(inspectRunnerTwoCredential("RETIRED_STORE_CREDENTIAL","github_pat_testValue").valid,false);
 });
-test("Fine-grained Runner-2 PAT preferred; Classic Runner-2 PAT is a distinct fallback only when verified",()=>{
+test("canonical provider is selected and retired credentials are rejected",()=>{
   const {selectRunnerTwoAuthorizedCredential: select}=hostAuth;
-  const fine={key:"GIT_HUB_RUNNER-2_EXACT",token:"github_pat_test",type:"FINE_GRAINED_PAT",principal:"wave-runner-2"};
-  const classic={key:"GH-ID-TOMLOAD-RUNNER-2_EXACT",token:"ghp_test",type:"CLASSIC_PAT",principal:"wave-runner-2"};
-  const other={key:"GITHUB_TOKEN_OGE34_EXACT",token:"ghp_other",type:"LEGACY",principal:"ogenicchocolate21debug"};
-  assert.equal(select([classic,fine]),fine);
-  assert.equal(select([classic]),classic);
+  const canonical={key:"GH_ADDMINPROVIDER_EXACT",token:"github_pat_test",type:"PAT",principal:"wave-runner-2"};
+  const other={key:"RETIRED_STORE_CREDENTIAL_EXACT",token:"ghp_other",type:"LEGACY",principal:"ogenicchocolate21debug"};
+  assert.equal(select([canonical]),canonical);
   assert.equal(select([other]),null);
   assert.equal(select([]),null);
 });
 test("only Runner-2 PAT keys have explicitly matched prefixes; no bytes logged or converted",()=>{
   const src=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
   assert.match(src,/RUNNER2_PRINCIPAL_UNVERIFIED/);
-  assert.match(src,/GH-ID-TOMLOAD-RUNNER-2/);
-  assert.match(src,/GIT_HUB_RUNNER-2/);
   assert.match(src,/OGE34_VERIFIED_TOKEN_TYPE/);
   assert.doesNotMatch(src,/\.replace\(\/github_pat_/);
 });
 
-test("GH-1 remains admin identity and GH-2 is the operational Actions principal",()=>{
+test("the canonical provider remains bound to the operational Actions principal",()=>{
   const { OWNER_GITHUB_IDENTITIES, classifyOwnerPrincipal } = hostAuth;
   assert.equal(OWNER_GITHUB_IDENTITIES.runner1.id,306097555);
   assert.equal(OWNER_GITHUB_IDENTITIES.runner2.id,342175560);
@@ -97,9 +89,8 @@ test("GH-1 remains admin identity and GH-2 is the operational Actions principal"
   assert.equal(classifyOwnerPrincipal({id:306097555,login:"Wave-Runner-2"},"either"),null);
   assert.equal(classifyOwnerPrincipal({id:342175560,login:"tomload21"},"runner2"),null);
 });
-test("legacy OGE token belongs to GH-1 while GH-2 PAT is principal-verified before dispatch",()=>{
+test("the canonical provider is principal-verified before dispatch",()=>{
   const src=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
-  assert.match(src,/key === "GITHUB_TOKEN_OGE34".*?\? "runner1"/s);
   assert.match(src,/recognized\.recognized \? "runner2"/);
   assert.match(src,/await verifyExistingHostGitHubPrincipal\(candidate, expectedPrincipal\)/);
   assert.match(src,/principal: verifiedPrincipal === "runner2"/);
@@ -124,27 +115,27 @@ test("WAVE safe READ smoke uses ordinary file intent, not a blocked credential-l
   assert.match(source,/capability:"read_file",provider:"github",environment:"staging"/);
 });
 
-test("WAVE staging deploy must preserve GH-2 as the primary GitHub Actions credential", () => {
+test("WAVE staging deploy must preserve GH_ADDMINPROVIDER as the primary GitHub Actions credential", () => {
   const deploy=readFileSync(".github/workflows/provider-incentive-staging-deploy.yml","utf8");
   const script=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
-  const selection=deploy.indexOf('name: Verify GH-2 primary Actions-write');
+  const selection=deploy.indexOf('name: Verify GH_ADDMINPROVIDER Actions-write');
   const runtime=deploy.indexOf('name: Prepare protected runtime secret bundle');
   const deployment=deploy.indexOf('name: Deploy staging Worker with protected bindings');
   assert.ok(selection > 0 && runtime > selection && deployment > runtime);
   assert.match(deploy, /OGE34_EXPORT_CANONICAL: "1"/);
-  assert.match(deploy, /OGE34_GH2_PRIMARY_BOUND/);
-  assert.doesNotMatch(deploy, /proven_github = os.environ.get\('GITHUB_TOKEN_OGE34'\)/);
+  assert.match(deploy, /OGE34_GH_ADDMINPROVIDER_BOUND/);
+  assert.doesNotMatch(deploy, /proven_github = os.environ.get\('RETIRED_STORE_CREDENTIAL'\)/);
   assert.match(script, /selectRunnerTwoAuthorizedCredential\(authorized\)/);
   assert.doesNotMatch(script, /authorized.length===1 \? authorized\[0\]/);
-  assert.match(script, /STAGING_SECRET_NOT_CHANGED_GH2_ACTIONS_WRITE_NOT_VERIFIED/);
+  assert.match(script, /STAGING_SECRET_NOT_CHANGED_GH_ADDMINPROVIDER_ACTIONS_WRITE_NOT_VERIFIED/);
   assert.match(script, /appendFileSync\(envFile/);
-  assert.match(script, /OGE34_GH2_PRIMARY_FOR_STAGING_DEPLOY=VERIFIED_ACTIONS_WRITE/);
+  assert.match(script, /OGE34_GH_ADDMINPROVIDER_FOR_STAGING_DEPLOY=VERIFIED_ACTIONS_WRITE/);
   assert.match(script, /AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN/);
   assert.match(deploy, /INFISICAL_CLOUDFLARE_SOURCE_ENV: staging/);
   assert.match(deploy, /wrangler deploy --config .*--secrets-file/);
 });
 
-test("GH-1 Cloudflare custody and GH-2 operational write are not conflated", () => {
+test("Cloudflare custody and canonical operational write are not conflated", () => {
   const script=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
   assert.match(script, /runner1: \{ id: 306097555/);
   assert.match(script, /runner2: \{ id: 342175560/);

@@ -13,7 +13,7 @@ test("read only from the one original OGE-128 staging D1 Certificate, never a TL
   assert.match(certificate,/CERTIFICATE_INTEGRITY_MISMATCH/);
   assert.match(certificate,/owner_identity_correction_20261020/);
   assert.match(certificate,/github_first/);
-  assert.match(certificate,/github_second/);
+  assert.match(certificate,/github_addminprovider/);
   assert.match(certificate,/codex_ts/);
   assert.match(certificate,/runtime_e2e_verified:false/);
   assert.match(certificate,/identity_migration_20261026/);

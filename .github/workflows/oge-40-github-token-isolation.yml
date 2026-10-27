@@ -36,7 +36,7 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Compare canonical and GH_ADDMINPROVIDER bindings without exposing values
+      - name: Verify GH_ADDMINPROVIDER binding without exposing its value
         shell: bash
         run: |
           set -euo pipefail
@@ -46,8 +46,7 @@ jobs:
           import json, os, urllib.request, urllib.error
           from pathlib import Path
 
-          canonical = os.environ.get("GITHUB_TOKEN", "")
-          alias = os.environ.get("GH_ADDMINPROVIDER", "")
+          canonical = os.environ.get("GH_ADDMINPROVIDER", "")
           url = "https://api.github.com/repos/Wave-Runner-2/Build-Platform/contents/tests/athena-guarded-command-handoff.test.mjs?ref=phase-vi-provider-incentive-metering"
 
           def has_control(value):
@@ -88,20 +87,14 @@ jobs:
 
           evidence = {
               "schema": "OGE40_GITHUB_TOKEN_ISOLATION_V2",
-              "canonical": probe(canonical),
-              "gh_adminprovider": probe(alias),
-              "same_value": bool(canonical and alias and canonical == alias),
+              "gh_adminprovider": probe(canonical),
               "values_or_hashes_persisted": False,
           }
 
-          if evidence["canonical"]["http_status"] != 200 and evidence["gh_adminprovider"]["http_status"] == 200:
-              evidence["classification"] = "CANONICAL_GITHUB_TOKEN_REGRESSION_GH_ADDMINPROVIDER_HEALTHY"
-          elif evidence["canonical"]["http_status"] == 200 and evidence["gh_adminprovider"]["http_status"] == 200:
-              evidence["classification"] = "BOTH_GITHUB_BINDINGS_HEALTHY"
-          elif evidence["canonical"]["http_status"] == 200:
-              evidence["classification"] = "CANONICAL_GITHUB_TOKEN_HEALTHY"
+          if evidence["gh_adminprovider"]["http_status"] == 200:
+              evidence["classification"] = "GH_ADDMINPROVIDER_HEALTHY"
           else:
-              evidence["classification"] = "NO_HEALTHY_GITHUB_BINDING_PROVEN"
+              evidence["classification"] = "GH_ADDMINPROVIDER_NOT_HEALTHY"
 
           out = Path("docs/evidence/oge-40-github-token-isolation-latest.json")
           out.parent.mkdir(parents=True, exist_ok=True)

@@ -58,8 +58,8 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Verify GH-2 primary Actions-write and export protected staging runtime binding
-        # Reuse OGE-34 on wave-runner-01; fail closed on GH-2 auth errors.
+      - name: Verify GH_ADDMINPROVIDER Actions-write and export protected staging runtime binding
+        # Reuse OGE-34 on wave-runner-01; fail closed on canonical auth errors.
         shell: bash
         env:
           OGE34_EXPORT_CANONICAL: "1"
@@ -83,10 +83,10 @@ jobs:
           normalized = 0
           with open(env_file, 'a', encoding='utf-8') as output:
               for canonical, aliases in manifest.get('aliases', {}).items():
-                  # GH-2 is operational primary. Do not restore GH-1 READ alias.
+                  # GH_ADDMINPROVIDER is the operational primary. Do not restore the retired store alias.
                   if canonical == 'GITHUB_TOKEN':
-                      if os.environ.get('OGE34_GH2_PRIMARY_BOUND') != '1' or not os.environ.get('GITHUB_TOKEN'):
-                          raise SystemExit('CONFIGURATION_REQUIRED: GH-2 Actions write was not verified')
+                      if os.environ.get('OGE34_GH_ADDMINPROVIDER_BOUND') != '1' or not os.environ.get('GITHUB_TOKEN'):
+                          raise SystemExit('CONFIGURATION_REQUIRED: GH_ADDMINPROVIDER Actions write was not verified')
                       continue
                   if os.environ.get(canonical):
                       continue

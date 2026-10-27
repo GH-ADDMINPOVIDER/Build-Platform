@@ -15,20 +15,20 @@ READ PATHS
 4. Outside ChatGPT / agents: use the canonical GitHub branch and file path with the agent's own GitHub read access; a different ChatGPT session is not automatically authenticated to WAVE.
 
 IDENTITIES FROM OWNER CORRECTION
-GH1 Tawatchai — `tawatchaisamornrum11@gmail.com`; GitHub `Ogenicchocolate21debug` (numeric ID `306097555`), gh-runner1; repository permission `admin`; role is repository owner/admin and Cloudflare credential custodian. Requested display/secret label is `STORE ONLY` (`STORE_ONLY` machine reference); live Infisical rename is pending.
-GH2 Tomload21 — `tomload21@gmail.com`; GitHub `Wave-Runner-2` (numeric ID `342175560`), gh-runner2; repository permission `write`; role is Platform Engineer for staging. Requested canonical Infisical secret name is `GH_ADDMINPROVIDER`; live principal/scope verification is pending.
+Retired store principal — historical owner metadata only; no longer a runtime credential or dispatch source.
+GH_ADDMINPROVIDER / Tomload21 — `tomload21@gmail.com`; GitHub `Wave-Runner-2` (numeric ID `342175560`), existing `wave-runner-01`; repository permission `write`; role is Platform Engineer for staging. This is the canonical Infisical secret name and dispatch source.
 Codex GS: historical /home/wave/.codex. Codex TS: historical /root/.codex, execution proof run 39124078680.
 One self-hosted machine: `SELF_HOST_MACHINE`, physical hostname `OCIAN-S-Host`, GitHub registration `wave-runner-01`, DigitalOcean Droplet `604432491`.
 
 IDENTITY AND CREDENTIAL-REFERENCE CONTRACT
 | Principal | Login / numeric ID | Owner-assigned role | Observed repository permission | Canonical credential reference |
 | --- | --- | --- | --- | --- |
-| GH-1 / Tawatchai | `Ogenicchocolate21debug` / `306097555` | Repository Owner/Admin; Cloudflare credential custodian | `admin` | `STORE_ONLY` (display: `STORE ONLY`; legacy/read-only) |
-| GH-2 / Tomload21 | `Wave-Runner-2` / `342175560` | Platform Engineer (staging); requested Admin credential label | `write` observed; Admin unverified | `GH_ADDMINPROVIDER` (requested canonical; live verification pending) |
+| Retired store principal | `Ogenicchocolate21debug` / `306097555` | Historical repository owner/admin and Cloudflare custodian | historical | Retired; not a runtime binding |
+| GH_ADDMINPROVIDER / Tomload21 | `Wave-Runner-2` / `342175560` | Platform Engineer (staging) | `write` observed; Admin unverified | `GH_ADDMINPROVIDER` (canonical) |
 
-The screenshot labels `GH_ID_TAWATCHAI_STORE(OLD)` and `GH_ADDMINPROVIDER_ID_TOMLOAD21-2` are **legacy/unrecognized migration labels**. The requested canonical names are `STORE ONLY` (machine-safe reference `STORE_ONLY`) and `GH_ADDMINPROVIDER`. A rename must be performed in Infisical and every consumer verified before the old references are deleted; no raw token is copied or logged. `Wave-Runner-2` uses a hyphen in every machine-readable identity; the underscore spelling is invalid.
+The previous store and runner-alias labels are retired. Every staging consumer now resolves the single canonical `GH_ADDMINPROVIDER` reference; no raw token is copied or logged. `Wave-Runner-2` uses a hyphen in every machine-readable identity.
 
-There is one physical self-host machine, `SELF_HOST_MACHINE` (physical hostname `OCIAN-S-Host`, GitHub registration `wave-runner-01`, DigitalOcean Droplet `604432491`). GH-2 is a GitHub account and credential principal, not a second runner. Linear and Google Drive live read/write verification is `READ_UNAVAILABLE` in this environment because no corresponding connector is exposed; this document records the source contract only and does not claim external updates.
+There is one physical self-host machine, `SELF_HOST_MACHINE` (physical hostname `OCIAN-S-Host`, GitHub registration `wave-runner-01`, DigitalOcean Droplet `604432491`). GH_ADDMINPROVIDER is a GitHub account and credential principal on that existing runner, not a second runner. Linear and Google Drive live read/write verification is `READ_UNAVAILABLE` in this environment because no corresponding connector is exposed; this document records the source contract only and does not claim external updates.
 
 PROOF CONSTRAINTS
 Cloudflare D1 record read is validated by SHA-256; if missing, corrupted or inaccessible, return an explicit error.

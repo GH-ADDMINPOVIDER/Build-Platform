@@ -301,7 +301,7 @@
       "LIMITED_OR_HISTORICAL_VERIFIED is not automatic execution permission",
       "UNUSED_OR_NOT_LIVE_VERIFIED does not mean delete installed account or secret",
       "No new default provider auto-route or billable call",
-      "GitHub name GH-2 is account, not second physical Runner"
+      "GitHub identity GH_ADDMINPROVIDER is an account, not a second physical Runner"
     ],
     "additional_agent_surfaces": {
       "blue_diamond": {
