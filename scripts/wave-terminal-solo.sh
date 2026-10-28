@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
-# WAVE TERMINAL SOLO execution boundary.
+# GH-ADDMINPROVIDER Terminal Solo execution boundary.
 # SSH, IDEs and OPC share this special terminal environment (NOT Blue/Violet Agent Registry).
 # This wrapper currently authorizes only the existing Yellow-gated Codex consumer.
 # Future IDE/OPC adapters must use this SAME lock and owner approval contract.
 set -euo pipefail
 umask 077
 
-if [[ "${RUNNER_NAME:-}" != "wave-runner-01" ]]; then
-  echo "TERMINAL_SOLO_DENIED_RUNNER" >&2; exit 78
+for required in GH_ADDMINPROVIDER_HOST GH_ADDMINPROVIDER_STAGING_REF GH_ADDMINPROVIDER_REPOSITORY; do
+  if [[ -z "${!required:-}" ]]; then
+    echo "TERMINAL_SOLO_CONFIGURATION_REQUIRED:$required" >&2; exit 78
+  fi
+done
+if [[ "${RUNNER_NAME:-}" != "${GH_ADDMINPROVIDER_HOST}" ]]; then
+  echo "TERMINAL_SOLO_DENIED_HOST" >&2; exit 78
 fi
-if [[ "${GITHUB_REF_NAME:-}" != "phase-vi-provider-incentive-metering" ]]; then
+if [[ "${GITHUB_REF_NAME:-}" != "${GH_ADDMINPROVIDER_STAGING_REF}" ]]; then
   echo "TERMINAL_SOLO_DENIED_ENVIRONMENT" >&2; exit 78
 fi
-if [[ "${GITHUB_REPOSITORY:-}" != "Wave-Runner-2/Build-Platform" ]]; then
+if [[ "${GITHUB_REPOSITORY:-}" != "${GH_ADDMINPROVIDER_REPOSITORY}" ]]; then
   echo "TERMINAL_SOLO_DENIED_REPOSITORY" >&2; exit 78
 fi
 if [[ ! "${WAVE_TASK_ID:-}" =~ ^wavecmd_[a-f0-9]{64}$ ]]; then
