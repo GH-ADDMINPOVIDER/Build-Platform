@@ -58,7 +58,7 @@ jobs:
             --data-urlencode "expandSecretReferences=false" \
             "$INFISICAL_API_URL/api/v4/secrets")"
 
-          refs="$(jq -c '[.secrets[]? | select((.secretKey // "") | test("^(GH|GITHUB)(_|$)"; "i")) | {key:.secretKey,value:(.secretValue // "")}] | sort_by(.key)' <<<"$secrets")"
+          refs="$(jq -c '[.secrets[]? | select((.secretKey // "") | test("^(GH|GITHUB)([_-]|$)"; "i")) | {key:.secretKey,value:(.secretValue // "")}] | sort_by(.key)' <<<"$secrets")"
           count="$(jq 'length' <<<"$refs")"
           echo "GH_ADDMINPROVIDER_INFISICAL_GITHUB_REFERENCE_COUNT=$count"
           if [ "$count" -ne 6 ]; then
