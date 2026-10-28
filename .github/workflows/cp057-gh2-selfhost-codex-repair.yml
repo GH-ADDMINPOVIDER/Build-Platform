@@ -1,0 +1,113 @@
+name: CP057 GH2 self-host Codex repair
+
+on:
+  push:
+    branches:
+      - fix/cp057-gh2-selfhost-codex-20261024
+    paths:
+      - .github/workflows/cp057-gh2-selfhost-codex-repair.yml
+      - .github/workflows/codex-issue-runner-staging.yml
+      - .github/workflows/wave-command-consumer.yml
+      - worker/**
+      - scripts/**
+      - tests/**
+  workflow_dispatch:
+    inputs:
+      bounded_task:
+        description: "Run the bounded GH2 route repair on the existing self-host runner"
+        required: true
+        default: "CP057 route proof only"
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: cp057-gh2-selfhost-codex-repair
+  cancel-in-progress: false
+
+jobs:
+  codex-repair:
+    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact GH2 staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/cp057-gh2-selfhost-codex-20261024
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Verify existing runner and sole Codex profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
+          test "$GITHUB_REF_NAME" = "fix/cp057-gh2-selfhost-codex-20261024"
+          test "$RUNNER_NAME" = "wave-runner-01"
+          test -d /home/wave/.codex
+          command -v codex
+          echo "GH2_REPOSITORY=PASS"
+          echo "RUNNER_NAME=$RUNNER_NAME"
+          echo "CODEX_HOME=/home/wave/.codex"
+          codex --version
+          set +e
+          codex sandbox /bin/pwd >/tmp/cp057-codex-sandbox.log 2>&1
+          rc=$?
+          set -e
+          test "$rc" -eq 0
+          echo "CODEX_SANDBOX=PASS"
+
+      - name: Run one bounded Codex repair task
+        shell: bash
+        env:
+          CODEX_HOME: /home/wave/.codex
+        run: |
+          set -euo pipefail
+          cat > /tmp/cp057-task.md <<'TASK'
+          You are the single GPT_GS_CODEX execution worker on the existing OGENIC host.
+          Work only in Wave-Runner-2/Build-Platform on this staging branch.
+          Objective: make the GH2 self-host route usable for CP-057 / WAIT-X19.
+          Inspect the actual repository and workflow files first.
+          Preserve all historical green checkpoints, GH1 RP_STORE(OLD), main, production,
+          secrets, D1 data, and the single runner rule.
+          The only accepted physical runner is wave-runner-01 and the only Codex profile is /home/wave/.codex.
+          Correct only staging workflow routing/guards if needed so the GH2 repository can execute
+          on the existing self-host runner. Do not create a runner, host, container, token, or second Codex.
+          Do not run sudo, deploy, merge, or change production.
+          Run focused syntax/tests for any changed files.
+          Do not print secrets or raw environment values.
+          Do not commit or push. Return an evidence-based summary with changed files, commands,
+          outcomes, and exact remaining blocker if the host/runtime is unavailable.
+          TASK
+          set +e
+          codex exec --sandbox workspace-write - < /tmp/cp057-task.md > /tmp/cp057-codex-output.log 2>&1
+          rc=$?
+          set -e
+          tail -n 120 /tmp/cp057-codex-output.log
+          echo "CODEX_EXIT_CODE=$rc"
+          test "$rc" -eq 0
+
+      - name: Publish safe bounded diff as draft PR
+        if: success()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git diff --check
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo "CODEX_NO_REPO_DIFF"
+            exit 0
+          fi
+          if git status --short | grep -Ei '(^|/)(\.env([^/]*$)?|.*\.(pem|key|p12|pfx)|.*(secret|credential|token).*)$'; then
+            echo "SECRET_LIKE_PATH_BLOCKED"
+            exit 9
+          fi
+          git add -A
+          git commit -m "fix(CP-057): repair GH2 self-host Codex route"
+          git push --set-upstream origin fix/cp057-gh2-selfhost-codex-20261024
+          gh pr create --draft --base phase-vi-provider-incentive-metering --head fix/cp057-gh2-selfhost-codex-20261024 --title "fix(CP-057): repair GH2 self-host Codex route" --body "Staging-only bounded Codex repair. No merge, deploy, GH1 write, or historical checkpoint mutation."
