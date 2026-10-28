@@ -14,22 +14,26 @@ concurrency:
   group: gh-addminprovider-command-${{ inputs.task_id }}
   cancel-in-progress: false
 env:
-  WAVE_URL: https://wave.ogenicchocolate.com
-  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
-  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
-  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
-  INFISICAL_ENV_SLUG: staging
-  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  # Canonical runtime identity: configure once as GitHub repository variables.
+  GH_ADDMINPROVIDER_REPOSITORY: \${{ vars.GH_ADDMINPROVIDER_REPOSITORY }}
+  GH_ADDMINPROVIDER_HOST: \${{ vars.GH_ADDMINPROVIDER_HOST }}
+  GH_ADDMINPROVIDER_STAGING_REF: \${{ vars.GH_ADDMINPROVIDER_STAGING_REF }}
+  WAVE_URL: \${{ vars.GH_ADDMINPROVIDER_WAVE_URL }}
+  INFISICAL_IDENTITY_ID: \${{ vars.INFISICAL_IDENTITY_ID }}
+  INFISICAL_ORG_ID: \${{ vars.INFISICAL_ORG_ID }}
+  INFISICAL_ORG_SLUG: \${{ vars.INFISICAL_ORG_SLUG }}
+  INFISICAL_ENV_SLUG: \${{ vars.INFISICAL_ENV_SLUG }}
+  INFISICAL_PROJECT_SLUG: \${{ vars.INFISICAL_PROJECT_SLUG }}
 jobs:
   consume:
-    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering'
-    runs-on: [self-hosted, linux, x64, wave]
+    if: github.repository == vars.GH_ADDMINPROVIDER_REPOSITORY && github.ref_name == vars.GH_ADDMINPROVIDER_STAGING_REF
+    runs-on: ${{ fromJSON(vars.GH_ADDMINPROVIDER_RUNNER_LABELS_JSON) }}
     timeout-minutes: 20
     steps:
       - name: Checkout staging, never main
         uses: actions/checkout@v4
         with:
-          ref: phase-vi-provider-incentive-metering
+          ref: ${{ env.GH_ADDMINPROVIDER_STAGING_REF }}
           persist-credentials: false
           fetch-depth: 0
       - name: Verify GH-ADDMINPROVIDER scope and OCIAN-S-Host Terminal Solo availability
@@ -38,11 +42,14 @@ jobs:
           WAVE_TASK_ID: ${{ inputs.task_id }}
         run: |
           set -euo pipefail
+          for required in GH_ADDMINPROVIDER_REPOSITORY GH_ADDMINPROVIDER_HOST GH_ADDMINPROVIDER_STAGING_REF WAVE_URL INFISICAL_IDENTITY_ID INFISICAL_ENV_SLUG; do
+            test -n "${!required}"
+          done
           [[ "$WAVE_TASK_ID" =~ ^wavecmd_[a-f0-9]{64}$ ]]
-          test "$RUNNER_NAME" = OCIAN-S-Host
-          test "$(git branch --show-current)" = phase-vi-provider-incentive-metering
-          test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
-          test "$GITHUB_REPOSITORY" = Wave-Runner-2/Build-Platform
+          test "$RUNNER_NAME" = "$GH_ADDMINPROVIDER_HOST"
+          test "$(git branch --show-current)" = "$GH_ADDMINPROVIDER_STAGING_REF"
+          test "$GITHUB_REF_NAME" = "$GH_ADDMINPROVIDER_STAGING_REF"
+          test "$GITHUB_REPOSITORY" = "$GH_ADDMINPROVIDER_REPOSITORY"
           test -f scripts/wave-terminal-solo.sh
           bash -n scripts/wave-terminal-solo.sh
           command -v flock >/dev/null
