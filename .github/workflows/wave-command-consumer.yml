@@ -1,5 +1,5 @@
-# Staging-only default-branch registration; runs only on phase-vi staging ref.
-name: WAVE Command Consumer
+# GH-ADDMINPROVIDER staging-only command admission on OCIAN-S-Host.
+name: GH-ADDMINPROVIDER Command Consumer
 on:
   workflow_dispatch:
     inputs:
@@ -11,7 +11,7 @@ permissions:
   contents: read
   id-token: write
 concurrency:
-  group: wave-command-${{ inputs.task_id }}
+  group: gh-addminprovider-command-${{ inputs.task_id }}
   cancel-in-progress: false
 env:
   WAVE_URL: https://wave.ogenicchocolate.com
@@ -32,14 +32,14 @@ jobs:
           ref: phase-vi-provider-incentive-metering
           persist-credentials: false
           fetch-depth: 0
-      - name: Verify task scope and secure Terminal Solo availability
+      - name: Verify GH-ADDMINPROVIDER scope and OCIAN-S-Host Terminal Solo availability
         shell: bash
         env:
           WAVE_TASK_ID: ${{ inputs.task_id }}
         run: |
           set -euo pipefail
           [[ "$WAVE_TASK_ID" =~ ^wavecmd_[a-f0-9]{64}$ ]]
-          test "$RUNNER_NAME" = wave-runner-01
+          test "$RUNNER_NAME" = OCIAN-S-Host
           test "$(git branch --show-current)" = phase-vi-provider-incentive-metering
           test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
           test "$GITHUB_REPOSITORY" = Wave-Runner-2/Build-Platform
@@ -59,7 +59,7 @@ jobs:
           env-slug: staging
           secret-path: /
           recursive: true
-      - name: Run ONLY through host-wide Terminal Solo + Yellow-approved consumer
+      - name: Run ONLY through OCIAN-S-Host Terminal Solo + Yellow-approved consumer
         env:
           WAVE_TASK_ID: ${{ inputs.task_id }}
           WAVE_EVIDENCE_REF: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
