@@ -36,7 +36,7 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Verify GH-ADDMINPOVIDER binding without exposing its value
+      - name: Verify Unifiend capability binding without exposing its value
         shell: bash
         run: |
           set -euo pipefail
@@ -47,7 +47,7 @@ jobs:
           from pathlib import Path
 
           canonical = os.environ.get("GH_ADDMINPROVIDER", "")
-          url = "https://api.github.com/repos/Wave-Runner-2/Build-Platform/contents/tests/athena-guarded-command-handoff.test.mjs?ref=phase-vi-provider-incentive-metering"
+          url = "https://api.github.com/repos/Wave-Runner-2/Build-Platform/contents/tests/athena-guarded-command-handoff.test.mjs?ref=Unified-on-Progress"
 
           def has_control(value):
               return any(ord(ch) < 32 or ord(ch) == 127 for ch in value)
@@ -111,6 +111,6 @@ jobs:
           git add docs/evidence/oge-40-github-token-isolation-latest.json
           git diff --cached --quiet && exit 0
           git commit -m "test(oge-40): isolate GitHub runtime binding health"
-          git fetch origin phase-vi-provider-incentive-metering
-          git rebase origin/phase-vi-provider-incentive-metering
-          git push origin HEAD:phase-vi-provider-incentive-metering
+          git fetch origin Unified-on-Progress
+          git rebase origin/Unified-on-Progress
+          git push origin HEAD:Unified-on-Progress

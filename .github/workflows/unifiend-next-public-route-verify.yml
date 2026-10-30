@@ -1,0 +1,87 @@
+name: Unifiend NEXT Public Route Verify
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-public-route:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 8
+    env:
+      STAGING_URL: https://wave.ogenicchocolate.com
+    steps:
+      - name: Wait for distinct Unifiend bundle then verify public routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          HTML="$(mktemp)"
+          JS="$(mktemp)"
+          trap 'rm -f "$HTML" "$JS"' EXIT
+
+          READY=false
+          for ATTEMPT in $(seq 1 36); do
+            CODE="$(curl --silent --show-error --location --retry 2 --retry-delay 2 --retry-all-errors --output "$HTML" --write-out '%{http_code}' "${STAGING_URL}/")"
+            if test "$CODE" = "200" && grep -q 'id="root"' "$HTML"; then
+              ASSET="$(grep -oE 'src="[^"]+\.js"' "$HTML" | head -n1 | cut -d'"' -f2 || true)"
+              if test -n "$ASSET"; then
+                case "$ASSET" in
+                  http*) ASSET_URL="$ASSET" ;;
+                  /*) ASSET_URL="${STAGING_URL}${ASSET}" ;;
+                  *) ASSET_URL="${STAGING_URL}/${ASSET}" ;;
+                esac
+                if curl --fail --silent --show-error --location "$ASSET_URL" -o "$JS" \
+                  && grep -Fq 'Command Center' "$JS" \
+                  && grep -Fq 'Agent Deck' "$JS" \
+                  && grep -Fq 'Operations Dashboard' "$JS" \
+                  && grep -Fq '/command' "$JS" \
+                  && grep -Fq '/agents' "$JS"; then
+                  READY=true
+                  break
+                fi
+              fi
+            fi
+            echo "staging bundle not current yet (attempt ${ATTEMPT}/36)"
+            sleep 5
+          done
+          test "$READY" = "true" || { echo "::error::staging never exposed the distinct Unifiend surface bundle"; exit 1; }
+
+          for ROUTE in / /chat /command /agents /overview /overview/next /overview/legacy /app; do
+            CODE="$(curl --silent --show-error --location --retry 4 --retry-delay 2 --retry-all-errors --output "$HTML" --write-out '%{http_code}' "${STAGING_URL}${ROUTE}")"
+            test "$CODE" = "200" || { echo "::error::${ROUTE} returned HTTP $CODE"; exit 1; }
+            grep -q 'id="root"' "$HTML" || { echo "::error::SPA root missing from ${ROUTE}"; exit 1; }
+          done
+
+          grep -Fq 'owner-main' "$JS" || { echo "::error::deployed bundle does not contain canonical owner-main identity"; exit 1; }
+          if grep -Eq 'BEGIN (RSA|OPENSSH|EC) PRIVATE KEY' "$JS"; then
+            echo "::error::private key material detected in public bundle"
+            exit 1
+          fi
+          echo "UNIFIEND_DISTINCT_PUBLIC_ROUTES_OK"
+
+      - name: Capture unauthenticated mobile surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if test -z "$CHROME"; then
+            echo "Chrome is not preinstalled on this runner; route/bundle proof already passed."
+            exit 0
+          fi
+          for ITEM in "web:/" "chat:/chat" "command:/command" "agents:/agents" "operate:/overview"; do
+            NAME="${ITEM%%:*}"
+            ROUTE="${ITEM#*:}"
+            "$CHROME" --headless=new --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=3500 --window-size=390,844 --screenshot="unifiend-${NAME}-mobile.png" "${STAGING_URL}${ROUTE}"
+            test -s "unifiend-${NAME}-mobile.png"
+          done
+          echo "UNIFIEND_SURFACE_MOBILE_RENDERS_CAPTURED"
+
+      - name: Upload mobile render evidence
+        if: ${{ hashFiles('unifiend-*-mobile.png') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: unifiend-surface-mobile-renders-${{ github.sha }}
+          path: unifiend-*-mobile.png
+          retention-days: 7

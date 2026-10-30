@@ -1,7 +1,7 @@
-name: OGE-25 existing Codex account smoke on WAVE
+name: OGE-25 existing Codex account smoke on Unifiend
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths: ['.github/workflows/oge-25-codex-account-smoke.yml']
 permissions:
   contents: read

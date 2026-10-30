@@ -2,7 +2,7 @@ name: OGE-60 Gemini Free Pilot Proof
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - "worker/gemini-api.ts"
       - "worker/entry-yellow-stone.ts"

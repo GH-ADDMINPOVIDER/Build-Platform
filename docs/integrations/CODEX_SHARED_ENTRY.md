@@ -8,9 +8,9 @@ Canonical memory remains `owner-main / 1LSS_OWNER_MAIN`.
 
 | Existing workflow | Actual entry and prerequisites | Limitation |
 | --- | --- | --- |
-| `codex-issue-runner-staging.yml` | Exact staging `workflow_dispatch`; self-hosted Linux/x64 runner labeled `wave`; Codex CLI with verified local login for `Suthi_2538@hotmail.com`; working bubblewrap sandbox; GitHub contents/issues/PR write | No dispatch input or verified GS/GT identity policy. Required a special staging push. Host repair and a sandbox-failure hosted fallback were automatic. |
-| `oge-98-codex-hosted-fallback.yml` | Manual confirmation; staging only; existing Infisical OIDC binding; `openai/codex-action`; disposable worktree, fixed smoke-test task | Despite the name, both jobs specify self-hosted `wave`. It is a fixed proof, not a general task intake. Its recursive secret fetch is broader than the issue runner. Left unchanged. |
-| `wave-openai-selfhost-executor.yml` | Manual dispatch with existing `OPENAI_EXECUTOR_API_KEY`, provisioned environment and session IDs, allowed OpenAI remote URL; `wave-runner-01`, `codex exec-server` | Connects a provisioned session. It neither accepts a bounded issue nor provisions/authenticates a GS/GT request. Left unchanged. |
+| `codex-issue-runner-staging.yml` | Exact staging `workflow_dispatch`; self-hosted Linux/x64 runner labeled `unifiend`; Codex CLI with verified local login for `Suthi_2538@hotmail.com`; working bubblewrap sandbox; GitHub contents/issues/PR write | No dispatch input or verified GS/GT identity policy. Required a special staging push. Host repair and a sandbox-failure hosted fallback were automatic. |
+| `oge-98-codex-hosted-fallback.yml` | Manual confirmation; staging only; existing Infisical OIDC binding; `openai/codex-action`; disposable worktree, fixed smoke-test task | Despite the name, both jobs specify self-hosted `unifiend`. It is a fixed proof, not a general task intake. Its recursive secret fetch is broader than the issue runner. Left unchanged. |
+| `unifiend-openai-selfhost-executor.yml` | Manual dispatch with existing `OPENAI_EXECUTOR_API_KEY`, provisioned environment and session IDs, allowed OpenAI remote URL; `wave-runner-01`, `codex exec-server` | Connects a provisioned session. It neither accepts a bounded issue nor provisions/authenticates a GS/GT request. Left unchanged. |
 
 PR #24 is a separate, open draft documentation change on `feat/2a-discovery-intake-catalog`; it was read, not edited. Its relay claims remain blocked. The canonical session lock and OGE-22 architecture references were read. Live prior owner-main content was unavailable: `CONTEXT_UNAVAILABLE`; no Green retention is claimed.
 
@@ -47,7 +47,7 @@ For CLI callers, the following produces the digest from the issue that was revie
 ```sh
 gh issue view 25 --repo Ogenicchocolate21debug/Build-Platform --json number,title,body > /tmp/codex-reviewed-issue.json
 node --input-type=module -e 'import {readFileSync} from "node:fs"; import {taskDigest} from "./scripts/codex-request.mjs"; console.log(taskDigest(JSON.parse(readFileSync("/tmp/codex-reviewed-issue.json", "utf8"))))'
-gh api repos/Ogenicchocolate21debug/Build-Platform/git/ref/heads/phase-vi-provider-incentive-metering --jq .object.sha
+gh api repos/Ogenicchocolate21debug/Build-Platform/git/ref/heads/Unified-on-Progress --jq .object.sha
 ```
 
 After explicit review, dispatch with those exact values:
@@ -55,7 +55,7 @@ After explicit review, dispatch with those exact values:
 ```sh
 gh workflow run codex-issue-runner-staging.yml \
   --repo Ogenicchocolate21debug/Build-Platform \
-  --ref phase-vi-provider-incentive-metering \
+  --ref Unified-on-Progress \
   -f issue_number=25 \
   -f source_sha=REPLACE_WITH_REVIEWED_STAGING_SHA \
   -f task_sha256=REPLACE_WITH_REVIEWED_TASK_DIGEST \

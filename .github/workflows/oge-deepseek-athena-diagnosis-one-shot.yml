@@ -1,7 +1,7 @@
 name: ATHENA 404 Diagnosis - One DeepSeek Read
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths: [".github/workflows/oge-deepseek-athena-diagnosis-one-shot.yml"]
   workflow_dispatch:
 permissions:

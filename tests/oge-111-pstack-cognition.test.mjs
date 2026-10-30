@@ -7,9 +7,9 @@ const js=ts.transpileModule(rd("worker/violet-pstack-selector.ts"),{compilerOpti
 const {selectPstackSkillStack,planSkillLearning}=await import("data:text/javascript;base64,"+Buffer.from(js).toString("base64"));
 const skills=JSON.parse(rd("config/pstack-full-catalog.json")).skills;
 test("learning plan covers each of 51 exactly once, never claims memory",()=>{
- const p=planSkillLearning(skills),all=p.waves.flatMap(w=>w.source_refs);
+ const p=planSkillLearning(skills),all=p.unifiends.flatMap(w=>w.source_refs);
  assert.equal(p.skill_count,51);
- assert.equal(p.waves.length,6);
+ assert.equal(p.unifiends.length,6);
  assert.equal(all.length,51);
  assert.equal(new Set(all.map(x=>x.id)).size,51);
  assert.ok(all.every(x=>/^[0-9a-f]{64}$/.test(x.hash)));

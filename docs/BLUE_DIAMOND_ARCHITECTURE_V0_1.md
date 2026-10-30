@@ -3,13 +3,13 @@
 Status: scaffold / staging only
 
 Canonical repo: `Ogenicchocolate21debug/Build-Platform`
-Canonical branch: `phase-vi-provider-incentive-metering`
+Canonical branch: `Unified-on-Progress`
 Canonical conversation: `owner-main`
 Canonical session: `1LSS_OWNER_MAIN`
 
 ## Position
 
-BLUE DIAMOND is Stone IV of WAVE / OGENIC.
+BLUE DIAMOND is Stone IV of Unifiend / OGENIC.
 
 It is not a replacement for Green Stone, Yellow Stone, White Diamond, D1, or 1LSS.
 It is the governed agent layer that gives ATHENA a persistent command identity and controls how new chats and worker agents enter the system.
@@ -90,7 +90,7 @@ The run must fail closed when current evidence is missing.
 ## Initial roster semantics
 
 Core:
-- ChatGPT Main Controller — proven controller, bridge only; ChatGPT session is not copied into WAVE.
+- ChatGPT Main Controller — proven controller, bridge only; ChatGPT session is not copied into Unifiend.
 - Codex — proven execution agent.
 - GitHub — evidence/source arm; tool only.
 - Linear — task-state arm; tool only.
@@ -110,7 +110,7 @@ Support lanes:
 - Notion — knowledge source/tool.
 - Cloudflare — runtime/tool.
 
-WAVE is the control surface. OpenAI API and other model APIs are runtimes/providers, not automatically separate trusted agents.
+Unifiend is the control surface. OpenAI API and other model APIs are runtimes/providers, not automatically separate trusted agents.
 
 ## Maturity ladder
 

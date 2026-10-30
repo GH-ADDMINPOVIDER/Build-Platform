@@ -1,7 +1,7 @@
 name: OGE-110 Violet full portable pstack source intake
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - ".github/workflows/oge-110-violet-pstack-intake.yml"
   workflow_dispatch:
@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: phase-vi-provider-incentive-metering
+          ref: Unified-on-Progress
           fetch-depth: 1
           persist-credentials: true
       - uses: actions/setup-node@v4
@@ -46,13 +46,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REF_NAME" = "phase-vi-provider-incentive-metering"
-          git fetch origin phase-vi-provider-incentive-metering --depth=1
+          test "$GITHUB_REF_NAME" = "Unified-on-Progress"
+          git fetch origin Unified-on-Progress --depth=1
           test "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)" || { echo "::error::STALE_STAGING_SHA_ABORT"; exit 3; }
           git add -- .agents/skills third_party/pstack-portable config/pstack-full-catalog.json
           if git diff --cached --quiet; then echo "OGE110_IMPORT_ALREADY_CURRENT"; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "vendor(violet): pin 51 portable pstack skills + 2 agents as non-executable source (OGE-110)"
-          git push origin HEAD:refs/heads/phase-vi-provider-incentive-metering
+          git push origin HEAD:refs/heads/Unified-on-Progress
           echo "OGE110_IMPORT_COMMITTED_SOURCE_ONLY"

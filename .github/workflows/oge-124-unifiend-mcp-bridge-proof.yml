@@ -1,0 +1,49 @@
+name: OGE-124 Unifiend Remote MCP Bridge Proof
+
+on:
+  pull_request:
+    branches: [Unified-on-Progress]
+    paths:
+      - "worker/unifiend-manus-mcp-api.ts"
+      - "worker/connector-runtime.ts"
+      - "wrangler.jsonc"
+      - "tests/unifiend-manus-mcp-bridge.test.mjs"
+      - "docs/integrations/UNIFIEND_REMOTE_MCP_DATA_STONE.md"
+      - ".github/workflows/oge-124-unifiend-mcp-bridge-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    name: Build, tests, typecheck on Unifiend staging runner
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --package-lock-only && npm ci
+
+      - name: Run Unifiend Remote MCP bridge contracts
+        run: node --test tests/unifiend-manus-mcp-bridge.test.mjs
+
+      - name: Run full repository tests, typecheck, and build
+        run: npm run check
+
+      - name: Confirm staging-only target and no deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
+          grep -q '"name": "ogenic-phase-vi-staging"' wrangler.jsonc
+          grep -q '"run_worker_first"' wrangler.jsonc
+          grep -q '"/mcp"' wrangler.jsonc
+          echo "OGE124_LOCAL_BUILD_TEST_TYPECHECK_PASS"

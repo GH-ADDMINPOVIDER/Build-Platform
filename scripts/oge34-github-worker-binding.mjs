@@ -4,10 +4,10 @@ import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const REPO = "Wave-Runner-2/Build-Platform";
-const BRANCH = "phase-vi-provider-incentive-metering";
+const BRANCH = "Unified-on-Progress";
 const WORKER = "ogenic-phase-vi-staging";
 const GITHUB_API = "https://api.github.com/repos/" + REPO;
-const WAVE = "https://wave.ogenicchocolate.com";
+const Unifiend = "https://wave.ogenicchocolate.com";
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export function inspectTokenFormat(value) {
@@ -82,7 +82,7 @@ async function verifyOwnerRead() {
   if (!ownerKey) throw new Error("OWNER_KEY_STAGING_BINDING_MISSING");
   let last=0, lastCode="NO_RESULT";
   for (let i=0;i<6;i++) {
-    const auth=await fetch(WAVE+"/api/session",{
+    const auth=await fetch(Unifiend+"/api/session",{
       method:"POST",headers:{"content-type":"application/json"},
       body:JSON.stringify({owner_key:ownerKey}),redirect:"error",signal:AbortSignal.timeout(15000)
     });
@@ -90,7 +90,7 @@ async function verifyOwnerRead() {
     if (auth.status!==200 || authBody.authenticated!==true) throw new Error("OWNER_SESSION_REJECTED_"+auth.status);
     const cookie=(auth.headers.get("set-cookie")||"").split(";",1)[0];
     if (!cookie.startsWith("ogenic_owner_session=")) throw new Error("OWNER_SESSION_COOKIE_MISSING");
-    const read=await fetch(WAVE+"/api/wave/command",{
+    const read=await fetch(Unifiend+"/api/unifiend/command",{
       method:"POST",headers:{"content-type":"application/json","cookie":cookie},
       body:JSON.stringify({intent:"Read the staging repository manifest",
         capability:"read_file",provider:"github",environment:"staging",input:{path:"package.json"}}),
@@ -100,15 +100,15 @@ async function verifyOwnerRead() {
     if (read.status===200 && b.ok===true && b.verification?.status==="verified" &&
         b.resolver?.descriptor?.provider_id==="github" &&
         b.canonical?.session_line==="1LSS_OWNER_MAIN") {
-      console.log("OGE34_WAVE_GITHUB_ENDPOINT_VERIFIED_READ=PASS");
+      console.log("OGE34_UNIFIEND_GITHUB_ENDPOINT_VERIFIED_READ=PASS");
       console.log("OGE34_STAGING_ONE_LINE_RECEIPT=PASS");
       return;
     }
     if(i<5) await delay(3000);
   }
-  throw new Error("OGE34_WAVE_GITHUB_ENDPOINT_NOT_VERIFIED_HTTP_"+last+"_CODE_"+lastCode);
+  throw new Error("OGE34_UNIFIEND_GITHUB_ENDPOINT_NOT_VERIFIED_HTTP_"+last+"_CODE_"+lastCode);
 }
-// Reuse GitHub auth that the Owner already configured for the `wave` host user.
+// Reuse GitHub auth that the Owner already configured for the `unifiend` host user.
 // Do not touch /root, switch accounts, prompt OAuth, or reveal credentials in logs.
 export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
   if (env.RUNNER_NAME !== "wave-runner-01") return [];
@@ -121,8 +121,8 @@ export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
     const result = run("gh", ["auth", "token", "--hostname", "github.com"], opts);
     const candidate = String(result.stdout || "").trim();
     if (result.status === 0 && inspectTokenFormat(candidate))
-      found.push({ key: "RUNNER_WAVE_GH_CLI_AUTH", raw: candidate });
-  } catch { /* gh CLI not configured for the existing wave user */ }
+      found.push({ key: "RUNNER_UNIFIEND_GH_CLI_AUTH", raw: candidate });
+  } catch { /* gh CLI not configured for the existing unifiend user */ }
   try {
     const result = run("git", ["credential", "fill"], {
       ...opts, input: "protocol=https\nhost=github.com\n\n",
@@ -130,28 +130,28 @@ export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
     const password = String(result.stdout || "").split(/\r?\n/).find(line => line.startsWith("password="));
     const candidate = password?.slice("password=".length) ?? "";
     if (result.status === 0 && inspectTokenFormat(candidate))
-      found.push({ key: "RUNNER_WAVE_GIT_CREDENTIAL_HELPER", raw: candidate });
+      found.push({ key: "RUNNER_UNIFIEND_GIT_CREDENTIAL_HELPER", raw: candidate });
   } catch { /* no noninteractive credential helper configured */ }
   return found;
 }
 // Stable GitHub numeric IDs are more reliable than emails, display names
 // or guessed GitHub login spellings. GH-1 retains repository admin and Cloudflare
-// credential custody; GH_ADDMINPROVIDER is the primary WAVE Actions dispatch principal.
+// credential custody; GH_ADDMINPROVIDER is the primary Unifiend Actions dispatch principal.
 // A 200 from /user proves token validity, NOT the expected GitHub identity.
 export const OWNER_GITHUB_IDENTITIES = Object.freeze({
-  runner1: { id: 306097555, login: "ogenicchocolate21debug" },
-  runner2: { id: 342175560, login: "wave-runner-2" },
+  store: { id: 306097555, login: "ogenicchocolate21debug" },
+  capability: { id: 342175560, login: "wave-runner-2" },
 });
 export function classifyOwnerPrincipal(payload, expected = "either") {
   const id = Number(payload?.id);
   const login = String(payload?.login ?? "").toLowerCase();
-  const one = OWNER_GITHUB_IDENTITIES.runner1;
-  const two = OWNER_GITHUB_IDENTITIES.runner2;
+  const one = OWNER_GITHUB_IDENTITIES.store;
+  const two = OWNER_GITHUB_IDENTITIES.capability;
   const first = id === one.id && login === one.login;
   const second = id === two.id && login === two.login;
-  if (expected === "runner1") return first ? "runner1" : null;
-  if (expected === "runner2") return second ? "runner2" : null;
-  return first ? "runner1" : second ? "runner2" : null;
+  if (expected === "store") return first ? "store" : null;
+  if (expected === "capability") return second ? "capability" : null;
+  return first ? "store" : second ? "capability" : null;
 }
 async function verifyExistingHostGitHubPrincipal(token, expected = "either") {
   const response = await fetch("https://api.github.com/user", {
@@ -168,7 +168,7 @@ async function verifyExistingHostGitHubPrincipal(token, expected = "either") {
   console.log("OGE34_PRINCIPAL_EXPECTED="+expected);
   console.log("OGE34_PRINCIPAL_HTTP="+String(response?.status ?? "NETWORK_ERROR"));
   console.log("OGE34_PRINCIPAL_MATCH="+(matched ? "YES" : "NO"));
-  if (expected === "runner2") {
+  if (expected === "capability") {
     console.log("OGE34_RUNNER2_PRINCIPAL_HTTP="+String(response?.status ?? "NETWORK_ERROR"));
     console.log("OGE34_RUNNER2_PRINCIPAL_MATCH="+(matched ? "YES" : "NO"));
   }
@@ -210,7 +210,7 @@ export async function main() {
     }
     // GH_ADDMINPROVIDER is the only eligible dispatch credential after the
     // store migration. Never infer principal or scope from a secret label.
-    const expectedPrincipal = recognized.recognized ? "runner2" : "either";
+    const expectedPrincipal = recognized.recognized ? "capability" : "either";
     const variants=[{type:"EXACT",value:raw}];
     // OGE-40 proved the canonical value contains control characters. Check
     // whether it is merely line-wrapped; do not overwrite Infisical or guess
@@ -235,7 +235,7 @@ export async function main() {
       // selecting a strictly valid, bounded normalization candidate.
       const verifiedPrincipal = await verifyExistingHostGitHubPrincipal(candidate, expectedPrincipal);
       if (!verifiedPrincipal) {
-        console.log("OGE34_CANDIDATE_"+label+(expectedPrincipal === "runner2"
+        console.log("OGE34_CANDIDATE_"+label+(expectedPrincipal === "capability"
           ? "_RUNNER2_PRINCIPAL_UNVERIFIED" : "_OWNER_PRINCIPAL_UNVERIFIED"));
         continue;
       }
@@ -250,7 +250,7 @@ export async function main() {
         continue;
       }
       const ref="__OGENIC_UNRESOLVABLE_REF_"+process.env.GITHUB_RUN_ID+"_"+process.env.GITHUB_RUN_ATTEMPT+"__";
-      const request=await githubRequest("/actions/workflows/wave-command-consumer.yml/dispatches",candidate,{
+      const request=await githubRequest("/actions/workflows/unifiend-command-consumer.yml/dispatches",candidate,{
         method:"POST",body:JSON.stringify({ref,inputs:{task_id:"not_an_approved_task"}})
       });
       const result=classifyDispatchProbe(request.status);
@@ -262,7 +262,7 @@ export async function main() {
       }
       if(result==="AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN")authorized.push({
         key:label, token:candidate, type:recognized.recognized ? recognized.type : "LEGACY",
-        principal: verifiedPrincipal === "runner2" ? "wave-runner-2" : "ogenicchocolate21debug",
+        principal: verifiedPrincipal === "capability" ? "wave-runner-2" : "ogenicchocolate21debug",
       });
     }
   }
@@ -292,7 +292,7 @@ export async function main() {
   });
   if(put.status!==0)throw new Error("CLOUDFLARE_STAGING_SECRET_PUT_FAILED_EXIT_"+String(put.status));
   console.log("OGE34_STAGING_WORKER_GITHUB_TOKEN_BINDING=UPDATED");
-  const health=await fetch(WAVE+"/api/health",{redirect:"error",signal:AbortSignal.timeout(15000)});
+  const health=await fetch(Unifiend+"/api/health",{redirect:"error",signal:AbortSignal.timeout(15000)});
   const hb=await responseJson(health);
   if(health.status!==200||hb.ok!==true)throw new Error("STAGING_HEALTH_FAILED_"+health.status);
   console.log("OGE34_STAGING_HEALTH=PASS");

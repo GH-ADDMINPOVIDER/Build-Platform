@@ -204,7 +204,7 @@
         "ClickUp — Pipeline Task",
         "Vercel — Pipeline Deploy Check"
       ],
-      "notes": "Keep as historical adapter logic. Current WAVE/MA-OP provider registry decides whether GitHub, Cloudflare, Linear, Vercel or another delivery capability is eligible."
+      "notes": "Keep as historical adapter logic. Current Unifiend/MA-OP provider registry decides whether GitHub, Cloudflare, Linear, Vercel or another delivery capability is eligible."
     },
     {
       "id": "demo_archive",

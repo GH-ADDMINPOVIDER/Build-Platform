@@ -4,7 +4,7 @@ if(!env.ACTIONS_ID_TOKEN_REQUEST_URL||!env.ACTIONS_ID_TOKEN_REQUEST_TOKEN||!env.
  console.log("AUDIT_BLOCKER=MISSING_OIDC_CONTEXT");process.exit(86);
 }
 if(env.GITHUB_REPOSITORY!=="Wave-Runner-2/Build-Platform"||
- env.GITHUB_REF!=="refs/heads/phase-vi-provider-incentive-metering"||env.RUNNER_NAME!=="wave-runner-01"){
+ env.GITHUB_REF!=="refs/heads/Unified-on-Progress"||env.RUNNER_NAME!=="wave-runner-01"){
  console.log("AUDIT_BLOCKER=TRUST_SCOPE");process.exit(86);
 }
 const categories=[

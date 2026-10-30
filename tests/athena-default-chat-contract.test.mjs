@@ -4,10 +4,10 @@ import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("default WAVE text chat routes through ATHENA while attachments keep the existing model lane", async () => {
+test("default Unifiend text chat routes through ATHENA while attachments keep the existing model lane", async () => {
   const entry = await read("worker/entry-connectors.ts");
   assert.match(entry, /createAthenaChatApi/);
-  assert.match(entry, /pathname === "\/api\/chat\/model" && await defaultWaveTextOnly/);
+  assert.match(entry, /pathname === "\/api\/chat\/model" && await defaultUnifiendTextOnly/);
   assert.match(entry, /url\.pathname = "\/api\/chat\/athena"/);
   assert.match(entry, /attachment_ids/);
   assert.match(entry, /attachments\.length === 0/);
@@ -56,7 +56,7 @@ test("ATHENA has bounded tool rounds, canonical 1LSS context, and fail-closed ex
   assert.match(api, /COMMANDER_CANDIDATE/);
   assert.match(api, /YELLOW_STONE_ONLY/);
   assert.match(api, /eight auto-called verification tools are READ ONLY/);
-  assert.match(api, /WAVE Chat supports \/OG.RUN/);
+  assert.match(api, /Unifiend Chat supports \/OG.RUN/);
   assert.match(api, /Fresh GitHub or Linear verification/i);
 });
 

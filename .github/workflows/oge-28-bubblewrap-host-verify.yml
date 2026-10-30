@@ -1,7 +1,7 @@
 name: OGE-28 Bubblewrap host verification
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths: ['.github/workflows/oge-28-bubblewrap-host-verify.yml']
 permissions:
   contents: read

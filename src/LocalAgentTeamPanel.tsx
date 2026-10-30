@@ -112,7 +112,7 @@ export default function LocalAgentTeamPanel() {
       const receipt = await dispatched.json().catch(() => ({})) as { code?: string; command_task_id?: string };
       if (!dispatched.ok) throw new Error(receipt.code || "ROOM_CODEX_DISPATCH_FAILED");
       setMessage("Codex READ dispatched · " + (receipt.command_task_id || "pending") +
-        " · awaiting verified Runner-1 / D1 receipt (not DONE)");
+        " · awaiting verified Ocian-S-Host / D1 receipt (not DONE)");
       setQuickPrompt("");
       setQuickKey(globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
       await load();
@@ -196,14 +196,14 @@ export default function LocalAgentTeamPanel() {
 
   return <section className="wnCard localTeamPanel">
     <div className="wnCardHead localRoomHeader"><div><span className="wnKicker">LOCAL AGENT TEAM · OPENBOT MODE</span><h3>{state.room ?? "launch"} room</h3></div><State value={state.state} />
-      <button type="button" className="wnPrimary" aria-expanded={roomOpen} aria-controls="waveLaunchRoom" onClick={() => setRoomOpen(value => !value)}>{roomOpen ? "Close Launch Room" : "Launch Room →"}</button>
+      <button type="button" className="wnPrimary" aria-expanded={roomOpen} aria-controls="unifiendLaunchRoom" onClick={() => setRoomOpen(value => !value)}>{roomOpen ? "Close Launch Room" : "Launch Room →"}</button>
     </div>
     <p className="wnBody">Persistent tasks use the existing D1 agent queue and {state.canonical_session ?? "owner-main / 1LSS_OWNER_MAIN"}. Provider setup, launch, command execution, and verified results remain separate states; WRITE and EXECUTE requests use the signed Owner Session; execution still requires a verified adapter and real runner receipt.</p>
     <div className="localTeamLocation">Canonical data: <strong>{state.storage?.canonical ?? "Cloudflare D1 / agent_tasks, agent_events, agent_checkpoints"}</strong>. This is not local-only storage.</div>
-    {roomOpen && <section id="waveLaunchRoom" className="localLaunchRoom" aria-label="OpenBot Launch Room">
-      <div className="localRoomBar"><strong>Launch Room · owner-main / 1LSS_OWNER_MAIN</strong><button type="button" onClick={() => void load()} disabled={busy}>Refresh</button><a href="/chat">WAVE Chat</a></div>
+    {roomOpen && <section id="unifiendLaunchRoom" className="localLaunchRoom" aria-label="OpenBot Launch Room">
+      <div className="localRoomBar"><strong>Launch Room · owner-main / 1LSS_OWNER_MAIN</strong><button type="button" onClick={() => void load()} disabled={busy}>Refresh</button><a href="/chat">Unifiend Chat</a></div>
       <form className="localRoomQuickRun" onSubmit={quickSendToCodex} aria-label="OpenBot one-prompt Codex read-only task">
-        <label htmlFor="openbot-quick-task"><strong>Quick command · Codex on Runner-1</strong></label>
+        <label htmlFor="openbot-quick-task"><strong>Quick command · Codex on Ocian-S-Host</strong></label>
         <textarea id="openbot-quick-task" value={quickPrompt}
           onChange={(event) => setQuickPrompt(event.target.value)} maxLength={800} rows={3}
           placeholder="พิมพ์สิ่งที่ต้องการให้ Codex ตรวจบน Staging แล้วกดส่งได้เลย…" />
@@ -234,9 +234,9 @@ export default function LocalAgentTeamPanel() {
           <h4>Agents · binding truth</h4>
           <div className="wnRows">{(state.providers ?? []).map(provider => <div className="wnRow" key={provider.id}><div>
             <strong>{provider.label}</strong><span>{provider.authentication} · {provider.smoke_test}</span>
-            <span>{provider.room_adapter === "CODEX_READONLY_EXISTING_WAVE" ? "Existing Codex CLI · read-only E2E receipt present" : "No room adapter execution verified"} · current task: {(state.tasks ?? []).find(task => task.claimed_by === provider.id)?.title ?? "none"}</span>
+            <span>{provider.room_adapter === "CODEX_READONLY_EXISTING_Unifiend" ? "Existing Codex CLI · read-only E2E receipt present" : "No room adapter execution verified"} · current task: {(state.tasks ?? []).find(task => task.claimed_by === provider.id)?.title ?? "none"}</span>
             </div><State value={provider.dispatchable ? "READ_READY" : "NOT_VERIFIED"}/></div>)}</div>
-          <p className="localRoomNotice">Codex uses the existing Runner-1 CLI for READ-only tasks when a signed E2E receipt is found in D1. Claude, Gemini, Grok, OpenCode, Cursor, Cline, Ollama and LM Studio stay disabled until independently verified. No extra provider API purchase.</p>
+          <p className="localRoomNotice">Codex uses the existing Ocian-S-Host CLI for READ-only tasks when a signed E2E receipt is found in D1. Claude, Gemini, Grok, OpenCode, Cursor, Cline, Ollama and LM Studio stay disabled until independently verified. No extra provider API purchase.</p>
         </div>
       </div>
       <div className="localRoomColumns">
@@ -253,7 +253,7 @@ export default function LocalAgentTeamPanel() {
             <button disabled={busy || !selectedTask || !targetAgent || !verifiedRoomAgents.length} type="submit">Request handoff</button>
           </form>
           <div className="localRoomCodexAction">
-              <strong>Codex · Runner-1 · Read-only</strong>
+              <strong>Codex · Ocian-S-Host · Read-only</strong>
               <p>Runs the selected READ task title through the existing signed Owner → Yellow → GitHub Actions → Codex → D1 route. No host writes.</p>
               <button type="button" className="wnPrimary" onClick={() => void runCodexReadOnly()} disabled={busy || !readonlyEligible}>
                 {busy ? "Dispatching…" : "Run Codex read-only →"}

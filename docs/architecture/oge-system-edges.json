@@ -1,8 +1,8 @@
 {
   "schema_version": "OGE_ARCH_MAP/1.0",
-  "canonical_branch": "phase-vi-provider-incentive-metering",
+  "canonical_branch": "Unified-on-Progress",
   "first_view_flow": [
-    "WAVE",
+    "Unifiend",
     "ATHENA_BLUE",
     "YELLOW_MAOP",
     "CCS",
@@ -12,9 +12,9 @@
   ],
   "nodes": [
     {
-      "id": "WAVE",
+      "id": "Unifiend",
       "group": "G1",
-      "label": "WAVE / Human Surface"
+      "label": "Unifiend / Human Surface"
     },
     {
       "id": "ATHENA_BLUE",
@@ -89,7 +89,7 @@
   ],
   "edges": [
     [
-      "WAVE",
+      "Unifiend",
       "ATHENA_BLUE",
       "intent/admission"
     ],

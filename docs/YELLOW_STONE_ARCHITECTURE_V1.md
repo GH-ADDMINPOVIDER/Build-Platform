@@ -1,8 +1,8 @@
 # YELLOW STONE ARCHITECTURE v1 — OWNER APPROVED
 
-Project: OGENIC / WAVE  
-Phase: YELLOW STONE — Tools Control Panel · Operate Capability  
-Approval date: 2026-09-28  
+Project: OGENIC / Unifiend
+Phase: YELLOW STONE — Tools Control Panel · Operate Capability
+Approval date: 2026-09-28
 Status: APPROVED FOR STAGING PLANNING + IMPLEMENTATION
 
 ## 1. GREEN STONE invariants
@@ -32,9 +32,9 @@ Core lifecycle:
 
 Only verified operational outcomes return to canonical 1LSS as trusted state.
 
-## 3. WAVE Agent Deck
+## 3. Unifiend Agent Deck
 
-One WAVE chat surface exposes:
+One Unifiend chat surface exposes:
 
 - **Direct** — one selected model/agent.
 - **Delegate** — send a durable task to one agent and continue chatting.
@@ -61,7 +61,7 @@ Every delegated/council job has a stable run record:
 
 `Run ID → Agent → Capability → Status → Checkpoint → Evidence → Verified Result → 1LSS`
 
-Runs may continue while the user leaves the agent page. Completion, blocked, approval-needed, and failure states must surface in a mobile inbox/notification with a deep link to the exact WAVE run.
+Runs may continue while the user leaves the agent page. Completion, blocked, approval-needed, and failure states must surface in a mobile inbox/notification with a deep link to the exact Unifiend run.
 
 ## 5. Capability model
 
@@ -225,7 +225,7 @@ Defer until measured need:
 
 ## 12. Mobile UX requirements
 
-WAVE is the operational cockpit, not a provider-console launcher.
+Unifiend is the operational cockpit, not a provider-console launcher.
 
 Required surfaces:
 
@@ -255,10 +255,10 @@ Do not:
 
 ## 14. Acceptance gates for v1
 
-WAVE is not `one app and done` until a phone-only operator can:
+Unifiend is not `one app and done` until a phone-only operator can:
 
-1. Fix a GitHub issue from WAVE and see branch/commit/PR/test evidence without requiring GitHub for the normal path.
-2. Diagnose a Cloudflare staging failure from WAVE.
+1. Fix a GitHub issue from Unifiend and see branch/commit/PR/test evidence without requiring GitHub for the normal path.
+2. Diagnose a Cloudflare staging failure from Unifiend.
 3. Use a valid LINE/provider session reference without exposing a raw token/cookie.
 4. Add a new capability through a versioned staging contract/test flow.
 5. Approve a consequential external side effect after seeing exact payload/scope/destination/expiry/verification.
@@ -280,7 +280,7 @@ WAVE is not `one app and done` until a phone-only operator can:
 6. Verification/result envelope + 1LSS return.
 7. Durable run/checkpoint/resume using existing workflow/task tables first.
 8. A–Z provider/session resolver metadata.
-9. WAVE Agent Deck + Run Center + Approval Inbox minimal mobile UI.
+9. Unifiend Agent Deck + Run Center + Approval Inbox minimal mobile UI.
 10. Mobile end-to-end staging verification.
 
 ### SHOULD HAVE v1.1

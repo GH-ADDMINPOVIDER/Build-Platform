@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const workflow = await readFile(new URL('../.github/workflows/codex-issue-runner-staging.yml', import.meta.url), 'utf8');
+const workflow = await readFile(new URL('../.github/workflows/codex-issue-executor-staging.yml', import.meta.url), 'utf8');
 
 test('shared entry requires dispatch on exact staging ref and authenticates before binding', () => {
   assert.match(workflow, /workflow_dispatch:/);
   assert.doesNotMatch(workflow, /^  (push|issue_comment|pull_request_target):/m);
-  assert.match(workflow, /github.ref == 'refs\/heads\/phase-vi-provider-incentive-metering'/);
+  assert.match(workflow, /github.ref == 'refs\/heads\/Unified-on-Progress'/);
   assert.match(workflow, /confirm_bounded_task:/);
   assert.match(workflow, /vars.CODEX_AUTHORIZED_ACTOR_IDS/);
   assert.match(workflow, /admitRequest/);

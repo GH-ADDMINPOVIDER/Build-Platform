@@ -1,4 +1,4 @@
-const CACHE_PREFIX = "wave-same-mind-shell-";
+const CACHE_PREFIX = "unifiend-same-mind-shell-";
 const CACHE = `${CACHE_PREFIX}v11`;
 const SHELL = [
   "/",
@@ -8,9 +8,9 @@ const SHELL = [
   "/agents",
   "/overview",
   "/manifest.webmanifest",
-  "/assets/wave-logo.webp",
-  "/assets/wave-bg-desktop.webp",
-  "/assets/wave-bg-mobile.webp",
+  "/assets/unifiend-logo.webp",
+  "/assets/unifiend-bg-desktop.webp",
+  "/assets/unifiend-bg-mobile.webp",
 ];
 
 self.addEventListener("install", (event) => {

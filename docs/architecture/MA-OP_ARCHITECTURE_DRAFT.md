@@ -3,13 +3,13 @@
 Status: architecture draft for canonical staging
 Issue: OGE-41
 Repository: Ogenicchocolate21debug/Build-Platform
-Branch: phase-vi-provider-incentive-metering
+Branch: Unified-on-Progress
 
 > MA-OP does not replace integrations; it operates across them.
 
 ## 1. Purpose
 
-MA-OP is a provider-neutral operations protocol and control layer for WAVE/OGENIC. It normalizes how authorized Agents and runtimes discover, select, invoke, verify, and retain the outcome of capabilities exposed through existing integration methods.
+MA-OP is a provider-neutral operations protocol and control layer for Unifiend/OGENIC. It normalizes how authorized Agents and runtimes discover, select, invoke, verify, and retain the outcome of capabilities exposed through existing integration methods.
 
 Third-party systems do not need native MA-OP support. MA-OP consumes their existing programmable interfaces through adapters.
 
@@ -25,13 +25,13 @@ Supported interface families include:
 
 The protocol must work for one Agent and scale to multiple Agents without making multi-agent orchestration a prerequisite.
 
-## 2. Canonical WAVE invariants
+## 2. Canonical Unifiend invariants
 
 Canonical evidence on this branch establishes these boundaries:
 
 - Green / 1LSS is the canonical retained state. Current canonical conversation/session are `owner-main / 1LSS_OWNER_MAIN`.
 - Blue Diamond / ATHENA performs admission, check-in, actor eligibility and read-before-run controls.
-- Yellow Stone is the sole execution authority. Existing guarded routes include `/api/capabilities/resolve`, `/api/capabilities/execute` and `/api/wave/command`.
+- Yellow Stone is the sole execution authority. Existing guarded routes include `/api/capabilities/resolve`, `/api/capabilities/execute` and `/api/unifiend/command`.
 - Violet Stone performs orchestration, team formation, delegation and merge coordination. Current modes are SOLO, TEAM_3, TEAM_5, TEAM_10 and FULL_15.
 - Ruby Stone is the verification layer and must distinguish PASS, FAIL, BLOCKED and NOT_MEASURED rather than fabricating success.
 - Knowledge Refinery may distill verified outcomes, but retention is gated by provenance and Ruby verification.
@@ -41,7 +41,7 @@ Canonical evidence on this branch establishes these boundaries:
 ## 3. System context and planes
 
 ```text
-Agent / WAVE / Automation
+Agent / Unifiend / Automation
           |
           v
      MA-OP Control Plane
@@ -430,7 +430,7 @@ Idempotency:
 | CLI | bounded worker adapter | No |
 | Agent API | interactive/autonomous actor adapter | No |
 
-WAVE mapping:
+Unifiend mapping:
 - Blue/ATHENA -> ADMIT / actor readiness
 - Yellow -> CHECK_POLICY / APPROVE / OPERATE authority
 - Violet -> SELECT_ROUTE / multi-agent coordination
@@ -581,7 +581,7 @@ A failed or blocked verification result remains evidence but is not retained as 
 
 ## 18. Open questions
 
-- Which MA-OP contracts should be protocol-stable versus WAVE-internal extensions?
+- Which MA-OP contracts should be protocol-stable versus UNIFIEND-internal extensions?
 - Which evidence types require cryptographic digests versus provider IDs/URLs?
 - What readiness TTL is appropriate per provider/interface family?
 - Which operations are safe for automatic retry?
@@ -595,7 +595,7 @@ This draft is complete when:
 - protocol primitives and lifecycle are defined
 - control/data plane separation is explicit
 - adapter and credential boundaries are explicit
-- WAVE Blue/Yellow/Violet/Ruby/Green mapping is documented
+- Unifiend Blue/Yellow/Violet/Ruby/Green mapping is documented
 - compatibility with existing integration families is defined without requiring native MA-OP support
 - threat model and conformance strategy are documented
 - the next implementation slice is bounded

@@ -6,7 +6,7 @@ type PstackNumber={number:number;id:string;categories:string[]};
 type PstackCategory={id:string;label_th:string};
 type PstackCatalog={ok:boolean;controller:string;authority:string;skill_count:number;agent_definition_count:number;execution_state:string;source_pin:string;skills:PstackSkill[];stable_numbers:PstackNumber[];task_categories:PstackCategory[]};
 type PstackSelection={ok:boolean;code?:string;family?:string;capability?:string;selected?:Array<{id:string;path:string;hash:string;number?:number;kind?:string}>;blue_agents?:Array<{id:string;provider:string;readiness:string;eligible_for_live_preflight:boolean}>;execution_state?:string};
-type PstackLearningPlan={ok:boolean;skill_count:number;waves:Array<{wave:number;source_refs:Array<{id:string;hash:string}>}>;learning_state:string;agents:Array<{id:string;readiness:string;read_state:string}>};
+type PstackLearningPlan={ok:boolean;skill_count:number;unifiends:Array<{unifiend:number;source_refs:Array<{id:string;hash:string}>}>;learning_state:string;agents:Array<{id:string;readiness:string;read_state:string}>};
 type Planned = {task_id:string;capability:string;agent_id?:string;status:string;depends_on?:string[]};
 type Plan = {ok?:boolean;code?:string;assignments?:Planned[];queue?:Planned[];
   planned_count?:number;waiting_count?:number;execution_authority?:string;planning_only?:boolean};
@@ -160,7 +160,7 @@ export default function VioletDistributionPanel(){
           finally{setSkillRouterBusy(false)}
         }}>View 51-skill learning syllabus (no AI cost)</button>
         {skillLearning&&<div className="wnPolicy">
-          {skillLearning.skill_count} skills · {skillLearning.waves.length} waves · {skillLearning.learning_state}
+          {skillLearning.skill_count} skills · {skillLearning.unifiends.length} unifiends · {skillLearning.learning_state}
           <p>{skillLearning.agents.length} registered agent identities · none certified as learned by this plan</p>
           <small>Provider source-read + independent Ruby receipt required before Green retention.</small>
         </div>}
@@ -181,7 +181,7 @@ export default function VioletDistributionPanel(){
             <div><strong>#{pstack.stable_numbers?.find(x=>x.id===skill.id)?.number} · {skill.id}</strong>
             <span>{pstack.stable_numbers?.find(x=>x.id===skill.id)?.categories.join(" / ")}</span>
             <span>{skill.description||"Portable source available · not runtime verified"}</span></div>
-            <a href={`https://github.com/Wave-Runner-2/Build-Platform/blob/phase-vi-provider-incentive-metering/${skill.path}`}
+            <a href={`https://github.com/Wave-Runner-2/Build-Platform/blob/Unified-on-Progress/${skill.path}`}
               target="_blank" rel="noreferrer" aria-label={`View source for ${skill.id}`}>Source ↗</a>
           </div>)}
           {!matchedSkills.length&&<p className="wnPolicy">No matching skill.</p>}

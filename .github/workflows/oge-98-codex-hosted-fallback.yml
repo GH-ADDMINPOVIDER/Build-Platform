@@ -25,7 +25,7 @@ env:
 
 jobs:
   codex-scoped-task:
-    if: ${{ github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering' && (github.event_name == 'push' || inputs.confirm_one_moderated_agent_call == true) }}
+    if: ${{ github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'Unified-on-Progress' && (github.event_name == 'push' || inputs.confirm_one_moderated_agent_call == true) }}
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 12
     steps:
@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
+          test "$GITHUB_REF_NAME" = Unified-on-Progress
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -z "$(git status --porcelain)"
            command -v node >/dev/null
@@ -185,7 +185,7 @@ jobs:
             abort "RUBY_FIXTURE_NOT_FOUND" unless filename && File.file?(filename)
             text=File.binread(filename)
             abort "RUBY_SHA_OR_BRANCH_MISMATCH" unless receipt.fetch("source_sha")==ENV.fetch("GITHUB_SHA") &&
-              receipt.fetch("branch")=="phase-vi-provider-incentive-metering" &&
+              receipt.fetch("branch")=="Unified-on-Progress" &&
               receipt.fetch("repository")=="Wave-Runner-2/Build-Platform"
             abort "RUBY_FILE_DIGEST_MISMATCH" unless Digest::SHA256.hexdigest(text)==receipt.fetch("file_sha256")
             abort "RUBY_AGENT_TEST_NOT_RUN" unless receipt.fetch("agent_generated_test")=="PASS"

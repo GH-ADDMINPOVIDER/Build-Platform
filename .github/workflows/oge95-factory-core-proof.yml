@@ -22,7 +22,7 @@ jobs:
       - name: Run real factory contract tests
         run: node --test tests/oge95-factory-core.test.mjs
       - name: Create bounded read-only production-line receipt
-        run: node scripts/replica-runner/factory-run.mjs --operation replica_source_audit --task OGE-95-factory-proof
+        run: node scripts/replica-executor/factory-run.mjs --operation replica_source_audit --task OGE-95-factory-proof
       - name: Assert required station and evidence
         run: |
           node --input-type=module <<'JS'

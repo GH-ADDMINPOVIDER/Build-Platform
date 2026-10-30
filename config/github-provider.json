@@ -1,12 +1,18 @@
 {
-  "display_label": "GH-ADDMINPOVIDER",
+  "display_label": "Unifiend capability",
   "github_login": "Wave-Runner-2",
   "github_user_id": 342175560,
   "repository": "Wave-Runner-2/Build-Platform",
   "repository_id": 1429580446,
-  "staging_branch": "phase-vi-provider-incentive-metering",
+  "staging_branch": "Unified-on-Progress",
   "infisical_credential_reference": "GH_ADDMINPROVIDER",
   "historical_evidence_repository": "Ogenicchocolate21debug/Build-Platform",
   "runner_registration": "wave-runner-01",
-  "physical_host": "OCIAN-S-Host"
+  "physical_host": "OCIAN-S-Host",
+  "requested_repository_name": "Inifiend capability",
+  "requested_repository_slug": "Inifiend-capability",
+  "work_name": "Unified on Progress",
+  "work_branch": "Unified-on-Progress",
+  "repository_rename_state": "BLOCKED_OWNER_SIGN_IN",
+  "external_identity_migration_state": "PENDING_PROVIDER_VERIFICATION"
 }

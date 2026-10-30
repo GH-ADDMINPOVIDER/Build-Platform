@@ -67,7 +67,7 @@ test("canonical 1LSS identity is preserved", async () => {
   assert.match(api, /1LSS_OWNER_MAIN/);
 });
 
-test("WAVE MCP UI uses references and safe metadata instead of secret values", async () => {
+test("Unifiend MCP UI uses references and safe metadata instead of secret values", async () => {
   const ui = await read("src/McpConfigCenter.tsx");
   assert.match(ui, /\/api\/mcp-config\/state/);
   assert.match(ui, /\/api\/mcp-config\/discover/);
@@ -89,7 +89,7 @@ test("bounded Github remote read-proof is owner-only, readonly and evidence-only
   assert.match(api, /resourceTexts.length/);
   assert.match(api, /"tools\/call"/);
   assert.match(api, /path: "README\.md"/);
-  assert.match(api, /ref: "refs\/heads\/phase-vi-provider-incentive-metering"/);
+  assert.match(api, /ref: "refs\/heads\/Unified-on-Progress"/);
   assert.match(api, /message.includes\("# OGENIC Phase VI"\)/);
   assert.match(api, /MCP_GITHUB_READ_E2E_PASS/);
   assert.match(api, /result_body_exposed: false/);

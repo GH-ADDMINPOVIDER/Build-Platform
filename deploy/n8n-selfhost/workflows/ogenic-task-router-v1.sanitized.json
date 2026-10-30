@@ -31,7 +31,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{json:{oge:'OGE-57',task_id:'fixture-task',requested_permission:'READ',source:'wave-task-inbox',capability_id:'task_sync',idempotency_key:'fixture-router'}}];"
+        "jsCode": "return [{json:{oge:'OGE-57',task_id:'fixture-task',requested_permission:'READ',source:'unifiend-task-inbox',capability_id:'task_sync',idempotency_key:'fixture-router'}}];"
       },
       "id": "router-mock",
       "name": "Build Safe Task Fixture",

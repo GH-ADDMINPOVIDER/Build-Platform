@@ -4,7 +4,7 @@ import {readFileSync} from "node:fs";
 const read=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
 const api=read("worker/violet-stone-api.ts");
 const ui=read("src/VioletDistributionPanel.tsx");
-const wave=read("src/WaveNext.tsx");
+const unifiend=read("src/UnifiendNext.tsx");
 const schema=read("database/migrations/0004_agent_shared_state.sql");
 test("Violet claim endpoint only reserves existing QUEUED tasks and uses owner auth",()=>{
   assert.match(api,/hasOwnerOrOpsAccess/);
@@ -34,7 +34,7 @@ test("Violet uses existing D1 schema without new tables",()=>{
   assert.match(api,/INSERT OR IGNORE INTO agent_events/);
 });
 test("Mobile Agent view exposes separate plan and claim, not direct execution",()=>{
-  assert.match(wave,/VioletDistributionPanel/);
+  assert.match(unifiend,/VioletDistributionPanel/);
   assert.match(ui,/\/api\/violet\/distribution\/roster/);
   assert.match(ui,/\/api\/violet\/distribution\/plan/);
   assert.match(ui,/\/api\/violet\/distribution\/claim/);

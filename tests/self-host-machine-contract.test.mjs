@@ -6,12 +6,12 @@ const read = (path) => readFileSync(path, "utf8");
 
 test("SELF_HOST_MACHINE separates display label, physical host and runner registration", () => {
   const machine = read("worker/self-host-machine.ts");
-  const roster = read("config/wave-phase-ii-agent-roster.json");
+  const roster = read("config/unifiend-phase-ii-agent-roster.json");
   const codex = read("worker/codex-left-arm-api.ts");
   const endpoint = read("worker/connector-endpoint-api.ts");
-  const ui = read("src/WaveNext.tsx");
+  const ui = read("src/UnifiendNext.tsx");
   assert.match(machine, /id: "SELF_HOST_MACHINE"/);
-  assert.match(machine, /display_name: "SELF HOST_MACHINE"/);
+  assert.match(machine, /display_name: "Ocian-S-Host"/);
   assert.match(machine, /physical_hostname: "OCIAN-S-Host"/);
   assert.match(machine, /runner_registration: "wave-runner-01"/);
   assert.match(machine, /runner_count: 1/);
@@ -20,7 +20,8 @@ test("SELF_HOST_MACHINE separates display label, physical host and runner regist
   assert.match(codex, /selfHostMachineMetadata/);
   assert.match(endpoint, /machine_id:SELF_HOST_MACHINE\.id/);
   assert.match(ui, /SELF HOST_MACHINE/);
-  assert.match(ui, /Runner registration/);
+  assert.match(ui, /Physical host/);
+  assert.match(ui, /Ocian-S-Host/);
 });
 
 test("historical runner aliases remain explicit and are not treated as agent accounts", () => {

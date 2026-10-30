@@ -5,7 +5,7 @@ import { bindAuditToCheckedSha, produceSameShaAudit, REPO, BRANCH } from "../scr
 import { evaluateFinalIntake } from "../scripts/oge95-final-review-intake.mjs";
 const sha="a".repeat(40);
 const historicalSource=JSON.parse(readFileSync("docs/evidence/oge-62-flow-audit-latest.json","utf8"));
-const historical={...historicalSource,canonical:{...historicalSource.canonical,repository:REPO}};
+const historical={...historicalSource,canonical:{...historicalSource.canonical,repository:REPO,branch:BRANCH}};
 const profiles=["linearcodex","codex","claude","codex","claude","linearcodex","codex","claude","codex","claude"];
 const results=historical.audit.map((row,index)=>({
   runtime_id:row.runtime_id,execution_profile:profiles[index],

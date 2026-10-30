@@ -52,7 +52,7 @@
       "status": "OPEN_DIAGNOSIS",
       "confidence": "HYPOTHESIS",
       "component": "athena-yellow-resolver",
-      "operation": "POST /api/wave/command",
+      "operation": "POST /api/unifiend/command",
       "http_status": 404,
       "error_code": null,
       "symptom": "ATHENA promotion tests expected 409 HUMAN_APPROVAL_REQUIRED but returned HTTP404 before the approval branch.",

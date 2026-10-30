@@ -346,8 +346,8 @@ body { margin:0; }
 /* Owner architecture slot — original hero and Green/Yellow stone cards stay intact. */
 .wvBlueprint {
   position:relative; z-index:1; width:min(100%,1380px);
-  margin:0 auto 18px; border:1px solid var(--wave-glass-border,var(--line));
-  background:var(--wave-glass-surface,rgba(255,255,255,.08));
+  margin:0 auto 18px; border:1px solid var(--unifiend-glass-border,var(--line));
+  background:var(--unifiend-glass-surface,rgba(255,255,255,.08));
   border-radius:20px; overflow:hidden;
   -webkit-backdrop-filter:blur(22px) saturate(155%);
   backdrop-filter:blur(22px) saturate(155%);
@@ -358,7 +358,7 @@ body { margin:0; }
 .wvBlueprintIntro p{max-width:620px;margin:0;color:var(--muted);font-size:12px;line-height:1.5;}
 .wvBlueprintIntro button {min-height:44px;min-width:138px;padding:0 15px;border-radius:999px;
   color:var(--text);font:800 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.04em;
-  border:1px solid var(--wave-glass-border,var(--line-strong));background:var(--wave-glass-raised,rgba(255,255,255,.08));cursor:pointer;}
+  border:1px solid var(--unifiend-glass-border,var(--line-strong));background:var(--unifiend-glass-raised,rgba(255,255,255,.08));cursor:pointer;}
 .wvBlueprintIntro button:focus-visible{outline:2px solid var(--green);outline-offset:3px;}
 .wvBlueprintBody{padding:0 20px 20px;}
 .wvDiagramSlot {min-height:176px;padding:22px;border:1px dashed var(--line-strong);border-radius:16px;

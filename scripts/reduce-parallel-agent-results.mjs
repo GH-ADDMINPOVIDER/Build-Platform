@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "node:path";
 
 const EXPECTED = ["linearcodex", "codex", "claude"];
 const CANONICAL_REPOSITORY = "Wave-Runner-2/Build-Platform";
-const CANONICAL_BRANCH = "phase-vi-provider-incentive-metering";
+const CANONICAL_BRANCH = "Unified-on-Progress";
 
 function arg(name, fallback = "") {
   const prefix = `--${name}=`;

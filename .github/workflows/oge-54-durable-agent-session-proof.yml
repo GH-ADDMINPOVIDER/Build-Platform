@@ -20,7 +20,7 @@ jobs:
       - name: Durable Agent Session contract
         run: node --test tests/oge-54-durable-agent-session.test.mjs
       - name: OGE-44 freshness routing regression
-        run: node --test tests/wave-surface-routes.test.mjs
+        run: node --test tests/unifiend-surface-routes.test.mjs
       - name: Typecheck
         run: npm run typecheck
       - name: Build

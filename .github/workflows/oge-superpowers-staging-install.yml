@@ -1,8 +1,8 @@
-name: OGENIC Superpowers - Pinned Skills Install on Existing Runner-1
+name: OGENIC Superpowers - Pinned Skills Install on Existing Ocian-S-Host
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - ".github/workflows/oge-superpowers-staging-install.yml"
   workflow_dispatch:
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   install:
-    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering'
+    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'Unified-on-Progress'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 12
     steps:
@@ -37,7 +37,7 @@ jobs:
           umask 077
           test "$RUNNER_NAME" = wave-runner-01
           test "$GITHUB_REPOSITORY" = Wave-Runner-2/Build-Platform
-          test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
+          test "$GITHUB_REF_NAME" = Unified-on-Progress
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           pin=b739a8af570e10a95898f2bdf6cec97467fa6c12
           root="$HOME/.local/share/ogenic/third_party/superpowers"
@@ -191,6 +191,6 @@ jobs:
         shell: bash
         run: |
           echo "Pinned skills: obra/superpowers at b739a8af570e10a95898f2bdf6cec97467fa6c12" >> "$GITHUB_STEP_SUMMARY"
-          echo "One existing host: wave-runner-01; only wave user's CLI skill directories." >> "$GITHUB_STEP_SUMMARY"
+          echo "One existing host: wave-runner-01; only unifiend user's CLI skill directories." >> "$GITHUB_STEP_SUMMARY"
           echo "No production, credential edits, new agent host or upstream execution hooks." >> "$GITHUB_STEP_SUMMARY"
           echo "Skills on GS host != TS/root install or ChatGPT account plugin or new Protocol E2E." >> "$GITHUB_STEP_SUMMARY"

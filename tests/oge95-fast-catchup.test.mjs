@@ -29,12 +29,12 @@ test("strict fail result preserves unverified state",()=>{
  assert.equal(summarizeCatchup(l,"BLOCKED").backlog_status,"LATEST_SOURCE_NOT_VERIFIED");
  assert.throws(()=>summarizeCatchup(l,"DONE"));
 });
-test("push catchup is WAVE self-hosted, latest-only and supersedes stale runs",()=>{
+test("push catchup is Unifiend self-hosted, latest-only and supersedes stale runs",()=>{
  const wf=readFileSync(".github/workflows/oge95-auto-head-catchup.yml","utf8");
- assert.match(wf,/push:\s*\n\s*branches: \[phase-vi-provider-incentive-metering\]/);
+ assert.match(wf,/push:\s*\n\s*branches: \[Unified-on-Progress\]/);
  assert.match(wf,/runs-on: \[self-hosted, linux, x64, wave\]/);
  assert.match(wf,/cancel-in-progress: true/);
- assert.match(wf,/ref: phase-vi-provider-incentive-metering/);
+ assert.match(wf,/ref: Unified-on-Progress/);
  assert.match(wf,/fetch-depth: 0/);
  assert.match(wf,/scripts\/oge95-fast-catchup.mjs index/);
  assert.match(wf,/npm run check/);
@@ -44,7 +44,7 @@ test("push catchup is WAVE self-hosted, latest-only and supersedes stale runs",(
  assert.match(parent,/workflow_dispatch:/);
 });
 test("canonical immutable branch and bootstrap still preserved",()=>{
- assert.equal(BRANCH,"phase-vi-provider-incentive-metering");
+ assert.equal(BRANCH,"Unified-on-Progress");
  assert.equal(REPO,"Wave-Runner-2/Build-Platform");
  assert.match(BOOTSTRAP,/^[a-f0-9]{40}$/);
 });

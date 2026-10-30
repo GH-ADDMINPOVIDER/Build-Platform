@@ -13,7 +13,7 @@ env:
 
 jobs:
   runtime-clones:
-    if: github.ref_name == 'phase-vi-provider-incentive-metering'
+    if: github.ref_name == 'Unified-on-Progress'
     name: Runtime clone / ${{ matrix.worker }}
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 10
@@ -66,7 +66,7 @@ jobs:
   serial-reducer:
     name: Serial reducer / Ruby pre-gate
     needs: runtime-clones
-    if: ${{ always() && github.ref_name == 'phase-vi-provider-incentive-metering' }}
+    if: ${{ always() && github.ref_name == 'Unified-on-Progress' }}
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 10
 
@@ -99,7 +99,7 @@ jobs:
           if-no-files-found: error
 
   docker-refinery-substrate:
-    if: github.ref_name == 'phase-vi-provider-incentive-metering'
+    if: github.ref_name == 'Unified-on-Progress'
     name: Docker refinery substrate / no paid research call
     needs: serial-reducer
     runs-on: [self-hosted, linux, x64, wave]
@@ -126,8 +126,8 @@ jobs:
       - name: Prove Docker sandbox substrate remains isolated
         run: |
           set -euo pipefail
-          docker build -f infra/knowledge-sandbox/Dockerfile -t wave-knowledge-sandbox:${GITHUB_SHA} .
-          docker run --rm --network=none --read-only --cap-drop=ALL --security-opt=no-new-privileges wave-knowledge-sandbox:${GITHUB_SHA} > oge-48-docker-substrate-proof.json
+          docker build -f infra/knowledge-sandbox/Dockerfile -t unifiend-knowledge-sandbox:${GITHUB_SHA} .
+          docker run --rm --network=none --read-only --cap-drop=ALL --security-opt=no-new-privileges unifiend-knowledge-sandbox:${GITHUB_SHA} > oge-48-docker-substrate-proof.json
           jq -e '
             .ok == true and
             .runtime == "DOCKER_WORKER" and

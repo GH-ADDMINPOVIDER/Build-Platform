@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: phase-vi-provider-incentive-metering
+          ref: Unified-on-Progress
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
@@ -80,4 +80,4 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add src/ControlPlaneV2.tsx src/control-plane-v2.css public/assets/ogenic-harness-mark.svg
           git commit -m "feat: refresh OGENIC website as HARNESS"
-          git push origin HEAD:phase-vi-provider-incentive-metering
+          git push origin HEAD:Unified-on-Progress

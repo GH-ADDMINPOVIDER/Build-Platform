@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "purpose": "Place non-core external resources in OGENIC/WAVE without making them critical-path dependencies.",
+  "purpose": "Place non-core external resources in OGENIC/Unifiend without making them critical-path dependencies.",
   "principles": [
     "Cloudflare remains the primary runtime.",
     "D1/1LSS remain canonical operational state.",

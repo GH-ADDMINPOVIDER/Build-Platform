@@ -1,7 +1,7 @@
 name: OGENIC Self-host capacity and tool inventory
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths: ['.github/workflows/oge-host-capacity-inventory.yml']
 permissions:
   contents: read

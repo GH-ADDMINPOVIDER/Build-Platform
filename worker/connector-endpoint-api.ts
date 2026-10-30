@@ -17,7 +17,7 @@ export type ConnectorMode = {
   source: string;
   integration: string;
   safe_probe: string | null;
-  execution_route: "WAVE_YELLOW_READ" | "WAVE_OWNER_SIGN" | "EXISTING_ADAPTER" | "NOT_ACTIVE_ADAPTER" | "NO_DIRECT_EXECUTION";
+  execution_route: "UNIFIEND_YELLOW_READ" | "UNIFIEND_OWNER_SIGN" | "EXISTING_ADAPTER" | "NOT_ACTIVE_ADAPTER" | "NO_DIRECT_EXECUTION";
   runtime_e2e_proven: false;
 };
 const mode = (id: string, kind: ConnectorModeKind, source: string, integration: string, safe_probe: string | null,
@@ -27,19 +27,19 @@ const mode = (id: string, kind: ConnectorModeKind, source: string, integration: 
 export const connectorModes: ConnectorMode[] = [
   mode("mcp","TRANSPORT","worker/mcp-config-api.ts; PR #21","EXISTING_REMOTE_MCP_DISCOVERY","/api/mcp-config/discover?provider=<registered>", "EXISTING_ADAPTER"),
   mode("n8n","TRANSPORT","worker/connector-runtime.ts; OGE129 39185359617","EXISTING_N8N_API_HEALTH","/api/connector-endpoint/v1/probe?mode=n8n","EXISTING_ADAPTER"),
-  mode("rest_api","TRANSPORT","worker/live-tools.ts; worker/connector-runtime.ts","EXISTING_HTTP_ADAPTER","/api/connector-endpoint/v1/status","WAVE_YELLOW_READ"),
+  mode("rest_api","TRANSPORT","worker/live-tools.ts; worker/connector-runtime.ts","EXISTING_HTTP_ADAPTER","/api/connector-endpoint/v1/status","UNIFIEND_YELLOW_READ"),
   mode("token","IDENTITY","config/providers.json; worker/live-tools.ts","SERVER_SIDE_REFERENCE_ONLY",null,"NO_DIRECT_EXECUTION"),
   mode("secret","IDENTITY","Infisical OIDC; OGE128 39164763118","INFISICAL_SERVER_SIDE_ONLY",null,"NO_DIRECT_EXECUTION"),
   mode("credential","IDENTITY","provider_bindings; worker/mcp-config-api.ts","SECRET_REF_METADATA_ONLY",null,"NO_DIRECT_EXECUTION"),
-  mode("repository_api_pr_api","TRANSPORT","worker/verified-function-tools.ts","GITHUB_READ_ONLY_PROVEN",null,"WAVE_YELLOW_READ"),
-  mode("agent_api","AGENT_PROTOCOL","worker/connector-app-api.ts /api/chat/agent","EXISTING_AGENT_API; TERMINAL_RUN_OWNER_GATED",null,"WAVE_OWNER_SIGN"),
+  mode("repository_api_pr_api","TRANSPORT","worker/verified-function-tools.ts","GITHUB_READ_ONLY_PROVEN",null,"UNIFIEND_YELLOW_READ"),
+  mode("agent_api","AGENT_PROTOCOL","worker/connector-app-api.ts /api/chat/agent","EXISTING_AGENT_API; TERMINAL_RUN_OWNER_GATED",null,"UNIFIEND_OWNER_SIGN"),
   mode("function_tool_calling","AGENT_PROTOCOL","worker/verified-function-tools.ts; worker/connector-app-api.ts","EXISTING_VERIFIED_READ_TOOLS; NO_GENERAL_BRIDGE",null,"EXISTING_ADAPTER"),
   mode("npx_cli","RUNNER_TOOL","package.json npx cap scripts","RUNNER_1_ALLOWLIST_ADAPTER_NOT_VERIFIED",null,"NOT_ACTIVE_ADAPTER"),
   mode("npm","RUNNER_TOOL","package.json; OGE130 39199805747","CI_BUILD_TOOL; NOT_REMOTE_RUNNER_EXECUTOR",null,"NO_DIRECT_EXECUTION"),
   mode("sdk","RUNNER_TOOL","ogenic-registry-mcp @modelcontextprotocol/sdk","SOURCE_DEPENDENCY; RUNNER_BRIDGE_NOT_VERIFIED",null,"NOT_ACTIVE_ADAPTER"),
   mode("a2a_agent_relay","AGENT_PROTOCOL","PR #22 worker/agent-relay-tools.ts","UNMERGED_CROSS_ACCOUNT_LIVE_UNVERIFIED",null,"NOT_ACTIVE_ADAPTER"),
   mode("webhook_event_calling","TRANSPORT","worker/connector-runtime.ts /hooks/generic","SIGNED_INBOUND_WEBHOOK_ONLY; NOT_OUTBOUND_EXECUTOR",null,"EXISTING_ADAPTER"),
-  mode("agent_sign_command_run","EXECUTION_CONTROL","worker/entry-yellow-stone.ts; PR #42,#44","OWNER_SESSION_AND_PLAN_MATCH_REQUIRED",null,"WAVE_OWNER_SIGN"),
+  mode("agent_sign_command_run","EXECUTION_CONTROL","worker/entry-yellow-stone.ts; PR #42,#44","OWNER_SESSION_AND_PLAN_MATCH_REQUIRED",null,"UNIFIEND_OWNER_SIGN"),
 ];
 export const connectorModeCount = connectorModes.length;
 const aliases: Record<string,string> = {
@@ -78,7 +78,7 @@ export function normalizeConnectorEnvelope(raw:unknown) {
   const provider=word(body.provider,120);
   const selectedMode=word(body.mode,25);
   if(body.mode!==undefined && !["autonomous","read","execute","team"].includes(selectedMode))
-    return {ok:false as const,code:"INVALID_WAVE_COMMAND_MODE"};
+    return {ok:false as const,code:"INVALID_UNIFIEND_COMMAND_MODE"};
   const input=body.input===undefined?{}:body.input;
   if(!input||typeof input!=="object"||Array.isArray(input)||Object.keys(input).some(k=>k!=="path"&&k!=="prompt"))
     return {ok:false as const,code:"INVALID_COMMAND_INPUT"};
@@ -115,7 +115,7 @@ export const connectorManifest={
   n8n_safe_probe:"/api/connector-endpoint/v1/probe?mode=n8n",
   connector_status:"/api/connector-endpoint/v1/status",
   command:"/api/connector-endpoint/v1/command",
-  canonical_command:"/api/wave/command",
+  canonical_command:"/api/unifiend/command",
   authorization:"YELLOW_STONE_ONLY",owner_sign:"PLAN_BOUND_OWNER_SESSION",
   registry_evidence:"oge130_connector_modes_repository_inventory_20261019",
   runner:SELF_HOST_RUNNER_ID,machine_id:SELF_HOST_MACHINE.id,machine_display_name:SELF_HOST_MACHINE.display_name,

@@ -1,4 +1,4 @@
-> Current naming, 30 Oct 2026: the operational label is `GH-ADDMINPOVIDER`. Exact GitHub account, repository, machine and external secret-reference bindings are in `config/github-provider.json`. Historical observations below retain their original spelling and dates; they are not current permission claims. GitHub connector metadata currently reports repository admin access; runtime PAT grants require their own checks.
+> Current naming, 30 Oct 2026: the operational label is `Unifiend capability`. Exact GitHub account, repository, machine and external secret-reference bindings are in `config/github-provider.json`. Historical observations below retain their original spelling and dates; they are not current permission claims. GitHub connector metadata currently reports repository admin access; runtime PAT grants require their own checks.
 
 # CCS Authority Contract
 
@@ -12,9 +12,9 @@
 
 The current live CCS surface remains a bounded/read-oriented control facade. Future side-effecting adapters must call the invocation authorization boundary before provider execution.
 
-## WAVE Staging GitHub Primary Routing — Owner decision 2026-10-20
+## Unifiend Staging GitHub Primary Routing — Owner decision 2026-10-20
 
-- **Operational primary = GH_ADDMINPROVIDER / Tomload21**, GitHub login `Wave-Runner-2`, numeric identity `342175560`. WAVE GitHub Actions Dispatch uses this canonical provider only after a live principal match and an Actions-write invalid-ref `422` canary. It runs on the existing single self-hosted runner.
+- **Operational primary = GH_ADDMINPROVIDER / Tomload21**, GitHub login `Wave-Runner-2`, numeric identity `342175560`. Unifiend GitHub Actions Dispatch uses this canonical provider only after a live principal match and an Actions-write invalid-ref `422` canary. It runs on the existing single self-hosted runner.
 - **Retired store principal = historical owner/custodian metadata**, login `Ogenicchocolate21debug`, numeric identity `306097555`. It is not a runtime dispatch source; no store fallback is permitted.
 - **Canonical Infisical reference (2026-10-26):** staging dispatch label is `GH_ADDMINPROVIDER`. All prior store and runner-alias names are retired after cutover. Do not substitute a retired reference for GH_ADDMINPROVIDER.
 - Canonical Cloudflare deployment credential source remains the pre-existing Infisical staging project via GitHub OIDC; do not duplicate, transfer or expose Cloudflare tokens.
@@ -27,7 +27,7 @@ The current live CCS surface remains a bounded/read-oriented control facade. Fut
 
 ## Platform Engineer — GH_ADDMINPROVIDER / Tomload21 (Owner assignment, 21 Oct 2026)
 
-**Operational role:** `Platform Engineer` for the existing OGENIC/WAVE **staging** platform. This is an Owner-assigned operational job function, **not** a GitHub built-in repository permission or an assertion of additional OAuth/token scopes.
+**Operational role:** `Platform Engineer` for the existing OGENIC/Unifiend **staging** platform. This is an Owner-assigned operational job function, **not** a GitHub built-in repository permission or an assertion of additional OAuth/token scopes.
 
 **Bound principal:** login `Wave-Runner-2`, GitHub user ID `342175560` (Owner label `Tomload21`). Identity must match the actual authenticated GitHub principal before any delegated invocation. **Do not confuse this GitHub account with a second physical GitHub Actions runner.** The existing execution machine is `SELF_HOST_MACHINE`, physical hostname `OCIAN-S-Host`, with GitHub registration `wave-runner-01`.
 

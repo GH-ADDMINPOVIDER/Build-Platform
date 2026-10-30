@@ -1,9 +1,9 @@
-name: OGE-95 AUTO — Latest HEAD Catchup (WAVE self-host)
+name: OGE-95 AUTO — Latest HEAD Catchup (Unifiend self-host)
 # Single current run, not one heavyweight audit per historical SHA.
 # First-parent list is indexed honestly; only CURRENT source HEAD is tested.
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
   workflow_dispatch:
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
       - name: Checkout latest staging HEAD (not stale push SHA)
         uses: actions/checkout@v4
         with:
-          ref: phase-vi-provider-incentive-metering
+          ref: Unified-on-Progress
           fetch-depth: 0
           persist-credentials: false
 
@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
-          test "$GITHUB_REF_NAME" = "phase-vi-provider-incentive-metering"
+          test "$GITHUB_REF_NAME" = "Unified-on-Progress"
           node --test tests/oge95-fast-catchup.test.mjs
           node scripts/oge95-fast-catchup.mjs index
 

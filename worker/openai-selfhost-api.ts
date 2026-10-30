@@ -10,7 +10,7 @@ type SelfHostBindings = AuthBindings & {
   OGENIC_GITHUB_REPO?: string;
   OGENIC_GITHUB_BRANCH?: string;
   OPENAI_AGENT_MODEL?: string;
-  WAVE_SELFHOST_WORKSPACE?: string;
+  UNIFIEND_SELFHOST_WORKSPACE?: string;
   OGENIC_GIT_SHA?: string;
   OGENIC_BUILD_UUID?: string;
   OGENIC_RUNTIME?: string;
@@ -61,11 +61,11 @@ type ProofRequest = {
 
 const CANONICAL_CONVERSATION = "owner-main";
 const CANONICAL_SESSION_LINE = "1LSS_OWNER_MAIN";
-const CANONICAL_STAGING_BRANCH = "phase-vi-provider-incentive-metering";
+const CANONICAL_STAGING_BRANCH = "Unified-on-Progress";
 const DEFAULT_REPOSITORY = "Wave-Runner-2/Build-Platform";
-const EXECUTOR_WORKFLOW = "wave-openai-selfhost-executor.yml";
+const EXECUTOR_WORKFLOW = "unifiend-openai-selfhost-executor.yml";
 const DEFAULT_WORKSPACE = "/opt/wave/actions-runner/_work/Build-Platform/Build-Platform";
-const SAFE_RESULT = /^WAVE_SELFHOST_PROOF_OK(?:\s|$)/m;
+const SAFE_RESULT = /^UNIFIEND_SELFHOST_PROOF_OK(?:\s|$)/m;
 const SECRET_LIKE = /(sk-[a-z0-9_-]{12,}|gh[pousr]_[a-z0-9]{12,}|bearer\s+[a-z0-9._~+/=-]{12,}|(?:password|passwd|secret|token|api[_ -]?key)\s*[:=]\s*\S{6,})/i;
 
 const clean = (value: unknown, max: number) => String(value ?? "").trim().slice(0, max);
@@ -91,7 +91,7 @@ function proofPrompt() {
     "3. git branch --show-current",
     "4. codex --version",
     "Do not modify files. Do not access secrets. Do not use network tools.",
-    "Return one final line beginning WAVE_SELFHOST_PROOF_OK followed by the four verified values.",
+    "Return one final line beginning UNIFIEND_SELFHOST_PROOF_OK followed by the four verified values.",
   ].join("\n");
 }
 
@@ -176,7 +176,7 @@ async function dispatchExecutor(env: SelfHostBindings, input: {
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
         "Content-Type": "application/json",
-        "User-Agent": "OGENIC-WAVE",
+        "User-Agent": "OGENIC-Unifiend",
       },
       body: JSON.stringify({
         ref: CANONICAL_STAGING_BRANCH,
@@ -279,7 +279,7 @@ async function createPreparedSession(env: SelfHostBindings, input: {
   d1Text: string;
 }) {
   const model = clean(input.model, 80) || clean(env.OPENAI_AGENT_MODEL, 80) || "gpt-6-astra";
-  const workspace = clean(env.WAVE_SELFHOST_WORKSPACE, 300) || DEFAULT_WORKSPACE;
+  const workspace = clean(env.UNIFIEND_SELFHOST_WORKSPACE, 300) || DEFAULT_WORKSPACE;
   const response = await fetch("https://api.openai.com/v1/agents/sessions", {
     method: "POST",
     headers: {
@@ -293,7 +293,7 @@ async function createPreparedSession(env: SelfHostBindings, input: {
           "You are the OGENIC OGE-28 staging execution proof agent. Canonical D1 is context, not permission. " +
           "Do not touch main, production, Candy, D1 schema, credentials, billing, or external systems. " +
           "For this proof, execute only read-only local commands in the supplied self-hosted workspace. " +
-          "Return exactly a short final line beginning WAVE_SELFHOST_PROOF_OK followed by pwd, git SHA, branch, and codex version.\n\n" +
+          "Return exactly a short final line beginning UNIFIEND_SELFHOST_PROOF_OK followed by pwd, git SHA, branch, and codex version.\n\n" +
           "CANONICAL D1 + LIVE RUNTIME EVIDENCE:\n" + input.d1Text,
         reasoning: { effort: "medium", summary: "concise" },
         multi_agent: { enabled: false },

@@ -5,7 +5,7 @@
 ## Where the evidence lives
 - **Versioned master:** `config/oge-error-memory.json` on staging GitHub (links to real CI runs and fixes)
 - **Issue history:** comment under the **existing** matching Linear OGE, not a duplicate ticket
-- **WAVE query:** `GET /api/knowledge-refinery/incident?oge=OGE-35&http=404` authenticated as owner/ops, read-only
+- **Unifiend query:** `GET /api/knowledge-refinery/incident?oge=OGE-35&http=404` authenticated as owner/ops, read-only
 - **D1:** canonical application/session data stays in owner-main/1LSS; no new D1 table or schema and no raw CI logs/credentials stored there
 
 ## 3-second reuse

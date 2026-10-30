@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# OGENIC WAVE — small verified developer tools, user-local only.
+# OGENIC Unifiend — small verified developer tools, user-local only.
 set -Eeuo pipefail
 umask 077
-[[ "$(id -un)" == "wave" ]] || { echo "REQUIRE_WAVE_USER"; exit 76; }
+[[ "$(id -un)" == "wave" ]] || { echo "REQUIRE_UNIFIEND_USER"; exit 76; }
 [[ "$(uname -m)" == "x86_64" && "$(uname -s)" == "Linux" ]] || { echo "REQUIRE_LINUX_X64"; exit 76; }
 mkdir -p "$HOME/.local/bin"
 export PATH="$HOME/.local/bin:$PATH"

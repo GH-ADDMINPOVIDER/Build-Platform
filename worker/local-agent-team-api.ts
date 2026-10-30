@@ -28,7 +28,7 @@ export type LocalAgentTeamBindings = AuthBindings & {
 };
 
 type Env = { Bindings: LocalAgentTeamBindings };
-type ExistingWaveDispatcher = (request: Request, env: LocalAgentTeamBindings, ctx: unknown) => Promise<Response>;
+type ExistingUnifiendDispatcher = (request: Request, env: LocalAgentTeamBindings, ctx: unknown) => Promise<Response>;
 type ProofRow = { task_id?: string; event_type?: string; external_ref?: string; created_at?: string };
 type TaskRow = {
   id: string;
@@ -102,13 +102,13 @@ function providerReadiness(env: LocalAgentTeamBindings, proof: ProofRow | null =
     isGitHubRunEvidence(receipt.evidence_ref);
   const codexAvailable = Boolean(evidenced && env.DB && env.GITHUB_TOKEN && env.OGENIC_OPS_KEY);
   return PROVIDERS.map(([id, label, keys, execution]) => {
-    // Codex runs through the existing signed CLI login on Runner-1, not an API key.
+    // Codex runs through the existing signed CLI login on Ocian-S-Host, not an API key.
     if (id === "codex") return {
       id, label, configuration: evidenced ? "CLI_E2E_PREVIOUSLY_PROVEN" : "RUNTIME_PROOF_REQUIRED",
-      executable_or_endpoint: "WAVE_COMMAND_CONSUMER_EXISTING",
+      executable_or_endpoint: "UNIFIEND_COMMAND_CONSUMER_EXISTING",
       authentication: evidenced ? "CLI_EXISTING_LOGIN_EVIDENCED" : "UNVERIFIED",
       execution, smoke_test: evidenced ? "READONLY_E2E_PASS" : "NOT_RUN",
-      dispatchable: codexAvailable, room_adapter: codexAvailable ? "CODEX_READONLY_EXISTING_WAVE" : "UNVERIFIED",
+      dispatchable: codexAvailable, room_adapter: codexAvailable ? "CODEX_READONLY_EXISTING_Unifiend" : "UNVERIFIED",
       billing: "EXISTING_CLI_SUBSCRIPTION_NO_NEW_PROVIDER_API_KEY",
       evidence: evidenced ? String(receipt.evidence_ref) : "No D1 COMMAND_RESULT_DONE receipt",
     };
@@ -154,7 +154,7 @@ function taskView(task: TaskRow, eventType?: string | null) {
   };
 }
 
-export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispatcher) {
+export function createLocalAgentTeamApi(dispatchExistingUnifiend?: ExistingUnifiendDispatcher) {
   const api = new Hono<Env>();
 
   api.use("/api/local-agent-team/*", async (c, next) => {
@@ -310,15 +310,15 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
   });
 
 
-  // Local OpenBot-mode tasks reuse the SAME Yellow/ATHENA WAVE command and
-  // Runner-1 Codex lane. They do not install the external OpenBot app.
+  // Local OpenBot-mode tasks reuse the SAME Yellow/ATHENA Unifiend command and
+  // Ocian-S-Host Codex lane. They do not install the external OpenBot app.
   // The first operational adapter is deliberately READ-only; every other
   // provider remains non-dispatchable until a real runtime receipt exists.
   api.post("/api/local-agent-team/tasks/:taskId/dispatch", async (c) => {
     if (!c.env.DB) return c.json({ ok: false, code: "CONFIGURATION_REQUIRED", missing: "D1 binding DB" }, 503);
     const origin = c.req.header("Origin");
     if (origin && origin !== new URL(c.req.url).origin) return c.json({ ok: false, code: "ORIGIN_DENIED" }, 403);
-    if (!dispatchExistingWave) return c.json({ ok: false, code: "RUNTIME_ADAPTER_UNAVAILABLE" }, 503);
+    if (!dispatchExistingUnifiend) return c.json({ ok: false, code: "RUNTIME_ADAPTER_UNAVAILABLE" }, 503);
     const taskId = clean(c.req.param("taskId"), 100);
     if (!/^localteam_[a-f0-9]{64}$/.test(taskId)) return c.json({ ok: false, code: "INVALID_TASK_ID" }, 400);
     const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
@@ -388,7 +388,7 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
     const idempotencyKey = [hash.slice(0, 8), hash.slice(8, 12), "4" + hash.slice(13, 16),
       "8" + hash.slice(17, 20), hash.slice(20, 32)].join("-");
     const commandUrl = new URL(c.req.url);
-    commandUrl.pathname = "/api/wave/command";
+    commandUrl.pathname = "/api/unifiend/command";
     const headers = new Headers(c.req.raw.headers);
     headers.set("Content-Type", "application/json");
     headers.set("Idempotency-Key", idempotencyKey);
@@ -399,14 +399,14 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
         capability: "codex_selfhost", provider: "openai", mode: "read", environment: "staging",
       }),
     });
-    const response = await dispatchExistingWave(delegated, c.env, c.executionCtx);
+    const response = await dispatchExistingUnifiend(delegated, c.env, c.executionCtx);
     const command = await response.json().catch(() => ({})) as {
       ok?: boolean; code?: string; task?: { id?: string }; execution?: { status?: string };
     };
     const commandId = String(command.task?.id || "");
     const recognized = ["COMMAND_DISPATCHED", "COMMAND_ALREADY_QUEUED", "COMMAND_MANUAL_DISPATCH_REQUIRED", "COMMAND_ALREADY_DONE"];
     if (!command.ok || !recognized.includes(String(command.code)) || !/^wavecmd_[a-f0-9]{64}$/.test(commandId)) {
-      return c.json({ ok: false, code: command.code || "WAVE_COMMAND_FAILED",
+      return c.json({ ok: false, code: command.code || "UNIFIEND_COMMAND_FAILED",
         execution: { status: "NOT_STARTED", consumer_proven: false } }, response.status >= 400 ? response.status as 400 : 503);
     }
     const realDispatch = command.code === "COMMAND_DISPATCHED" || command.code === "COMMAND_ALREADY_QUEUED";
@@ -423,7 +423,7 @@ export function createLocalAgentTeamApi(dispatchExistingWave?: ExistingWaveDispa
     return c.json({
       ok: true, code: command.code, room_task_id: taskId, command_task_id: commandId,
       execution: { status: realDispatch ? "DISPATCHED_AWAITING_RESULT" : "AWAITING_DISPATCH", consumer_proven: false },
-      completion_url: "/api/wave/command/status?task_id=" + commandId,
+      completion_url: "/api/unifiend/command/status?task_id=" + commandId,
       billing: "EXISTING_CLI_LOGIN", canonical_session: OWNER_SESSION,
     }, 202, { "Cache-Control": "no-store" });
   });

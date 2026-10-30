@@ -4,9 +4,9 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(new URL("../" + path, import.meta.url), "utf8");
 
-test("WAVE command enters through ATHENA admission and delegates to Yellow Stone execution authority", () => {
+test("Unifiend command enters through ATHENA admission and delegates to Yellow Stone execution authority", () => {
   const entry = read("worker/entry-yellow-stone.ts");
-  assert.match(entry, /pathname === "\/api\/wave\/command"/);
+  assert.match(entry, /pathname === "\/api\/unifiend\/command"/);
   assert.match(entry, /ATHENA_ACTOR_ID = "athena-command"/);
   assert.match(entry, /buildBlueDiamondRegistry\(env\)/);
   assert.match(entry, /hasOwnerOrOpsAccess\(request, env\)/);
@@ -34,14 +34,14 @@ test("OGE-34 ATHENA remains READ-only and adds the canonical Certificate D1 tool
   assert.match(chat, /certificate_lincenc_status/);
   assert.match(chat, /permission_class: "READ"/);
   assert.match(chat, /exact_private_tool_count: verifiedFunctionTools\.length/);
-  assert.match(entry, /defaultWaveTextOnly/);
+  assert.match(entry, /defaultUnifiendTextOnly/);
   assert.match(entry, /athenaChatApi\.fetch/);
-  assert.doesNotMatch(chat, /\/api\/wave\/command/);
+  assert.doesNotMatch(chat, /\/api\/unifiend\/command/);
 });
 
-test("WAVE Run surface invokes guarded command and renders precise approval or verification state", () => {
-  const ui = read("src/WaveNext.tsx");
-  assert.match(ui, /fetch\("\/api\/wave\/command"/);
+test("Unifiend Run surface invokes guarded command and renders precise approval or verification state", () => {
+  const ui = read("src/UnifiendNext.tsx");
+  assert.match(ui, /fetch\("\/api\/unifiend\/command"/);
   assert.match(ui, /Run guarded command/);
   assert.match(ui, /Signed Owner Session/);
   assert.match(ui, /commandResult.code === "ADAPTER_NOT_IMPLEMENTED"/);
@@ -72,9 +72,9 @@ test("signed Owner Session submits a staging command with no second confirmation
   assert.match(entry, /INSERT INTO agent_tasks/);
   assert.match(entry, /consumer_proven:\s*false/);
   assert.match(auth, /validSignedToken/);
-  assert.match(ui, /WAVE Command/);
-  assert.doesNotMatch(ui, /confirmWaveCommand/);
-  assert.match(ui, /รอ Runner-1 และ COMMAND_RESULT/);
+  assert.match(ui, /Unifiend Command/);
+  assert.doesNotMatch(ui, /confirmUnifiendCommand/);
+  assert.match(ui, /รอ Ocian-S-Host และ COMMAND_RESULT/);
 });
 
 test("chat command routes arbitrary owner text to the bounded Codex self-host queue contract", () => {
@@ -87,12 +87,12 @@ test("chat command routes arbitrary owner text to the bounded Codex self-host qu
 });
 
 
-test("approved Codex command dispatches Runner-1 consumer and records terminal evidence", () => {
+test("approved Codex command dispatches Ocian-S-Host consumer and records terminal evidence", () => {
   const entry = read("worker/entry-yellow-stone.ts");
-  const dispatch = read("worker/wave-command-dispatch.ts");
-  const workflow = read(".github/workflows/wave-command-consumer.yml");
-  const consumer = read("scripts/wave-command-consumer.mjs");
-  assert.match(dispatch, /wave-command-consumer\.yml\/dispatches/);
+  const dispatch = read("worker/unifiend-command-dispatch.ts");
+  const workflow = read(".github/workflows/unifiend-command-consumer.yml");
+  const consumer = read("scripts/unifiend-command-consumer.mjs");
+  assert.match(dispatch, /unifiend-command-consumer\.yml\/dispatches/);
   assert.match(entry, /COMMAND_CONSUMER_STARTED/);
   assert.match(entry, /COMMAND_RESULT_/);
   assert.match(entry, /capability = 'codex_selfhost'/);
@@ -100,10 +100,10 @@ test("approved Codex command dispatches Runner-1 consumer and records terminal e
   assert.match(workflow, /Infisical\/secrets-action/);
   assert.match(consumer, /CODEX_HOME/);
   assert.match(consumer, /spawnSync\("codex", \["exec"/);
-  assert.match(consumer, /\/api\/wave\/command\/result/);
+  assert.match(consumer, /\/api\/unifiend\/command\/result/);
 });
 
-test("WAVE retains claimable Owner task on Actions-write denial with usable manual GH dispatch", () => {
+test("Unifiend retains claimable Owner task on Actions-write denial with usable manual GH dispatch", () => {
   const src = read("worker/entry-yellow-stone.ts");
   assert.match(src, /COMMAND_MANUAL_DISPATCH_REQUIRED/);
   assert.match(src, /COMMAND_DISPATCH_DEFERRED/);
@@ -112,7 +112,7 @@ test("WAVE retains claimable Owner task on Actions-write denial with usable manu
   assert.match(src, /workflow_url: MANUAL_WORKFLOW/);
   assert.match(src, /status: "AWAITING_DISPATCH"/);
   assert.match(src, /hasOwnerSession\(request, env\)/);
-  assert.match(src, /pathname === "\/api\/wave\/command\/status"/);
+  assert.match(src, /pathname === "\/api\/unifiend\/command\/status"/);
   assert.match(src, /event_type LIKE 'COMMAND_RESULT_%'/);
   assert.match(src, /COMMAND_RESULT_DONE/);
   assert.match(src, /request_id: requestId/);

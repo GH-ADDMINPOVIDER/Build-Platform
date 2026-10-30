@@ -4,7 +4,7 @@ const base = "https://wave.ogenicchocolate.com";
 const secret = String(process.env.OGENIC_OPS_KEY || "").trim();
 const sha = String(process.env.GITHUB_SHA || "").trim();
 assert.match(sha, /^[a-f0-9]{40}$/, "STAGING_SHA_REQUIRED");
-assert.equal(process.env.GITHUB_REF_NAME, "phase-vi-provider-incentive-metering");
+assert.equal(process.env.GITHUB_REF_NAME, "Unified-on-Progress");
 assert.equal(process.env.RUNNER_NAME, "wave-runner-01");
 assert.ok(secret, "STAGING_OWNER_SECRET_FROM_INFISICAL_REQUIRED");
 
@@ -34,11 +34,11 @@ assert.ok(before.payload.storage?.canonical?.includes("Cloudflare D1"));
 const codex = (before.payload.providers || []).find(x => x.id === "codex");
 assert.equal(codex?.dispatchable, true, "CODEX_ROOM_READONLY_ADAPTER_NOT_VERIFIED");
 assert.equal(codex?.smoke_test, "READONLY_E2E_PASS");
-assert.equal(codex?.room_adapter, "CODEX_READONLY_EXISTING_WAVE", "CODEX_RUNTIME_ADAPTER_MUST_BE_EXISTING");
+assert.equal(codex?.room_adapter, "CODEX_READONLY_EXISTING_Unifiend", "CODEX_RUNTIME_ADAPTER_MUST_BE_EXISTING");
 assert.ok((before.payload.providers || []).filter(x => x.id !== "codex").every(x => x.dispatchable !== true),
   "NO_UNVERIFIED_PROVIDER_MAY_BE_DISPATCHABLE");
 // A successful unrelated Codex proof is only the prerequisite for this room test.
-// OPENBOT E2E PASS is emitted by the existing WAVE Command Consumer only after
+// OPENBOT E2E PASS is emitted by the existing Unifiend Command Consumer only after
 // this exact room task's D1 result/checkpoint readback succeeds.
 console.log("OPENBOT_LAUNCHROOM_READONLY_SCOPE=PASS");
 console.log("OPENBOT_OWNER_AUTHORITY=SIGNED_OWNER_SESSION_YELLOW_STONE_READ_ONLY");
@@ -87,7 +87,7 @@ const linked = await call("/api/local-agent-team/state");
 assert.equal(linked.http, 200);
 const roomTask = (linked.payload.tasks || []).find(x => x.id === taskId);
 assert.ok(roomTask, "ROOM_TASK_NOT_READBACK");
-assert.equal(roomTask.command_task_id, commandTaskId, "ROOM_WAVE_TASK_LINK_NOT_READBACK");
+assert.equal(roomTask.command_task_id, commandTaskId, "ROOM_UNIFIEND_TASK_LINK_NOT_READBACK");
 assert.ok((linked.payload.events || []).some(event => event.task_id === taskId &&
   event.event_type === "LOCAL_TEAM_COMMAND_LINKED" && event.correlation_id === commandTaskId),
   "ROOM_COMMAND_LINK_D1_EVENT_MISSING");
@@ -104,6 +104,6 @@ if (dispatch.payload.code === "COMMAND_ALREADY_DONE") {
   console.log("OPENBOT_LAUNCHROOM_DONE_REPLAY_D1=PASS");
 }
 console.log("OPENBOT_LAUNCHROOM_ROOM_TASK=" + taskId);
-console.log("OPENBOT_LAUNCHROOM_WAVE_TASK=" + commandTaskId);
+console.log("OPENBOT_LAUNCHROOM_UNIFIEND_TASK=" + commandTaskId);
 console.log("OPENBOT_LAUNCHROOM_COMPLETION=" +
   (dispatch.payload.code === "COMMAND_ALREADY_DONE" ? "DONE_VERIFIED_REUSED" : "PENDING_RUNNER_RECEIPT"));

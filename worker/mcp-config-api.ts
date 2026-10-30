@@ -185,7 +185,7 @@ async function discover(binding: BindingRow, env: McpConfigBindings) {
     const initialized = await jsonRpc(meta.endpoint, "initialize", {
       protocolVersion: "2025-06-18",
       capabilities: {},
-      clientInfo: { name: "OGENIC-WAVE", version: "1" },
+      clientInfo: { name: "OGENIC-Unifiend", version: "1" },
     }, 1, token);
     if (!initialized.ok) {
       return { ok: false, state: "DEGRADED", code: `MCP_INITIALIZE_HTTP_${initialized.status}`, tools: [] as ToolSummary[] };
@@ -229,7 +229,7 @@ export function createMcpConfigApi() {
     const bindings = await readBindings(c.env.DB);
     return c.json({
       ok: true,
-      runtime: "WAVE_MCP_CONFIG_V1",
+      runtime: "UNIFIEND_MCP_CONFIG_V1",
       bindings: bindings.map(bindingEnvelope),
       states: ["LIVE", "DEGRADED", "SIMULATED", "OFFLINE", "CONFIGURATION_REQUIRED"],
       policy: "OGE26_APPROVAL_REQUIRED_FOR_CONSEQUENTIAL_TOOLS",
@@ -247,7 +247,7 @@ export function createMcpConfigApi() {
         real_available: false,
         provider: "simulated",
         tools: [
-          { name: "read_status", title: "Read status", description: "Fixture-only read path for WAVE MCP control verification.", risk: "READ", available: true },
+          { name: "read_status", title: "Read status", description: "Fixture-only read path for Unifiend MCP control verification.", risk: "READ", available: true },
           { name: "list_capabilities", title: "List capabilities", description: "Fixture-only capability discovery.", risk: "READ", available: true },
         ],
         policy: "NO_EXTERNAL_SIDE_EFFECTS",
@@ -310,7 +310,7 @@ export function createMcpConfigApi() {
       try {
         const initialized = await jsonRpc(endpoint, "initialize", {
           protocolVersion: "2025-06-18", capabilities: {},
-          clientInfo: { name: "OGENIC-WAVE-READ-PROOF", version: "1" },
+          clientInfo: { name: "OGENIC-UNIFIEND-READ-PROOF", version: "1" },
         }, 1, token);
         if (!initialized.ok) return c.json({ ok: false, code: "MCP_INIT_UNAVAILABLE" }, 503);
         const listed = await jsonRpc(endpoint, "tools/list", {}, 2, token, initialized.sessionId);
@@ -323,7 +323,7 @@ export function createMcpConfigApi() {
         const result = await jsonRpc(endpoint, "tools/call", {
           name: "get_file_contents",
           arguments: { owner: GITHUB_PROVIDER_LOGIN, repo: "Build-Platform",
-            path: "README.md", ref: "refs/heads/phase-vi-provider-incentive-metering" },
+            path: "README.md", ref: "refs/heads/Unified-on-Progress" },
         }, 3, token, initialized.sessionId);
         const body = result.body.result && typeof result.body.result === "object"
           ? result.body.result as Record<string, unknown> : {};

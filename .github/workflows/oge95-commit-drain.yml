@@ -34,10 +34,10 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
-          test "$GITHUB_REF_NAME" = "phase-vi-provider-incentive-metering"
+          test "$GITHUB_REF_NAME" = "Unified-on-Progress"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git cat-file -e '9be0a339016ebf23a3a5f4108aaab56af19bd93a^{commit}'
-          git update-ref refs/remotes/origin/phase-vi-provider-incentive-metering "$GITHUB_SHA"
+          git update-ref refs/remotes/origin/Unified-on-Progress "$GITHUB_SHA"
       - name: Recover last audited checkpoint (fail closed if artifact retrieval fails)
         env:
           GH_TOKEN: ${{ github.token }}
@@ -152,7 +152,7 @@ jobs:
           const r=JSON.parse(readFileSync("oge95-commit-drain-final.json","utf8"));
           if(r.schema!=="OGE95_COMMIT_DRAIN_FINAL_V1" ||
              r.repository!=="Wave-Runner-2/Build-Platform" ||
-             r.branch!=="phase-vi-provider-incentive-metering" ||
+             r.branch!=="Unified-on-Progress" ||
              r.head_sha!==process.env.GITHUB_SHA ||
              r.last_processed_sha!==process.env.GITHUB_SHA ||
              r.all_commits_accounted_for!==true ||

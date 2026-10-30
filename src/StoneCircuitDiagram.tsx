@@ -113,9 +113,9 @@ export default function StoneCircuitDiagram() {
 
   return <section className="scRoot" aria-label="Animated OGENIC seven-stone circuit" data-playing={playing}>
     <header className="scHeader">
-      <div><span className="scEyebrow">WAVE · STONE CIRCUIT v1 · ARCHITECTURE MODEL</span>
+      <div><span className="scEyebrow">Unifiend · STONE CIRCUIT v1 · ARCHITECTURE MODEL</span>
         <h3>One context. Seven stones. One command brain.</h3>
-        <p>สัญญาณวิ่งจำลองทิศทางงานระหว่าง ATHENA, หินทั้ง 7 และ Runner-1 · ไม่ใช่คำสั่งจริงหรือ Live proof</p>
+        <p>สัญญาณวิ่งจำลองทิศทางงานระหว่าง ATHENA, หินทั้ง 7 และ Ocian-S-Host · ไม่ใช่คำสั่งจริงหรือ Live proof</p>
       </div>
       <div className="scLiveChip"><i aria-hidden="true"/> VISUAL SIMULATION</div>
     </header>
@@ -132,7 +132,7 @@ export default function StoneCircuitDiagram() {
 
     <div className="scBoardScroll">
       <svg ref={circuitRef} className="scBoard" viewBox="0 0 1150 815" role="img"
-        aria-label="Animated seven-stone WAVE architecture. White Diamond ATHENA routes intent to Yellow Stone. Seven official stones linked by animated signals.">
+        aria-label="Animated seven-stone Unifiend architecture. White Diamond ATHENA routes intent to Yellow Stone. Seven official stones linked by animated signals.">
         <defs>
           <pattern id="scDots" width="18" height="18" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#536d61" opacity=".23"/></pattern>
           <filter id="scGlow" x="-300%" y="-300%" width="700%" height="700%">
@@ -182,7 +182,7 @@ export default function StoneCircuitDiagram() {
     {/* Terminal is one special execution environment, not an eighth stone and not an Agent Registry entry. */}
     <section className="scTerminalEnvironment" data-execution-mode="solo" data-max-active-commands="1" aria-label="Terminal Solo environment: SSH, IDEs and OpenCode">
       <div className="scTerminalHeading">
-        <div><small>ONE SPECIAL ENVIRONMENT · EXISTING RUNNER-1</small>
+        <div><small>ONE SPECIAL ENVIRONMENT · EXISTING Ocian-S-Host</small>
           <h4>TERMINAL ENVIRONMENT · SOLO</h4>
           <p>หนึ่ง Session / หนึ่งคำสั่งที่กำลังรัน · แยกจาก Agent Environment · รันตาม Owner Authorization ผ่าน Tools Stone</p>
         </div>
@@ -202,7 +202,7 @@ export default function StoneCircuitDiagram() {
           <div><strong>OPC · OpenCode</strong><small>TERMINAL CODING AGENT · SOLO</small><p>Adapter reserved · CLI ยังไม่ได้ติดตั้ง · รอขยาย RAM ก่อนเริ่มใช้งาน</p></div>
         </div>
       </div>
-      <p className="scTerminalBoundary"><b>Execution boundary:</b> OWNER (Signed Session) → ATHENA → YELLOW STONE (TOOLS ONLY) → RUNNER-1 → TERMINAL [SSH | IDEs | OPC] → RUBY PROOF → GREEN 1LSS. Blue/Violet จัดการ Agent Environment ทั่วไป แต่ OPC อยู่ Terminal Solo Block นี้เท่านั้น · ไม่ส่งคำสั่งพร้อมกันหลาย Executor</p>
+      <p className="scTerminalBoundary"><b>Execution boundary:</b> OWNER (Signed Session) → ATHENA → YELLOW STONE (TOOLS ONLY) → Ocian-S-Host → TERMINAL [SSH | IDEs | OPC] → RUBY PROOF → GREEN 1LSS. Blue/Violet จัดการ Agent Environment ทั่วไป แต่ OPC อยู่ Terminal Solo Block นี้เท่านั้น · ไม่ส่งคำสั่งพร้อมกันหลาย Executor</p>
     </section>
 
     <footer className="scFooter">
@@ -212,7 +212,7 @@ export default function StoneCircuitDiagram() {
         aria-expanded={showDetails}>{showDetails ? "Hide flow notes −" : "Flow details +"}</button>
       {showDetails && <div className="scFlowNotes">
         <p>ATHENA = วางแผน · YELLOW = Tools/API/MCP/SDK ไม่ใช่ผู้อนุมัติ · BLUE = Agent Registry · VIOLET = จัดทีม · RUNNER = รันงาน · RUBY = ตรวจหลักฐาน · GREEN = บันทึกบริบท · RULE = กฎกลาง</p>
-        <p>Runner-1 เป็นเครื่อง Self-hosted เพียงเครื่องเดียวที่ตรวจพบ; GitHub Account 2 ไม่ใช่ Runner-2 Host. สายสัญญาณเป็นผังอธิบาย ไม่ยืนยันความพร้อม Runtime ทุกช่องทาง</p>
+        <p>Ocian-S-Host เป็นเครื่อง Self-hosted เพียงเครื่องเดียวที่ตรวจพบ; GitHub Account 2 ไม่ใช่ Runner-2 Host. สายสัญญาณเป็นผังอธิบาย ไม่ยืนยันความพร้อม Runtime ทุกช่องทาง</p>
         <p>Terminal Environment เป็นบล็อกพิเศษเดียว: SSH = Access, IDEs = Editor/Debugger, OpenCode/OPC = Terminal Solo Coding Agent (ยังไม่ได้ติดตั้ง). IDE ล่าสุดมี Vim แต่ Web IDE ยังไม่ยืนยัน ไม่จัด OPC เป็น Blue/Violet Agent ทั่วไป เรียก Tools Stone ตามขอบเขต Owner และต้องใช้ Serial Queue สำหรับคำสั่งจริง</p>
       </div>}
     </footer>

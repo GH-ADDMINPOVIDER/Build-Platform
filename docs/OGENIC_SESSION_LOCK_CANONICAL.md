@@ -1,7 +1,7 @@
 # OGENIC SAME MIND — canonical session lock and no-forget contract
 
 Owner directive 2026-10-09: reuse EXISTING D1/1LSS, never fork a second memory.
-Repo branch: phase-vi-provider-incentive-metering ONLY.
+Repo branch: Unified-on-Progress ONLY.
 
 ## Proven foundation
 D1 conversation owner-main and ordered line 1LSS_OWNER_MAIN remain canonical. Every chat_messages.sequence_no follows the one owner line. source_surface records the entry door, never a separate truth. Existing chat_session_refs maps provider session refs to that same line and keeps first/last sequence, label and last_seen_at. History-page/sessions/recovery endpoints already exist, with owner session authentication and no schema changes.
@@ -28,4 +28,4 @@ Yellow alone authorizes real external transmissions/tools; Ruby independently ve
 Owner-authenticated GET /api/1lss/resolve-session?source_surface=openai-agent&model=...&reasoning_effort=... returns a matching existing provider session reference by exact recorded model/effort label, or explicit denial/ambiguity. Other providers including LINE/Gemini/DeepSeek/Codex can register refs through existing owner-auth API but have no verified model lock or automatic resume. can_auto_resume=false until independently verified live provider readiness. This does not implement X/Y/Z permission semantics or external authorization.
 
 ## OGE-106 retrieval presence guard (source implementation)
-The generic readCanonicalD1Context must distinguish a DB binding from actual retrieved rows, reporting UNAVAILABLE when no canonical/system/session rows are returned. It includes bounded RECENT 1LSS message pointers and grouped session-ref metadata only, not prior conversation message content, and labels SOURCE_POINTERS_ONLY until an authenticated owner recall and Ruby verified promotion. WAVE Manus and new OpenAI Agent session paths fail closed before provider call when canonical source is unavailable. This does NOT establish that Gemini, DeepSeek, external Codex or ChatGPT plugins can access D1 and is not live E2E proof.
+The generic readCanonicalD1Context must distinguish a DB binding from actual retrieved rows, reporting UNAVAILABLE when no canonical/system/session rows are returned. It includes bounded RECENT 1LSS message pointers and grouped session-ref metadata only, not prior conversation message content, and labels SOURCE_POINTERS_ONLY until an authenticated owner recall and Ruby verified promotion. Unifiend Manus and new OpenAI Agent session paths fail closed before provider call when canonical source is unavailable. This does NOT establish that Gemini, DeepSeek, external Codex or ChatGPT plugins can access D1 and is not live E2E proof.

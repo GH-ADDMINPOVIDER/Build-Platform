@@ -1,7 +1,7 @@
 name: OGE-107 Authenticated 1LSS Old Session Read Proof
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths: [".github/workflows/oge-107-session-recall-proof.yml"]
   workflow_dispatch:
 permissions:
@@ -51,7 +51,7 @@ jobs:
           history="$(curl -fsS --max-time 30 -H "Authorization: Bearer $token" "$STAGING_URL/api/1lss/history-page?limit=12")"
           printf '%s' "$history" | jq -e '.ok == true and .session_line == "1LSS_OWNER_MAIN" and (.messages | length) > 0' >/dev/null || { echo "::error::NO_REAL_CANONICAL_HISTORY"; exit 1; }
           term=""
-          for candidate in OGENIC WAVE GitHub 1LSS OGE; do
+          for candidate in OGENIC Unifiend GitHub 1LSS OGE; do
             if printf '%s' "$history" | jq -e --arg term "$candidate" '.messages | any(.[]; ((.text // "") | ascii_downcase | contains($term | ascii_downcase)))' >/dev/null; then
               term="$candidate"
               break

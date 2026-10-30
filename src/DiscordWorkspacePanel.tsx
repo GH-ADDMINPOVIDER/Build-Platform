@@ -107,7 +107,7 @@ export default function DiscordWorkspacePanel() {
 
   async function bootstrap() {
     const accepted = window.confirm(
-      "Create the OGENIC WAVE Notion-style workspace inside " +
+      "Create the OGENIC Unifiend Notion-style workspace inside " +
       (status?.guild?.name || "the configured Discord server") +
       "? Existing rooms will be reused. No existing channel will be moved or deleted."
     );
@@ -195,7 +195,7 @@ export default function DiscordWorkspacePanel() {
   return <section className="discordWorkspace" aria-label="Discord workspace integration">
     <header className="discordWorkspaceHead">
       <div>
-        <span className="wdEyebrow">WAVE CONNECTOR · DISCORD API</span>
+        <span className="wdEyebrow">Unifiend CONNECTOR · DISCORD API</span>
         <h2>Discord Workspace</h2>
         <p>Notion-style channels, knowledge rooms, project boards and operational logs.</p>
       </div>
@@ -213,8 +213,8 @@ export default function DiscordWorkspacePanel() {
     {status && !connected && <div className="discordSetupHint">
       <strong>{status.code || status.state || "Discord not connected"}</strong>
       <p>{status.message || (status.missing === "DISCORD_TOKEN"
-        ? "DISCORD_TOKEN has not reached the WAVE Worker yet. The staging deployment must publish the binding first."
-        : "Refresh after confirming that Nika Wave is invited to the configured server.")}</p>
+        ? "DISCORD_TOKEN has not reached the Unifiend Worker yet. The staging deployment must publish the binding first."
+        : "Refresh after confirming that Nika Unifiend is invited to the configured server.")}</p>
       {status.missing && <small>Missing binding: {status.missing}</small>}
     </div>}
 

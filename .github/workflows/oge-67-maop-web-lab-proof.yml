@@ -2,7 +2,7 @@ name: OGE-67 MA-OP Web Lab Proof
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - "src/MaopLab.tsx"
       - "src/maop-lab.css"

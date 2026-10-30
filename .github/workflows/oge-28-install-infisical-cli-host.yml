@@ -1,7 +1,7 @@
-name: OGE-28 Install Infisical CLI on WAVE host (rootless)
+name: OGE-28 Install Infisical CLI on Unifiend host (rootless)
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths: ['.github/workflows/oge-28-install-infisical-cli-host.yml']
 permissions:
   contents: read
@@ -15,7 +15,7 @@ jobs:
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 12
     steps:
-      - name: Install sha256-verified official CLI to wave user directory without root
+      - name: Install sha256-verified official CLI to unifiend user directory without root
         id: install
         shell: bash
         env:

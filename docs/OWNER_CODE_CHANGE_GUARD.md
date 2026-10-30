@@ -4,7 +4,7 @@ The repository owner is the sole required reviewer for code changes:
 
 - GitHub owner: `Ogenicchocolate21debug` (ID `306097555`)
 - Required reviewer: `@Ogenicchocolate21debug`
-- Protected staging branch: `phase-vi-provider-incentive-metering`
+- Protected staging branch: `Unified-on-Progress`
 - Canonical runtime remains staging-only; this policy does not grant any new
   provider, secret, runner, or production permission.
 
@@ -14,7 +14,7 @@ owner's latest approval is for the current PR head SHA. A new commit therefore
 requires a fresh owner approval.
 
 For the rule to block merges, the repository owner must enable these GitHub
-branch settings for `phase-vi-provider-incentive-metering` (and any other
+branch settings for `Unified-on-Progress` (and any other
 branch intended to be protected):
 
 1. Require a pull request before merging.

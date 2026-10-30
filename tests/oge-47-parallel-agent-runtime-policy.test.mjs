@@ -7,8 +7,8 @@ const workflow = await readFile(new URL("../.github/workflows/parallel-agent-run
 test("OGE-47 runtime workflow is canonical-branch-only and three-way parallel", () => {
   assert.match(workflow, /^\s{2}workflow_dispatch:/m);
   assert.doesNotMatch(workflow, /^\s{2}push:/m);
-  assert.equal((workflow.match(/if: github.ref_name == 'phase-vi-provider-incentive-metering'/g) || []).length, 2);
-  assert.match(workflow, /always\(\) && github.ref_name == 'phase-vi-provider-incentive-metering'/);
+  assert.equal((workflow.match(/if: github.ref_name == 'Unified-on-Progress'/g) || []).length, 2);
+  assert.match(workflow, /always\(\) && github.ref_name == 'Unified-on-Progress'/);
   assert.doesNotMatch(workflow, /branches:\s*\[[^\]]*(?:main|develop)/i);
   assert.match(workflow, /fail-fast:\s*false/);
   assert.match(workflow, /max-parallel:\s*3/);

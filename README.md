@@ -102,10 +102,10 @@ No plaintext secret values belong in this repository.
 
 [Open the full architecture map](docs/architecture/OGE_SYSTEM_MAP.md)
 
-![OGENIC / WAVE architecture](public/architecture/oge-system-map.svg)
+![OGENIC / Unifiend architecture](public/architecture/oge-system-map.svg)
 
 The first-view flow is:
-`WAVE -> ATHENA/BLUE -> YELLOW/MA-OP -> CCS -> VIOLET -> RUBY -> GREEN/1LSS`.
+`Unifiend -> ATHENA/BLUE -> YELLOW/MA-OP -> CCS -> VIOLET -> RUBY -> GREEN/1LSS`.
 
 Issue-level grouping and audited edges live under `docs/architecture/`.
 

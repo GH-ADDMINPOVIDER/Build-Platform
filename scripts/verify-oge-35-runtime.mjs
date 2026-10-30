@@ -12,7 +12,7 @@ async function json(response) {
 
 async function waitForRoute() {
   for (let attempt = 1; attempt <= 60; attempt += 1) {
-    const response = await fetch(`${base}/api/wave/command`, {
+    const response = await fetch(`${base}/api/unifiend/command`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -47,7 +47,7 @@ const setCookie = auth.headers.get("set-cookie") || "";
 const cookie = setCookie.split(";", 1)[0];
 assert.ok(cookie.includes("="), "session cookie returned");
 
-const readResponse = await fetch(`${base}/api/wave/command`, {
+const readResponse = await fetch(`${base}/api/unifiend/command`, {
   method: "POST",
   headers: { "content-type": "application/json", cookie },
   body: JSON.stringify({
@@ -75,7 +75,7 @@ assert.equal(readBody?.command_handoff?.execution_authority, "YELLOW_STONE_ONLY"
 assert.equal(readBody?.command_handoff?.yellow_stone_route, "/api/capabilities/execute");
 assert.equal(readBody?.command_handoff?.direct_execution_bypass, false);
 
-const gatedResponse = await fetch(`${base}/api/wave/command`, {
+const gatedResponse = await fetch(`${base}/api/unifiend/command`, {
   method: "POST",
   headers: { "content-type": "application/json", cookie },
   body: JSON.stringify({

@@ -10,12 +10,12 @@ test("canonical GitHub identities and credential references are explicit", () =>
   const ccs = read("docs/CCS_AUTHORITY_CONTRACT.md");
   const cert = read("docs/operations/CERTIFICATE_LINCENC_ACCESS.md");
   const isolation = read(".github/workflows/oge-40-github-token-isolation.yml");
-  assert.match(binding, /runner1: \{ id: 306097555, login: "ogenicchocolate21debug" \}/);
-  assert.match(binding, /runner2: \{ id: 342175560, login: "wave-runner-2" \}/);
+  assert.match(binding, /store: \{ id: 306097555, login: "ogenicchocolate21debug" \}/);
+  assert.match(binding, /capability: \{ id: 342175560, login: "wave-runner-2" \}/);
   assert.match(binding, /CANONICAL_GITHUB_CREDENTIAL = "GH_ADDMINPROVIDER"/);
   assert.match(binding, /"GH_ADDMINPROVIDER": \{ type: "PAT"/);
   assert.match(ccs, /Wave-Runner-2/);
-  assert.doesNotMatch(ccs, /Wave_Runner-2/);
+  assert.doesNotMatch(ccs, /Unifiend_Runner-2/);
   assert.match(cert, /306097555/);
   assert.match(cert, /342175560/);
   assert.match(cert, /GH_ADDMINPROVIDER/);

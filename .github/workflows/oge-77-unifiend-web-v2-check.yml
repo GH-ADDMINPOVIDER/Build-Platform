@@ -1,0 +1,26 @@
+name: OGE-77 Unifiend Web V2 Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web-v2-check:
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generate temporary lockfile before clean install
+        run: npm install --package-lock-only --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
+      - name: Dashboard contract
+        run: node --test tests/unifiend-dashboard-contract.test.mjs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build

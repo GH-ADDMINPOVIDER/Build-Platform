@@ -10,7 +10,7 @@ const src={
   blue:read("worker/blue-diamond-registry.ts"),
   violet:read("worker/violet-stone-api.ts"),
   ruby:read("worker/ruby-stone-api.ts"),
-  runner:read("scripts/replica-runner/verify.mjs"),
+  runner:read("scripts/replica-executor/verify.mjs"),
   rule:read("worker/rule-stone-api.ts"),
 };
 const checks=[

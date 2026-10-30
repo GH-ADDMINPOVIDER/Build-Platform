@@ -1,7 +1,7 @@
-# OGENIC/WAVE — Curated Open-Source Skill Adoptions
+# OGENIC/Unifiend — Curated Open-Source Skill Adoptions
 
-**Reviewed:** 2026-10-19  
-**Integration point:** existing WAVE P-Stack guided-workflow picker  
+**Reviewed:** 2026-10-19
+**Integration point:** existing Unifiend P-Stack guided-workflow picker
 **Canonical memory:** `owner-main / 1LSS_OWNER_MAIN`
 
 This is a selective adoption, not a wholesale import of agent frameworks. The existing 51-item numbered P-Stack source manifest and taxonomy remain unchanged. Local workflows are registered separately in `config/pstack-workflows.json`.
@@ -20,9 +20,9 @@ These are locally authored prompts and skill files. The upstream projects remain
 
 ### Claude-Mem
 
-[Claude-Mem](https://github.com/thedotmack/claude-mem) declares Apache-2.0 and provides persistent memory around a local worker and SQLite/FTS search. It is **not added as a second memory backend** because WAVE already uses `owner-main / 1LSS_OWNER_MAIN` and D1 as its canonical memory/state path. Introducing another worker/database would split continuity and create a second source of truth.
+[Claude-Mem](https://github.com/thedotmack/claude-mem) declares Apache-2.0 and provides persistent memory around a local worker and SQLite/FTS search. It is **not added as a second memory backend** because Unifiend already uses `owner-main / 1LSS_OWNER_MAIN` and D1 as its canonical memory/state path. Introducing another worker/database would split continuity and create a second source of truth.
 
-Its privacy controls are useful as a design reference, but no claim is made that Claude-Mem's `<private>` tag behavior exists in WAVE. Any future privacy filtering must be implemented at the existing memory ingress and covered by tests before it is relied on.
+Its privacy controls are useful as a design reference, but no claim is made that Claude-Mem's `<private>` tag behavior exists in Unifiend. Any future privacy filtering must be implemented at the existing memory ingress and covered by tests before it is relied on.
 
 ### Karpathy-Inspired Claude Code Guidelines
 
@@ -33,12 +33,12 @@ The reviewed repository exposed a `CLAUDE.md` but no license file was found in t
 - `docs/architecture/OGE_SYSTEM_MAP.md`
 - `docs/architecture/OGE_SYSTEM_MAP.mmd`
 - `docs/architecture/oge-system-edges.json`
-- `docs/architecture/WAVE_EMBED.md`
+- `docs/architecture/UNIFIEND_EMBED.md`
 - `public/architecture/oge-system-map.svg`
 
 For diagram tasks, update the existing source set instead of creating a competing map. Preserve the authority flow:
 
-`WAVE → ATHENA/BLUE → YELLOW/MA-OP → CCS → VIOLET → RUBY → GREEN/1LSS`
+`Unifiend → ATHENA/BLUE → YELLOW/MA-OP → CCS → VIOLET → RUBY → GREEN/1LSS`
 
 ## Safety and execution boundary
 

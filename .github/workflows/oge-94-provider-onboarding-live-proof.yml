@@ -2,7 +2,7 @@ name: OGE-94 Provider Onboarding Preflight (Zero Paid Calls)
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - ".github/workflows/oge-94-provider-onboarding-live-proof.yml"
   workflow_dispatch:

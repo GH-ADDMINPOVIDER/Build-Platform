@@ -4,7 +4,7 @@ import test from "node:test";
 
 const registry = readFileSync("worker/blue-diamond-registry.ts", "utf8");
 const attested = JSON.parse(readFileSync("config/provider-readiness-attestations.json", "utf8"));
-const roster = JSON.parse(readFileSync("config/wave-phase-ii-agent-roster.json", "utf8"));
+const roster = JSON.parse(readFileSync("config/unifiend-phase-ii-agent-roster.json", "utf8"));
 
 test("OGE-93 marks only HTTP-verified DeepSeek and Gemini as bounded READ specialists", () => {
   for (const name of ["deepseek", "gemini"]) {

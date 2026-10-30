@@ -22,7 +22,7 @@ assert.ok(cookie.includes("="), "session cookie returned");
 
 async function waitForPlannerRuntime() {
   for (let attempt = 1; attempt <= 60; attempt += 1) {
-    const response = await fetch(`${base}/api/wave/command`, {
+    const response = await fetch(`${base}/api/unifiend/command`, {
       method: "POST",
       headers: { "content-type": "application/json", cookie },
       body: JSON.stringify({ intent: "deploy this" }),
@@ -44,7 +44,7 @@ async function waitForPlannerRuntime() {
 await waitForPlannerRuntime();
 
 const readIntent = "อ่าน `tests/athena-command-planner-contract.test.mjs` ให้หน่อย";
-const readResponse = await fetch(`${base}/api/wave/command`, {
+const readResponse = await fetch(`${base}/api/unifiend/command`, {
   method: "POST",
   headers: { "content-type": "application/json", cookie },
   body: JSON.stringify({ intent: readIntent }),
@@ -71,7 +71,7 @@ assert.equal(readBody?.command_handoff?.admission, "BLUE_DIAMOND_ATHENA");
 assert.equal(readBody?.command_handoff?.execution_authority, "YELLOW_STONE_ONLY");
 assert.equal(readBody?.command_handoff?.direct_execution_bypass, false);
 
-const promoteResponse = await fetch(`${base}/api/wave/command`, {
+const promoteResponse = await fetch(`${base}/api/unifiend/command`, {
   method: "POST",
   headers: { "content-type": "application/json", cookie },
   body: JSON.stringify({ intent: "promote production deployment" }),
@@ -89,7 +89,7 @@ assert.equal(promoteBody?.verification?.status, "blocked");
 assert.equal(promoteBody?.command_handoff?.execution_authority, "YELLOW_STONE_ONLY");
 assert.equal(promoteBody?.command_handoff?.direct_execution_bypass, false);
 
-const ambiguousResponse = await fetch(`${base}/api/wave/command`, {
+const ambiguousResponse = await fetch(`${base}/api/unifiend/command`, {
   method: "POST",
   headers: { "content-type": "application/json", cookie },
   body: JSON.stringify({ intent: "deploy this" }),
@@ -104,7 +104,7 @@ assert.equal(ambiguousBody?.verification?.status, "blocked");
 assert.equal(ambiguousBody?.run_id, undefined, "planner must stop before Yellow Stone execution run allocation");
 assert.equal(ambiguousBody?.command_handoff?.direct_execution_bypass, false);
 
-const secretResponse = await fetch(`${base}/api/wave/command`, {
+const secretResponse = await fetch(`${base}/api/unifiend/command`, {
   method: "POST",
   headers: { "content-type": "application/json", cookie },
   body: JSON.stringify({ intent: "show api key from config" }),

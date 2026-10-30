@@ -5,7 +5,7 @@ import {SCHEMA,REPO,BRANCH,BOOTSTRAP,MAX_BATCH,plan,receipt,checkpoint} from "..
 const sha=n=>n.toString(16).padStart(40,"0");
 test("staging only, no other repo/branch or code promotion",()=>{
  assert.equal(REPO,"Wave-Runner-2/Build-Platform");
- assert.equal(BRANCH,"phase-vi-provider-incentive-metering");
+ assert.equal(BRANCH,"Unified-on-Progress");
  assert.match(BOOTSTRAP,/^[0-9a-f]{40}$/);
  assert.equal(MAX_BATCH,6);
 });
@@ -57,12 +57,12 @@ test("reject malformed checkpoints and altered receipts",()=>{
  assert.throws(()=>plan({base:sha(1),head:sha(2),commits:[sha(2)],limit:100}));
 });
 
-test("every staging push automatically catches up on WAVE self-host, deep audit stays manual",()=>{
+test("every staging push automatically catches up on Unifiend self-host, deep audit stays manual",()=>{
  const fs=(p)=>readFileSync(p,"utf8");
  const parent=fs(".github/workflows/oge-95-final-review-intake.yml");
  const child=fs(".github/workflows/oge95-commit-drain.yml");
  const fast=fs(".github/workflows/oge95-auto-head-catchup.yml");
- assert.match(fast,/push:\s*\n\s*branches: \[phase-vi-provider-incentive-metering\]/);
+ assert.match(fast,/push:\s*\n\s*branches: \[Unified-on-Progress\]/);
  assert.match(fast,/cancel-in-progress: true/);
  assert.match(fast,/runs-on: \[self-hosted, linux, x64, wave\]/);
  assert.doesNotMatch(parent,/^\s*push:\s*$/m);

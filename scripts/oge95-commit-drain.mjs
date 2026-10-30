@@ -7,7 +7,7 @@ import {tmpdir} from "node:os";
 import {fileURLToPath} from "node:url";
 export const SCHEMA="OGE95_GITHUB_COMMIT_DRAIN_V2";
 export const REPO="Wave-Runner-2/Build-Platform";
-export const BRANCH="phase-vi-provider-incentive-metering";
+export const BRANCH="Unified-on-Progress";
 export const BOOTSTRAP="9be0a339016ebf23a3a5f4108aaab56af19bd93a";
 export const MAX_BATCH=6;
 const SHA=/^[a-f0-9]{40}$/i;
@@ -82,7 +82,7 @@ function execute(){
     git(["worktree","add","--detach",dir,sha]);
     const opts={cwd:dir,env:bareEnv(),timeout:240000,encoding:"utf8",
       maxBuffer:1048576,stdio:["ignore","pipe","pipe"]};
-    // Match the EXISTING WAVE Canonical Check workflow in a disposable worktree.
+    // Match the EXISTING Unifiend Canonical Check workflow in a disposable worktree.
     // The package-lock normalization stays inside the temporary worktree and
     // is never committed back to staging. The receipt records this behavior.
     stage="npm_lock_normalization";

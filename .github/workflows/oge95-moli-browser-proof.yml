@@ -2,7 +2,7 @@ name: OGE-95 Moli Browser Optional Smoke (Local Free Binary)
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - "config/moli-browser-adapter.json"
       - "worker/moli-browser-api.ts"
@@ -33,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REF" = "refs/heads/phase-vi-provider-incentive-metering"
+          test "$GITHUB_REF" = "refs/heads/Unified-on-Progress"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
 

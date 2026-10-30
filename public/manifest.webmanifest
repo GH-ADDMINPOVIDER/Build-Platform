@@ -1,7 +1,7 @@
 {
-  "name": "WAVE — SAME MIND",
-  "short_name": "WAVE",
-  "description": "WAVE is the user-facing SAME MIND interface powered by OGENIC HARNESS, capability routing and 1LSS.",
+  "name": "Unifiend — SAME MIND",
+  "short_name": "Unifiend",
+  "description": "Unifiend is the user-facing SAME MIND interface powered by OGENIC HARNESS, capability routing and 1LSS.",
   "start_url": "/app?source=app",
   "scope": "/",
   "display": "standalone",
@@ -19,7 +19,7 @@
   ],
   "icons": [
     {
-      "src": "/assets/wave-logo.webp",
+      "src": "/assets/unifiend-logo.webp",
       "sizes": "160x160",
       "type": "image/webp",
       "purpose": "any"

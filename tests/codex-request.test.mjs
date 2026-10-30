@@ -12,7 +12,7 @@ function fixture(login = 'fixture-gs', id = 101, reservations = new Set()) {
   const sha = 'a'.repeat(40);
   const context = {
     repo: { owner: 'Wave-Runner-2', repo: 'Build-Platform' },
-    eventName: 'workflow_dispatch', ref: 'refs/heads/phase-vi-provider-incentive-metering', sha,
+    eventName: 'workflow_dispatch', ref: 'refs/heads/Unified-on-Progress', sha,
     runId: 123, runAttempt: 1, actor: login,
     payload: { sender: { login, id, type: 'User' }, inputs: {
       issue_number: '25', source_sha: sha, task_sha256: taskDigest(issue), confirm_bounded_task: 'true',
@@ -60,7 +60,7 @@ const denials = [
   ['missing confirmation', f => { delete f.args.context.payload.inputs.confirm_bounded_task; }, 'CONFIRMATION_REQUIRED'],
   ['false confirmation', f => { f.args.context.payload.inputs.confirm_bounded_task = 'false'; }, 'CONFIRMATION_REQUIRED'],
   ['main', f => { f.args.context.ref = 'refs/heads/main'; }, 'STAGING_DISPATCH_REQUIRED'],
-  ['tag', f => { f.args.context.ref = 'refs/tags/phase-vi-provider-incentive-metering'; }, 'STAGING_DISPATCH_REQUIRED'],
+  ['tag', f => { f.args.context.ref = 'refs/tags/Unified-on-Progress'; }, 'STAGING_DISPATCH_REQUIRED'],
   ['other repo', f => { f.args.context.repo.owner = 'other'; }, 'STAGING_DISPATCH_REQUIRED'],
   ['push bypass', f => { f.args.context.eventName = 'push'; }, 'STAGING_DISPATCH_REQUIRED'],
   ['stale source', f => { f.args.context.payload.inputs.source_sha = 'b'.repeat(40); }, 'STALE_SOURCE_SHA'],
@@ -104,7 +104,7 @@ test('unavailable GitHub permission or reservation service never grants executio
 });
 
 test('actual workflow admission script preserves GitHub context getters and saves the confirmed snapshot', async () => {
-  const workflow = await readFile(new URL('../.github/workflows/codex-issue-runner-staging.yml', import.meta.url), 'utf8');
+  const workflow = await readFile(new URL('../.github/workflows/codex-issue-executor-staging.yml', import.meta.url), 'utf8');
   const script = workflow.split('          script: |\n')[1].split('\n      - name:')[0]
     .split('\n').map(line => line.replace(/^            /, '')).join('\n');
   const f = fixture();

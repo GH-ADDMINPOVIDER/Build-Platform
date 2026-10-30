@@ -1,7 +1,7 @@
 name: OGENIC Infisical secret key NAME inventory (no values)
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths: [".github/workflows/oge-infisical-plugin-metadata-audit.yml"]
 permissions:
   contents: read

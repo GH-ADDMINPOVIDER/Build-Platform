@@ -1,0 +1,20 @@
+name: OGENIC Unifiend User-local Tools
+description: Expose preinstalled checksum-verified user-local CLI tools on an existing Unifiend runner; no download, sudo, secret, or daemon.
+runs:
+  using: composite
+  steps:
+    - name: Set PATH for verified Unifiend standby tools
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "$RUNNER_NAME" = wave-runner-01
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        for cli in rg yq uv uvx infisical; do
+          test -x "$HOME/.local/bin/$cli" || { echo "MISSING_UNIFIEND_STANDBY_TOOL=$cli"; exit 82; }
+        done
+        "$HOME/.local/bin/rg" --version | head -n1
+        "$HOME/.local/bin/yq" --version
+        "$HOME/.local/bin/uv" --version
+        "$HOME/.local/bin/uvx" --version
+        "$HOME/.local/bin/infisical" --version
+        echo OGENIC_UNIFIEND_TOOLS_READY

@@ -2,7 +2,7 @@ name: Blue Diamond Staging Proof
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - ".github/workflows/blue-diamond-staging-proof.yml"
       - "worker/blue-diamond-*.ts"

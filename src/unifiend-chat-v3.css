@@ -1,0 +1,173 @@
+/* Unifiend Chat v3 — clean command surface, dense capability layers. */
+:root {
+  --unifiend-v3-bg:#080c0b;
+  --unifiend-v3-panel:#101513;
+  --unifiend-v3-panel-2:#141a17;
+  --unifiend-v3-line:rgba(237,242,235,.095);
+  --unifiend-v3-line-strong:rgba(237,242,235,.17);
+  --unifiend-v3-text:#edf2eb;
+  --unifiend-v3-muted:#98aaa1;
+  --unifiend-v3-green:#7efac0;
+  --unifiend-v3-gold:#f3d475;
+}
+
+/* Keep the primary chat calm. Spectacle stays in the stones/landing, not behind text. */
+.ucShell,.ucSplash,.ucAuth {
+  --uc-bg:var(--unifiend-v3-bg);
+  --uc-panel:rgba(16,21,19,.96);
+  --uc-card:var(--unifiend-v3-panel-2);
+  --uc-text:var(--unifiend-v3-text);
+  --uc-sub:var(--unifiend-v3-muted);
+  --uc-line:var(--unifiend-v3-line);
+  --uc-accent:var(--unifiend-v3-green);
+  --uc-accent-soft:rgba(126,250,192,.075);
+  --uc-green:var(--unifiend-v3-green);
+  --uc-warn:var(--unifiend-v3-gold);
+  background:var(--unifiend-v3-bg);
+}
+
+.ucTopbar {
+  min-height:52px;
+  padding:max(8px,env(safe-area-inset-top)) 14px 8px;
+  gap:7px;
+  background:rgba(8,12,11,.90);
+  border-bottom:1px solid var(--unifiend-v3-line);
+  backdrop-filter:blur(20px) saturate(115%);
+  -webkit-backdrop-filter:blur(20px) saturate(115%);
+}
+.ucBrand img { width:28px; height:28px; border-radius:8px; box-shadow:0 0 18px rgba(126,250,192,.11); }
+.ucBrand b { font-size:13px; }
+.ucBrand small { font-size:7px; color:#718179; }
+.ucLineState { border-radius:7px; padding:6px 8px; background:rgba(255,255,255,.018); }
+.ucLineState b,.ucLineState span { font-size:8px; }
+.ucWeb,.ucNew { min-height:30px; border-radius:7px; padding:0 10px; font-size:9px; }
+.ucWeb { background:rgba(255,255,255,.018); }
+.ucNew { background:#e7ede9; color:#08100c; }
+
+.ucConversation { width:min(820px,100%); padding:26px 18px 226px; }
+.ucWelcome { min-height:min(52dvh,480px); padding:34px 10px; }
+.ucOrb {
+  width:42px; height:42px; border-radius:12px;
+  background:radial-gradient(circle at 40% 35%,#eafff2 0 8%,#5edb9d 24%,#173f2e 58%,#0b1511 100%);
+  box-shadow:0 15px 48px rgba(82,220,151,.13);
+}
+.ucOrb i { width:9px; height:9px; box-shadow:0 0 17px rgba(255,255,255,.65); }
+.ucWelcome small { color:#82958b; font-size:8px; }
+.ucWelcome h1 { font-size:clamp(28px,5vw,44px); font-weight:720; letter-spacing:-.045em; }
+.ucWelcome p { color:#83948b; font-size:13px; }
+.ucMessage { margin-bottom:16px; }
+.ucMessage.user {
+  border-radius:12px;
+  padding:10px 12px;
+  background:rgba(18,32,29,.94);
+  border:1px solid rgba(71,225,184,.46);
+  box-shadow:0 4px 20px rgba(33,207,163,.06);
+}
+.ucMessage.assistant { padding:12px 14px; border:1px solid rgba(133,143,250,.44); border-radius:12px; background:rgba(22,25,40,.94); box-shadow:0 4px 20px rgba(128,112,246,.07); }
+@supports (backdrop-filter:blur(8px)) { .ucMessage.user,.ucMessage.assistant { backdrop-filter:blur(8px); } }
+.ucMessageMeta b { font-size:11px; }
+.ucMessageMeta span { font-size:10px; color:#a1b5aa; }
+.ucMessage p { font-size:14px; line-height:1.62; }
+.ucMessage > small { font-size:10px; color:#a1b5aa; }
+
+.ucShell { --unifiend-attachment-surface:#121e1b; --unifiend-attachment-text:#eef7f3; --unifiend-attachment-muted:#b6cfc3; --unifiend-attachment-edge:#40dea9; --unifiend-attachment-warning:#f2a77c; --unifiend-attachment-gap:10px; --unifiend-attachment-radius:12px; }
+
+/* Reliable attachments stay in the composer until explicitly removed or sent. */
+.ucAttachmentList { display:flex; flex-direction:column; gap:8px; max-height:220px; overflow:auto; margin-bottom:8px; }
+.ucAttachmentCard { display:flex; align-items:center; gap:var(--unifiend-attachment-gap); padding:8px; border:1px solid var(--unifiend-attachment-edge); border-radius:var(--unifiend-attachment-radius); background:var(--unifiend-attachment-surface); color:var(--unifiend-attachment-text); }
+.ucAttachmentCard.failed { border-color:var(--unifiend-attachment-warning); }
+.ucAttachmentCard > img,.ucAttachmentIcon { width:48px; height:48px; object-fit:cover; flex:none; border-radius:8px; }
+.ucAttachmentIcon { display:grid; place-items:center; background:#26332d; font-size:24px; }
+.ucAttachmentInfo { min-width:0; flex:1; display:flex; flex-direction:column; gap:4px; }
+.ucAttachmentInfo b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.ucAttachmentInfo small { font-size:12px; color:var(--unifiend-attachment-muted); overflow-wrap:anywhere; }
+.ucAttachmentInfo .ucAttachmentError { color:#ffbc96; }
+.ucAttachmentCard button { min-height:44px; min-width:44px; flex:none; border:1px solid #506559; border-radius:8px; background:#1b2b23; color:#f0faf5; cursor:pointer; font-size:13px; }
+.ucAttachmentCard button:focus-visible { outline:2px solid #67eed2; outline-offset:2px; }
+.ucAttachmentInfo progress { width:100%; height:6px; accent-color:#59e8bd; }
+.ucNotice[role="alert"] { color:#ffbc96; }
+
+/* Composer is one compact command bar; tools unfold only when requested. */
+.ucComposerWrap {
+  padding:6px 12px max(8px,env(safe-area-inset-bottom));
+  background:linear-gradient(to bottom,transparent,rgba(8,12,11,.94) 22%,var(--unifiend-v3-bg) 54%);
+}
+.ucComposerWrap > * { width:min(820px,100%); }
+.ucComposer {
+  border-radius:13px !important;
+  border-color:var(--unifiend-v3-line-strong) !important;
+  background:#101513 !important;
+  box-shadow:0 14px 45px rgba(0,0,0,.24) !important;
+}
+.ucComposer textarea { font-size:14px !important; min-height:44px !important; padding:12px 12px 7px !important; }
+.ucComposerBar { padding:5px 7px 7px !important; gap:5px !important; }
+.ucRound { width:30px !important; height:30px !important; border-radius:7px !important; background:rgba(255,255,255,.035) !important; }
+.ucModel { min-height:30px !important; border-radius:7px !important; background:rgba(255,255,255,.025) !important; padding:0 8px !important; }
+.ucModel b { font-size:10px !important; }
+.ucModel small,.ucQuotaMini { font-size:8px !important; }
+.ucSend { width:30px !important; height:30px !important; border-radius:8px !important; background:#e8eeea !important; color:#07100c !important; }
+.ucExperience { gap:4px !important; margin-bottom:5px !important; }
+.ucExperience button {
+  min-height:30px !important;
+  border-radius:7px !important;
+  padding:5px 9px !important;
+  background:rgba(255,255,255,.018) !important;
+}
+.ucExperience button.active { border-color:rgba(126,250,192,.22) !important; background:rgba(126,250,192,.06) !important; }
+.ucExperience b { font-size:9px !important; }
+.ucExperience small { font-size:7px !important; }
+.ucFooterLine { color:#607068 !important; font-size:8px !important; }
+
+/* Linear-like compact drawers, without copying Linear's visual assets. */
+.ucDock {
+  max-height:min(64dvh,560px);
+  border-radius:12px;
+  padding:8px;
+  background:#101513;
+  border-color:var(--unifiend-v3-line-strong);
+  box-shadow:0 22px 70px rgba(0,0,0,.38);
+}
+.ucDockHead { padding:3px 4px 7px; }
+.ucDockHead b { font-size:12px; }
+.ucDockHead small { font-size:8px; }
+.ucDockHead > button { width:26px; height:26px; border-radius:6px; background:rgba(255,255,255,.035); }
+.ucMemoryRow,.ucQuotaRow { padding:9px 10px; border-radius:8px; background:rgba(255,255,255,.018); }
+.ucMemoryRow b,.ucQuotaRow b { font-size:11px; }
+.ucMemoryRow small,.ucQuotaRow small { font-size:8px; }
+.ucCapability { grid-template-columns:27px 1fr auto; gap:8px; padding:7px 8px; border-radius:7px; }
+.ucCapability:hover,.ucCapability.active { background:rgba(126,250,192,.055); }
+.ucCapability > span { width:27px; height:27px; border-radius:7px; background:rgba(255,255,255,.025); }
+.ucCapability b { font-size:11px; }
+.ucCapability small { font-size:8px; }
+.ucModelList button { padding:8px 9px; border-radius:7px; }
+.ucModelList b { font-size:11px; }
+.ucModelList small { font-size:8px; }
+.ucEffort button,.ucBoost button,.ucFallback { border-radius:6px; padding:6px 8px; font-size:8px; }
+.ucActiveTool { border-radius:6px; background:rgba(126,250,192,.065); font-size:8px; }
+.ucNewDock { border-radius:12px; padding:12px; background:#101513; }
+.ucNewDock button { border-radius:7px; }
+
+/* Mobile: OpenAI-clean first surface, operator controls in sheets. */
+@media (max-width:720px) {
+  .ucTopbar { grid-template-columns:1fr auto auto; padding-left:10px; padding-right:10px; }
+  .ucBrand small { display:none; }
+  .ucLineState { display:none; }
+  .ucWeb { font-size:0; width:32px; padding:0; justify-content:center; }
+  .ucWeb::after { content:"⌘"; font-size:14px; color:#aab7b0; }
+  .ucNew { padding:0 9px; }
+  .ucConversation { padding:19px 13px 214px; }
+  .ucWelcome { min-height:47dvh; }
+  .ucWelcome h1 { font-size:30px; }
+  .ucMessage.user { max-width:90%; border-radius:11px; }
+  .ucMessage p { font-size:15px; }
+  .ucComposerWrap { padding-left:8px; padding-right:8px; }
+  .ucDock { max-height:67dvh; border-radius:14px 14px 10px 10px; }
+  .ucExperience { overflow-x:auto; scrollbar-width:none; }
+  .ucExperience::-webkit-scrollbar { display:none; }
+  .ucExperience button { flex:0 0 auto; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .ucThinking { animation:none; }
+  .ucShell * { scroll-behavior:auto !important; }
+}

@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 const planner = fs.readFileSync("worker/athena-command-planner.ts", "utf8");
 const entry = fs.readFileSync("worker/entry-yellow-stone.ts", "utf8");
-const wave = fs.readFileSync("src/WaveNext.tsx", "utf8");
+const unifiend = fs.readFileSync("src/UnifiendNext.tsx", "utf8");
 const athenaChat = fs.readFileSync("worker/athena-chat-api.ts", "utf8");
 
 test("ATHENA planner is bounded to staging and Yellow Stone authority", () => {
@@ -34,7 +34,7 @@ test("planner rejects arbitrary URLs and credential-oriented intents", () => {
   assert.match(planner, /SENSITIVE_PATH/);
 });
 
-test("WAVE command gateway never executes a provider directly", () => {
+test("Unifiend command gateway never executes a provider directly", () => {
   assert.match(entry, /planAthenaCommand\(intent\)/);
   assert.match(entry, /url\.pathname = "\/api\/capabilities\/execute"/);
   assert.match(entry, /executionApi\.fetch\(delegated/);
@@ -52,12 +52,12 @@ test("gateway strips planner authority fields and clamps execution environment",
   assert.match(entry, /ATHENA_PLAN_/);
 });
 
-test("WAVE Run already submits plain-language intent to the guarded command route", () => {
-  assert.match(wave, /intent:\s*intent/);
-  assert.match(wave, /fetch\("\/api\/wave\/command"/);
-  assert.match(wave, /Run guarded command/);
-  assert.match(wave, /commandResult\.resolver\?\.descriptor\?\.capability_id/);
-  assert.match(wave, /commandResult\.resolver\?\.descriptor\?\.provider_id/);
+test("Unifiend Run already submits plain-language intent to the guarded command route", () => {
+  assert.match(unifiend, /intent:\s*intent/);
+  assert.match(unifiend, /fetch\("\/api\/unifiend\/command"/);
+  assert.match(unifiend, /Run guarded command/);
+  assert.match(unifiend, /commandResult\.resolver\?\.descriptor\?\.capability_id/);
+  assert.match(unifiend, /commandResult\.resolver\?\.descriptor\?\.provider_id/);
 });
 
 test("OGE-34 ATHENA chat lane remains separate from command planning", () => {

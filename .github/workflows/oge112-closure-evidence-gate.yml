@@ -2,7 +2,7 @@ name: OGE Closure Circuit and Pstack Actor Proof (STRUCTURE)
 on:
   push:
     branches:
-      - phase-vi-provider-incentive-metering
+      - Unified-on-Progress
     paths:
       - 'docs/evidence/OGE-*/**'
       - 'scripts/oge112-check-closure.mjs'
@@ -17,7 +17,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    if: github.ref_name == 'phase-vi-provider-incentive-metering'
+    if: github.ref_name == 'Unified-on-Progress'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 8
     steps:
@@ -35,7 +35,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
+          test "$GITHUB_REF_NAME" = Unified-on-Progress
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           ISSUE_IDS="$DISPATCH_ISSUE_ID"
           if [[ -z "$ISSUE_IDS" ]]; then

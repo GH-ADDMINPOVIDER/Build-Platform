@@ -105,7 +105,7 @@ const EFFORTS: Array<{ id: Effort; label: string }> = [
   { id: "max", label: "Max" },
 ];
 const EXPERIENCE_MODES: Array<{ id: ExperienceMode; label: string; state: string }> = [
-  { id: "chat-api", label: "WAVE", state: "SAME MIND · OGENIC HARNESS · 1LSS" },
+  { id: "chat-api", label: "Unifiend", state: "SAME MIND · OGENIC HARNESS · 1LSS" },
   { id: "agent-ai", label: "Agent AI", state: "OGENIC HARNESS · Agent Session · 1LSS" },
 ];
 
@@ -338,7 +338,7 @@ export default function UnifiedChat({ surface }: Props) {
         source_surface: surface,
         session_ref: ref,
         session_url: `${window.location.origin}${window.location.pathname}`,
-        label: surface === "ogenic-app" ? "WAVE App viewport" : "WAVE Web viewport",
+        label: surface === "ogenic-app" ? "Unifiend App viewport" : "Unifiend Web viewport",
         sequence_no: sequenceNo || undefined,
       }),
     });
@@ -356,7 +356,7 @@ export default function UnifiedChat({ surface }: Props) {
         source_surface: surface,
         session_ref: viewportSessionRef,
         session_url: `${window.location.origin}${window.location.pathname}`,
-        label: surface === "ogenic-app" ? "WAVE App viewport" : "WAVE Web viewport",
+        label: surface === "ogenic-app" ? "Unifiend App viewport" : "Unifiend Web viewport",
         sequence_no: latestSequenceRef.current || undefined,
       }),
     }).catch(() => undefined);
@@ -592,7 +592,7 @@ export default function UnifiedChat({ surface }: Props) {
     const command = kind.toUpperCase();
     if (command === "RUN" || command === "EXECUTE" || command === "COMMAND") {
       if (!arg.trim()) throw new Error("OG_COMMAND_TEXT_REQUIRED");
-      return runWaveCommand(arg.trim());
+      return runUnifiendCommand(arg.trim());
     }
     if (command === "PROBE") {
       const match = /^((?:n8n)|(?:mcp))(?:\s+([a-z0-9_-]{1,80}))?$/i.exec(arg.trim());
@@ -613,8 +613,8 @@ export default function UnifiedChat({ surface }: Props) {
     setMessages(rows => [...rows, { id: crypto.randomUUID(), role: "assistant", text: `OGENIC CCS · ${data.modes?.length ?? 0} modes · source/credential and execution status are separate\n${lines.join("\n")}`, created_at: Date.now() }]);
   }
 
-  async function runWaveCommand(prompt: string) {
-    const response = await fetch("/api/wave/command", {
+  async function runUnifiendCommand(prompt: string) {
+    const response = await fetch("/api/unifiend/command", {
       method: "POST", credentials: "same-origin", headers: {
         "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID(),
       },
@@ -633,7 +633,7 @@ export default function UnifiedChat({ surface }: Props) {
     if (body.code === "COMMAND_MANUAL_DISPATCH_REQUIRED" && body.dispatch?.task_id && body.dispatch?.workflow_url) {
       setManualDispatch({ taskId: body.dispatch.task_id, url: body.dispatch.workflow_url });
       setMessages(rows => [...rows, { id: crypto.randomUUID(), role: "assistant",
-        text: "งานบันทึกใน D1 แล้ว แต่การเรียก GitHub Actions อัตโนมัติถูกปฏิเสธ · เปิด Workflow แล้วเลือก Staging พร้อม Task ID · รอผล Runner-1 จริง",
+        text: "งานบันทึกใน D1 แล้ว แต่การเรียก GitHub Actions อัตโนมัติถูกปฏิเสธ · เปิด Workflow แล้วเลือก Staging พร้อม Task ID · รอผล Ocian-S-Host จริง",
         created_at: Date.now() }]);
       setInlineNotice("รอ GitHub Workflow Dispatch · ยังไม่ใช่ DONE");
       return;
@@ -641,7 +641,7 @@ export default function UnifiedChat({ surface }: Props) {
     setManualDispatch(null);
     const dispatched = body.code === "COMMAND_DISPATCHED" || body.code === "COMMAND_ALREADY_QUEUED";
     const text = dispatched
-      ? `Owner Session authorized · ${body.code === "COMMAND_DISPATCHED" ? "DISPATCHED" : "QUEUED"} · task ${body.task?.id || "unknown"} · รอ Runner-1 และ COMMAND_RESULT`
+      ? `Owner Session authorized · ${body.code === "COMMAND_DISPATCHED" ? "DISPATCHED" : "QUEUED"} · task ${body.task?.id || "unknown"} · รอ Ocian-S-Host และ COMMAND_RESULT`
       : `Owner Session authorized · ${body.verification?.status || "verified"} · run ${body.run_id || "n/a"}`;
     setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "assistant", text, created_at: Date.now() }]);
     setInlineNotice(dispatched ? "ส่งงานแล้ว · ยังไม่ใช่ DONE · รอ COMMAND_RESULT" : "คำสั่งสำเร็จผ่าน Yellow Stone");
@@ -662,7 +662,7 @@ export default function UnifiedChat({ surface }: Props) {
         source_surface: surface,
         session_ref: viewportSessionRef,
         session_url: `${window.location.origin}${window.location.pathname}`,
-        session_label: surface === "ogenic-app" ? "WAVE App viewport" : "WAVE Web viewport",
+        session_label: surface === "ogenic-app" ? "Unifiend App viewport" : "Unifiend Web viewport",
         allow_paid_fallback: allowPaidFallback,
       }),
     });
@@ -730,7 +730,7 @@ export default function UnifiedChat({ surface }: Props) {
     const text = cleanText(message.text, 20_000);
     if (!text) return;
     if (navigator.share) {
-      await navigator.share({ title: "WAVE", text });
+      await navigator.share({ title: "Unifiend", text });
       setInlineNotice("Shared message");
       return;
     }
@@ -803,7 +803,7 @@ export default function UnifiedChat({ surface }: Props) {
   async function send() {
     const prompt = draft.trim() || (attachments.length ? "วิเคราะห์ไฟล์ที่แนบมา" : "");
     if (!prompt || sending) return;
-    // OGE-109: @pstack is a WAVE LOCAL workflow picker, not a model/tool request.
+    // OGE-109: @pstack is a Unifiend LOCAL workflow picker, not a model/tool request.
     // No billing, no D1 turn, no external call until the owner chooses and explicitly sends.
     const pstackCommand = !attachments.length && prompt.match(/^[@/]pstack(?:\s+([\s\S]*))?$/i);
     if (pstackCommand) {
@@ -850,7 +850,7 @@ export default function UnifiedChat({ surface }: Props) {
       : prompt;
     if (!composerDraft.ready) { setInlineNotice("กำลังอ่าน draft · รอสักครู่"); return; }
     if (attachments.some(row => row.status !== "uploaded")) { setInlineNotice("รอ upload ให้ครบ หรือ retry/เอาไฟล์ที่ล้มเหลวออกก่อนส่ง"); return; }
-    if (attachments.length && (toolMode !== "chat" || experienceMode !== "chat-api")) { setInlineNotice("โหมดนี้ยังไม่รับไฟล์แนบ · เลือก WAVE Chat ก่อนส่ง ไฟล์ยังอยู่ครบ"); return; }
+    if (attachments.length && (toolMode !== "chat" || experienceMode !== "chat-api")) { setInlineNotice("โหมดนี้ยังไม่รับไฟล์แนบ · เลือก Unifiend Chat ก่อนส่ง ไฟล์ยังอยู่ครบ"); return; }
     if (quotaBlocked && !explicitOwnerRoute) { setInlineNotice("Included quota หมด · เลือก API fallback ก่อน กูจะไม่เผา token เอง"); return; }
     if (experienceMode === "agent-ai" && !d1Enabled) {
       setInlineNotice("Agent AI ต้องใช้ owner-main / 1LSS");
@@ -863,7 +863,7 @@ export default function UnifiedChat({ surface }: Props) {
     setMessages((rows) => [...rows, { id: crypto.randomUUID(), role: "user", text: selectedPstackPreset ? `pstack · ${selectedPstackPreset.title}: ${pstackTask}` : prompt, created_at: Date.now(), source_surface: surface }]);
     try {
       if (ogMatch) await runOwnerProtocol(ogMatch[1], (ogMatch[2] || "").trim());
-      else if (toolMode === "command") await runWaveCommand(effectivePrompt);
+      else if (toolMode === "command") await runUnifiendCommand(effectivePrompt);
       else if (toolMode === "manus") await runManus(effectivePrompt);
       else if (toolMode === "live") await runLiveDoor(effectivePrompt);
       else if (toolMode === "github" || toolMode === "linear" || toolMode === "n8n" || toolMode === "meta") await runInlineTool(toolMode, effectivePrompt);
@@ -905,11 +905,11 @@ export default function UnifiedChat({ surface }: Props) {
     }
   }
 
-  if (session === null) return <main className="ucSplash"><img src="/assets/wave-logo.webp" alt="" /><b>WAVE — SAME MIND</b><span>Joining 1LSS…</span></main>;
-  if (!session.authenticated) return <main className="ucAuth"><section><img src="/assets/wave-logo.webp" alt="" /><small>OWNER ACCESS</small><h1>WAVE — SAME MIND</h1><p>One clean chat · one canonical line.</p><input type="password" value={ownerKey} onChange={(event) => setOwnerKey(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void signIn(); }} placeholder="Owner access key" /><button onClick={() => void signIn()}>Continue</button>{authError && <em>{authError}</em>}</section></main>;
+  if (session === null) return <main className="ucSplash"><img src="/assets/unifiend-logo.webp" alt="" /><b>Unifiend — SAME MIND</b><span>Joining 1LSS…</span></main>;
+  if (!session.authenticated) return <main className="ucAuth"><section><img src="/assets/unifiend-logo.webp" alt="" /><small>OWNER ACCESS</small><h1>Unifiend — SAME MIND</h1><p>One clean chat · one canonical line.</p><input type="password" value={ownerKey} onChange={(event) => setOwnerKey(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void signIn(); }} placeholder="Owner access key" /><button onClick={() => void signIn()}>Continue</button>{authError && <em>{authError}</em>}</section></main>;
 
   const toolRows: Array<{ id: ToolMode; label: string; sub: string; live: boolean; state: string }> = [
-    { id: "command", label: "WAVE Command", sub: "Signed Owner Session → Yellow → Runner-1", live: true, state: "GUARDED" },
+    { id: "command", label: "Unifiend Command", sub: "Signed Owner Session → Yellow → Ocian-S-Host", live: true, state: "GUARDED" },
     { id: "web", label: "Web search", sub: "Fresh web sources", live: toolLive(platformTools.get("web_search")?.state), state: String(platformTools.get("web_search")?.state || "NOT_MEASURED") },
     { id: "rag", label: "RAG memory", sub: "OGENIC HARNESS · D1 canonical · 1LSS", live: toolLive(platformTools.get("d1_canonical")?.state) || toolLive(platformTools.get("file_search")?.state), state: String(platformTools.get("d1_canonical")?.state || platformTools.get("file_search")?.state || "NOT_MEASURED") },
     { id: "github", label: "GitHub", sub: liveTools.get("github")?.summary || "Repository + CI", live: toolLive(liveTools.get("github")?.state), state: String(liveTools.get("github")?.state || "NOT_MEASURED") },
@@ -940,21 +940,21 @@ export default function UnifiedChat({ surface }: Props) {
     <input ref={fileInput} type="file" className="ucHidden" accept="image/*,.pdf,.txt,.md,.csv,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.currentTarget.value = ""; }} />
 
     <header className="ucTopbar">
-      <button className="ucBrand" onClick={() => setNewDock((value) => !value)}><img src="/assets/wave-logo.webp" alt="" /><span><b>WAVE</b><small>{surface === "ogenic-app" ? "SAME MIND · APP" : "SAME MIND · WEB"}</small></span></button>
+      <button className="ucBrand" onClick={() => setNewDock((value) => !value)}><img src="/assets/unifiend-logo.webp" alt="" /><span><b>Unifiend</b><small>{surface === "ogenic-app" ? "SAME MIND · APP" : "SAME MIND · WEB"}</small></span></button>
       <div className="ucLineState"><b>1LSS #{String(latestSequence).padStart(4, "0")}</b><span className={d1Enabled ? "on" : "off"}>D1 {d1Enabled ? "●" : "○"}</span><span>LIVE ≤3s</span></div>
-      <a className="ucWeb" href="/overview" aria-label="Open WAVE Dashboard">DASHBOARD ↗</a>
+      <a className="ucWeb" href="/overview" aria-label="Open Unifiend Dashboard">DASHBOARD ↗</a>
       <button className="ucNew" onClick={() => setNewDock((value) => !value)}>＋ New</button>
       {newDock && <section className="ucNewDock"><strong>New chat viewport</strong><p>เส้นชีวิตไม่แตก ถ้าเปิด D1 จะต่อ owner-main หลังบ้าน</p><label><input type="checkbox" checked={d1Enabled} onChange={(event) => setD1Enabled(event.target.checked)} /> D1 · 1LSS Memory</label><div><button onClick={() => startNew(d1Enabled)}>Start</button><button className="ghost" onClick={() => void loadOlder()}>Load older</button><button className="ghost" onClick={() => setNewDock(false)}>Cancel</button></div>{!!sessionRefs.length && <div className="ucConnected"><small>RECENT DOORS</small><p>{sessionRefs.slice(0, 5).map((row) => `${row.label || row.source_surface} #${row.last_sequence || "?"}`).join(" · ")}</p><div>{sessionRefs.slice(0, 5).map((row) => <button key={row.id} className="ghost" onClick={() => void openKnownSession(row)}>{row.source_surface} · #{row.last_sequence || "?"}</button>)}</div></div>}</section>}
     </header>
 
     <section className="ucConversation">
       {historyHasMore && <button className="ghost" onClick={() => void loadOlder()}>↑ Load older 1LSS</button>}
-      {!messages.length && <div className="ucWelcome"><div className="ucOrb"><i /></div><small>WAVE · SAME MIND</small><h1>What are we doing next?</h1><p>Powered by OGENIC HARNESS · capability · 1LSS — one canonical line.</p></div>}
+      {!messages.length && <div className="ucWelcome"><div className="ucOrb"><i /></div><small>Unifiend · SAME MIND</small><h1>What are we doing next?</h1><p>Powered by OGENIC HARNESS · capability · 1LSS — one canonical line.</p></div>}
       {messages.map((message, index) => {
         const actionKey = messageActionKey(message, index);
         const assistantMessage = message.role === "assistant";
         return <article key={message.id || index} className={`ucMessage ${message.role || "assistant"}`}>
-          <div className="ucMessageMeta"><b>{message.role === "user" ? "YOU" : message.role === "system" ? "SYSTEM" : "WAVE"}</b><span title={message.created_at ? new Date(message.created_at).toLocaleString() : undefined}>{message.sequence_no ? `#${message.sequence_no}` : ""}{message.source_surface ? ` · ${message.source_surface}` : ""}{message.created_at ? ` · ${timeAgo(message.created_at)}` : ""}</span></div>
+          <div className="ucMessageMeta"><b>{message.role === "user" ? "YOU" : message.role === "system" ? "SYSTEM" : "Unifiend"}</b><span title={message.created_at ? new Date(message.created_at).toLocaleString() : undefined}>{message.sequence_no ? `#${message.sequence_no}` : ""}{message.source_surface ? ` · ${message.source_surface}` : ""}{message.created_at ? ` · ${timeAgo(message.created_at)}` : ""}</span></div>
           <p>{message.text}</p>
           {message.model && <small>{message.model}</small>}
           {assistantMessage && <div className="ucMessageActions" aria-label="Message actions">
@@ -1022,7 +1022,7 @@ export default function UnifiedChat({ surface }: Props) {
       {composerDraft.persistenceError && <div className="ucNotice" role="alert">{composerDraft.persistenceError}</div>}
       {inlineNotice && <div className="ucNotice" role="status" aria-live="polite">{inlineNotice}</div>}
       {manualDispatch && <div className="ucQuotaWarn" role="status">
-        <b>GitHub Runner-1 · เรียกด้วย Owner</b>
+        <b>GitHub Ocian-S-Host · เรียกด้วย Owner</b>
         <span>Staging Workflow ต้องใส่ Task ID: {manualDispatch.taskId}</span>
         <a href={manualDispatch.url} target="_blank" rel="noreferrer">เปิด GitHub Actions →</a>
         <button type="button" onClick={() => void navigator.clipboard?.writeText(manualDispatch.taskId).catch(() => {})}>Copy Task ID</button>
@@ -1032,7 +1032,7 @@ export default function UnifiedChat({ surface }: Props) {
         <button type="button" aria-pressed={toolMode === "command"} className={toolMode === "command" ? "active" : ""}
           onClick={() => { setToolMode(current => current === "command" ? "chat" : "command"); setToolDock(false); }}>
           <b>{toolMode === "command" ? "OWNER RUN · ON" : "OWNER RUN"}</b>
-          <small>Signed Owner → Yellow → Runner-1 · no repeat confirmation</small>
+          <small>Signed Owner → Yellow → Ocian-S-Host · no repeat confirmation</small>
         </button>
         <button type="button" onClick={() => { setDraft("/OG.MODES"); composerInput.current?.focus(); }}>
           <b>15 CCS MODES</b><small>Live discovery · type /OG.MODES</small>
@@ -1042,7 +1042,7 @@ export default function UnifiedChat({ surface }: Props) {
         {EXPERIENCE_MODES.map((item) => <button key={item.id} className={experienceMode === item.id ? "active" : ""} aria-pressed={experienceMode === item.id} onClick={() => selectExperience(item.id)}><b>{item.label}</b><small>{item.state}</small></button>)}
       </div>
       <section className="ucComposer">
-        <textarea ref={composerInput} rows={1} disabled={!composerDraft.ready} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={selectedPstackPreset ? "พิมพ์โจทย์งานให้ pstack หนึ่งงาน…" : toolMode === "command" ? "พิมพ์คำสั่งแล้วส่งได้เลย · Signed Owner Session…" : toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message WAVE…"} />
+        <textarea ref={composerInput} rows={1} disabled={!composerDraft.ready} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void send(); } }} placeholder={selectedPstackPreset ? "พิมพ์โจทย์งานให้ pstack หนึ่งงาน…" : toolMode === "command" ? "พิมพ์คำสั่งแล้วส่งได้เลย · Signed Owner Session…" : toolMode === "live" ? "วาง URL + บอกว่าจะเข้าไปทำอะไร…" : toolMode === "manus" ? "ส่งงานให้ Manus…" : experienceMode === "agent-ai" ? "Message Agent AI on owner-main…" : "Message Unifiend…"} />
         <div className="ucComposerBar">
           <button className="ucRound" onClick={() => { setToolDock((value) => !value); setModelDock(false); }}>＋</button>
           <button className="ucModel" onClick={() => { setModelDock((value) => !value); setToolDock(false); }}><i /> <b>{selectedModel.label}</b><small>{EFFORTS.find((row) => row.id === chatConfig.effort)?.label} · ×{chatConfig.boost}</small>⌄</button>
@@ -1050,7 +1050,7 @@ export default function UnifiedChat({ surface }: Props) {
           <button className="ucSend" aria-label="Send message" disabled={sending || !composerDraft.ready || attachments.some(row => row.status !== "uploaded") || (!draft.trim() && !attachments.length)} onClick={() => void send()}>{sending ? "…" : "↑"}</button>
         </div>
       </section>
-      <div className="ucFooterLine"><span>{d1Enabled ? `WAVE · OGENIC HARNESS · 1LSS · ${bridgeLabel} · next #${latestSequence + 1}` : "ephemeral · D1 off"}</span><button onClick={() => { void loadRuntime(); void loadBridgeStatus(); }}>↻</button><button onClick={() => void signOut()}>Sign out</button></div>
+      <div className="ucFooterLine"><span>{d1Enabled ? `Unifiend · OGENIC HARNESS · 1LSS · ${bridgeLabel} · next #${latestSequence + 1}` : "ephemeral · D1 off"}</span><button onClick={() => { void loadRuntime(); void loadBridgeStatus(); }}>↻</button><button onClick={() => void signOut()}>Sign out</button></div>
     </footer>
   </main>;
 }

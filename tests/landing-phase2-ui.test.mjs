@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(new URL("../" + path, import.meta.url), "utf8");
 
-test("WAVE landing exposes only working canonical navigation targets", () => {
+test("Unifiend landing exposes only working canonical navigation targets", () => {
   const ui = read("src/Landing.tsx");
   for (const href of ["/", "/chat", "/overview", "/app", "#stones"]) {
     assert.match(ui, new RegExp(`href=[\\\"']${href.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}[\\\"']`));

@@ -1,7 +1,7 @@
-name: OGE-28 WAVE host SSH and Codex login status audit
+name: OGE-28 Unifiend host SSH and Codex login status audit
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - .github/workflows/oge-28-host-ssh-codex-auth-audit.yml
 
@@ -15,7 +15,7 @@ jobs:
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 7
     steps:
-      - name: Verify signed-in Codex user on existing WAVE SSH host without inference
+      - name: Verify signed-in Codex user on existing Unifiend SSH host without inference
         id: audit
         shell: bash
         env:

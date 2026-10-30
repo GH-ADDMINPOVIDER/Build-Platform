@@ -1,7 +1,7 @@
 name: OGE-28 Codex provider patch contract test (no inference)
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - .github/workflows/oge-28-provider-recovery-proof.yml
 

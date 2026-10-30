@@ -1,5 +1,5 @@
 /**
- * Canonical host identity for the existing WAVE self-host lane.
+ * Canonical host identity for the existing Unifiend self-host lane.
  *
  * SELF_HOST_MACHINE is a stable system label. The physical hostname and
  * GitHub runner registration remain separate so a display rename cannot break
@@ -7,7 +7,7 @@
  */
 export const SELF_HOST_MACHINE = Object.freeze({
   id: "SELF_HOST_MACHINE",
-  display_name: "SELF HOST_MACHINE",
+  display_name: "Ocian-S-Host",
   physical_hostname: "OCIAN-S-Host",
   digitalocean_name: "OCIAN-S-Host",
   droplet_id: "604432491",

@@ -3,7 +3,7 @@
   "generated_for": "OGE-70",
   "canonical": {
     "repository": "Wave-Runner-2/Build-Platform",
-    "branch": "phase-vi-provider-incentive-metering",
+    "branch": "Unified-on-Progress",
     "control_plane": "MAOP_YELLOW",
     "verification": "RUBY_STONE",
     "retention": "GREEN_1LSS",
@@ -90,17 +90,17 @@
     },
     {
       "oge": "OGE-50",
-      "decision": "WAVE_READ_MODEL_KEEP",
+      "decision": "UNIFIEND_READ_MODEL_KEEP",
       "module": "ogenic-evidence-normalizer-v1",
       "scope": "optional post-run evidence normalization only",
-      "authority": "jobs/run history remain protected WAVE/D1 read model"
+      "authority": "jobs/run history remain protected Unifiend/D1 read model"
     },
     {
       "oge": "OGE-52",
       "decision": "N8N_OPTIONAL_FANOUT",
       "module": "ogenic-task-router-v1",
       "scope": "optional external notification fan-out after canonical signal exists",
-      "authority": "signal truth remains WAVE runtime state; n8n cannot fabricate signals"
+      "authority": "signal truth remains Unifiend runtime state; n8n cannot fabricate signals"
     },
     {
       "oge": "OGE-55",
@@ -121,7 +121,7 @@
       "decision": "N8N_SUPPORTING",
       "module": "ogenic-task-router-v1",
       "scope": "normalize/route task events and adapter lanes",
-      "authority": "D1 agent_tasks + WAVE Task Inbox remain canonical"
+      "authority": "D1 agent_tasks + Unifiend Task Inbox remain canonical"
     },
     {
       "oge": "OGE-58",

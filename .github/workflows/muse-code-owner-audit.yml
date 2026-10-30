@@ -53,7 +53,7 @@ jobs:
           cat > /tmp/muse-audit-prompt.md <<'PROMPT'
           You are auditing the private OGENIC staging repository. Do not modify files, do not run shell commands, do not use web tools, do not commit, push, deploy, or alter external systems.
 
-          Scope ONLY the current branch: phase-vi-provider-incentive-metering.
+          Scope ONLY the current branch: Unified-on-Progress.
 
           Read the repository and produce a concise engineering audit of the current OGENIC architecture, focusing on:
           1. 1LSS / owner-main: one canonical ordered D1 conversation line across OGENIC Web, OGENIC App, ChatGPT-dev bridge and external harness doors.
@@ -94,7 +94,7 @@ jobs:
             sed -n '1,220p' /tmp/muse-audit.txt
             echo '```'
             echo
-            echo "- Branch: phase-vi-provider-incentive-metering"
+            echo "- Branch: Unified-on-Progress"
             echo "- Workspace writes: DISABLED"
             echo "- Shell: DISABLED"
             echo "- Web tools: DISABLED"

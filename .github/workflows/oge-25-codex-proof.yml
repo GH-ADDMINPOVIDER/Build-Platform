@@ -1,11 +1,11 @@
-name: OGE-25 shared Codex contract proof on WAVE
+name: OGE-25 shared Codex contract proof on Unifiend
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
-      - '.github/workflows/codex-issue-runner-staging.yml'
+      - '.github/workflows/codex-issue-executor-staging.yml'
       - '.github/workflows/oge-25-codex-proof.yml'
       - 'scripts/codex-request.mjs'
       - 'tests/codex-request.test.mjs'
@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   prove:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/oge-25-38466079874' && github.base_ref == 'phase-vi-provider-incentive-metering'
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'codex/oge-25-38466079874' && github.base_ref == 'Unified-on-Progress'
     runs-on: [self-hosted, Linux, X64, wave]
     timeout-minutes: 30
     steps:

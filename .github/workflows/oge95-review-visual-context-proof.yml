@@ -8,13 +8,13 @@ concurrency:
   cancel-in-progress: true
 jobs:
   proof:
-    if: github.ref_name == 'phase-vi-provider-incentive-metering'
+    if: github.ref_name == 'Unified-on-Progress'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: phase-vi-provider-incentive-metering
+          ref: Unified-on-Progress
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4

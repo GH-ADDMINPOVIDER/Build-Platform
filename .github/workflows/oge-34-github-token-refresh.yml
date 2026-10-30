@@ -2,7 +2,7 @@ name: OGE-34 GitHub Token Refresh
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - ".github/workflows/oge-34-github-token-refresh.yml"
       - "scripts/oge34-github-worker-binding.mjs"
@@ -27,7 +27,7 @@ env:
 
 jobs:
   refresh:
-    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'phase-vi-provider-incentive-metering'
+    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'Unified-on-Progress'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 10
     steps:
@@ -43,7 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$RUNNER_NAME" = wave-runner-01
-          test "$GITHUB_REF_NAME" = phase-vi-provider-incentive-metering
+          test "$GITHUB_REF_NAME" = Unified-on-Progress
           node --test tests/oge-34-github-worker-binding.test.mjs
 
       - name: Discover Infisical project

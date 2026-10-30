@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deriveAthenaContext } from "../scripts/replica-runner/athena-context.mjs";
+import { deriveAthenaContext } from "../scripts/replica-executor/athena-context.mjs";
 
 const REPO="Wave-Runner-2/Build-Platform";
-const BRANCH="phase-vi-provider-incentive-metering";
+const BRANCH="Unified-on-Progress";
 const head="a".repeat(40), older="b".repeat(40);
 const run=(id,name,sha,status="completed",conclusion="success")=>({
   id,name,head_sha:sha,status,conclusion,created_at:"2026-10-08T09:24:13Z"
@@ -12,10 +12,10 @@ const base={
   repository:REPO,branch:BRANCH,source_sha:head,run_id:37760000000,
   runs:[
     run(12,"Provider Incentive Staging Deploy",older),
-    run(13,"WAVE Phase II Canonical Check",head),
+    run(13,"Unifiend Phase II Canonical Check",head),
     run(14,"OGE-78 USE CARD check",head,"completed","failure"),
-    run(15,"WAVE Phase II Canonical Check",head),
-    run(16,"WAVE Replica Runner 0.9 - Local Parity Proof",head,"in_progress",null)
+    run(15,"Unifiend Phase II Canonical Check",head),
+    run(16,"Unifiend Replica Runner 0.9 - Local Parity Proof",head,"in_progress",null)
   ],
   commits:[{sha:head,subject:"CI for OGE-95"},{sha:older,subject:"Earlier deploy"}],
   files:[{path:"config/oge95-rules-center.json",sha256:"1".repeat(64)}]
@@ -34,7 +34,7 @@ test("Athena rebuilds real SHAs, latest CI, deploy gap and action history",()=>{
 });
 test("Athena deduplicates same workflow/SHA/result and preserves distinct issue failures",()=>{
   const c=deriveAthenaContext(base);
-  assert.equal(c.actions.recent_runs.filter(x=>x.workflow==="WAVE Phase II Canonical Check").length,1);
+  assert.equal(c.actions.recent_runs.filter(x=>x.workflow==="Unifiend Phase II Canonical Check").length,1);
   assert.ok(c.actions.recent_runs.some(x=>x.workflow==="OGE-78 USE CARD check"));
 });
 test("Passing local public parity never claims whole 1:1; recommends stateful replay and Ruby",()=>{

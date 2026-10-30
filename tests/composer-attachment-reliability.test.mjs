@@ -10,7 +10,7 @@ const css = read("src/unified-chat.css");
 
 test("selected attachment is persisted before network upload", () => {
   assert.match(draft, /await this\.persist\(\).*await this\.retry\(row\.localId\)/s);
-  assert.match(draft, /indexedDB\.open\("wave-unsent-drafts"/);
+  assert.match(draft, /indexedDB\.open\("unifiend-unsent-drafts"/);
   assert.match(draft, /localStorage\.setItem\(textKey, text\)/);
 });
 

@@ -1,7 +1,7 @@
 name: OGE-92 MA-OP 409 Diagnostic (No Paid Providers)
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths: [".github/workflows/oge-92-maop-409-diagnostic.yml"]
   workflow_dispatch:
 

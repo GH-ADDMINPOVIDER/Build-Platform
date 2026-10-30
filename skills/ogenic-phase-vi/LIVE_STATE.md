@@ -19,7 +19,7 @@ On activation:
 ## Canonical control plane
 
 - Repository: `Wave-Runner-2/Build-Platform`
-- Active Phase VI branch: `phase-vi-provider-incentive-metering`
+- Active Phase VI branch: `Unified-on-Progress`
 - Current staging implementation/cleanup HEAD: `346be0b7fadc4ac8030786961f12424cff42a833`
 - Last verified core implementation commit: `13b666267d1534c8fea0a9bfa2b93dd6fdee0539`
 - 1LSS writer branch: `phase-vi-1lss-plugin-writer` @ `65123de31d69c62e796b5c45a7d666f46c4f1938`

@@ -72,7 +72,7 @@ jobs:
         shell: bash
         run: |
           {
-            echo "### WAVE PageIndex SDK registration"
+            echo "### Unifiend PageIndex SDK registration"
             echo "- Official SDK: pageindex==0.2.10 installed in ephemeral Python runner"
             echo "- PDF TOC extraction: verified; **not** full PageIndex AI index"
             echo "- LLM inference/Cloud index calls: **0**"

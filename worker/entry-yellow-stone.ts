@@ -33,9 +33,9 @@ import { createN8nMigrationApi } from "./n8n-migration-api";
 import { hasOwnerOrOpsAccess, hasOwnerSession } from "./app-auth";
 import { buildBlueDiamondRegistry, type BlueDiamondRegistryEnv } from "./blue-diamond-registry";
 import { planAthenaCommand } from "./athena-command-planner";
-import { normalizeWaveCommandBody, waveCommandPolicy } from "./wave-command-contract";
+import { normalizeUnifiendCommandBody, unifiendCommandPolicy } from "./unifiend-command-contract";
 import { createDiscordApi } from "./discord-api";
-import { dispatchWaveCommandConsumer } from "./wave-command-dispatch";
+import { dispatchUnifiendCommandConsumer } from "./unifiend-command-dispatch";
 import { createConnectorModesApi } from "./connector-modes-api";
 import { createLocalAgentTeamApi } from "./local-agent-team-api";
 import { readCertificateLincenc } from "./certificate-lincenc-registry";
@@ -76,7 +76,7 @@ const ATHENA_ACTOR_ID = "athena-command";
 const EXECUTION_AUTHORITY = "YELLOW_STONE_ONLY";
 
 type Bindings = CapabilityResolverBindings & BlueDiamondRegistryEnv & PerplexityAgentBindings & DeepSeekBindings & GeminiBindings & XaiBindings & MetaModelBindings & TaskInboxBindings & ChatMessageActionBindings & Record<string, unknown> & { GITHUB_TOKEN?: string };
-type WaveCommandBody = {
+type UnifiendCommandBody = {
   command?: unknown;
   intent?: unknown;
   capability?: unknown;
@@ -110,11 +110,11 @@ async function approvalIdFor(plan: Record<string, unknown>, requestId = "") {
 
 async function queueApprovedCommand(db: CommandQueueDb, plan: Record<string, unknown>, approvalId: string) {
   const taskId = `wavecmd_${approvalId.replace("wave-approval-", "")}`;
-  const correlationId = `wavecmd-corr-${approvalId.slice(-40)}`;
+  const correlationId = `unifiendcmd-corr-${approvalId.slice(-40)}`;
   const capability = compact(plan.capability, 120) || "wave_command";
   const provider = compact(plan.provider, 80) || "yellow-stone";
   const intent = compact(plan.normalized_intent, 1200);
-  const title = compact(intent, 160) || `WAVE command · ${capability}`;
+  const title = compact(intent, 160) || `Unifiend command · ${capability}`;
   const resourceKey = `wave-command:${provider}:staging`;
   const existing = await db.prepare(
     "SELECT id, status, capability, correlation_id FROM agent_tasks WHERE id = ? LIMIT 1",
@@ -147,18 +147,18 @@ async function queueApprovedCommand(db: CommandQueueDb, plan: Record<string, unk
   return { task, replayed: false };
 }
 
-const MANUAL_WORKFLOW = "https://github.com/Wave-Runner-2/Build-Platform/actions/workflows/wave-command-consumer.yml";
+const MANUAL_WORKFLOW = "https://github.com/Wave-Runner-2/Build-Platform/actions/workflows/unifiend-command-consumer.yml";
 function manualDispatchDetails(taskId: string, code: string) {
   return {
     mode: "GITHUB_OWNER_MANUAL",
     workflow_url: MANUAL_WORKFLOW,
-    branch: "phase-vi-provider-incentive-metering",
+    branch: "Unified-on-Progress",
     task_id: taskId,
     automatic_dispatch_error: code,
   };
 }
 async function noteDeferredDispatch(db: CommandQueueDb, taskId: string, code: string) {
-  // Keep the authenticated Owner task claimable by the existing Runner-1 workflow.
+  // Keep the authenticated Owner task claimable by the existing Ocian-S-Host workflow.
   // A failed Actions:write token must never strand it as BLOCKED forever.
   await db.prepare(
     `INSERT OR IGNORE INTO agent_events(id, task_id, event_type, actor, external_ref, created_at)
@@ -288,7 +288,7 @@ async function commandConsumerResult(request: Request, env: Bindings) {
   ).bind(`event-consumer-result-${taskId}`, taskId, `COMMAND_RESULT_${status}`, external).run();
 
   // Reconcile an OpenBot Launch Room task only when it is explicitly linked
-  // to THIS authenticated Runner-1 command result. No new D1 schema.
+  // to THIS authenticated Ocian-S-Host command result. No new D1 schema.
   const link = await db.prepare(
     "SELECT task_id FROM agent_events WHERE event_type = 'LOCAL_TEAM_COMMAND_LINKED' AND correlation_id = ? LIMIT 1",
   ).bind(taskId).first<{ task_id?: string }>();
@@ -314,7 +314,7 @@ async function commandConsumerResult(request: Request, env: Bindings) {
 
 function handoffMetadata(athena: { maturity?: unknown }) {
   return {
-    source_surface: "WAVE",
+    source_surface: "Unifiend",
     admission: "BLUE_DIAMOND_ATHENA",
     actor_id: ATHENA_ACTOR_ID,
     maturity: athena.maturity,
@@ -367,8 +367,8 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
     }, { status: 503 });
   }
 
-  const body = await request.clone().json().catch(() => null) as WaveCommandBody | null;
-  const normalized = normalizeWaveCommandBody(body);
+  const body = await request.clone().json().catch(() => null) as UnifiendCommandBody | null;
+  const normalized = normalizeUnifiendCommandBody(body);
   if (!normalized.ok) {
     return Response.json({
       ok: false,
@@ -378,7 +378,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
     }, { status: normalized.code === "ENVIRONMENT_SCOPE_MISMATCH" ? 409 : 400 });
   }
 
-  const commandPolicy = waveCommandPolicy(normalized.mode);
+  const commandPolicy = unifiendCommandPolicy(normalized.mode);
   const intent = normalized.intent;
   const explicitCapability = normalized.capability;
   const explicitProvider = normalized.provider;
@@ -480,7 +480,7 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
       }
     }
     if (!queued.replayed) {
-      const dispatched = await dispatchWaveCommandConsumer(env, taskId);
+      const dispatched = await dispatchUnifiendCommandConsumer(env, taskId);
       if (!dispatched.ok) {
         await noteDeferredDispatch(db, taskId, dispatched.code);
         return Response.json({
@@ -557,16 +557,16 @@ export default {
       const result = await readCertificateLincenc(env.DB);
       return Response.json(result, { status:result.ok ? 200 : result.http_status, headers:{ "Cache-Control":"private, no-store" } });
     }
-    if (pathname === "/api/wave/command/status") {
+    if (pathname === "/api/unifiend/command/status") {
       return commandConsumerStatus(request, env);
     }
-    if (pathname === "/api/wave/command/claim") {
+    if (pathname === "/api/unifiend/command/claim") {
       return commandConsumerClaim(request, env);
     }
-    if (pathname === "/api/wave/command/result") {
+    if (pathname === "/api/unifiend/command/result") {
       return commandConsumerResult(request, env);
     }
-    if (pathname === "/api/wave/command") {
+    if (pathname === "/api/unifiend/command") {
       return athenaGuardedCommand(request, env, ctx);
     }
     if (pathname.startsWith("/api/connector-endpoint/v1/")) {
@@ -605,7 +605,7 @@ export default {
         }
         return Response.json({ ok: false, code: "NO_SAFE_RUNTIME_PROBE",
           mode, runtime_execution_verified: false,
-          note: "Use mode-specific existing adapter or Runner-1 staged workflow; no arbitrary command execution." },
+          note: "Use mode-specific existing adapter or Ocian-S-Host staged workflow; no arbitrary command execution." },
           { status: 422, headers: { "Cache-Control": "no-store" } });
       }
       if (pathname === "/api/connector-endpoint/v1/status" && request.method === "GET") {
@@ -653,7 +653,7 @@ export default {
           }, { status: 422, headers: { "Cache-Control": "no-store" } });
         }
         const target = new URL(request.url);
-        target.pathname = "/api/wave/command";
+        target.pathname = "/api/unifiend/command";
         const forwarded = new Request(target.toString(), {
           method: "POST", headers: request.headers,
           body: JSON.stringify(connector.delegated),
