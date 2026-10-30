@@ -13,6 +13,9 @@
   "requested_repository_slug": "Inifiend-capability",
   "work_name": "Unified on Progress",
   "work_branch": "Unified-on-Progress",
-  "repository_rename_state": "BLOCKED_OWNER_SIGN_IN",
-  "external_identity_migration_state": "PENDING_PROVIDER_VERIFICATION"
+  "repository_rename_state": "OWNER_AUTHENTICATION_INCOMPLETE",
+  "external_identity_migration_state": "PENDING_PROVIDER_VERIFICATION",
+  "owner_sign_in_authorized": true,
+  "owner_sign_in_authorized_on": "2026-10-31",
+  "owner_authentication_observation": "PASSWORD_SIGN_IN_UNSUPPORTED; GOOGLE_RETURN_DID_NOT_VERIFY_OPERATIONAL_ACCOUNT"
 }
