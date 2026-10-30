@@ -35,8 +35,8 @@ The signed application still has the existing host task without a fresh executio
 | --- | --- |
 | Canonical source | Code commit above; 417 entries independently verified |
 | Personal governing skill | Unifiend Capability Architect saved and independently read back |
-| Linear OWNER-28 | Title updated/read back; check-in appended; append final source/test delta after report save; In Progress |
-| CERT Sheet | New Unifiend checkout view; preserve previous rows/colors; verify new write separately |
+| Linear OWNER-28 | Title, check-in and final delta saved/read back; comment b95252d9-da0e-4a6a-b0f5-1310022859a9; In Progress |
+| CERT Sheet | 05_UNIFIEND_20261030, sheetId 2096474377; all 14x6 values independently read back exactly; previous rows/colors preserved |
 | D1 / ATHENA | Live certificate read only; NO NEW CHECKOUT WRITE or host result receipt |
 | Project-native persistent checkpoint | NO INDEPENDENT WRITE CLAIM |
 | Store | READ ONLY; NO WRITE |
