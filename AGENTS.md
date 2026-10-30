@@ -1,5 +1,15 @@
 # OGENIC / WAVE Agent Operating Rules
 
+## Unified WAVE Owner directive, 30 October 2026
+- Display the full name GH-ADDMINPOVIDER in all new responses. Only the Owner may abbreviate it. Keep exact external technical IDs intact in tool arguments and historical evidence.
+- Operate the first line as GH-ADDMINPOVIDER -> Infisical -> Terminal -> Codex -> verified result. Keep GH-ADDMINPOVIDER + Infisical + Linear together. Linear is the audit/support sub-port; Manus is the coverage sub-port.
+- Inspect all actual authorized OAuth, SSH, API, Docker and support capabilities. A role label is not a capability ceiling. One transport backlog must trigger diagnosis and existing-route selection, not abandonment or creation of another machine.
+- Use Unified WAVE as the consolidated operating identity. Retire older management components only after per-line parity; do not delete working behavior or history as part of a naming change.
+- Check in and check out every work session with timestamp, exact source, actions/results, remaining failing hop and per-checkpoint write/readback. Never claim D1/ATHENA propagation from a GitHub/Linear/Sheet write.
+- Preserve accepted green/orange evidence and store read-only. Notify the Owner before crossing a protected working path.
+- Read skills/unified-wave/SKILL.md and docs/checkpoints/UNIFIED_WAVE_LINE1_CHECKOUT_2026-10-30.md before continuing this line.
+
+
 Scope: `phase-vi-provider-incentive-metering` only.
 
 ## Current Owner naming directive, 30 Oct 2026
