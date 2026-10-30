@@ -2,6 +2,13 @@
 
 Scope: `phase-vi-provider-incentive-metering` only.
 
+## Current Owner naming directive, 30 Oct 2026
+- The exact operational display name is `GH-ADDMINPOVIDER`. Do not shorten it to GH2 or silently substitute a spelling variant.
+- `config/github-provider.json` records the actual GitHub login, numeric IDs, repository, machine and external credential reference separately. A role label does not rename an account, URL, runner or secret.
+- The existing Infisical reference is retained until a real external readback verifies a rename. Do not guess a new secret name or copy secret values.
+- GitHub connector repository metadata on 30 Oct reports `admin: true` for this account's four repositories. Older statements of `write` below describe their historical observation, not the current connector grant. Independently test the credential used for each runtime operation.
+- Historical certificate records and run URLs remain immutable evidence. Current labels must use the new exact spelling.
+
 ## Owner identity correction — requested 26 Oct 2026
 - The retired store principal remains historical owner metadata only; it is not a runtime credential and must not be selected.
 - `Wave-Runner-2` / ID `342175560` / `tomload21@gmail.com` is the sole canonical GitHub provider identity for this route. Its Infisical secret name is **`GH_ADDMINPROVIDER`**. The observed repository permission is `write`; an Admin grant is not implied.

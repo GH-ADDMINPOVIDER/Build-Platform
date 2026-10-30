@@ -1,4 +1,4 @@
-name: OGE-28 Runner-2 owner closeout via local Codex
+name: OGE-28 GH-ADDMINPOVIDER owner closeout via local Codex
 on:
   push:
     branches: [phase-vi-provider-incentive-metering]

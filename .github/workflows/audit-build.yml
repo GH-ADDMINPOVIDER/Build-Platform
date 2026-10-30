@@ -19,6 +19,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Test credential scanner
+        run: python -m unittest discover -s tests -p 'validate_toolkit_secret_scan_test.py' -v
+
       - name: Validate Phase VI toolkit
         run: python scripts/validate_toolkit.py
 

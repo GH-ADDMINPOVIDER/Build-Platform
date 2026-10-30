@@ -1,4 +1,4 @@
-name: OGE-28 GH_ADDMINPROVIDER and GS existing self-host MCP readiness proof
+name: OGE-28 GH-ADDMINPOVIDER and GS existing self-host MCP readiness proof
 on:
   push:
     branches: [phase-vi-provider-incentive-metering]
@@ -120,7 +120,7 @@ jobs:
           fi
           echo "MCP_PROBE_SCOPE=READ_ONLY_NO_INSTALL_NO_TOKEN_OUTPUT"
           echo OGE28_RUNNER2_HOST_CAPABILITY_END
-      - name: Install Copilot CLI user-local only for GH_ADDMINPROVIDER on existing runner
+      - name: Install Copilot CLI user-local only for GH-ADDMINPOVIDER on existing runner
         if: github.actor == 'Wave-Runner-2'
         shell: bash
         run: |

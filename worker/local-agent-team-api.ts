@@ -1,3 +1,4 @@
+import { isGitHubRunEvidence } from "./github-provider";
 import { Hono } from "hono";
 import { hasOwnerSession, hasOwnerOrOpsAccess, type AuthBindings } from "./app-auth";
 import { buildWhiteDiamondRegistry } from "./white-diamond-registry";
@@ -98,7 +99,7 @@ function providerReadiness(env: LocalAgentTeamBindings, proof: ProofRow | null =
   try { receipt = JSON.parse(proof?.external_ref ?? "{}") as Record<string, unknown>; } catch { /* invalid receipt */ }
   const evidenced = claim &&
     /^[a-f0-9]{64}$/.test(String(receipt.result_sha256 ?? "")) &&
-    /^https:\/\/github\.com\/Ogenicchocolate21debug\/Build-Platform\/actions\/runs\/\d+$/.test(String(receipt.evidence_ref ?? ""));
+    isGitHubRunEvidence(receipt.evidence_ref);
   const codexAvailable = Boolean(evidenced && env.DB && env.GITHUB_TOKEN && env.OGENIC_OPS_KEY);
   return PROVIDERS.map(([id, label, keys, execution]) => {
     // Codex runs through the existing signed CLI login on Runner-1, not an API key.

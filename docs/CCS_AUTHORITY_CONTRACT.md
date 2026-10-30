@@ -1,3 +1,5 @@
+> Current naming, 30 Oct 2026: the operational label is `GH-ADDMINPOVIDER`. Exact GitHub account, repository, machine and external secret-reference bindings are in `config/github-provider.json`. Historical observations below retain their original spelling and dates; they are not current permission claims. GitHub connector metadata currently reports repository admin access; runtime PAT grants require their own checks.
+
 # CCS Authority Contract
 
 - Child/effective authority cannot exceed parent provider, capability, permission, environment, expiry or egress scope.

@@ -118,7 +118,7 @@ test("WAVE safe READ smoke uses ordinary file intent, not a blocked credential-l
 test("WAVE staging deploy must preserve GH_ADDMINPROVIDER as the primary GitHub Actions credential", () => {
   const deploy=readFileSync(".github/workflows/provider-incentive-staging-deploy.yml","utf8");
   const script=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
-  const selection=deploy.indexOf('name: Verify GH_ADDMINPROVIDER Actions-write');
+  const selection=deploy.indexOf('name: Verify GH-ADDMINPOVIDER Actions-write');
   const runtime=deploy.indexOf('name: Prepare protected runtime secret bundle');
   const deployment=deploy.indexOf('name: Deploy staging Worker with protected bindings');
   assert.ok(selection > 0 && runtime > selection && deployment > runtime);

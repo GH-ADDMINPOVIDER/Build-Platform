@@ -1,0 +1,536 @@
+{
+  "recorded_at_utc": "2026-10-30T06:50:03.350505+00:00",
+  "operational_label": "GH-ADDMINPOVIDER",
+  "scope": "Every file at each accessible current branch tip in the four repositories owned by Wave-Runner-2. Historical commits, deleted branches and unregistered repositories are not scanned. Repeated blobs are read once and mapped to every branch/path. Binary files are inventoried, not treated as source code.",
+  "repositories": 4,
+  "branch_tips": 77,
+  "file_occurrences": 45864,
+  "text_file_occurrences": 45187,
+  "binary_file_occurrences": 677,
+  "distinct_text_path_versions": 2547,
+  "distinct_binary_blobs": 14,
+  "matching_text_path_versions": 494,
+  "branches": [
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "codex/continue-implementation-for-oge-32-dkxg99",
+      "commit": "c30ef23e5d2ff9ac4707a49230bab7d410aa4c85",
+      "files": 204
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "archive/appdeploy-ogenic-vi-v0.6-2026-09-18",
+      "commit": "54814c6a1b39c4d0a416920164bf8771bae1131a",
+      "files": 166
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "checkpoint/repo-rename-blocker-20261022",
+      "commit": "9fa56d6dc8b263003662bf64752fe7c2243927e2",
+      "files": 56
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "codex/oge-25-register-staging-dispatch",
+      "commit": "521a8c0216dbfb2a26d4f9f1cfdb901123a49d3a",
+      "files": 55
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "checkpoint/stone-check-owner-codex-20261025",
+      "commit": "19b329a3b6cd0ff3086a2723cc607e34e97ba891",
+      "files": 971
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "backup/pre-astra-2026-10-11",
+      "commit": "854d9610b6c879ee43009c5adca171ba5997e1f1",
+      "files": 884
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "codex/oge-25-local-auth",
+      "commit": "39e254eb74b257f75c2f66ae3f3da45b392db15f",
+      "files": 901
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "codex/continue-implementation-for-oge-32",
+      "commit": "6ca38dd44d5bc91c01d8ef723b5d3bc544d88130",
+      "files": 201
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "arch/owner-certificate-maop-20261017",
+      "commit": "063930ee1d21081333fae7739f0bc0748831935a",
+      "files": 925
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "audit/oge28-codex-quota-20261014-1053",
+      "commit": "cbf1a4f4f831dcec8848ca3003dc1812f337ae0c",
+      "files": 917
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "codex/connector-modes-endpoint-20261019",
+      "commit": "08b356ec118ab265154279a92baa4b1d21596713",
+      "files": 928
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "codex/oge-25-38466079874",
+      "commit": "81260962765d9319e039f9a3bf7da266454e0001",
+      "files": 899
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "docs/wave-architecture-guide-20261015",
+      "commit": "5484071e08ed8e224d04dd83d866e7a97bdbd209",
+      "files": 55
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/discord-colored-runtime-alerts-2026-10-11",
+      "commit": "57177858cfedfa23bc68bd10aa5f786145eccd8a",
+      "files": 887
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/hermes-source-pinned-20261024",
+      "commit": "deccfaa493525823e0d5d6985ccd7c92c67367c3",
+      "files": 59
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "docs/wave-mobile-ide-ssh-entry-20261015",
+      "commit": "848367850f01cf0e8c11dfa33ea7bc8d5fc5b89e",
+      "files": 918
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/oge-125-web-cafe-readonly-bridge",
+      "commit": "ec6fa72a3c62d20822eedac4f7fcfa86cae52269",
+      "files": 891
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/ccs-multi-protocol-docker-20261023",
+      "commit": "fa190f3b83c71d6f1b988941211b63ddf5b1857c",
+      "files": 1035
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/tmn-a2a-docker-behind-ssh-20261023",
+      "commit": "908919e1857adf590e49ab4811882c285d051c8a",
+      "files": 983
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/task-envelope-lnwjud-a2a-cp055-056-20261023",
+      "commit": "188f9ba6bd9aecb9da76a3ed7235cfc3dc71520b",
+      "files": 976
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/wave-evidence-execution-policy",
+      "commit": "9ddde9736d1f6d3c480a0d28f4d1b4de4dfd2817",
+      "files": 927
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/gh-addmin-povider-openbot-e2e-20261022",
+      "commit": "e70111226f913ca895f48e3a9b7ceafa976e6a1f",
+      "files": 963
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/openbot-readonly-webhook-20261021",
+      "commit": "44fd18c405a0eaa6e0a20544f504d5d10a2ed030",
+      "files": 961
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/top-news-owner-rss-ui",
+      "commit": "5966454645f9fb95f7cc4ee33792bfa0378913c7",
+      "files": 923
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "codex/oge-124-wave-manus-mcp-bridge",
+      "commit": "f44420a02f221d17edfa301ced96cafa5514e073",
+      "files": 889
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/web-toolkit-ccs-zero-spend",
+      "commit": "34d19b3a4027dca5eb7f95124a4caa65c23048af",
+      "files": 920
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/pstack-curated-diagram-engineering-skills-20261019",
+      "commit": "d7dbaa946e29fec56a9bbd52017fcb568ae8d911",
+      "files": 939
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feature/oge-132-lnwjud-connector-protocol-bridge-20261019",
+      "commit": "b46830d6acafd36f30183f36d2920f12e9baa299",
+      "files": 950
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/web-cafe-readonly-bridge",
+      "commit": "e49c4e32abb01a8a859ed49c9bb19629e7825396",
+      "files": 921
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feature/oge-agent-relay-collision-lab",
+      "commit": "93a85156e098777d155848a5b6d9a7a4cf24f08f",
+      "files": 903
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/2a-discovery-intake-catalog",
+      "commit": "269acaa3ff0409412428fe037682bad7782d8de0",
+      "files": 896
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feature/oge-131-connector-endpoint-functions-20261019",
+      "commit": "a7d3fd6b4f058de3b9a4a5521a1122dd544cbfad",
+      "files": 942
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feat/wave-native-agent-fabric-wf001-wf005-20261022",
+      "commit": "085bb75a8d686cc0d75c3fbe4eed2453d5289119",
+      "files": 972
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feature/oge-athena-mcp-plugin",
+      "commit": "36baba221a1fd3dbbcef8c5f6c56b74febfecbac",
+      "files": 898
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feature/wave-policy-security-verification-20261019",
+      "commit": "bd55688c9b14c0357b505ce67b8696945d5b1415",
+      "files": 943
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/athena-tool-loop-synthesis-20261020",
+      "commit": "32fd75a04397ccf708d5d457ed42bf86402f901c",
+      "files": 939
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/gh2-command-consumer-canonical-20261028",
+      "commit": "bada9c4548368327db67647e6993ac9763632429",
+      "files": 55
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/athena-tool-loop-finalize-2026-10-11",
+      "commit": "48615a773e6997e4af886da69c27d84d3db90d24",
+      "files": 884
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/gh2-codex-cli-current-flags-20261026",
+      "commit": "48d46fee323f0ed6c60caf6874b7d39ebe606cfd",
+      "files": 58
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "main",
+      "commit": "b8a6fe2711917099cc073e680a7e2c84419be1b3",
+      "files": 55
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/cp057-gh2-selfhost-codex-20261024",
+      "commit": "c10c26df46d68ee407ed71127bc01da28c48277a",
+      "files": 969
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/gh2-provider-codex-ocean-route-20261023",
+      "commit": "497a86491b51e4e1268ee1796f2088ccd63ec040",
+      "files": 988
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "feature/wave-liquid-glass-command-ux-20261018",
+      "commit": "fd4c3ae87cff21078dc3f2c2d4b91580ab1f410e",
+      "files": 941
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/gh-addminprovider-command-plane-20261028",
+      "commit": "4176c071da4a4b9a9514f32210ac519df4bc0369",
+      "files": 977
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/phase-vi-d1-rag-quota-gate-2026-09-19",
+      "commit": "5245cc89dfbb0b50e5bd425cfb6e871867d1472c",
+      "files": 153
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "phase-vi-provider-incentive-metering",
+      "commit": "9a9fe23eccd590a34481687e9c956e1cdd82cc2b",
+      "files": 975
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/oge-28-provider-recovery",
+      "commit": "c0b001ec8048d81422687cfd3e62c62591c153b6",
+      "files": 55
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "oge-32-pr-10",
+      "commit": "645323cb24af8df95f6c8fef31b895a4ac4cade1",
+      "files": 201
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/tmn-docker-cach-security-20261023",
+      "commit": "7ff370416f001a8c75b3e72ec7e994c1f633162a",
+      "files": 61
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "gh2/primary-sync-20261026",
+      "commit": "d0d5f15e2d04e04837e2f06f559d1fe9629c9c29",
+      "files": 975
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "ogenic-god-toolkit-v1.3.0",
+      "commit": "dc14dd078b5e9f9c1b160c8530166eb34487167d",
+      "files": 45
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/gh-admin-openbot-runtime-e2e-20261022",
+      "commit": "6bfe0d0ff6af5f657faf663b99a2135d1b2a0675",
+      "files": 963
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/owner-terminal-runtime-20261017",
+      "commit": "e981120246d56d0e2f3eb662fc7ea00e768ff517",
+      "files": 925
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "phase-vi-1lss-plugin-writer",
+      "commit": "396a4a2885e49b52b5774143824416d0e4bad05f",
+      "files": 57
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "phase-vi-unified-cloudflare",
+      "commit": "bd6229f839ac515cc4b762db8011d07eb6a9ac9b",
+      "files": 51
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "fix/stone-command-mode-wire-20261025",
+      "commit": "a808d20ec9ffcc07e17843b96eeccccce1634047",
+      "files": 991
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "phase-vi-provider-incentive-ui",
+      "commit": "cd48f8636e7f3e0eadf987c624dfcd4113b2237d",
+      "files": 62
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "phase-vi-workflow-engine-v0.1",
+      "commit": "dca9aa27cec3b8be8246cd25c6e66ea60956aac5",
+      "files": 59
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "task/gh2-build-platform-mirror-20261021",
+      "commit": "93d25a370f2809b739891d369c745d2485722d6a",
+      "files": 969
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "task/oge-128-runtime-certificate-20261018",
+      "commit": "6576035b2f3486ec9234ddc34f38b21b26e72a18",
+      "files": 948
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "task/oge-129-register-wave-command-consumer-20261019",
+      "commit": "7c0b8e7289211603c55e0cfcd60b8adde24d6c6e",
+      "files": 55
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "owner/oge-130-gh1-rescue-20261025",
+      "commit": "866ddbdf783d3812637231b051770fbddd64e2c9",
+      "files": 969
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "task/oge-owner-final-authority-20261020",
+      "commit": "4b5cc94d5f4cb62f76efd7158414b418720b850e",
+      "files": 958
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "ogenic-runtime-health-v1.3.1",
+      "commit": "377f03fad59d240e82a25431a99afdde465311b5",
+      "files": 45
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "tawatchaisamornrum11/oge-113-wave-file-handoff-loop-mcp-status-gate-r2-multipart-agent-retrieval",
+      "commit": "a9c1558755019af4640dada23363d4b52f8a539a",
+      "files": 882
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "vercel/install-vercel-web-analytics-i2nztj",
+      "commit": "105f2abff3a3c56e0dda6ab8b64e5ff960fff1b6",
+      "files": 54
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "vercel/install-and-configure-vercel-s-uatdr7",
+      "commit": "574d866e088306c64cea3b5182e0edc14fd807c4",
+      "files": 54
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "verify/oge-84-canonical-20261008",
+      "commit": "9bf1d541779a5e6a9c85afaac98f417c6b0c2ca1",
+      "files": 433
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "wave-next-chat-panel-exec",
+      "commit": "eca3b0ca44736f812b1f8c5a7dde06e84ed036a1",
+      "files": 204
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "test/owner-report-40-images-docker-roundtrip-20261023",
+      "commit": "7bd1119b763b2f814221f842c04632b5b5bf2bd7",
+      "files": 987
+    },
+    {
+      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "ui-neural-harness-preview",
+      "commit": "b55b5855360371e9732f06217914c37281040b70",
+      "files": 149
+    },
+    {
+      "repository": "Wave-Runner-2/GH_ADDMIN_POVIDER",
+      "branch": "checkpoint/actions-runner-proof-20261022",
+      "commit": "d1da9a9048a51a334c0b6de159dd4f960c8f8bc8",
+      "files": 37
+    },
+    {
+      "repository": "Wave-Runner-2/GH_ADDMIN_POVIDER",
+      "branch": "checkpoint/gh-admin-provider-proof-20261022-1700",
+      "commit": "1750cc8970787733ee13f480e03dd928bb30a5c1",
+      "files": 34
+    },
+    {
+      "repository": "Wave-Runner-2/GH_ADDMIN_POVIDER",
+      "branch": "checkpoint/pre-rename-gh-addmin-povider-20261022",
+      "commit": "af89b5bd66d66c6c34a0f2fff99ac0c0d993b1f1",
+      "files": 35
+    },
+    {
+      "repository": "Wave-Runner-2/GH_ADDMIN_POVIDER",
+      "branch": "main",
+      "commit": "ae96d501e37fd42c5cf74569f2efc41f885c8baf",
+      "files": 35
+    },
+    {
+      "repository": "Wave-Runner-2/security-audit-skill",
+      "branch": "main",
+      "commit": "c1c8a8c1471069fb0e188eeaff69b8e8db6564a8",
+      "files": 22
+    },
+    {
+      "repository": "Wave-Runner-2/slack-gh-1",
+      "branch": "main",
+      "commit": "732820b380e99b9ad02e4724a1c22f98c24f4f63",
+      "files": 697
+    }
+  ],
+  "text_reads_unavailable": [],
+  "binary_blobs": [
+    {
+      "sha": "b71901d0ba32cc1f7952f24012bb3e026a9dd5f3",
+      "example_path": "public/assets/ogenic-ai-ops.webp"
+    },
+    {
+      "sha": "9f739e9ef27bbf2b9e4db176fdc148b3eec14979",
+      "example_path": "public/assets/wave-logo.webp"
+    },
+    {
+      "sha": "dc33a32c069f913b0529ecc488cdaebcb93e0104",
+      "example_path": "public/assets/wave-bg-desktop.webp"
+    },
+    {
+      "sha": "173cc1b5a5899866b7b87f6c3c2f82eee2776727",
+      "example_path": "public/assets/wave-bg-mobile.webp"
+    },
+    {
+      "sha": "5484afb0d21ff1bf8221e9e8fc683fea079d0f1c",
+      "example_path": "public/ogenic-icon-192.png"
+    },
+    {
+      "sha": "6fb51af5005b1132b580fc90dab0bd51893f26b3",
+      "example_path": "public/ogenic-icon-180.png"
+    },
+    {
+      "sha": "7529098078e55befb757c50f5645e809bb654c4c",
+      "example_path": "public/ogenic-icon-512.png"
+    },
+    {
+      "sha": "3754e87cb0e1362f17428bc84c661166ee145156",
+      "example_path": "third_party/pstack-portable/assets/logo.png"
+    },
+    {
+      "sha": "c8fba6a266505caf406d5185d7a4cc6e34be98a4",
+      "example_path": "third_party/pstack-portable/docs/guide/images/router.jpg"
+    },
+    {
+      "sha": "d64e1c63066c9f088da909160f5e136049e9a512",
+      "example_path": "third_party/pstack-portable/docs/guide/images/overnight.jpg"
+    },
+    {
+      "sha": "69fe992fdb9fb8e7baacc144ea140f9c93b262fb",
+      "example_path": "third_party/pstack-portable/docs/guide/images/recipes.jpg"
+    },
+    {
+      "sha": "bb1b1ac15dd11da9ad047d203049a1a24abb2b46",
+      "example_path": "third_party/pstack-portable/docs/guide/images/understanding.jpg"
+    },
+    {
+      "sha": "a252ae0b5e14cb6fcef2e3b806bbd66316242446",
+      "example_path": "third_party/pstack-portable/docs/guide/images/verification.jpg"
+    },
+    {
+      "sha": "f86909437f8b5a83da3cba7bc35a018c9d4887c8",
+      "example_path": "third_party/pstack-portable/docs/guide/images/design.jpg"
+    }
+  ]
+}

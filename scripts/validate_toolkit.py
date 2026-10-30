@@ -1,9 +1,11 @@
+import ast
 import json
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SELF = Path(__file__).resolve()
+EXCLUDED_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__"}
 
 SECRET_ASSIGNMENT = re.compile(
     r"(?im)^\s*([A-Za-z0-9_.-]*(?:api[_-]?key|token|password|private[_-]?key)[A-Za-z0-9_.-]*)\s*[:=]\s*(.+?)\s*$"
@@ -79,7 +81,35 @@ def is_non_secret_token_metric(key: str) -> bool:
     return compact.endswith(safe_suffixes)
 
 
+def is_binding_name(value: object) -> bool:
+    return isinstance(value, str) and re.fullmatch(
+        r"[A-Z][A-Z0-9_]*_(?:TOKEN|API_KEY|SECRET|MACHINE_IDENTITY|PROJECT_ID|ENVIRONMENT)",
+        value,
+    ) is not None
+
+
+def is_environment_reference(key: str, value: str) -> bool:
+    if not key.endswith("_env"):
+        return False
+    try:
+        return is_binding_name(ast.literal_eval(value.strip().rstrip(",")))
+    except (ValueError, SyntaxError):
+        return False
+
+
 def looks_like_plaintext_secret(value: str) -> bool:
+    # Connector registries contain lists of environment binding names, not values.
+    # Only accept literal lists whose every entry has a recognized binding suffix.
+    try:
+        references = ast.literal_eval(value.strip().rstrip(","))
+    except (ValueError, SyntaxError):
+        references = None
+    if isinstance(references, (list, tuple)) and references and all(
+        is_binding_name(item)
+        for item in references
+    ):
+        return False
+
     cleaned = value.strip().rstrip(",").strip().strip('"').strip("'").strip()
     lowered = cleaned.lower()
     shell_var_ref = re.search(r"\$(?:\{?[A-Za-z_][A-Za-z0-9_]*\}?)", cleaned)
@@ -152,6 +182,8 @@ def main() -> None:
 
     scanned_suffixes = {".md", ".json", ".jsonc", ".yaml", ".yml", ".py", ".sh", ".ts", ".tsx", ".sql"}
     for path in ROOT.rglob("*"):
+        if EXCLUDED_DIRS.intersection(path.relative_to(ROOT).parts):
+            continue
         if not path.is_file() or path.resolve() == SELF:
             continue
         if path.suffix.lower() not in scanned_suffixes:
@@ -164,6 +196,8 @@ def main() -> None:
             key, value = match.groups()
             normalized_key = key.lower().replace("-", "_")
             leaf_key = normalized_key.rsplit(".", 1)[-1]
+            if is_environment_reference(leaf_key, value):
+                continue
             if leaf_key in NON_SECRET_TOKEN_KEYS or is_non_secret_token_metric(leaf_key):
                 continue
             compact_key = re.sub(r"[^a-z0-9]", "", leaf_key)

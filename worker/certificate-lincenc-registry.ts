@@ -1,3 +1,4 @@
+import { GITHUB_PROVIDER_LABEL } from "./github-provider";
 import type { ConnectorD1 } from "./connector-runtime";
 
 // Owner evidence reader: one original OGE-128 record, stored in existing staging D1.
@@ -68,14 +69,14 @@ export async function readCertificateLincenc(db: ConnectorD1 | undefined) {
       plugins:{total:entries.length,historical_verified_read_api:historicalVerified,entries,current_execution_scope_unverified:true},
       owner_identity_labels:{
         github_first:{label:limited(gh1.owner_label),role:limited(gh1.runtime_role),github_login:limited(gh1.connected_github_login),repo_permission_at_evidence_time:limited(gh1.repo_permission_verified),owner_scope_note:limited(gh1.oauth_or_connector_scope_completeness)},
-        github_addminprovider:{label:limited(ghAddminprovider.owner_label),role:limited(ghAddminprovider.runtime_role),github_login:limited(ghAddminprovider.connected_github_login),repo_permission_at_evidence_time:limited(ghAddminprovider.repo_permission_verified),owner_scope_note:limited(ghAddminprovider.oauth_or_connector_scope_owner_setting),oauth_scope_live_verified:false},
+        github_addminprovider:{label:GITHUB_PROVIDER_LABEL,role:limited(ghAddminprovider.runtime_role),github_login:limited(ghAddminprovider.connected_github_login),repo_permission_at_evidence_time:limited(ghAddminprovider.repo_permission_verified),owner_scope_note:limited(ghAddminprovider.oauth_or_connector_scope_owner_setting),oauth_scope_live_verified:false},
         codex_gs:{identity:limited(gs.canonical_identity),profile:limited(gs.runtime_profile),current_execution_verified:false},
         codex_ts:{identity:limited(ts.canonical_identity),profile:limited(ts.historical_original_profile),historical_execution_proof:limited(ts.historical_execution_proof),historical_execution_result:limited(ts.historical_result),current_execution_verified:false},
       },
       identity_migration_20261026:{
         status:"PENDING_EXTERNAL_VERIFICATION",
         retired_store_principal:{email:"tawatchaisamornrum11@gmail.com",github_login:"Ogenicchocolate21debug",github_id:306097555,dispatch_eligible:false},
-        github_addminprovider:{email:"tomload21@gmail.com",github_login:"Wave-Runner-2",github_id:342175560,display_label:"GH_ADDMINPROVIDER",machine_reference:"GH_ADDMINPROVIDER",requested_role:"Admin",observed_repository_permission:"write",admin_verified:false,actions_write_verified:false},
+        github_addminprovider:{email:"tomload21@gmail.com",github_login:"Wave-Runner-2",github_id:342175560,display_label:GITHUB_PROVIDER_LABEL,machine_reference:"SELF_HOST_MACHINE",requested_role:"Admin",observed_repository_permission:"write",admin_verified:false,actions_write_verified:false},
         infisical_live_readback:false,
         d1_write_performed:false,
       },

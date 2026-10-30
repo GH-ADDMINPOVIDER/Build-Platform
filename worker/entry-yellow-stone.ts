@@ -1,3 +1,4 @@
+import { isGitHubRunEvidence } from "./github-provider";
 import base from "./entry-connectors";
 import {
   createCapabilityResolverApi,
@@ -187,8 +188,7 @@ async function commandConsumerStatus(request: Request, env: Bindings) {
   const evidence = {
     result_sha256: /^[a-f0-9]{64}$/.test(resultSha) ? resultSha : null,
     git_sha: /^[a-f0-9]{40}$/.test(gitSha) ? gitSha : null,
-    evidence_ref: typeof metadata.evidence_ref === "string"
-      && /^https:\/\/github\.com\/Ogenicchocolate21debug\/Build-Platform\/actions\/runs\/\d+$/.test(metadata.evidence_ref)
+    evidence_ref: isGitHubRunEvidence(metadata.evidence_ref)
       ? metadata.evidence_ref : null,
   };
   const proven = Boolean(task.status === "DONE" && receipt?.event_type === "COMMAND_RESULT_DONE"

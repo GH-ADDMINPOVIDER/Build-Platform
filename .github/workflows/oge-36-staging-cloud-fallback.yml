@@ -58,7 +58,7 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Verify GH_ADDMINPROVIDER Actions-write and export protected staging runtime binding
+      - name: Verify GH-ADDMINPOVIDER Actions-write and export protected staging runtime binding
         # Reuse OGE-34 on wave-runner-01; fail closed on canonical auth errors.
         shell: bash
         env:

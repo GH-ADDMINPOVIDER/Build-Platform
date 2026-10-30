@@ -196,7 +196,7 @@ jobs:
           report("verified", f"Bot username: {username}; bot ID: {bot_id}.")
           PY
 
-      - name: Verify GH_ADDMINPROVIDER Actions-write and export protected staging runtime binding
+      - name: Verify GH-ADDMINPOVIDER Actions-write and export protected staging runtime binding
         # Uses existing Infisical staging OIDC from the previous steps.
         # Rejects retired store fallback, incorrect principal, missing branch and
         # Actions 403 before deploying. No new PAT, secret or gateway.
