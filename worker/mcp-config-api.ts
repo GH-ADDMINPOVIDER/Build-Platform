@@ -1,3 +1,4 @@
+import { GITHUB_PROVIDER_LOGIN } from "./github-provider";
 import { Hono } from "hono";
 import { hasOwnerOrOpsAccess, hasOwnerSession, type AuthBindings } from "./app-auth";
 
@@ -321,7 +322,7 @@ export function createMcpConfigApi() {
         }
         const result = await jsonRpc(endpoint, "tools/call", {
           name: "get_file_contents",
-          arguments: { owner: "Ogenicchocolate21debug", repo: "Build-Platform",
+          arguments: { owner: GITHUB_PROVIDER_LOGIN, repo: "Build-Platform",
             path: "README.md", ref: "refs/heads/phase-vi-provider-incentive-metering" },
         }, 3, token, initialized.sessionId);
         const body = result.body.result && typeof result.body.result === "object"
