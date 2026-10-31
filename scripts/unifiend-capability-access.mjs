@@ -7,7 +7,7 @@ const PRINCIPAL_ID = 342175560;
 const BRANCH = "refs/heads/Unified-on-Progress";
 const INFISICAL = "https://app.infisical.com";
 const PROJECT_ID = "e8cfba67-ea99-4d79-bc9f-87b862f9129c";
-const REFERENCES = ["GH_ADDMINPROVIDER", "GH-ADDMINPROVIDER-FINE_GRAINED"];
+const REFERENCES = ["GH_ADDMINPROVIDER", "GH_ADDMINPROVIDER-FINE_GRAINED"];
 
 class ProbeFailure extends Error {
   constructor(stage, code, status = null) {
