@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspectHostAccess } from "./unifiend-host-access.mjs";
 import { reconcileCanonicalCheckpoint } from "./unifiend-checkpoint-access.mjs";
+import { cancelUnstartedMigrationChecks } from "./unifiend-probe-cleanup.mjs";
 
 const REPOSITORY_ID = 1429580446;
 const PRINCIPAL_ID = 342175560;
@@ -157,6 +158,10 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
         probe.repository_admin = repo.permissions?.admin === true;
         // A role flag does not establish Administration-write token permission.
         probe.administration_write = "NOT_TESTED";
+        if (env.UNIFIEND_CLEANUP_MIGRATION_CHECKS === "true") {
+          report.check_cleanup = await cancelUnstartedMigrationChecks({ request, headers, sourceSha: env.GITHUB_SHA, currentRunId: env.GITHUB_RUN_ID });
+          report.operations = "READ_AND_UNSTARTED_MIGRATION_CHECK_CLEANUP";
+        }
         try {
           const machines = await jsonRequest(request, "host_registration", `https://api.github.com/repos/${repo.full_name}/actions/runners`, { headers });
           const existing = machines.runners?.filter(m => m.name === "wave-runner-01") || [];
