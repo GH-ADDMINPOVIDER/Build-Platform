@@ -15,6 +15,8 @@ on:
       - tests/unifiend-host-access.test.mjs
       - tests/unifiend-checkpoint-access.test.mjs
       - tests/unifiend-probe-cleanup.test.mjs
+      - scripts/unifiend-console-status.sh
+      - tests/unifiend-console-status.test.mjs
   workflow_dispatch:
 
 permissions:
@@ -38,7 +40,7 @@ jobs:
         with:
           node-version: 24
       - name: Verify access and checkpoint boundaries
-        run: node --test tests/unifiend-capability-access.test.mjs tests/unifiend-host-access.test.mjs tests/unifiend-checkpoint-access.test.mjs tests/unifiend-probe-cleanup.test.mjs
+        run: node --test tests/unifiend-capability-access.test.mjs tests/unifiend-host-access.test.mjs tests/unifiend-checkpoint-access.test.mjs tests/unifiend-probe-cleanup.test.mjs tests/unifiend-console-status.test.mjs
       - name: Inspect the existing capability binding
         env:
           INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
