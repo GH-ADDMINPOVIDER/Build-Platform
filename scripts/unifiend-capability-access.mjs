@@ -5,6 +5,7 @@ import { inspectHostAccess } from "./unifiend-host-access.mjs";
 import { reconcileCanonicalCheckpoint } from "./unifiend-checkpoint-access.mjs";
 import { cancelUnstartedMigrationChecks } from "./unifiend-probe-cleanup.mjs";
 import { createHash } from "node:crypto";
+import { inspectSavedTools } from "./unifiend-saved-tools.mjs";
 
 const REPOSITORY_ID = 1429580446;
 const PRINCIPAL_ID = 342175560;
@@ -72,6 +73,7 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
     ok: false,
     connection_references: [],
     credential_probes: [],
+    opencode_package_check: ["success", "failure", "skipped"].includes(env.UNIFIEND_OPENCODE_PACKAGE_CHECK) ? env.UNIFIEND_OPENCODE_PACKAGE_CHECK : "NOT_TESTED",
   };
   try {
     if (env.GITHUB_ACTIONS !== "true" || env.GITHUB_REPOSITORY_ID !== String(REPOSITORY_ID)
@@ -160,14 +162,20 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
         // A role flag does not establish Administration-write token permission.
         probe.administration_write = "NOT_TESTED";
         if (env.UNIFIEND_VERIFY_CONSOLE_SOURCE === "true") {
+          report.console_sources = [];
+          for (const path of ["scripts/unifiend-host-binding.py", "scripts/unifiend-host-cutover.py", "scripts/unifiend-codex-plan.py", "scripts/unifiend-host-tools.py"]) {
           try {
-            const path = "scripts/unifiend-host-binding.py";
             const source = await jsonRequest(request, "console_source", `https://api.github.com/repos/${repo.full_name}/contents/${path}?ref=${env.GITHUB_SHA}`, { headers });
             const bytes = Buffer.from(source.content || "", "base64");
-            const expected = readFileSync(new URL("../scripts/unifiend-host-binding.py", import.meta.url));
+            const expected = readFileSync(new URL("../" + path, import.meta.url));
             if (source.type !== "file" || source.path !== path || !bytes.equals(expected)) throw new ProbeFailure("console_source", "PINNED_SOURCE_MISMATCH");
-            report.console_source = { state: "VERIFIED_READ", path, sha256: createHash("sha256").update(bytes).digest("hex") };
-          } catch (error) { report.console_source = { state: "READ_UNAVAILABLE", ...publicFailure(error) }; }
+            report.console_sources.push({ state: "VERIFIED_READ", path, sha256: createHash("sha256").update(bytes).digest("hex") });
+          } catch (error) { report.console_sources.push({ state: "READ_UNAVAILABLE", path, ...publicFailure(error) }); }
+          }
+          report.console_source = report.console_sources[0];
+        }
+        if (env.UNIFIEND_INSPECT_SAVED_TOOLS === "true") {
+          report.saved_tools = await inspectSavedTools({ request, headers });
         }
         if (env.UNIFIEND_CLEANUP_MIGRATION_CHECKS === "true") {
           report.check_cleanup = await cancelUnstartedMigrationChecks({ request, headers, sourceSha: env.GITHUB_SHA, currentRunId: env.GITHUB_RUN_ID });

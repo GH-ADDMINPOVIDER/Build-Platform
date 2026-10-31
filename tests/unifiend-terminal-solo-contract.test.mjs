@@ -37,7 +37,7 @@ test("ATHENA and Yellow Stone accept signed Owner Session without second confirm
 test("terminal solo wrapper is a host-stable lock and executes only approved consumer",()=>{
   const shell=read("scripts/unifiend-terminal-solo.sh");
   const workflow=read(".github/workflows/unifiend-command-consumer.yml");
-  assert.match(shell,/wave-runner-01/);
+  assert.match(shell,/Ocian-S-Host/);
   assert.match(shell,/Unified-on-Progress/);
   assert.match(shell,/UNIFIEND_TASK_ID/);
   assert.match(shell,/^lock="\$\{HOME:\?\}\/\.ogenic-unifiend-terminal-solo\.lock"/m);
@@ -46,7 +46,7 @@ test("terminal solo wrapper is a host-stable lock and executes only approved con
   assert.doesNotMatch(shell, /exec\s+(?:opencode|code-server)/);
   assert.doesNotMatch(shell, /agent.*registry.*register/i);
   assert.match(workflow,/bash scripts\/unifiend-terminal-solo\.sh/);
-  assert.match(workflow,/runs-on: \[self-hosted, linux, x64, wave\]/);
+  assert.match(workflow,/runs-on: \[unifiend-capability\]/);
   assert.match(workflow,/Infisical\/secrets-action/);
   assert.match(workflow,/cancel-in-progress: false/);
   assert.match(workflow,/env:\n\s+UNIFIEND_TASK_ID: \$\{\{ inputs\.task_id \}\}/);

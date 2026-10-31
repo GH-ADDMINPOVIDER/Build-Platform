@@ -6,13 +6,13 @@
 set -euo pipefail
 umask 077
 
-if [[ "${RUNNER_NAME:-}" != "wave-runner-01" ]]; then
-  echo "TERMINAL_SOLO_DENIED_RUNNER" >&2; exit 78
+if [[ "${RUNNER_NAME:-}" != "Ocian-S-Host" ]]; then
+  echo "TERMINAL_SOLO_DENIED_HOST" >&2; exit 78
 fi
 if [[ "${GITHUB_REF_NAME:-}" != "Unified-on-Progress" ]]; then
   echo "TERMINAL_SOLO_DENIED_ENVIRONMENT" >&2; exit 78
 fi
-if [[ "${GITHUB_REPOSITORY:-}" != "Wave-Runner-2/Build-Platform" ]]; then
+if [[ "${GITHUB_REPOSITORY_ID:-}" != "1429580446" || "${GITHUB_REPOSITORY_OWNER_ID:-}" != "342175560" ]]; then
   echo "TERMINAL_SOLO_DENIED_REPOSITORY" >&2; exit 78
 fi
 if [[ ! "${UNIFIEND_TASK_ID:-}" =~ ^wavecmd_[a-f0-9]{64}$ ]]; then

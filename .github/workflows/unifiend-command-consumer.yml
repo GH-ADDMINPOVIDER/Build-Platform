@@ -27,8 +27,8 @@ env:
 
 jobs:
   consume:
-    if: github.ref_name == 'Unified-on-Progress'
-    runs-on: [self-hosted, linux, x64, wave]
+    if: github.ref_name == 'Unified-on-Progress' && github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: [unifiend-capability]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
           set -euo pipefail
           [[ "$UNIFIEND_TASK_ID" =~ ^wavecmd_[a-f0-9]{64}$ ]]
           test "$(git branch --show-current)" = "Unified-on-Progress"
-          test "$(hostname)" = "wave-runner-01"
+          test "$RUNNER_NAME" = "Ocian-S-Host"
 
       - name: Discover Infisical project
         id: infisical_project
