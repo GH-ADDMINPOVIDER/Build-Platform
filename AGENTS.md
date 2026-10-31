@@ -6,6 +6,8 @@ Use the existing operational principal with Infisical and Linear. Follow Termina
 Preserve accepted green/orange history and store as read-only. Immutable receipts and provider-reserved syntax retain truthful originals. External repository/account/secret/registration changes are pending until authenticated provider readback; never manufacture a completed rename in configuration.
 Continue independent authorized work at an actual provider/auth boundary. Record checkout truthfully in source, Linear, CERT/Sheet and D1/ATHENA where actually reachable; never substitute a local note for D1 persistence.
 
+Current verified checkout, 31 October 2026, supersedes historical credential/grant observations below. Read `docs/checkpoints/UNIFIEND_CAPABILITY_CHECKOUT_2026-10-31.md`. Existing Infisical OIDC and reference `GH_ADDMINPROVIDER-FINE_GRAINED` verify operational principal 342175560 and repository 1429580446. This corrects a reference mismatch; no secret was renamed or copied. Administration-write passed unchanged-name PATCH and independent readback. ATHENA and the original-task D1 checkpoint were verified, with original certificate integrity preserved. Do not repeat browser/profile login for this working API route. Ocian-S-Host still requires a verified server pin and an authorized unlock path for the existing encrypted key. Actual repository rename and host execution remain incomplete; no production activation is authorized by this checkout.
+
 # OGENIC / Unifiend Agent Operating Rules
 
 Scope: `Unified-on-Progress` only.
