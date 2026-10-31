@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspectHostAccess } from "./unifiend-host-access.mjs";
+import { reconcileCanonicalCheckpoint } from "./unifiend-checkpoint-access.mjs";
 
 const REPOSITORY_ID = 1429580446;
 const PRINCIPAL_ID = 342175560;
@@ -173,19 +174,26 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
       } catch (error) { probe.state = "BLOCKED"; probe.failure = publicFailure(error); }
     }
     report.ok = report.credential_probes.some(p => p.state === "VERIFIED_READ");
+    const resolveSecret = async (reference) => {
+      const matches = secrets.filter(s => s.secretKey === reference);
+      if (matches.length !== 1) throw new ProbeFailure("secret_reference", "EXACT_REFERENCE_REQUIRED");
+      const parameters = new URLSearchParams({ projectId: PROJECT_ID, environment: "staging", secretPath: matches[0].secretPath || "/",
+        type: "shared", viewSecretValue: "true", expandSecretReferences: "false" });
+      const resolved = await jsonRequest(request, "secret_reference", `${INFISICAL}/api/v4/secrets/${reference}?${parameters}`, { headers: infisicalHeaders });
+      return resolved.secret?.secretValue;
+    };
     if (env.UNIFIEND_INSPECT_HOST === "true") {
       try {
         const values = {};
         for (const reference of ["SSH_FINGER_PRINT_KEY", "SSH_PUBLIC_KEY", "SSH_PRIVATE_KEY"]) {
-          const matches = secrets.filter(s => s.secretKey === reference);
-          if (matches.length !== 1) throw new ProbeFailure("host_reference", "EXACT_HOST_REFERENCE_REQUIRED");
-          const parameters = new URLSearchParams({ projectId: PROJECT_ID, environment: "staging", secretPath: matches[0].secretPath || "/",
-            type: "shared", viewSecretValue: "true", expandSecretReferences: "false" });
-          const resolved = await jsonRequest(request, "host_reference", `${INFISICAL}/api/v4/secrets/${reference}?${parameters}`, { headers: infisicalHeaders });
-          values[reference] = resolved.secret?.secretValue;
+          values[reference] = await resolveSecret(reference);
         }
         report.host_access = inspectHostAccess({ saved: values.SSH_FINGER_PRINT_KEY, publicValue: values.SSH_PUBLIC_KEY, privateValue: values.SSH_PRIVATE_KEY });
       } catch (error) { report.host_access = { state: "BLOCKED", ...publicFailure(error) }; }
+    }
+    if (report.ok && env.UNIFIEND_RECORD_CHECKPOINT === "true") {
+      report.operations = "READ_AND_EXISTING_TASK_CHECKPOINT";
+      report.canonical_checkpoint = await reconcileCanonicalCheckpoint({ resolveSecret, request, evidence: report, runId: env.GITHUB_RUN_ID });
     }
   } catch (error) { report.failure = publicFailure(error); }
   return report;

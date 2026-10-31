@@ -7,6 +7,7 @@ on:
       - .github/workflows/unifiend-capability-access.yml
       - scripts/unifiend-capability-access.mjs
       - scripts/unifiend-host-access.mjs
+      - scripts/unifiend-checkpoint-access.mjs
   workflow_dispatch:
 
 permissions:
@@ -35,6 +36,7 @@ jobs:
           INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
           UNIFIEND_VERIFY_ADMIN_WRITE: 'false'
           UNIFIEND_INSPECT_HOST: 'true'
+          UNIFIEND_RECORD_CHECKPOINT: 'true'
         run: node scripts/unifiend-capability-access.mjs
       - name: Retain sanitized access result
         if: always()
