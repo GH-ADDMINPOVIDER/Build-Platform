@@ -9,7 +9,7 @@ const PRINCIPAL_ID = 342175560;
 const BRANCH = "refs/heads/Unified-on-Progress";
 const INFISICAL = "https://app.infisical.com";
 const PROJECT_ID = "e8cfba67-ea99-4d79-bc9f-87b862f9129c";
-const REFERENCES = ["GH_ADDMINPROVIDER", "GH_ADDMINPROVIDER-FINE_GRAINED"];
+const REFERENCES = ["GH_ADDMINPROVIDER-FINE_GRAINED"];
 
 class ProbeFailure extends Error {
   constructor(stage, code, status = null) {
@@ -157,6 +157,12 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
         probe.repository_admin = repo.permissions?.admin === true;
         // A role flag does not establish Administration-write token permission.
         probe.administration_write = "NOT_TESTED";
+        try {
+          const machines = await jsonRequest(request, "host_registration", `https://api.github.com/repos/${repo.full_name}/actions/runners`, { headers });
+          const existing = machines.runners?.filter(m => m.name === "wave-runner-01") || [];
+          report.host_registration = { matching_count: existing.length, machines: existing.map(m => ({ id: m.id,
+            status: ["online", "offline"].includes(m.status) ? m.status : "UNKNOWN", busy: m.busy === true })) };
+        } catch (error) { report.host_registration = { state: "READ_UNAVAILABLE", ...publicFailure(error) }; }
         if (env.UNIFIEND_VERIFY_ADMIN_WRITE === "true") {
           report.operations = "READ_AND_UNCHANGED_NAME_ADMIN_PROBE";
           if (repo.full_name !== "Wave-Runner-2/Build-Platform" || repo.name !== "Build-Platform") {

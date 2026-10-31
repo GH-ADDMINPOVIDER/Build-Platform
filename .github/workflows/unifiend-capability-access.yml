@@ -8,6 +8,10 @@ on:
       - scripts/unifiend-capability-access.mjs
       - scripts/unifiend-host-access.mjs
       - scripts/unifiend-checkpoint-access.mjs
+      - config/github-provider.json
+      - tests/unifiend-capability-access.test.mjs
+      - tests/unifiend-host-access.test.mjs
+      - tests/unifiend-checkpoint-access.test.mjs
   workflow_dispatch:
 
 permissions:
@@ -30,6 +34,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Verify access and checkpoint boundaries
+        run: node --test tests/unifiend-capability-access.test.mjs tests/unifiend-host-access.test.mjs tests/unifiend-checkpoint-access.test.mjs
       - name: Inspect the existing capability binding
         env:
           INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}

@@ -47,7 +47,7 @@
   ],
   "aliases": {
     "GITHUB_TOKEN": [
-      "GH_ADDMINPROVIDER"
+      "GH_ADDMINPROVIDER-FINE_GRAINED"
     ],
     "LINE_SECRET_CHANNEL": [
       "LINE_CHANNEL_SECRET"

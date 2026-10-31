@@ -14,13 +14,13 @@ export function inspectTokenFormat(value) {
   return typeof value === "string" && /^[\x21-\x7e]+$/.test(value);
 }
 // Owner-defined credential references. The labels are not interchangeable, and
-// the bytes must never be logged or copied between names. GH_ADDMINPROVIDER is
-// the sole canonical GitHub provider reference after the store migration.
-export const CANONICAL_GITHUB_CREDENTIAL = "GH_ADDMINPROVIDER";
+// Resolve the exact reference verified through the existing Infisical identity.
+// Never log its value or copy it to another secret-manager name.
+export const CANONICAL_GITHUB_CREDENTIAL = "GH_ADDMINPROVIDER-FINE_GRAINED";
 export const RUNNER_TWO_PAT_BINDINGS = Object.freeze({
   // New owner-selected canonical name. The token kind is discovered only from
   // its safe GitHub PAT prefix; no secret value is stored in source.
-  "GH_ADDMINPROVIDER": { type: "PAT", prefixes: ["ghp_", "github_pat_"] },
+  "GH_ADDMINPROVIDER-FINE_GRAINED": { type: "PAT", prefixes: ["ghp_", "github_pat_"] },
 });
 export function inspectRunnerTwoCredential(name, raw) {
   const binding = RUNNER_TWO_PAT_BINDINGS[name];
@@ -135,8 +135,8 @@ export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
   return found;
 }
 // Stable GitHub numeric IDs are more reliable than emails, display names
-// or guessed GitHub login spellings. GH-1 retains repository admin and Cloudflare
-// credential custody; GH_ADDMINPROVIDER is the primary Unifiend Actions dispatch principal.
+// or guessed login spellings. The historical store remains read-only; only
+// the operational principal may be selected for Unifiend dispatch.
 // A 200 from /user proves token validity, NOT the expected GitHub identity.
 export const OWNER_GITHUB_IDENTITIES = Object.freeze({
   store: { id: 306097555, login: "ogenicchocolate21debug" },

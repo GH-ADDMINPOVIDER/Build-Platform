@@ -27,7 +27,7 @@ env:
 
 jobs:
   refresh:
-    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'Unified-on-Progress'
+    if: github.repository_id == '1429580446' && github.ref_name == 'Unified-on-Progress'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 10
     steps:

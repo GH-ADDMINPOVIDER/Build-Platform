@@ -33,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
+          test "$GITHUB_REPOSITORY_ID" = "1429580446"
           test "$GITHUB_REF_NAME" = "Unified-on-Progress"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git cat-file -e '9be0a339016ebf23a3a5f4108aaab56af19bd93a^{commit}'

@@ -39,7 +39,7 @@ jobs:
       task_branch: ${{ steps.task.outputs.branch }}
       source_sha: ${{ steps.task.outputs.source_sha }}
       sandbox_exit_code: ${{ steps.sandbox_preflight.outputs.exit_code }}
-    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref == 'refs/heads/Unified-on-Progress' && github.event_name == 'workflow_dispatch'
+    if: github.repository_id == '1429580446' && github.ref == 'refs/heads/Unified-on-Progress' && github.event_name == 'workflow_dispatch'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 90
     steps:

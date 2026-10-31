@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   install:
-    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'Unified-on-Progress'
+    if: github.repository_id == '1429580446' && github.ref_name == 'Unified-on-Progress'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 12
     steps:
@@ -36,7 +36,7 @@ jobs:
           set -euo pipefail
           umask 077
           test "$RUNNER_NAME" = wave-runner-01
-          test "$GITHUB_REPOSITORY" = Wave-Runner-2/Build-Platform
+          test "$GITHUB_REPOSITORY_ID" = 1429580446
           test "$GITHUB_REF_NAME" = Unified-on-Progress
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           pin=b739a8af570e10a95898f2bdf6cec97467fa6c12

@@ -12,8 +12,8 @@ test("canonical GitHub identities and credential references are explicit", () =>
   const isolation = read(".github/workflows/oge-40-github-token-isolation.yml");
   assert.match(binding, /store: \{ id: 306097555, login: "ogenicchocolate21debug" \}/);
   assert.match(binding, /capability: \{ id: 342175560, login: "wave-runner-2" \}/);
-  assert.match(binding, /CANONICAL_GITHUB_CREDENTIAL = "GH_ADDMINPROVIDER"/);
-  assert.match(binding, /"GH_ADDMINPROVIDER": \{ type: "PAT"/);
+  assert.match(binding, /CANONICAL_GITHUB_CREDENTIAL = "GH_ADDMINPROVIDER-FINE_GRAINED"/);
+  assert.match(binding, /"GH_ADDMINPROVIDER-FINE_GRAINED": \{ type: "PAT"/);
   assert.match(ccs, /Wave-Runner-2/);
   assert.doesNotMatch(ccs, /Unifiend_Runner-2/);
   assert.match(cert, /306097555/);
@@ -21,15 +21,15 @@ test("canonical GitHub identities and credential references are explicit", () =>
   assert.match(cert, /GH_ADDMINPROVIDER/);
   assert.deepEqual(
     bindingApi.selectRunnerTwoAuthorizedCredential([
-      { key: "GH_ADDMINPROVIDER_EXACT", type: "PAT", principal: "wave-runner-2" },
+      { key: "GH_ADDMINPROVIDER-FINE_GRAINED_EXACT", type: "PAT", principal: "wave-runner-2" },
     ]).key,
-    "GH_ADDMINPROVIDER_EXACT",
+    "GH_ADDMINPROVIDER-FINE_GRAINED_EXACT",
   );
   assert.equal(bindingApi.selectRunnerTwoAuthorizedCredential([
     { key: "RETIRED_STORE_CREDENTIAL_EXACT", type: "LEGACY", principal: "ogenicchocolate21debug" },
   ]), null);
-  assert.equal(bindingApi.inspectRunnerTwoCredential("GH_ADDMINPROVIDER", "ghp_testValue").valid, true);
-  assert.equal(bindingApi.inspectRunnerTwoCredential("GH_ADDMINPROVIDER", "github_pat_testValue").valid, true);
+  assert.equal(bindingApi.inspectRunnerTwoCredential("GH_ADDMINPROVIDER-FINE_GRAINED", "ghp_testValue").valid, true);
+  assert.equal(bindingApi.inspectRunnerTwoCredential("GH_ADDMINPROVIDER-FINE_GRAINED", "github_pat_testValue").valid, true);
   assert.match(isolation, /GH_ADDMINPROVIDER/);
   assert.doesNotMatch(isolation, /RETIRED_STORE_CREDENTIAL/);
 });

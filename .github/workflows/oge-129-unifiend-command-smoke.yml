@@ -71,7 +71,7 @@ jobs:
           echo "OGE-129 read-only Command gateway probe. No deploy, no owner-approved writes, no new services." >> "$GITHUB_STEP_SUMMARY"
 
   owner-staging-e2e:
-    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'Unified-on-Progress'
+    if: github.repository_id == '1429580446' && github.ref_name == 'Unified-on-Progress'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 8
     concurrency:

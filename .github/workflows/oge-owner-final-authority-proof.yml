@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   verify:
-    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    if: github.repository_id == '1429580446'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 25
     steps:

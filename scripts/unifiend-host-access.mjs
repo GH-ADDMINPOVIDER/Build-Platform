@@ -78,6 +78,11 @@ export function inspectHostAccess({ saved, publicValue, privateValue, run = spaw
     const derived = execute("ssh-keygen", ["-y", "-P", "", "-f", privatePath]);
     const clientKey = derived.status === 0 ? publicKeyBody(derived.stdout) : null;
     report.client_key_usable = !!clientKey;
+    if (!clientKey) {
+      const error = String(derived.stderr || "").toLowerCase();
+      report.client_key_failure = /passphrase|encrypted/.test(error) ? "PASSPHRASE_REQUIRED"
+        : /libcrypto|invalid format/.test(error) ? "KEY_FORMAT_REJECTED" : "KEY_DERIVATION_FAILED";
+    }
     report.stored_public_key_matches_client = !!clientKey && clientKey === publicKeyBody(publicValue);
     report.stored_pin_matches_client = !!clientKey && !!selectTrustedHost({ saved, serverKeys: [clientKey], fingerprint });
     if (!trusted) { report.reason = "TRUSTED_SERVER_PIN_MISSING"; return report; }

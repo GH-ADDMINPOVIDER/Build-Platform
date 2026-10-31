@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
+          test "$GITHUB_REPOSITORY_ID" = "1429580446"
           git diff --exit-code "origin/Unified-on-Progress...HEAD" -- database/migrations
           grep -q '"primary_runtime": "cloudflare"' config/external-resource-capabilities.json
           grep -q 'hasOwnerOrOpsAccess' worker/web-cafe-connector-api.ts

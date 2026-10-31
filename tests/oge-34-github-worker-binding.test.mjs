@@ -55,14 +55,14 @@ test("only known owner GitHub principals can use local host credentials for Acti
 
 test("the canonical GitHub provider is the only typed dispatch credential",()=>{
   const {RUNNER_TWO_PAT_BINDINGS,inspectRunnerTwoCredential}=hostAuth;
-  assert.deepEqual(inspectRunnerTwoCredential("GH_ADDMINPROVIDER","github_pat_testValue1234"),
+  assert.deepEqual(inspectRunnerTwoCredential("GH_ADDMINPROVIDER-FINE_GRAINED","github_pat_testValue1234"),
     {recognized:true,type:"PAT",valid:true});
   assert.equal(Object.keys(RUNNER_TWO_PAT_BINDINGS).length,1);
   assert.equal(inspectRunnerTwoCredential("RETIRED_STORE_CREDENTIAL","github_pat_testValue").valid,false);
 });
 test("canonical provider is selected and retired credentials are rejected",()=>{
   const {selectRunnerTwoAuthorizedCredential: select}=hostAuth;
-  const canonical={key:"GH_ADDMINPROVIDER_EXACT",token:"github_pat_test",type:"PAT",principal:"wave-runner-2"};
+  const canonical={key:"GH_ADDMINPROVIDER-FINE_GRAINED_EXACT",token:"github_pat_test",type:"PAT",principal:"wave-runner-2"};
   const other={key:"RETIRED_STORE_CREDENTIAL_EXACT",token:"ghp_other",type:"LEGACY",principal:"ogenicchocolate21debug"};
   assert.equal(select([canonical]),canonical);
   assert.equal(select([other]),null);
@@ -140,5 +140,5 @@ test("Cloudflare custody and canonical operational write are not conflated", () 
   assert.match(script, /store: \{ id: 306097555/);
   assert.match(script, /capability: \{ id: 342175560/);
   assert.match(script, /verifyExistingHostGitHubPrincipal\(candidate, expectedPrincipal\)/);
-  assert.match(script, /GH-1.*Cloudflare/);
+  assert.equal(hostAuth.selectRunnerTwoAuthorizedCredential([{ key: hostAuth.CANONICAL_GITHUB_CREDENTIAL + "_EXACT", principal: "ogenicchocolate21debug" }]), null);
 });

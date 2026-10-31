@@ -35,7 +35,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
+          test "$GITHUB_REPOSITORY_ID" = "1429580446"
           test "$GITHUB_REF_NAME" = "Unified-on-Progress"
           node --test tests/oge95-fast-catchup.test.mjs
           node scripts/oge95-fast-catchup.mjs index

@@ -36,11 +36,11 @@ function service(overrides = {}) {
     if (url.includes("/api/v4/secrets?")) {
       assert.equal(new URL(url).searchParams.get("viewSecretValue"), "false");
       return Response.json({ secrets: overrides.metadata || [
-        { secretKey: "GH_ADDMINPROVIDER", secretPath: "/" },
+        { secretKey: "GH_ADDMINPROVIDER-FINE_GRAINED", secretPath: "/" },
         { secretKey: "SSH_PRIVATE_KEY", secretPath: "/host" },
       ] });
     }
-    if (url.includes("/api/v4/secrets/GH_ADDMINPROVIDER?")) {
+    if (url.includes("/api/v4/secrets/GH_ADDMINPROVIDER-FINE_GRAINED?")) {
       assert.equal(init.headers.Authorization, `Bearer ${fixture.vault}`);
       return Response.json({ secret: { secretValue: fixture.provider } });
     }
@@ -56,6 +56,7 @@ function service(overrides = {}) {
       assert.deepEqual(JSON.parse(init.body), { name: "Build-Platform" });
       return overrides.admin?.() || Response.json({ id: 1429580446 });
     }
+    if (url.endsWith("/actions/runners")) return Response.json({ runners: [{ id: 7, name: "wave-runner-01", status: "offline", busy: false }] });
     throw new Error("Unexpected fixture request");
   };
   return { request, calls };
@@ -111,11 +112,11 @@ test("a credential for the archived principal cannot read the canonical reposito
 });
 
 test("ambiguous credential paths fail closed without guessing a secret", async () => {
-  const s = service({ metadata: [{ secretKey: "GH_ADDMINPROVIDER", secretPath: "/" },
-    { secretKey: "GH_ADDMINPROVIDER", secretPath: "/other" }] });
+  const s = service({ metadata: [{ secretKey: "GH_ADDMINPROVIDER-FINE_GRAINED", secretPath: "/" },
+    { secretKey: "GH_ADDMINPROVIDER-FINE_GRAINED", secretPath: "/other" }] });
   const report = await inspectCapabilityAccess({ env, request: s.request });
   assert.equal(report.credential_probes[0].state, "AMBIGUOUS_REFERENCE");
-  assert.equal(s.calls.some(c => c.url.includes("/secrets/GH_ADDMINPROVIDER?")), false);
+  assert.equal(s.calls.some(c => c.url.includes("/secrets/GH_ADDMINPROVIDER-FINE_GRAINED?")), false);
 });
 
 test("unreadable trust policy is explicit and does not imply rename readiness", async () => {

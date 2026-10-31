@@ -7,7 +7,7 @@ permissions:
   contents: read
 jobs:
   smoke:
-    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.actor == 'Wave-Runner-2'
+    if: github.repository_id == '1429580446' && github.actor == 'Wave-Runner-2'
     runs-on: [self-hosted, Linux, X64, wave]
     timeout-minutes: 10
     steps:

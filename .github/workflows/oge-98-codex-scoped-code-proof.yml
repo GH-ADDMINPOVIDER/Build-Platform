@@ -24,7 +24,7 @@ env:
 
 jobs:
   codex-scoped-task:
-    if: ${{ github.repository == 'Wave-Runner-2/Build-Platform' && github.ref_name == 'Unified-on-Progress' && (github.event_name == 'push' || inputs.confirm_one_moderated_agent_call == true) }}
+    if: ${{ github.repository_id == '1429580446' && github.ref_name == 'Unified-on-Progress' && (github.event_name == 'push' || inputs.confirm_one_moderated_agent_call == true) }}
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 12
     steps:
