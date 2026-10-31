@@ -41,6 +41,16 @@ def safe_repository_url(value):
     return "https://github.com" + parsed.path.rstrip("/")
 
 
+def load_registration_config(directory):
+    data = (directory / ".runner").read_bytes()
+    if len(data) > 65536:
+        raise ValueError("REGISTRATION_CONFIG_TOO_LARGE")
+    config = json.loads(data.decode("utf-8-sig"))
+    if not isinstance(config, dict):
+        raise ValueError("REGISTRATION_CONFIG_INVALID_SHAPE")
+    return config
+
+
 def inspect_binding(api, run=subprocess.check_output, read_config=None):
     result = {"schema": "UNIFIEND_HOST_BINDING_V1", "operations": "READ_ONLY", "services": [], "ok": False}
     stage = "provider_identity"
@@ -63,19 +73,24 @@ def inspect_binding(api, run=subprocess.check_output, read_config=None):
         if not isinstance(machines, list) or inventory.get("total_count", 0) > len(machines):
             raise ValueError("INCOMPLETE_REGISTRATION_INVENTORY")
         result["primary_registration_count"] = len(machines)
-        stage = "service_binding"
+        stage = "service_inventory"
         units = run(["systemctl", "list-units", "--all", "--type=service", "--no-legend", "--plain", "--no-pager", "actions.*"], text=True, timeout=10)
         for line in units.splitlines():
             unit = line.split()[0]
+            stage = "service_properties"
             raw = run(["systemctl", "show", unit, "-p", "WorkingDirectory", "-p", "ExecStart", "-p", "ActiveState", "-p", "User", "--no-pager"], text=True, timeout=10)
             fields = dict(part.split("=", 1) for part in raw.splitlines() if "=" in part)
             item = {"service_state": fields.get("ActiveState"), "service_user": fields.get("User") or "root"}
             result["services"].append(item)
+            stage = "registration_locator"
             directory = registration_directory(fields)
             if directory is None:
                 item["binding_state"] = "CONFIG_NOT_RESOLVED"
                 continue
-            config = read_config(directory) if read_config else json.loads((directory / ".runner").read_text())
+            item["configuration_directory"] = str(directory)
+            stage = "registration_file_read"
+            config = read_config(directory) if read_config else load_registration_config(directory)
+            stage = "registration_identity"
             binding = safe_repository_url(config.get("gitHubUrl"))
             item["repository_binding"] = binding or "UNVERIFIED"
             item["registration_id"] = config.get("agentId") if type(config.get("agentId")) is int else None
@@ -88,8 +103,22 @@ def inspect_binding(api, run=subprocess.check_output, read_config=None):
                 item["busy"] = matches[0].get("busy") is True
         result["ok"] = bool(result["services"]) and all(s.get("binding_state") == "PRIMARY_VERIFIED" for s in result["services"])
     except Exception as error:
-        allowed = {"OPERATIONAL_IDENTITY_MISMATCH", "REPOSITORY_IDENTITY_MISMATCH", "REPOSITORY_URL_NOT_VERIFIED", "INCOMPLETE_REGISTRATION_INVENTORY"}
+        allowed = {"OPERATIONAL_IDENTITY_MISMATCH", "REPOSITORY_IDENTITY_MISMATCH", "REPOSITORY_URL_NOT_VERIFIED", "INCOMPLETE_REGISTRATION_INVENTORY", "REGISTRATION_CONFIG_TOO_LARGE", "REGISTRATION_CONFIG_INVALID_SHAPE"}
         result["failure"] = {"stage": stage, "code": str(error) if str(error) in allowed else "READ_UNAVAILABLE", "http_status": error.code if isinstance(error, urllib.error.HTTPError) else None}
+        if isinstance(error, json.JSONDecodeError):
+            result["failure"].update(code="REGISTRATION_JSON_INVALID", line=error.lineno, column=error.colno)
+        elif isinstance(error, UnicodeDecodeError):
+            result["failure"]["code"] = "REGISTRATION_ENCODING_INVALID"
+        elif isinstance(error, FileNotFoundError):
+            result["failure"]["code"] = "REGISTRATION_FILE_MISSING"
+        elif isinstance(error, PermissionError):
+            result["failure"]["code"] = "REGISTRATION_FILE_ACCESS_DENIED"
+        elif isinstance(error, subprocess.CalledProcessError):
+            result["failure"].update(code="SYSTEMCTL_COMMAND_FAILED", exit_code=error.returncode)
+        elif isinstance(error, subprocess.TimeoutExpired):
+            result["failure"]["code"] = "SYSTEMCTL_TIMEOUT"
+        elif isinstance(error, OSError) and not isinstance(error, urllib.error.URLError):
+            result["failure"].update(code="HOST_FILE_OR_COMMAND_UNAVAILABLE", errno=error.errno)
     return result
 
 
