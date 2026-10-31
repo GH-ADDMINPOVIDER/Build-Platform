@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspectHostAccess } from "./unifiend-host-access.mjs";
@@ -199,7 +199,9 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
         for (const reference of ["SSH_FINGER_PRINT_KEY", "SSH_PUBLIC_KEY", "SSH_PRIVATE_KEY"]) {
           values[reference] = await resolveSecret(reference);
         }
-        report.host_access = inspectHostAccess({ saved: values.SSH_FINGER_PRINT_KEY, publicValue: values.SSH_PUBLIC_KEY, privateValue: values.SSH_PRIVATE_KEY });
+        const consoleTrust = JSON.parse(readFileSync(new URL("../config/unifiend-host-trust.json", import.meta.url), "utf8"));
+        report.host_access = inspectHostAccess({ saved: values.SSH_FINGER_PRINT_KEY, publicValue: values.SSH_PUBLIC_KEY,
+          privateValue: values.SSH_PRIVATE_KEY, consoleTrust });
       } catch (error) { report.host_access = { state: "BLOCKED", ...publicFailure(error) }; }
     }
     if (report.ok && env.UNIFIEND_RECORD_CHECKPOINT === "true") {

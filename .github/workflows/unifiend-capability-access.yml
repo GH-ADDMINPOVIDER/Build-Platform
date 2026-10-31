@@ -10,6 +10,7 @@ on:
       - scripts/unifiend-checkpoint-access.mjs
       - scripts/unifiend-probe-cleanup.mjs
       - config/github-provider.json
+      - config/unifiend-host-trust.json
       - tests/unifiend-capability-access.test.mjs
       - tests/unifiend-host-access.test.mjs
       - tests/unifiend-checkpoint-access.test.mjs

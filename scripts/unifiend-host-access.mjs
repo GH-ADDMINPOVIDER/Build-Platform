@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 
 // Existing host address recovered from the versioned fingerprint repair.
 const HOST = "165.232.174.32";
@@ -40,8 +41,25 @@ export function selectTrustedHost({ saved, serverKeys, fingerprint }) {
   }) || null;
 }
 
-export function inspectHostAccess({ saved, publicValue, privateValue, run = spawnSync }) {
+export function validateConsoleTrust(trust) {
+  if (trust?.schema !== "UNIFIEND_HOST_TRUST_V1" || trust.droplet_id !== 604432491 || trust.address !== HOST
+    || trust.port !== 22 || trust.verified_via !== "OWNER_DIGITALOCEAN_CONSOLE"
+    || typeof trust.known_hosts !== "string" || /[\r\n]/.test(trust.known_hosts)
+    || !trust.known_hosts.startsWith(HOST + " ssh-ed25519 ")) return false;
+  const body = publicKeyBody(trust.known_hosts);
+  if (!body) return false;
+  const binary = Buffer.from(body.split(" ")[1], "base64");
+  // The SSH wire encoding contains a four-byte algorithm length, the
+  // eleven-byte algorithm, then a four-byte key length and 32-byte key.
+  if (binary.length !== 51 || binary.readUInt32BE(0) !== 11 || binary.subarray(4, 15).toString() !== "ssh-ed25519"
+    || binary.readUInt32BE(15) !== 32) return false;
+  return "SHA256:" + createHash("sha256").update(binary).digest("base64").replace(/=+$/, "") === trust.fingerprint_sha256;
+}
+
+export function inspectHostAccess({ saved, publicValue, privateValue, consoleTrust = null, run = spawnSync }) {
   const report = { host: "Ocian-S-Host", operation: "READ_ONLY", state: "BLOCKED", ssh_auth_attempted: false };
+  if (consoleTrust && !validateConsoleTrust(consoleTrust)) { report.reason = "CONSOLE_TRUST_CONFIGURATION_INVALID"; return report; }
+  report.trust_source = consoleTrust ? "OWNER_DIGITALOCEAN_CONSOLE" : "EXISTING_INFISICAL_REFERENCE";
   const normalizedPrivate = normalizeKey(privateValue);
   privateValue = normalizedPrivate.value;
   saved = normalizeKey(saved).value;
@@ -70,8 +88,11 @@ export function inspectHostAccess({ saved, publicValue, privateValue, run = spaw
     report.host_key_observed = serverKeys.length > 0;
     report.host_algorithms = [...new Set(serverKeys.map(line => publicKeyBody(line).split(" ")[0]))];
     if (!serverKeys.length) { report.reason = "HOST_KEY_UNREACHABLE"; return report; }
-    const trusted = selectTrustedHost({ saved, serverKeys, fingerprint });
-    report.stored_pin_matches_server = !!trusted;
+    const storedTrusted = selectTrustedHost({ saved, serverKeys, fingerprint });
+    report.stored_pin_matches_server = !!storedTrusted;
+    const trusted = consoleTrust ? selectTrustedHost({ saved: consoleTrust.known_hosts, serverKeys, fingerprint }) : storedTrusted;
+    if (consoleTrust) report.verified_console_pin_matches_server = !!trusted;
+    report.server_identity_verified = !!trusted;
     report.stored_public_key_matches_server = !!publicKeyBody(publicValue) && serverKeys.some(key => publicKeyBody(key) === publicKeyBody(publicValue));
     if (!privateValue?.includes("PRIVATE KEY")) { report.reason = "CLIENT_PRIVATE_KEY_MISSING"; return report; }
     const privatePath = file("identity", privateValue.trimEnd() + "\n");
