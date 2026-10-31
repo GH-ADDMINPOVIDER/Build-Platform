@@ -11,6 +11,7 @@ on:
       - scripts/unifiend-probe-cleanup.mjs
       - config/github-provider.json
       - config/unifiend-host-trust.json
+      - config/unifiend-execution-policy.json
       - tests/unifiend-capability-access.test.mjs
       - tests/unifiend-host-access.test.mjs
       - tests/unifiend-checkpoint-access.test.mjs

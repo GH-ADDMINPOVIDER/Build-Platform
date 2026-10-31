@@ -80,6 +80,8 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
       || env.GITHUB_REPOSITORY_OWNER_ID !== String(PRINCIPAL_ID) || env.GITHUB_REF !== BRANCH) {
       throw new ProbeFailure("execution_scope", "CANONICAL_SCOPE_REQUIRED");
     }
+    // Owner's source contract is audit metadata, not a claim of host activation.
+    report.owner_execution_policy = JSON.parse(readFileSync(new URL("../config/unifiend-execution-policy.json", import.meta.url), "utf8"));
     const identityId = requiredString(env.INFISICAL_IDENTITY_ID, "identity");
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(identityId)) throw new ProbeFailure("identity", "INVALID_IDENTITY_ID");
     const organizationSlug = requiredString(env.INFISICAL_ORG_SLUG, "organization");

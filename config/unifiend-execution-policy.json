@@ -1,0 +1,42 @@
+{
+  "schema": "UNIFIEND_EXECUTION_POLICY_V1",
+  "state": "OWNER_CONTRACT_RECORDED_HOST_NOT_APPLIED",
+  "host": "Ocian-S-Host",
+  "execution": {
+    "mode": "SOLO",
+    "max_active_heavy_jobs": 1,
+    "start_tools_on_demand": true,
+    "registration_is_not_execution": true,
+    "review_existing_background_services_before_changes": true
+  },
+  "installation": {
+    "register_requested_capabilities": true,
+    "autostart_new_services": false,
+    "automatic_model_weight_download": false,
+    "host_capacity_verified": false
+  },
+  "continuity": {
+    "retain_deepseek_route": true,
+    "automatic_paid_provider_fallback": false,
+    "on_quota_or_budget_exhaustion": "CHECKPOINT_AND_PAUSE_AFFECTED_MODEL_JOB",
+    "other_provider_requires_verified_auth_quota_and_task_scope": true,
+    "retry_requires_original_task_identity": true,
+    "retry_uncertain_external_writes_automatically": false,
+    "control_and_audit_should_remain_available": true,
+    "continuity_runtime_verified": false
+  },
+  "capabilities": [
+    {"id": "ssh", "kind": "transport", "status": "SERVER_PIN_VERIFIED_CLIENT_UNLOCK_REQUIRED"},
+    {"id": "infisical", "kind": "secret_broker", "status": "ROOT_VERIFIED_SERVICE_PROFILE_UNVERIFIED"},
+    {"id": "codex", "kind": "coding_client", "status": "EXISTING_LOGIN_VERIFIED_FRESH_INFERENCE_UNVERIFIED", "selected_profile": "GS"},
+    {"id": "opencode", "kind": "coding_client", "status": "CLOUD_PACKAGE_VERIFIED_HOST_INSTALL_UNVERIFIED"},
+    {"id": "vscode", "kind": "editor", "status": "WORKSPACE_SETTINGS_SAVED_REMOTE_TERMINAL_UNVERIFIED"},
+    {"id": "copilot", "kind": "coding_provider", "status": "HISTORICAL_CLI_NOTE_AUTH_UNVERIFIED"},
+    {"id": "t3code", "kind": "mobile_client_and_host_service", "status": "DOCS_INSPECTED_NOT_INSTALLED_OR_PAIRED"},
+    {"id": "docker", "kind": "container_runtime", "status": "CURRENT_HOST_RUNTIME_NOT_VERIFIED", "replaces_model_provider": false, "local_inference": "NOT_PROVISIONED"},
+    {"id": "deepseek", "kind": "cloud_model_api", "status": "EXISTING_ROUTE_PRESERVED_HOST_INVOCATION_UNVERIFIED", "credential_reference": "DEEPSEEK_API_KEY"},
+    {"id": "gemini", "kind": "model_provider", "status": "HOST_BINDING_NOT_VERIFIED"},
+    {"id": "linear", "kind": "audit_connector", "status": "CONNECTED_READ_WRITE_VERIFIED"},
+    {"id": "manus", "kind": "cloud_task_provider", "status": "CONNECTOR_TOOLS_EXPOSED_HOST_BINDING_AND_BUDGET_UNVERIFIED", "exposed_tasks": ["research", "slides", "website", "mobile_app", "video"]}
+  ]
+}
