@@ -45,3 +45,10 @@ class SecretAssignmentDetection(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class RuntimeLookupDetection(unittest.TestCase):
+    def test_mapping_reads_are_dynamic_but_literal_fallbacks_remain_suspicious(self):
+        for value in ('registration.get("token")', 'source.get("OPENCODE_SERVER_PASSWORD", "")', 'metadata.get("key", None)'):
+            self.assertFalse(scanner.looks_like_plaintext_secret(value))
+        for value in ('registration.get("token", "synthetic-credential-value")', '{"token":"synthetic-credential-value"}.get("token")', 'registration.get("token") or "synthetic-credential-value"'):
+            self.assertTrue(scanner.looks_like_plaintext_secret(value))

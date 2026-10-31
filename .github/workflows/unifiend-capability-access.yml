@@ -29,6 +29,8 @@ on:
       - tests/unifiend-saved-tools.test.mjs
       - scripts/unifiend-terminal-solo.sh
       - tests/unifiend-terminal-host-scope.test.mjs
+      - scripts/validate_toolkit.py
+      - tests/validate_toolkit_secret_scan_test.py
   workflow_dispatch:
 
 permissions:

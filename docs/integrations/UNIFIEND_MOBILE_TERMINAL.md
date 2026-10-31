@@ -59,3 +59,13 @@ The host plan inspector uses installed Codex app-server account/read and account
 Local/Cloud unit tests exercise native file moves, service sequencing, denied permission before stop, busy work preservation, configuration failure without archive restart, idempotent preflight, protocol buffering, child environment filtering and loopback binding. These tests are not remote host execution. The pinned Console launcher must execute on the existing root Console before PRIMARY_ONLINE or installed-host status can be claimed. SSH remains blocked at the existing encrypted client-key unlock; a valid server public pin is already available.
 
 p-stack: 24 Fix root causes; 28 Make operations idempotent; 29 Migrate callers then delete legacy APIs; 34 Prove it works; 50 Unslop.
+
+## Console command
+
+Open `scripts/unifiend-console-cutover-launch.sh`, paste its complete contents into the existing root Console, and append the apply flags when invoking it as a saved file:
+
+```bash
+bash scripts/unifiend-console-cutover-launch.sh --apply --install-opencode
+```
+
+Pasting the script itself without flags performs only the plan. A root Console outside a checked-out repository should use the complete self-contained launcher, with `--apply --install-opencode` added after `python3 -` before the heredoc. It needs the working existing Infisical CLI session; it does not request a new Codex login.
