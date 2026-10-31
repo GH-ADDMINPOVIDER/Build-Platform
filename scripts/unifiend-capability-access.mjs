@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { inspectHostAccess } from "./unifiend-host-access.mjs";
 import { reconcileCanonicalCheckpoint } from "./unifiend-checkpoint-access.mjs";
 import { cancelUnstartedMigrationChecks } from "./unifiend-probe-cleanup.mjs";
+import { createHash } from "node:crypto";
 
 const REPOSITORY_ID = 1429580446;
 const PRINCIPAL_ID = 342175560;
@@ -158,6 +159,16 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
         probe.repository_admin = repo.permissions?.admin === true;
         // A role flag does not establish Administration-write token permission.
         probe.administration_write = "NOT_TESTED";
+        if (env.UNIFIEND_VERIFY_CONSOLE_SOURCE === "true") {
+          try {
+            const path = "scripts/unifiend-host-binding.py";
+            const source = await jsonRequest(request, "console_source", `https://api.github.com/repos/${repo.full_name}/contents/${path}?ref=${env.GITHUB_SHA}`, { headers });
+            const bytes = Buffer.from(source.content || "", "base64");
+            const expected = readFileSync(new URL("../scripts/unifiend-host-binding.py", import.meta.url));
+            if (source.type !== "file" || source.path !== path || !bytes.equals(expected)) throw new ProbeFailure("console_source", "PINNED_SOURCE_MISMATCH");
+            report.console_source = { state: "VERIFIED_READ", path, sha256: createHash("sha256").update(bytes).digest("hex") };
+          } catch (error) { report.console_source = { state: "READ_UNAVAILABLE", ...publicFailure(error) }; }
+        }
         if (env.UNIFIEND_CLEANUP_MIGRATION_CHECKS === "true") {
           report.check_cleanup = await cancelUnstartedMigrationChecks({ request, headers, sourceSha: env.GITHUB_SHA, currentRunId: env.GITHUB_RUN_ID });
           report.operations = "READ_AND_UNSTARTED_MIGRATION_CHECK_CLEANUP";
