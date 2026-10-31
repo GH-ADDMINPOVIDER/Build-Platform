@@ -33,7 +33,7 @@ jobs:
         env:
           INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
           INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
-          UNIFIEND_VERIFY_ADMIN_WRITE: 'true'
+          UNIFIEND_VERIFY_ADMIN_WRITE: 'false'
           UNIFIEND_INSPECT_HOST: 'true'
         run: node scripts/unifiend-capability-access.mjs
       - name: Retain sanitized access result

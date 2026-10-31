@@ -13,11 +13,13 @@
   "requested_repository_slug": "Inifiend-capability",
   "work_name": "Unified on Progress",
   "work_branch": "Unified-on-Progress",
-  "repository_rename_state": "PENDING_ADMINISTRATION_WRITE_AND_CALLER_VERIFICATION",
+  "repository_rename_state": "ADMINISTRATION_WRITE_VERIFIED_PENDING_PROTECTED_CALLER_MIGRATION",
   "external_identity_migration_state": "PENDING_PROVIDER_VERIFICATION",
   "owner_sign_in_authorized": true,
   "owner_sign_in_authorized_on": "2026-10-31",
   "owner_authentication_observation": "EXISTING_INFISICAL_OIDC_AND_OPERATIONAL_PROVIDER_CREDENTIAL_VERIFIED",
   "provider_access_verified_source": "8833f9214d4267d69e42ce3fda79722011c01e1d",
-  "provider_access_verified_run": 41154759585
+  "provider_access_verified_run": 41154759585,
+  "administration_write_verified_source": "5e6b17752003008d18da57ca479ee4b85b57f474",
+  "administration_write_verified_run": 41155125633
 }

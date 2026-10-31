@@ -8,6 +8,22 @@ const HOST = "165.232.174.32";
 const USER = "wave";
 const REMOTE_INSPECTION = "printf 'UNIFIEND_HOST_ACCESS_V1\\n'; uname -s; for x in node npm docker codex infisical; do if command -v \"$x\" >/dev/null 2>&1; then printf '%s=present\\n' \"$x\"; else printf '%s=missing\\n' \"$x\"; fi; done";
 
+export function normalizeKey(value) {
+  let text = typeof value === "string" ? value.trim() : "";
+  let encoding = "PLAIN";
+  if (text.startsWith('"')) {
+    try { const parsed = JSON.parse(text); if (typeof parsed === "string") { text = parsed.trim(); encoding = "JSON_STRING"; } } catch {}
+  }
+  if (!text.includes("\n") && text.includes("\\n")) { text = text.replace(/\\r\\n|\\n/g, "\n"); encoding = "ESCAPED_NEWLINES"; }
+  if (/^[A-Za-z0-9+/=]+$/.test(text) && text.length > 80) {
+    const decoded = Buffer.from(text, "base64").toString("utf8").trim();
+    if (/^(?:-----BEGIN (?:OPENSSH|RSA|EC|ENCRYPTED) PRIVATE KEY-----|ssh-|ecdsa-sha2-)/.test(decoded)) {
+      text = decoded; encoding = "BASE64";
+    }
+  }
+  return { value: text.replace(/\r\n/g, "\n"), encoding };
+}
+
 export function publicKeyBody(value) {
   const match = String(value).match(/(?:^|\s)(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(?:256|384|521))\s+([A-Za-z0-9+/=]{40,})(?:\s|$)/);
   return match ? `${match[1]} ${match[2]}` : null;
@@ -26,6 +42,15 @@ export function selectTrustedHost({ saved, serverKeys, fingerprint }) {
 
 export function inspectHostAccess({ saved, publicValue, privateValue, run = spawnSync }) {
   const report = { host: "Ocian-S-Host", operation: "READ_ONLY", state: "BLOCKED", ssh_auth_attempted: false };
+  const normalizedPrivate = normalizeKey(privateValue);
+  privateValue = normalizedPrivate.value;
+  saved = normalizeKey(saved).value;
+  publicValue = normalizeKey(publicValue).value;
+  report.private_key_encoding = normalizedPrivate.encoding;
+  report.private_key_has_header = /^-----BEGIN (?:OPENSSH|RSA|EC|ENCRYPTED) PRIVATE KEY-----/.test(privateValue);
+  report.private_key_has_footer = /-----END (?:OPENSSH|RSA|EC|ENCRYPTED) PRIVATE KEY-----$/.test(privateValue);
+  report.private_key_multiline = privateValue.includes("\n");
+  report.stored_pin_format = publicKeyBody(saved) ? "PUBLIC_KEY" : /SHA256:|(?:[a-f0-9]{2}:){15}[a-f0-9]{2}/i.test(saved) ? "FINGERPRINT" : "OTHER";
   const directory = mkdtempSync(join(tmpdir(), "unifiend-host-"));
   const execute = (command, args, timeout = 15000) => run(command, args, {
     encoding: "utf8", timeout, maxBuffer: 256 * 1024, stdio: ["ignore", "pipe", "pipe"],
