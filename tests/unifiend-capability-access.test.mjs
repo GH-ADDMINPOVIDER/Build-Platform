@@ -49,7 +49,12 @@ function service(overrides = {}) {
       return overrides.user?.() || Response.json({ id: 342175560 });
     }
     if (url === "https://api.github.com/repositories/1429580446") {
-      return Response.json({ id: 1429580446, owner: { id: 342175560 }, permissions: { admin: true } });
+      return Response.json({ id: 1429580446, name: "Build-Platform", full_name: "Wave-Runner-2/Build-Platform", owner: { id: 342175560 }, permissions: { admin: true } });
+    }
+    if (url === "https://api.github.com/repos/Wave-Runner-2/Build-Platform") {
+      assert.equal(init.method, "PATCH");
+      assert.deepEqual(JSON.parse(init.body), { name: "Build-Platform" });
+      return overrides.admin?.() || Response.json({ id: 1429580446 });
     }
     throw new Error("Unexpected fixture request");
   };
@@ -136,4 +141,20 @@ test("reference inventory preserves existing mixed-case names without reading th
   assert.deepEqual(report.provider_credential_references, [{ reference: "Api_GitHub_Primary", path: "/" }]);
   assert.deepEqual(report.connection_references, [{ reference: "SSH_Private_Key", path: "/host" }]);
   assert.equal(s.calls.some(c => /\/secrets\/[^?]+\?/.test(c.url)), false);
+});
+
+test("administration permission is proved by unchanged-name PATCH and independent readback", async () => {
+  const s = service();
+  const report = await inspectCapabilityAccess({ env: { ...env, UNIFIEND_VERIFY_ADMIN_WRITE: "true" }, request: s.request });
+  assert.equal(report.credential_probes[0].administration_write, "VERIFIED_UNCHANGED_NAME");
+  assert.equal(s.calls.filter(c => c.url.endsWith("/repositories/1429580446")).length, 2);
+  assert.equal(s.calls.filter(c => c.method === "PATCH").length, 1);
+});
+
+test("repository role does not conceal an administration token denial", async () => {
+  const s = service({ admin: () => Response.json({ message: fixture.provider }, { status: 403 }) });
+  const report = await inspectCapabilityAccess({ env: { ...env, UNIFIEND_VERIFY_ADMIN_WRITE: "true" }, request: s.request });
+  assert.equal(report.credential_probes[0].state, "BLOCKED");
+  assert.equal(report.credential_probes[0].failure.http_status, 403);
+  assert.equal(JSON.stringify(report).includes(fixture.provider), false);
 });

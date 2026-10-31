@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { inspectHostAccess } from "./unifiend-host-access.mjs";
 
 const REPOSITORY_ID = 1429580446;
 const PRINCIPAL_ID = 342175560;
@@ -55,8 +56,8 @@ function requiredString(value, stage) {
   return value;
 }
 
-// This probe has no mutation method. Credentials stay inside this process;
-// only allowlisted metadata reaches the report or logs.
+// Credentials stay inside this process. The optional administration check
+// sends only the existing repository name, then independently reads it back.
 export async function inspectCapabilityAccess({ env, request = fetch }) {
   const report = {
     schema: "UNIFIEND_CAPABILITY_ACCESS_V1",
@@ -123,6 +124,8 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
         binding_fields: config && typeof config === "object" ? Object.keys(config).filter(k => /^bound[A-Za-z]+$/.test(k)) : [],
         current_repository_name_bound: JSON.stringify(bindings).includes("Build-Platform"),
         repository_id_bound: JSON.stringify(bindings).includes(String(REPOSITORY_ID)),
+        subject_pattern: typeof config.boundSubject === "string" && /^[A-Za-z0-9_:*./% -]{0,250}$/.test(config.boundSubject) ? config.boundSubject : "UNREPORTED",
+        claim_keys: config.boundClaims && typeof config.boundClaims === "object" ? Object.keys(config.boundClaims).filter(k => /^[A-Za-z0-9_]{1,80}$/.test(k)) : [],
       };
     } catch (error) { report.oidc_policy = { state: "READ_UNAVAILABLE", ...publicFailure(error) }; }
 
@@ -153,9 +156,37 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
         probe.repository_admin = repo.permissions?.admin === true;
         // A role flag does not establish Administration-write token permission.
         probe.administration_write = "NOT_TESTED";
+        if (env.UNIFIEND_VERIFY_ADMIN_WRITE === "true") {
+          report.operations = "READ_AND_UNCHANGED_NAME_ADMIN_PROBE";
+          if (repo.full_name !== "Wave-Runner-2/Build-Platform" || repo.name !== "Build-Platform") {
+            throw new ProbeFailure("administration_write", "CURRENT_NAME_CHANGED_REVIEW_REQUIRED");
+          }
+          const updated = await jsonRequest(request, "administration_write", `https://api.github.com/repos/${repo.full_name}`, {
+            method: "PATCH", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ name: repo.name }),
+          });
+          const readback = await jsonRequest(request, "administration_readback", `https://api.github.com/repositories/${REPOSITORY_ID}`, { headers });
+          if (updated.id !== REPOSITORY_ID || readback.id !== REPOSITORY_ID || readback.full_name !== repo.full_name) {
+            throw new ProbeFailure("administration_readback", "UNCHANGED_REPOSITORY_NOT_VERIFIED");
+          }
+          probe.administration_write = "VERIFIED_UNCHANGED_NAME";
+        }
       } catch (error) { probe.state = "BLOCKED"; probe.failure = publicFailure(error); }
     }
     report.ok = report.credential_probes.some(p => p.state === "VERIFIED_READ");
+    if (env.UNIFIEND_INSPECT_HOST === "true") {
+      try {
+        const values = {};
+        for (const reference of ["SSH_FINGER_PRINT_KEY", "SSH_PUBLIC_KEY", "SSH_PRIVATE_KEY"]) {
+          const matches = secrets.filter(s => s.secretKey === reference);
+          if (matches.length !== 1) throw new ProbeFailure("host_reference", "EXACT_HOST_REFERENCE_REQUIRED");
+          const parameters = new URLSearchParams({ projectId: PROJECT_ID, environment: "staging", secretPath: matches[0].secretPath || "/",
+            type: "shared", viewSecretValue: "true", expandSecretReferences: "false" });
+          const resolved = await jsonRequest(request, "host_reference", `${INFISICAL}/api/v4/secrets/${reference}?${parameters}`, { headers: infisicalHeaders });
+          values[reference] = resolved.secret?.secretValue;
+        }
+        report.host_access = inspectHostAccess({ saved: values.SSH_FINGER_PRINT_KEY, publicValue: values.SSH_PUBLIC_KEY, privateValue: values.SSH_PRIVATE_KEY });
+      } catch (error) { report.host_access = { state: "BLOCKED", ...publicFailure(error) }; }
+    }
   } catch (error) { report.failure = publicFailure(error); }
   return report;
 }
