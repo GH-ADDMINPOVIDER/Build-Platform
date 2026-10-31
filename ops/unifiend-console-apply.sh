@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Explicit authorized cutover and OpenCode installation on the existing root Console.
+set -euo pipefail
+set +x
+INFISICAL_PROFILE=codex-terminal infisical run --projectId=e8cfba67-ea99-4d79-bc9f-87b862f9129c --env=staging --path=/ -- python3 -c 'import os,json,base64,hashlib,urllib.request,sys,subprocess; D=type("NoRedirect",(urllib.request.HTTPRedirectHandler,),{"redirect_request":lambda *a,**k:None}); u="https://api.github.com/repos/Wave-Runner-2/Build-Platform/contents/scripts/unifiend-console-cutover-launch.sh?ref=2f275fbe5a7b6299c4dc7d84fd1434b9a3ac538e"; q=urllib.request.Request(u,headers={"Authorization":"Bearer "+os.environ["GH_ADDMINPROVIDER-FINE_GRAINED"],"Accept":"application/vnd.github+json"}); b=base64.b64decode(json.load(urllib.request.build_opener(D()).open(q,timeout=20))["content"]); (hashlib.sha256(b).hexdigest()=="d2de479074f301675ca00be43f31842c1d78db257d40f9cade12073fa3eea482") or sys.exit("SOURCE_MISMATCH"); subprocess.run(["/bin/bash","-s","--","--apply","--install-opencode"],input=b,check=True)'

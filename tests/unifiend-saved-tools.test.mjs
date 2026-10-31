@@ -9,6 +9,7 @@ test('star discovery is bounded GET-only and reports truthful links without arbi
  }});
  assert.equal(calls.length,2);assert.ok(result.every(r=>r.complete));
  assert.deepEqual(result[0].tools,[{full_name:'vendor/terminal',url:'https://github.com/vendor/terminal'}]);
+ assert.deepEqual(result[0].starred.map(x=>x.full_name),['vendor/terminal','vendor/other']);
  assert.equal(JSON.stringify(result).includes('private-unused'),false);
 });
 test('denied stars are unavailable, not an empty verified inventory',async()=>{

@@ -69,3 +69,5 @@ bash scripts/unifiend-console-cutover-launch.sh --apply --install-opencode
 ```
 
 Pasting the script itself without flags performs only the plan. A root Console outside a checked-out repository should use the complete self-contained launcher, with `--apply --install-opencode` added after `python3 -` before the heredoc. It needs the working existing Infisical CLI session; it does not request a new Codex login.
+
+For a root Console with no checked-out source directory, `ops/unifiend-console-apply.sh` is the self-contained explicit apply command. Copy its complete contents into that Console. It fetches the launcher at commit 2f275fbe5a7b6299c4dc7d84fd1434b9a3ac538e, verifies its SHA256 and only then executes it with the authorized apply/install flags. It needs no local repository path and does not pass a credential in command arguments.

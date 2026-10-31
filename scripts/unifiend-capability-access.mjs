@@ -163,7 +163,7 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
         probe.administration_write = "NOT_TESTED";
         if (env.UNIFIEND_VERIFY_CONSOLE_SOURCE === "true") {
           report.console_sources = [];
-          for (const path of ["scripts/unifiend-host-binding.py", "scripts/unifiend-host-cutover.py", "scripts/unifiend-codex-plan.py", "scripts/unifiend-host-tools.py"]) {
+          for (const path of ["scripts/unifiend-host-binding.py", "scripts/unifiend-host-cutover.py", "scripts/unifiend-codex-plan.py", "scripts/unifiend-host-tools.py", "scripts/unifiend-console-cutover-launch.sh"]) {
           try {
             const source = await jsonRequest(request, "console_source", `https://api.github.com/repos/${repo.full_name}/contents/${path}?ref=${env.GITHUB_SHA}`, { headers });
             const bytes = Buffer.from(source.content || "", "base64");

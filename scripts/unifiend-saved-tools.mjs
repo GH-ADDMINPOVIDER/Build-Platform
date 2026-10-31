@@ -5,7 +5,7 @@ const relevant = /terminal|ssh|opencode|codex|copilot|vscode|code-server|tmux|ze
 export async function inspectSavedTools({ request, headers }) {
   const reports = [];
   for (const owner of owners) {
-    const report = { owner, state: "READ_UNAVAILABLE", inspected_count: 0, complete: false, tools: [] };
+    const report = { owner, state: "READ_UNAVAILABLE", inspected_count: 0, complete: false, starred: [], tools: [] };
     reports.push(report);
     try {
       for (let page = 1; page <= 3; page++) {
@@ -18,6 +18,7 @@ export async function inspectSavedTools({ request, headers }) {
         report.inspected_count += rows.length;
         for (const row of rows) {
           if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(row?.full_name || "")) continue;
+          report.starred.push({ full_name: row.full_name, url: `https://github.com/${row.full_name}` });
           if (relevant.test(row.full_name + " " + (typeof row.description === "string" ? row.description : ""))) {
             report.tools.push({ full_name: row.full_name, url: `https://github.com/${row.full_name}` });
           }
