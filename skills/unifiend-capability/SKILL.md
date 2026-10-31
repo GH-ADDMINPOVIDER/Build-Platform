@@ -17,4 +17,4 @@ Check in and check out with source SHA, exact scope, actual tests and per-destin
 
 Continue independent work at an actual provider/auth boundary. Respect automatic review rejection; do not circumvent it with another account or an indirect workflow. Save and verify independent work before presenting the precise remaining Owner action.
 
-Read docs/checkpoints/UNIFIEND_CHECKOUT_2026-10-30.md for the current bounded result. Local runtime is not a remote host receipt.
+Read docs/checkpoints/UNIFIEND_CAPABILITY_CHECKOUT_2026-10-31.md for the current bounded result. Existing Infisical OIDC and provider Administration-write now work; do not repeat the browser/profile login loop for API operations. The existing host still needs a verified server pin and an authorized unlock path for its encrypted SSH key. Local runtime and D1 checkpoint receipts do not establish remote host execution.
