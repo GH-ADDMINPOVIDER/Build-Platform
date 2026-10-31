@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { inspectHostAccess } from "./unifiend-host-access.mjs";
+import { inspectHostAccess, normalizeKey } from "./unifiend-host-access.mjs";
 import { reconcileCanonicalCheckpoint } from "./unifiend-checkpoint-access.mjs";
 import { cancelUnstartedMigrationChecks } from "./unifiend-probe-cleanup.mjs";
 import { createHash } from "node:crypto";
@@ -221,6 +221,13 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
         const consoleTrust = JSON.parse(readFileSync(new URL("../config/unifiend-host-trust.json", import.meta.url), "utf8"));
         report.host_access = inspectHostAccess({ saved: values.SSH_FINGER_PRINT_KEY, publicValue: values.SSH_PUBLIC_KEY,
           privateValue: values.SSH_PRIVATE_KEY, consoleTrust });
+        if (secrets.some(s => s.secretKey === "SSH_OWNER_KEY")) {
+          const candidate = normalizeKey(await resolveSecret("SSH_OWNER_KEY"));
+          report.additional_host_key = /^-----BEGIN (?:OPENSSH|RSA|EC|ENCRYPTED) PRIVATE KEY-----/.test(candidate.value)
+            ? { reference: "SSH_OWNER_KEY", ...inspectHostAccess({ saved: values.SSH_FINGER_PRINT_KEY,
+                publicValue: values.SSH_PUBLIC_KEY, privateValue: candidate.value, consoleTrust }) }
+            : { reference: "SSH_OWNER_KEY", state: "NOT_AN_SSH_PRIVATE_KEY", ssh_auth_attempted: false };
+        }
       } catch (error) { report.host_access = { state: "BLOCKED", ...publicFailure(error) }; }
     }
     if (report.ok && env.UNIFIEND_RECORD_CHECKPOINT === "true") {
