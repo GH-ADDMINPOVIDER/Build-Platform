@@ -1,0 +1,43 @@
+name: Unifiend Capability Access
+
+on:
+  push:
+    branches: [Unified-on-Progress]
+    paths:
+      - .github/workflows/unifiend-capability-access.yml
+      - scripts/unifiend-capability-access.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: unifiend-capability-access
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560' && github.ref == 'refs/heads/Unified-on-Progress'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Inspect the existing capability binding
+        env:
+          INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+          INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+        run: node scripts/unifiend-capability-access.mjs
+      - name: Retain sanitized access result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unifiend-capability-access
+          path: .unifiend-reports/capability-access.json
+          if-no-files-found: ignore
+          retention-days: 7
