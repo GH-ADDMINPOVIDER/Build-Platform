@@ -10,6 +10,8 @@ Current verified checkout, 31 October 2026, supersedes historical credential/gra
 
 # OGENIC / Unifiend Agent Operating Rules
 
+Host trust update, 31 October 2026 at 09:55 +07:00: read `docs/checkpoints/UNIFIEND_HOST_TRUST_CHECKOUT_2026-10-31.md`. The existing server public key supplied by Owner from DigitalOcean Console matches the live server. `config/unifiend-host-trust.json` pins this public identity; existing secret values were not changed. Do not repeat a resolved fingerprint blocker. Client authentication still requires an authorized unlock path for the encrypted existing key. Owner already has a root Console shell; use it to inspect existing profiles/service without requesting new Codex login, installing the accidental client key or overwriting auth directories.
+
 Scope: `Unified-on-Progress` only.
 
 ## Current Owner naming directive, 30 Oct 2026
