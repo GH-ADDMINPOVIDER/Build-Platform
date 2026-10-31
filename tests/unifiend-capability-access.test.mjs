@@ -128,3 +128,12 @@ test("a rejected OIDC subject is classified without persisting the actual claims
   assert.equal(report.failure.code, "AUTH_SUBJECT_REJECTED");
   assert.equal(JSON.stringify(report).includes(fixture.oidc), false);
 });
+
+test("reference inventory preserves existing mixed-case names without reading their values", async () => {
+  const s = service({ metadata: [{ secretKey: "Api_GitHub_Primary", secretPath: "/" },
+    { secretKey: "SSH_Private_Key", secretPath: "/host" }] });
+  const report = await inspectCapabilityAccess({ env, request: s.request });
+  assert.deepEqual(report.provider_credential_references, [{ reference: "Api_GitHub_Primary", path: "/" }]);
+  assert.deepEqual(report.connection_references, [{ reference: "SSH_Private_Key", path: "/host" }]);
+  assert.equal(s.calls.some(c => /\/secrets\/[^?]+\?/.test(c.url)), false);
+});

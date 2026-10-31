@@ -102,9 +102,12 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
     });
     if (!Array.isArray(metadata.secrets)) throw new ProbeFailure("secret_metadata", "INVALID_METADATA_SHAPE");
     const secrets = metadata.secrets.filter(s => s && typeof s.secretKey === "string"
-      && /^[A-Z][A-Z0-9_-]{0,127}$/.test(s.secretKey)
+      && /^[A-Za-z_][A-Za-z0-9_-]{0,127}$/.test(s.secretKey)
       && (s.secretPath == null || (typeof s.secretPath === "string" && /^\/[A-Za-z0-9_/-]*$/.test(s.secretPath))));
-    report.connection_references = secrets.filter(s => /SSH|HOST|CODEX|TAILSCALE|TERMINAL|DIGITALOCEAN/.test(s.secretKey))
+    report.available_references = secrets.slice(0, 250).map(s => ({ reference: s.secretKey, path: s.secretPath || "/" }));
+    report.provider_credential_references = secrets.filter(s => /github|git_|^gh[0-9_-]|addmin|povider|provider/i.test(s.secretKey))
+      .slice(0, 100).map(s => ({ reference: s.secretKey, path: s.secretPath || "/" }));
+    report.connection_references = secrets.filter(s => /SSH|HOST|CODEX|TAILSCALE|TERMINAL|DIGITALOCEAN/i.test(s.secretKey))
       .slice(0, 100).map(s => ({ reference: s.secretKey, path: s.secretPath || "/" }));
 
     // Policy access is diagnostic only; never change its trust configuration.
@@ -115,7 +118,9 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
       const config = policy.identityOidcAuth ?? policy;
       const bindings = [config.boundSubject, config.boundAudiences, config.boundClaims];
       report.oidc_policy = {
-        state: "READ_AVAILABLE",
+        state: bindings.some(v => v != null) ? "READ_AVAILABLE" : "UNRECOGNIZED_RESPONSE",
+        response_fields: Object.keys(policy).filter(k => /^[A-Za-z_][A-Za-z0-9_]{0,80}$/.test(k)),
+        binding_fields: config && typeof config === "object" ? Object.keys(config).filter(k => /^bound[A-Za-z]+$/.test(k)) : [],
         current_repository_name_bound: JSON.stringify(bindings).includes("Build-Platform"),
         repository_id_bound: JSON.stringify(bindings).includes(String(REPOSITORY_ID)),
       };
