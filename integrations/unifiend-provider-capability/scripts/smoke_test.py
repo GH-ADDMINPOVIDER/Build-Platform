@@ -19,6 +19,9 @@ def main():
             path = root / name
             path.write_text("#!/bin/sh\n[ -z \"${UNIFIEND_FIXTURE_SECRET:-}\" ] || exit 91\nprintf '%s\\n' '" + output + "'\n")
             path.chmod(0o700)
+        ssh_mock = root / "ssh"
+        ssh_mock.write_text("#!/bin/sh\n[ -z \"\${UNIFIEND_FIXTURE_SECRET:-}\" ] || exit 91\ncase \" $* \" in *StrictHostKeyChecking=yes*) ;; *) exit 92;; esac\ncase \" $* \" in *165.232.174.32*) ;; *) exit 93;; esac\nprintf 'UNIFIEND_SSH_AUTH_OK\\n'\n")
+        ssh_mock.chmod(0o700)
         env = dict(os.environ, UNIFIEND_WORKTREE=str(work), PATH=str(root) + os.pathsep + os.defpath,
                    SSH_AUTH_SOCK=str(root / "fake-agent"), UNIFIEND_FIXTURE_SECRET="must-not-be-forwarded")
         messages = []
@@ -35,6 +38,8 @@ def main():
         contract = call("unifiend_capability_contract")
         copilot = call("unifiend_copilot_status")
         agent = call("unifiend_ssh_status")
+        auth_probe = call("unifiend_ssh_status", {"probe": True})
+        invalid_probe = call("unifiend_ssh_status", {"probe": "true"})
         modes = [call("unifiend_mode_plan", dict(mode=mode, cwd=str(work), **extra)) for mode, extra in (
             ("terminal", {}), ("prompt", {"prompt": "test; $(not-executed)"}), ("acp-stdio", {}), ("acp-tcp", {"port": 3001}))]
         failures = [call("unifiend_mode_plan", args) for args in (
@@ -57,6 +62,9 @@ def main():
         assert content(contract)["snapshot_only"] is True
         assert content(copilot)["acp_supported"] and content(copilot)["github_catalog_option"]
         assert content(agent)["key_count"] == 1
+        assert content(auth_probe)["login_probe"]["ssh_authentication"] == "VERIFIED"
+        assert content(auth_probe)["login_probe"]["result"] == "PASS_GREEN_AUTH_ONLY"
+        assert result(invalid_probe)["isError"]
         assert all(content(i)["status"] == "PLAN_ONLY_NOT_EXECUTED" for i in modes)
         assert content(modes[1])["argv"][-1] == "test; $(not-executed)"
         assert content(modes[2])["argv"][-2:] == ["--acp", "--stdio"]
@@ -69,7 +77,7 @@ def main():
         helper = SERVER.with_name("ssh-unlock.sh")
         assert subprocess.run(["bash", str(helper)], capture_output=True).returncode == 2
         assert subprocess.run(["bash", "-c", 'source "$1" /nonexistent/unifiend-key 1h', "smoke", str(helper)], capture_output=True).returncode == 2
-        print(json.dumps({"smoke": "PASS", "assertion_groups": 16, "cli_agent": "LOCAL_FIXTURES", "model_calls": 0, "ssh_connections": 0, "disk_key_changes": 0}))
+        print(json.dumps({"smoke": "PASS", "assertion_groups": 19, "cli_agent": "LOCAL_FIXTURES", "model_calls": 0, "ssh_connections": 0, "disk_key_changes": 0}))
 
 if __name__ == "__main__":
     main()
