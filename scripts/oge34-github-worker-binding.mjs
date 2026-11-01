@@ -48,7 +48,7 @@ const responseJson = async (response) => await response.json().catch(() => ({}))
 function requireStaging() {
   assert.equal(process.env.GITHUB_REPOSITORY, REPO, "REPO_SCOPE");
   assert.equal(process.env.GITHUB_REF_NAME, BRANCH, "STAGING_BRANCH_SCOPE");
-  assert.equal(process.env.RUNNER_NAME, "wave-runner-01", "RUNNER_SCOPE");
+  assert.equal(process.env.RUNNER_NAME, "GH-ADDMINPOVIDER", "RUNNER_SCOPE");
   assert.equal(process.env.WORKER_NAME, WORKER, "WORKER_SCOPE");
   assert.equal(process.env.INFISICAL_PROJECT_ID, "e8cfba67-ea99-4d79-bc9f-87b862f9129c", "INFISICAL_PROJECT_SCOPE");
   assert.equal(process.env.INFISICAL_PROJECT_SLUG, "ogenic-sio-ti-rv", "INFISICAL_PROJECT_SLUG_SCOPE");
@@ -111,7 +111,7 @@ async function verifyOwnerRead() {
 // Reuse GitHub auth that the Owner already configured for the `unifiend` host user.
 // Do not touch /root, switch accounts, prompt OAuth, or reveal credentials in logs.
 export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
-  if (env.RUNNER_NAME !== "wave-runner-01") return [];
+  if (env.RUNNER_NAME !== "GH-ADDMINPOVIDER") return [];
   const localEnv = { ...env, GIT_TERMINAL_PROMPT: "0", GCM_INTERACTIVE: "never" };
   for (const name of ["GH_TOKEN", "GITHUB_TOKEN", "GH_PAT", "GITHUB_PAT",
     "GIT_ASKPASS", "SSH_ASKPASS", "GITHUB_ACCESS_TOKEN"]) delete localEnv[name];
@@ -135,25 +135,20 @@ export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
   return found;
 }
 // Stable GitHub numeric IDs are more reliable than emails, display names
-// or guessed login spellings. The historical store remains read-only; only
+// or guessed login spellings. GH2 is the only accepted operational identity; only
 // the operational principal may be selected for Unifiend dispatch.
 // A 200 from /user proves token validity, NOT the expected GitHub identity.
 export const OWNER_GITHUB_IDENTITIES = Object.freeze({
-  store: { id: 306097555, login: "ogenicchocolate21debug" },
   capability: { id: 342175560, login: "wave-runner-2" },
 });
-export function classifyOwnerPrincipal(payload, expected = "either") {
+export function classifyOwnerPrincipal(payload, expected = "capability") {
+  if (expected !== "capability" && expected !== "either") return null;
   const id = Number(payload?.id);
   const login = String(payload?.login ?? "").toLowerCase();
-  const one = OWNER_GITHUB_IDENTITIES.store;
-  const two = OWNER_GITHUB_IDENTITIES.capability;
-  const first = id === one.id && login === one.login;
-  const second = id === two.id && login === two.login;
-  if (expected === "store") return first ? "store" : null;
-  if (expected === "capability") return second ? "capability" : null;
-  return first ? "store" : second ? "capability" : null;
+  const primary = OWNER_GITHUB_IDENTITIES.capability;
+  return id === primary.id && login === primary.login ? "capability" : null;
 }
-async function verifyExistingHostGitHubPrincipal(token, expected = "either") {
+async function verifyExistingHostGitHubPrincipal(token, expected = "capability") {
   const response = await fetch("https://api.github.com/user", {
     headers: {
       "Authorization": "Bearer " + token,
@@ -209,8 +204,8 @@ export async function main() {
       continue;
     }
     // GH_ADDMINPROVIDER is the only eligible dispatch credential after the
-    // store migration. Never infer principal or scope from a secret label.
-    const expectedPrincipal = recognized.recognized ? "capability" : "either";
+    // account migration. Never infer principal or scope from a secret label.
+    const expectedPrincipal = "capability";
     const variants=[{type:"EXACT",value:raw}];
     // OGE-40 proved the canonical value contains control characters. Check
     // whether it is merely line-wrapped; do not overwrite Infisical or guess
@@ -262,7 +257,7 @@ export async function main() {
       }
       if(result==="AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN")authorized.push({
         key:label, token:candidate, type:recognized.recognized ? recognized.type : "LEGACY",
-        principal: verifiedPrincipal === "capability" ? "wave-runner-2" : "ogenicchocolate21debug",
+        principal: "wave-runner-2",
       });
     }
   }
