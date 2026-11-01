@@ -67,7 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm install --prefix "$RUNNER_TEMP/unifiend-copilot" --no-audit --no-fund @github/copilot@1.0.105
+          npm install --prefix "$RUNNER_TEMP/unifiend-copilot" --no-audit --no-fund @github/copilot@1.0.106-2
           "$RUNNER_TEMP/unifiend-copilot/node_modules/.bin/copilot" --version
           python3 - "$RUNNER_TEMP/unifiend-copilot/node_modules/.bin/copilot" "$RUNNER_TEMP" <<'PY'
           import importlib.util, json, pathlib, subprocess, sys
@@ -82,8 +82,8 @@ jobs:
           print(json.dumps(report))
           pathlib.Path('.unifiend-reports').mkdir(exist_ok=True)
           pathlib.Path('.unifiend-reports/copilot-modes.json').write_text(json.dumps(report))
-          assert help_result.returncode == 0 and all(flags.values()), 'INSTALLED_FLAGS_UNSUPPORTED'
-          assert all(value == 'INITIALIZE_VERIFIED_NO_INFERENCE' for value in outcomes.values()), 'ACP_TRANSPORT_NOT_VERIFIED'
+          assert help_result.returncode == 0 and flags['--acp'] and flags['--enable-all-github-mcp-tools'], 'INSTALLED_FLAGS_UNSUPPORTED'
+          assert all(value['state'] == 'INITIALIZE_VERIFIED_NO_INFERENCE' for value in outcomes.values()), 'ACP_TRANSPORT_NOT_VERIFIED'
           PY
       - name: Verify the pinned OpenCode package in temporary Cloud storage
         id: opencode_check

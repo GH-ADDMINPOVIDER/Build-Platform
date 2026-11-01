@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-VERSION = '1.0.105'
+VERSION = '1.0.106-2'
 PACKAGE = '@github/copilot@' + VERSION
 MODES = ('terminal', 'prompt', 'acp-stdio', 'acp-tcp')
 FLAGS = ('--acp', '--stdio', '--port', '--enable-all-github-mcp-tools')
@@ -49,7 +49,7 @@ def command(executable, mode, cwd, port=3000, prompt=None):
             raise ValueError('PROMPT_REQUIRED')
         args += ['-p', prompt]
     elif mode == 'acp-stdio':
-        args += ['--acp', '--stdio']
+        args += ['--acp']  # stdio is the default, including older ACP builds.
     elif mode == 'acp-tcp':
         if not 1024 <= port <= 65535:
             raise ValueError('UNPRIVILEGED_PORT_REQUIRED')
@@ -96,9 +96,8 @@ def inspect(home):
         result['flags'] = {flag: flag in help_text for flag in FLAGS}
         result['modes']['terminal'] = 'CLI_PRESENT' if completed.returncode == 0 else 'HELP_FAILED'
         result['modes']['prompt'] = 'FLAG_PRESENT' if '-p,' in help_text or '--prompt' in help_text else 'UNSUPPORTED'
-        for mode in ('acp-stdio', 'acp-tcp'):
-            flag = '--stdio' if mode == 'acp-stdio' else '--port'
-            result['modes'][mode] = 'FLAGS_PRESENT' if all(result['flags'][f] for f in ('--acp', flag)) else 'UNSUPPORTED'
+        result['modes']['acp-stdio'] = 'ACP_PRESENT_HANDSHAKE_REQUIRED' if result['flags']['--acp'] else 'UNSUPPORTED'
+        result['modes']['acp-tcp'] = 'HANDSHAKE_REQUIRED_GLOBAL_HELP_NOT_AUTHORITATIVE'
     except (OSError, subprocess.TimeoutExpired):
         result['inspection'] = 'READ_UNAVAILABLE'
     return result
@@ -121,10 +120,12 @@ def smoke_transport(executable, mode, home):
     env['COPILOT_HOME'] = str(pathlib.Path(isolated.name) / 'config')
     env['COPILOT_OFFLINE'] = 'true'
     child = subprocess.Popen(args, cwd=home, env=env, stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     channel = None
     selector = selectors.DefaultSelector()
     deadline = time.monotonic() + 30
+    state = 'INITIALIZE_UNAVAILABLE'
+    errors = b''
     try:
         if mode == 'acp-tcp':
             while time.monotonic() < deadline and child.poll() is None:
@@ -134,7 +135,7 @@ def smoke_transport(executable, mode, home):
                 except OSError:
                     time.sleep(0.05)
             if channel is None:
-                return 'LISTENER_UNAVAILABLE'
+                raise RuntimeError('LISTENER_UNAVAILABLE')
             reader = channel.makefile('rb')
         else:
             reader = child.stdout
@@ -159,8 +160,10 @@ def smoke_transport(executable, mode, home):
                 continue
             if message.get('id') == 1:
                 result = message.get('result')
-                return 'INITIALIZE_VERIFIED_NO_INFERENCE' if isinstance(result, dict) and result.get('protocolVersion') == 1 else 'INITIALIZE_REJECTED'
-        return 'INITIALIZE_UNAVAILABLE'
+                state = 'INITIALIZE_VERIFIED_NO_INFERENCE' if isinstance(result, dict) and result.get('protocolVersion') == 1 else 'INITIALIZE_REJECTED'
+                break
+    except RuntimeError:
+        state = 'LISTENER_UNAVAILABLE'
     finally:
         selector.close()
         if channel:
@@ -168,11 +171,22 @@ def smoke_transport(executable, mode, home):
         if child.poll() is None:
             child.terminate()
         try:
-            child.communicate(timeout=3)
+            _, errors = child.communicate(timeout=3)
         except subprocess.TimeoutExpired:
             child.kill()
-            child.communicate()
+            _, errors = child.communicate()
         isolated.cleanup()
+    lowered = errors.decode(errors='replace').lower()
+    diagnostic = 'NONE' if state == 'INITIALIZE_VERIFIED_NO_INFERENCE' else 'UNCLASSIFIED'
+    for marker, category in (('unknown option', 'CLI_OPTION_UNSUPPORTED'),
+                             ('unrecognized', 'CLI_OPTION_UNSUPPORTED'),
+                             ('authentication', 'AUTHENTICATION_REQUIRED'),
+                             ('sign in', 'AUTHENTICATION_REQUIRED'),
+                             ('provider', 'PROVIDER_CONFIGURATION_REQUIRED')):
+        if marker in lowered:
+            diagnostic = category
+            break
+    return {'state': state, 'diagnostic': diagnostic}
 
 
 def main():
@@ -210,7 +224,8 @@ def main():
         executable = resolve_executable(home)
         result['transport_smoke'] = smoke_transport(executable, args.mode, home) if executable else 'COPILOT_NOT_INSTALLED'
     print(json.dumps(result))
-    if result.get('installation') == 'INSTALL_FAILED' or result.get('transport_smoke', '').endswith(('UNAVAILABLE', 'REJECTED', 'NOT_INSTALLED')):
+    transport = result.get('transport_smoke')
+    if result.get('installation') == 'INSTALL_FAILED' or (transport and (not isinstance(transport, dict) or transport.get('state') != 'INITIALIZE_VERIFIED_NO_INFERENCE')):
         raise SystemExit(1)
 
 

@@ -78,7 +78,7 @@ writer.flush()
             executable.chmod(0o700)
             for mode in ('acp-stdio', 'acp-tcp'):
                 with self.subTest(mode=mode):
-                    self.assertEqual(module.smoke_transport(str(executable), mode, home), 'INITIALIZE_VERIFIED_NO_INFERENCE')
+                    self.assertEqual(module.smoke_transport(str(executable), mode, home)['state'], 'INITIALIZE_VERIFIED_NO_INFERENCE')
             self.assertFalse((pathlib.Path(home) / 'copilot-smoke-state').exists())
 
 

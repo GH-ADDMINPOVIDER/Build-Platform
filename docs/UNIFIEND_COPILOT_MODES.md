@@ -28,7 +28,7 @@ python3 scripts/unifiend-copilot-modes.py install-missing
 python3 scripts/unifiend-copilot-modes.py inspect
 ```
 
-The installer preserves an existing CLI and auth. A missing CLI is pinned to `@github/copilot@1.0.105` in user-local storage. If an existing version lacks requested flags, inspection reports unsupported; it does not overwrite the existing program automatically.
+The installer preserves an existing CLI and auth. A missing CLI is pinned to the official prerelease `@github/copilot@1.0.106-2` in user-local storage for transport verification. Stable 1.0.105 did not pass the first transport probe. Global help does not necessarily list transport-specific flags; actual initialization is authoritative. If an existing version lacks requested flags, inspection reports unsupported; it does not overwrite the existing program automatically. Do not call either release host-ready until actual transport and authentication results are read.
 
 After verifying the selected account, entitlement and task scope, start the chosen mode on demand:
 
@@ -55,6 +55,6 @@ DigitalOcean API read on 1 November 2026 reports the existing host active, one v
 - https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference
 - https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/install-copilot-cli
 - https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/authenticate-copilot-cli
-- https://github.com/github/copilot-cli/releases/tag/v1.0.105
+- https://github.com/github/copilot-cli/releases/tag/v1.0.106-2
 
 p-stack: 19 Build the lever, 34 Prove it works, 50 Unslop.
