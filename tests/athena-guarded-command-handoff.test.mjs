@@ -96,7 +96,7 @@ test("approved Codex command dispatches Ocian-S-Host consumer and records termin
   assert.match(entry, /COMMAND_CONSUMER_STARTED/);
   assert.match(entry, /COMMAND_RESULT_/);
   assert.match(entry, /capability = 'codex_selfhost'/);
-  assert.match(workflow, /runs-on: \[unifiend-capability\]/);
+  assert.match(workflow, /runs-on: \[GH-ADDMINPOVIDER\]/);
   assert.match(workflow, /Infisical\/secrets-action/);
   assert.match(consumer, /CODEX_HOME/);
   assert.match(consumer, /spawnSync\("codex", \["exec"/);
