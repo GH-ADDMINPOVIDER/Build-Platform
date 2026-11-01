@@ -186,9 +186,14 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
         }
         try {
           const machines = await jsonRequest(request, "host_registration", `https://api.github.com/repos/${repo.full_name}/actions/runners`, { headers });
-          const existing = machines.runners?.filter(m => m.name === "wave-runner-01") || [];
-          report.host_registration = { matching_count: existing.length, machines: existing.map(m => ({ id: m.id,
-            status: ["online", "offline"].includes(m.status) ? m.status : "UNKNOWN", busy: m.busy === true })) };
+          const inventory = Array.isArray(machines.runners) ? machines.runners : [];
+          const existing = inventory.filter(m => m.name === "GH-ADDMINPOVIDER");
+          report.host_registration = { expected_name: "GH-ADDMINPOVIDER", expected_label: "GH-ADDMINPOVIDER",
+            primary_registration_count: Number.isInteger(machines.total_count) ? machines.total_count : null,
+            inventory_complete: machines.total_count === inventory.length, matching_count: existing.length,
+            machines: existing.map(m => ({ id: m.id,
+            status: ["online", "offline"].includes(m.status) ? m.status : "UNKNOWN", busy: m.busy === true,
+            label_matches: m.labels?.some(label => label.name === "GH-ADDMINPOVIDER") === true })) };
         } catch (error) { report.host_registration = { state: "READ_UNAVAILABLE", ...publicFailure(error) }; }
         if (env.UNIFIEND_VERIFY_ADMIN_WRITE === "true") {
           report.operations = "READ_AND_UNCHANGED_NAME_ADMIN_PROBE";

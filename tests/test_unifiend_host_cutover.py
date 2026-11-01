@@ -124,6 +124,9 @@ class CutoverTests(unittest.TestCase):
         self.assertFalse(result['codex_profiles_changed'])
         config_args = next(args for args, _ in commands if '--unattended' in args)
         self.assertIn('--no-default-labels', config_args)
+        self.assertEqual(config_args[config_args.index('--name') + 1], 'GH-ADDMINPOVIDER')
+        self.assertEqual(config_args[config_args.index('--labels') + 1], 'GH-ADDMINPOVIDER')
+        self.assertEqual(result['host'], 'Ocian-S-Host')
         self.assertIn('_work-unifiend', config_args)
         self.assertFalse(any('curl' in str(args) or 'ssh-keygen' in str(args) for args, _ in commands))
 

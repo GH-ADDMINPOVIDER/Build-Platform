@@ -24,8 +24,9 @@ RECOVERY = ROOT / ".unifiend-cutover"
 PRIMARY_ID = 1429580446
 PRINCIPAL_ID = 342175560
 OLD_URL = "https://github.com/Ogenicchocolate21debug/Build-Platform"
-NAME = "Ocian-S-Host"
-LABEL = "unifiend-capability"
+HOST_NAME = "Ocian-S-Host"
+NAME = "GH-ADDMINPOVIDER"
+LABEL = "GH-ADDMINPOVIDER"
 PIN = "SHA256:rtBc5XsEuZwLAOI80yuTbB6JmAgWfO8Nj1rkf5RYtdQ"
 HOST_PUBLIC_KEY = pathlib.Path("/etc/ssh/ssh_host_ed25519_key.pub")
 STATE_FILES = (".runner", ".runner_migrated", ".credentials", ".credentials_migrated", ".credentials_rsaparams", ".env", ".path", "svc.sh")
@@ -87,7 +88,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def perform_cutover(api, apply=False):
-    report = {"schema": "UNIFIEND_HOST_CUTOVER_V1", "host": NAME, "applied": False, "ok": False,
+    report = {"schema": "UNIFIEND_HOST_CUTOVER_V1", "host": HOST_NAME, "applied": False, "ok": False,
               "archived_provider_write": False, "codex_profiles_changed": False}
     stage = "host_preflight"
     lock = None

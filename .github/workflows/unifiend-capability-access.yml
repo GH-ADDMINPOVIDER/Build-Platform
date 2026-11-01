@@ -100,7 +100,7 @@ jobs:
           UNIFIEND_VERIFY_ADMIN_WRITE: 'false'
           UNIFIEND_INSPECT_HOST: 'true'
           UNIFIEND_RECORD_CHECKPOINT: 'true'
-          UNIFIEND_CLEANUP_MIGRATION_CHECKS: 'true'
+          UNIFIEND_CLEANUP_MIGRATION_CHECKS: 'false'
           UNIFIEND_VERIFY_CONSOLE_SOURCE: 'true'
           UNIFIEND_INSPECT_SAVED_TOOLS: 'true'
           UNIFIEND_OPENCODE_PACKAGE_CHECK: ${{ steps.opencode_check.outcome }}

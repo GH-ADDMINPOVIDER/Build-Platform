@@ -28,7 +28,7 @@ env:
 jobs:
   consume:
     if: github.ref_name == 'Unified-on-Progress' && github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
-    runs-on: [unifiend-capability]
+    runs-on: [GH-ADDMINPOVIDER]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
           set -euo pipefail
           [[ "$UNIFIEND_TASK_ID" =~ ^wavecmd_[a-f0-9]{64}$ ]]
           test "$(git branch --show-current)" = "Unified-on-Progress"
-          test "$RUNNER_NAME" = "Ocian-S-Host"
+          test "$RUNNER_NAME" = "GH-ADDMINPOVIDER"
 
       - name: Discover Infisical project
         id: infisical_project

@@ -6,7 +6,7 @@
 set -euo pipefail
 umask 077
 
-if [[ "${RUNNER_NAME:-}" != "Ocian-S-Host" ]]; then
+if [[ "${RUNNER_NAME:-}" != "GH-ADDMINPOVIDER" ]]; then
   echo "TERMINAL_SOLO_DENIED_HOST" >&2; exit 78
 fi
 if [[ "${GITHUB_REF_NAME:-}" != "Unified-on-Progress" ]]; then

@@ -1,5 +1,5 @@
 {
-  "display_label": "Unifiend capability",
+  "display_label": "GH-ADDMINPOVIDER",
   "github_login": "Wave-Runner-2",
   "github_user_id": 342175560,
   "repository": "Wave-Runner-2/Build-Platform",
@@ -21,5 +21,10 @@
   "provider_access_verified_source": "8833f9214d4267d69e42ce3fda79722011c01e1d",
   "provider_access_verified_run": 41154759585,
   "administration_write_verified_source": "5e6b17752003008d18da57ca479ee4b85b57f474",
-  "administration_write_verified_run": 41155125633
+  "administration_write_verified_run": 41155125633,
+  "requested_runner_registration": "GH-ADDMINPOVIDER",
+  "requested_runner_labels": [
+    "GH-ADDMINPOVIDER"
+  ],
+  "runner_registration_state": "PENDING_LIVE_HOST_CUTOVER"
 }

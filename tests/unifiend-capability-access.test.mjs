@@ -56,11 +56,28 @@ function service(overrides = {}) {
       assert.deepEqual(JSON.parse(init.body), { name: "Build-Platform" });
       return overrides.admin?.() || Response.json({ id: 1429580446 });
     }
-    if (url.endsWith("/actions/runners")) return Response.json({ runners: [{ id: 7, name: "wave-runner-01", status: "offline", busy: false }] });
+    if (url.endsWith("/actions/runners")) return Response.json(overrides.runners || { total_count: 1, runners: [{ id: 7, name: "wave-runner-01", status: "offline", busy: false }] });
     throw new Error("Unexpected fixture request");
   };
   return { request, calls };
 }
+
+test("primary inventory matches the requested name and label, preserves busy state", async () => {
+  const s = service({runners: {total_count: 1, runners: [{id: 9, name: "GH-ADDMINPOVIDER", status: "online", busy: true, labels: [{name: "GH-ADDMINPOVIDER"}]}]}});
+  const report = await inspectCapabilityAccess({env, request: s.request});
+  assert.equal(report.host_registration.inventory_complete, true);
+  assert.equal(report.host_registration.matching_count, 1);
+  assert.deepEqual(report.host_registration.machines, [{id: 9, status: "online", busy: true, label_matches: true}]);
+  assert.ok(s.calls.every(c => c.method === "GET" || !c.url.includes("api.github.com")));
+});
+
+test("historical names are not accepted and truncated inventory is explicit", async () => {
+  const s = service({runners: {total_count: 101, runners: [{id: 7, name: "wave-runner-01", status: "online"}]}});
+  const report = await inspectCapabilityAccess({env, request: s.request});
+  assert.equal(report.host_registration.primary_registration_count, 101);
+  assert.equal(report.host_registration.inventory_complete, false);
+  assert.equal(report.host_registration.matching_count, 0);
+});
 
 test("capability probe fails before network access outside the exact Owner source scope", async () => {
   for (const patch of [{ GITHUB_REPOSITORY_ID: "1" }, { GITHUB_REPOSITORY_OWNER_ID: "306097555" },
