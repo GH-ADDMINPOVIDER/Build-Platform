@@ -1,0 +1,23 @@
+{
+  "schema": "UNIFIEND_PROVIDER_CAPABILITY_V1",
+  "provider": "GH-ADDMINPOVIDER",
+  "repository": "Wave-Runner-2/Build-Platform",
+  "repository_id": 1429580446,
+  "branch": "Unified-on-Progress",
+  "host": "Ocian-S-Host",
+  "credential_reference": "GH_ADDMINPROVIDER-FINE_GRAINED",
+  "secret_manager": "Infisical",
+  "audit_issue": "OWNER-28",
+  "certificate_spreadsheet_id": "12Udw2-bMrvZ7oHC2SaJ3IXyIWH9HdXrGDtLCLIyYTyg",
+  "snapshot_only": true,
+  "previous_evidence": {
+    "tested_source": "25c087018e6359082ba2178e05a3e5dc1f30e850",
+    "report_source": "3bfea97ac0c5d08df2100e777e369deabcba4950",
+    "cloud_run": "41271298176",
+    "acp_initialize": "PASSED_WITH_SYNTHETIC_PROVIDER_ZERO_INFERENCE",
+    "real_model_authentication": "NOT_VERIFIED",
+    "host_installation": "NOT_APPLIED",
+    "ssh_client_key": "ENCRYPTED_UNLOCK_REQUIRED",
+    "d1_checkpoint_hash": "3a4d7705bba7f6198e37f4340dbc3254512deeaf19f1b84c4bf2b98dc1847b95"
+  }
+}
