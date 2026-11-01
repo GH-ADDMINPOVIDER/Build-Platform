@@ -22,6 +22,12 @@ def main():
         ssh_mock = root / "ssh"
         ssh_mock.write_text("#!/bin/sh\n[ -z \"${UNIFIEND_FIXTURE_SECRET:-}\" ] || exit 91\ncase \" $* \" in *StrictHostKeyChecking=yes*) ;; *) exit 92;; esac\ncase \" $* \" in *165.232.174.32*) ;; *) exit 93;; esac\nprintf 'UNIFIEND_SSH_AUTH_OK\\n'\n")
         ssh_mock.chmod(0o700)
+        keygen_mock = root / "ssh-keygen"
+        keygen_mock.write_text("#!/bin/sh\\nprintf 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFIXTUREONLY\\n'\\n".replace("\\n", "\n"))
+        keygen_mock.chmod(0o700)
+        existing = root / "existing-private-key"
+        existing.write_text("SYNTHETIC_KEY_NOT_A_REAL_SECRET\n")
+        existing.chmod(0o600)
         env = dict(os.environ, UNIFIEND_WORKTREE=str(work), PATH=str(root) + os.pathsep + os.defpath,
                    SSH_AUTH_SOCK=str(root / "fake-agent"), UNIFIEND_FIXTURE_SECRET="must-not-be-forwarded")
         messages = []
@@ -65,6 +71,24 @@ def main():
         assert content(auth_probe)["login_probe"]["ssh_authentication"] == "VERIFIED"
         assert content(auth_probe)["login_probe"]["result"] == "PASS_GREEN_AUTH_ONLY"
         assert result(invalid_probe)["isError"]
+        file_env = dict(env, UNIFIEND_SSH_KEY_FILE=str(existing))
+        file_env.pop("SSH_AUTH_SOCK", None)
+        file_messages = [
+            {"jsonrpc": "2.0", "id": 51, "method": "initialize", "params": {"protocolVersion": "2025-06-18"}},
+            {"jsonrpc": "2.0", "method": "notifications/initialized"},
+            {"jsonrpc": "2.0", "id": 52, "method": "tools/call", "params": {"name": "unifiend_ssh_status", "arguments": {"probe": True}}}
+        ]
+        file_run = subprocess.run([sys.executable, str(SERVER)],
+            input="\n".join(map(json.dumps, file_messages)) + "\n",
+            text=True, capture_output=True, env=file_env, timeout=20, check=True)
+        file_result = {p["id"]: p for p in map(json.loads, file_run.stdout.splitlines())}
+        login = json.loads(file_result[52]["result"]["content"][0]["text"])["login_probe"]
+        assert login["client_key_source"] == "EXISTING_UNENCRYPTED_KEY_FILE"
+        assert login["ssh_authentication"] == "VERIFIED"
+        helper_one_time = SERVER.with_name("ssh-remove-passphrase.sh")
+        assert subprocess.run(["bash", "-n", str(helper_one_time)], capture_output=True).returncode == 0
+        assert subprocess.run(["bash", str(helper_one_time), "--remove-passphrase", str(existing)], capture_output=True).returncode == 2
+        assert existing.read_text() == "SYNTHETIC_KEY_NOT_A_REAL_SECRET\n"
         assert all(content(i)["status"] == "PLAN_ONLY_NOT_EXECUTED" for i in modes)
         assert content(modes[1])["argv"][-1] == "test; $(not-executed)"
         assert content(modes[2])["argv"][-2:] == ["--acp", "--stdio"]
@@ -77,7 +101,7 @@ def main():
         helper = SERVER.with_name("ssh-unlock.sh")
         assert subprocess.run(["bash", str(helper)], capture_output=True).returncode == 2
         assert subprocess.run(["bash", "-c", 'source "$1" /nonexistent/unifiend-key 1h', "smoke", str(helper)], capture_output=True).returncode == 2
-        print(json.dumps({"smoke": "PASS", "assertion_groups": 19, "cli_agent": "LOCAL_FIXTURES", "model_calls": 0, "ssh_connections": 0, "disk_key_changes": 0}))
+        print(json.dumps({"smoke": "PASS", "assertion_groups": 23, "cli_agent": "LOCAL_FIXTURES", "model_calls": 0, "ssh_connections": 0, "disk_key_changes": 0}))
 
 if __name__ == "__main__":
     main()
