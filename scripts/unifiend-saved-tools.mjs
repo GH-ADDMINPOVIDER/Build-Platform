@@ -1,7 +1,7 @@
-const owners = ["Wave-Runner-2", "Ogenicchocolate21debug"];
+const owners = ["Wave-Runner-2"];
 const relevant = /terminal|ssh|opencode|codex|copilot|vscode|code-server|tmux|zellij|shell|webssh|tty|devcontainer|codespace|wezterm|ghostty|tabby|xterm/i;
 
-// Read-only discovery. Archived repositories are never execution targets.
+// Read-only discovery scoped to the sole operational GitHub account.
 export async function inspectSavedTools({ request, headers }) {
   const reports = [];
   for (const owner of owners) {

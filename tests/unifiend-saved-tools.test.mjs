@@ -7,7 +7,7 @@ test('star discovery is bounded GET-only and reports truthful links without arbi
   calls.push(url);assert.equal(init.method,undefined);assert.equal(init.redirect,'manual');
   return Response.json([{full_name:'vendor/terminal',description:'private-unused',secret:'unused'}, {full_name:'bad url',description:'terminal'}, {full_name:'vendor/other',description:'unrelated'}]);
  }});
- assert.equal(calls.length,2);assert.ok(result.every(r=>r.complete));
+ assert.equal(calls.length,1);assert.ok(result.every(r=>r.complete));
  assert.deepEqual(result[0].tools,[{full_name:'vendor/terminal',url:'https://github.com/vendor/terminal'}]);
  assert.deepEqual(result[0].starred.map(x=>x.full_name),['vendor/terminal','vendor/other']);
  assert.equal(JSON.stringify(result).includes('private-unused'),false);
