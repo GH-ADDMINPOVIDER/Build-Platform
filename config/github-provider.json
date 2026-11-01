@@ -6,8 +6,6 @@
   "repository_id": 1429580446,
   "staging_branch": "Unified-on-Progress",
   "infisical_credential_reference": "GH_ADDMINPROVIDER-FINE_GRAINED",
-  "historical_evidence_repository": "Ogenicchocolate21debug/Build-Platform",
-  "runner_registration": "wave-runner-01",
   "physical_host": "OCIAN-S-Host",
   "requested_repository_name": "Inifiend capability",
   "requested_repository_slug": "Inifiend-capability",
@@ -26,5 +24,6 @@
   "requested_runner_labels": [
     "GH-ADDMINPOVIDER"
   ],
-  "runner_registration_state": "PENDING_LIVE_HOST_CUTOVER"
+  "runner_registration_state": "PENDING_LIVE_HOST_CUTOVER",
+  "host_hostname": "wave-runner-01"
 }
