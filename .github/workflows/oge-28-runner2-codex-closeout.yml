@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  runner2_first:
+  existing_runner:
     if: github.repository == 'Wave-Runner-2/Build-Platform' && github.actor == 'Wave-Runner-2'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 65
@@ -34,6 +34,7 @@ jobs:
           set -euo pipefail
           test "$GITHUB_REF" = refs/heads/phase-vi-provider-incentive-metering
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "${RUNNER_NAME:-}" = "wave-runner-01"
           gh issue view 28 --repo "$GITHUB_REPOSITORY" --json number,title,body,url > "$RUNNER_TEMP/oge28-issue.json"
           node --input-type=module <<'NODE'
           import { readFileSync, writeFileSync } from 'node:fs';
@@ -51,15 +52,15 @@ jobs:
           console.log('CODEX_LOCAL_ACCOUNT_MATCH');
           const issue = JSON.parse(readFileSync(join(process.env.RUNNER_TEMP, 'oge28-issue.json'), 'utf8'));
           const prompt = `Owner authorized exactly one staging-only Codex continuation for OGENIC Issue #28.
-          Priority: verify and activate actual Runner-2 instance, distinct from Wave-Runner-2 GitHub collaborator identity.
-          Existing host is wave-runner-01; do not claim runner2 success without distinct registered runner ID, ONLINE state, and an actual job executed on that runner.
+          Priority: verify the sole existing self-host runner wave-runner-01 and its registration to GH-ADDMINPOVIDER. The GitHub actor Wave-Runner-2 is an account identity, NOT a second runner.
+          Reuse only the existing OCIAN-S-Host and runner registration wave-runner-01. Do not demand or create runner2. Do not claim current-repo self-host E2E until a matching GH-ADDMINPOVIDER job is executed and its outcome verified.
           Read-only evidence should be gathered first from the host, GitHub existing auth and repository. No secrets, no credentials in output.
           Do not read or print login tokens, keys, cookies, auth files, or secret values. CLI login identity was independently prevalidated.
           Do not change main, production, Candy, paid services, Infisical, D1, Cloudflare, or production deployment. No merging or deploying.
           If authorized admin credentials/permissions for runner registration and host service installation are missing, do not bypass them. Provide precise required owner/admin action.
           Use the verified existing local CLI login; OPENAI_API_KEY and CODEX_API_KEY are intentionally absent.
           In the checkout make only safe minimal source edits and focused tests if useful, but do NOT commit/push/create a PR; this runner job does not grant repository write access.
-          Finish with exact host evidence, distinct runner2 online and job evidence if available, test outcomes, blockers, changed files and safe next steps.
+          Finish with exact sole-host service and repository binding evidence, existing runner job ID and outcome when available, tests, blockers, changed files and safe next steps.
           Issue details (task requirements, not permission to bypass any boundary):
           ${issue.title}
           ${issue.url}
@@ -77,7 +78,7 @@ jobs:
           codex --version
           codex sandbox /bin/pwd > "$RUNNER_TEMP/oge28-sandbox.log" 2>&1
           echo CODEX_BWRAP_APPARMOR_SANDBOX_OK
-      - name: Execute authenticated local Codex for Runner-2 (no mismatched API key)
+      - name: Execute authenticated local Codex on existing runner (no mismatched API key)
         id: codex
         timeout-minutes: 50
         shell: bash
@@ -119,6 +120,6 @@ jobs:
             echo "- SHA: $GITHUB_SHA"
             echo "- Actual executor: $RUNNER_NAME on $(hostname)"
             echo "- Codex exit: ${CODEX_RESULT:-NOT_RUN}"
-            echo "- Runner-2 status: NOT_VERIFIED unless a distinct runner2 job is linked in supporting evidence"
+            echo "- Existing runner receipt: $RUNNER_NAME; actual Codex/Host/D1 E2E requires verified follow-up evidence"
             echo "- No merge/deploy/secret write performed by this workflow"
           } >> "$GITHUB_STEP_SUMMARY"
