@@ -29,10 +29,10 @@ jobs:
           echo "HOST_SSH_CLIENT=$(if command -v ssh >/dev/null 2>&1; then echo AVAILABLE; else echo MISSING; fi)"
           echo "HOST_INFISICAL_CLI=$(if command -v infisical >/dev/null 2>&1; then echo AVAILABLE; else echo NOT_PRESENT; fi)"
           echo "HOST_GH_CLI=$(if command -v gh >/dev/null 2>&1; then echo AVAILABLE; else echo MISSING; fi)"
-          if systemctl is-active --quiet actions.runner.Ogenicchocolate21debug-Build-Platform.wave-runner-01.service; then
-            echo "SELFHOST_RUNNER01_SERVICE=ACTIVE"
+          if systemctl list-units --all --full --type=service --no-legend --no-pager 'actions.runner*' | grep -Eq '^[^[:space:]]+[[:space:]]+loaded[[:space:]]+active[[:space:]]+running'; then
+            echo "SELFHOST_ACTIONS_SERVICE=ACTIVE_BINDING_UNVERIFIED"
           else
-            echo "SELFHOST_RUNNER01_SERVICE=UNKNOWN"
+            echo "SELFHOST_ACTIONS_SERVICE=NOT_ACTIVE_OR_UNKNOWN"
           fi
           if sudo -n true >/dev/null 2>&1; then echo "NONINTERACTIVE_HOST_SUDO=YES"; else echo "NONINTERACTIVE_HOST_SUDO=NO"; fi
           codex --version
