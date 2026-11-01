@@ -4,6 +4,7 @@ import base64
 import hashlib
 import json
 import os
+import stat
 from pathlib import Path
 import shutil
 import subprocess
@@ -33,17 +34,46 @@ def inspect(command):
         return None
 
 
+def configured_ssh_identity():
+    """Use an explicitly configured, already-unencrypted key on this client only."""
+    raw = os.environ.get("UNIFIEND_SSH_KEY_FILE", "").strip()
+    if not raw:
+        return None, "UNCONFIGURED"
+    path = Path(raw)
+    try:
+        if not path.is_absolute() or path.is_symlink():
+            raise ValueError("UNSAFE_KEY_PATH")
+        meta = path.stat()
+        if not stat.S_ISREG(meta.st_mode) or meta.st_uid != os.geteuid() or meta.st_mode & 0o077:
+            raise ValueError("UNSAFE_KEY_PERMISSIONS")
+        result = inspect(["ssh-keygen", "-y", "-P", "", "-f", str(path)])
+        if not result or result.returncode != 0 or not result.stdout.startswith(("ssh-ed25519 ", "ssh-rsa ", "ecdsa-sha2-")):
+            return None, "KEY_ENCRYPTED_OR_INVALID"
+        return path, "READY"
+    except (OSError, ValueError):
+        return None, "UNSAFE_KEY_PATH_OR_PERMISSIONS"
+
+
 def pinned_ssh_auth_probe():
     """Optional owner-invoked, strictly pinned authentication test; no passphrases or file changes."""
     outcome = {"ssh_authentication": "NOT_VERIFIED", "operation": "FIXED_READ_ONLY_MARKER",
                "client_key_source": "EXISTING_SSH_AGENT", "credential_values": "NOT_READ"}
-    if not os.environ.get("SSH_AUTH_SOCK"):
-        outcome["reason"] = "CLIENT_SSH_AGENT_UNAVAILABLE"
-        return outcome
-    loaded = inspect(["ssh-add", "-l"])
-    if not loaded or loaded.returncode != 0:
-        outcome["reason"] = "CLIENT_KEY_NOT_LOADED"
-        return outcome
+    identity, identity_state = configured_ssh_identity()
+    if identity_state != "UNCONFIGURED":
+        if identity is None:
+            outcome["reason"] = identity_state
+            return outcome
+        outcome["client_key_source"] = "EXISTING_UNENCRYPTED_KEY_FILE"
+        identity_flags = ["-i", str(identity), "-o", "IdentitiesOnly=yes", "-o", "IdentityAgent=none"]
+    else:
+        if not os.environ.get("SSH_AUTH_SOCK"):
+            outcome["reason"] = "CLIENT_SSH_AGENT_UNAVAILABLE"
+            return outcome
+        loaded = inspect(["ssh-add", "-l"])
+        if not loaded or loaded.returncode != 0:
+            outcome["reason"] = "CLIENT_KEY_NOT_LOADED"
+            return outcome
+        identity_flags = ["-o", "IdentitiesOnly=no"]
     try:
         trust = json.loads((ROOT / "references/provider-contract.json").read_text())["verified_ssh_host"]
         expected = "165.232.174.32"
@@ -66,7 +96,7 @@ def pinned_ssh_auth_probe():
         pinned.write_text(hostline + "\n")
         pinned.chmod(0o600)
         command = ["ssh", "-F", "/dev/null", "-T", "-p", "22",
-                   "-o", "BatchMode=yes", "-o", "IdentitiesOnly=no",
+                   "-o", "BatchMode=yes", *identity_flags,
                    "-o", "PreferredAuthentications=publickey",
                    "-o", "PasswordAuthentication=no", "-o", "KbdInteractiveAuthentication=no",
                    "-o", "StrictHostKeyChecking=yes", "-o", "VerifyHostKeyDNS=no",
@@ -104,7 +134,8 @@ def invoke(name, args):
             raise ValueError("INVALID_SSH_PROBE_FLAG")
         result = inspect(["ssh-add", "-l"]) if os.environ.get("SSH_AUTH_SOCK") else None
         count = len(result.stdout.splitlines()) if result and result.returncode == 0 else 0
-        status = {"agent": "KEYS_LOADED" if count else "EMPTY" if result and result.returncode == 1 else "UNAVAILABLE", "key_count": count, "server_authentication": "NOT_TESTED"}
+        _, identity_state = configured_ssh_identity()
+        status = {"agent": "KEYS_LOADED" if count else "EMPTY" if result and result.returncode == 1 else "UNAVAILABLE", "key_count": count, "identity_file": identity_state, "server_authentication": "NOT_TESTED"}
         if args.get("probe", False):
             status["login_probe"] = pinned_ssh_auth_probe()
         return status
