@@ -58,7 +58,9 @@ Copilot plans require a compatible installed CLI, authorized GitHub or BYOK prov
 
 ## Optional live SSH authentication proof (no key changes)
 
-After the existing client has unlocked the existing encrypted private key in its local SSH agent, the local MCP client may invoke:
+The caller can use either an existing unlocked SSH agent or an explicitly configured **already unencrypted original private key**. To avoid agent expiry, set `UNIFIEND_SSH_KEY_FILE` to the absolute local key path in this MCP server's `env`, never to the key bytes. The file must be owned by the same local user, regular (not symlink) and mode 0600. No private key is copied into a repo, GitHub Actions CI, ChatGPT or Infisical by this tool.
+
+Then the local MCP client may invoke:
 
 ```json
 {"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"unifiend_ssh_status","arguments":{"probe":true}}}
@@ -81,7 +83,19 @@ ssh-add -l
 
 Enter the old passphrase only in the terminal prompt. Sourcing retains `SSH_AUTH_SOCK` in this shell when starting an agent. The key stays loaded for one hour, while its encrypted file remains unchanged. Key expiry does not stop the agent process. Use `ssh-agent -k` only for an agent you started and no longer need; do not clear other users' identities. The helper does not connect to the host. Afterward use the normal authorized SSH command and existing verified host pin; never disable host verification.
 
-## Permanent passphrase removal
+## Permanent passphrase removal — Owner-authorized one-time action
+
+On **the SSH client that already holds the original encrypted private key**, run this one time in an interactive terminal:
+
+```bash
+bash scripts/ssh-remove-passphrase.sh --remove-passphrase /absolute/path/to/existing-private-key
+```
+
+It asks for the **old** passphrase locally via `ssh-keygen`, changes only that existing file, enforces 0600, and verifies empty-passphrase readability. It rejects non-interactive CI, wrong ownership and symlink keys. No replacement key is generated. After this one-time procedure, configure `UNIFIEND_SSH_KEY_FILE` in the local MCP client to let explicit `unifiend_ssh_status({"probe":true})` use the private key directly without an agent lifetime.
+
+Removing a passphrase reduces protection of the private-key file. It does not preserve SSH TCP sessions, provider login sessions, or GitHub Runner registration. Use the existing runner as an auto-starting service for unattended job execution; SSH is for direct client access. NEVER install an unencrypted private key in this GitHub repository or a shared tool environment.
+
+## Original manual ssh-keygen method
 
 Possible only with the old passphrase. It removes disk protection and is not performed by this package. If the Owner explicitly chooses this later, run in the actual client's terminal:
 
