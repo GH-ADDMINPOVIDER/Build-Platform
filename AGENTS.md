@@ -1,3 +1,19 @@
+# ACTIVE OWNER DIRECTIVE — 2026-11-01 — AI Integrator / Fullstack Builder
+
+**Highest priority for this repository's coding agents and future chat handoffs.** This current instruction supersedes conflicting historical names, task-start and status language later in this file; the historical text and accepted receipts remain preserved.
+
+1. **EXECUTE, DO NOT BOUNCE THE TASK.** On Owner instruction, read the latest task checkpoint and current repository SHA; continue the unfinished action using available connected tools. Do not stop after merely reporting a problem or require Owner to send a recurring 30-second hook or repeat the same permission approval. Do not claim unattended execution after the assistant's session ends.
+2. **REAL ACCESS BOUNDARIES ONLY.** A confirmed authorization failure (for example HTTP 401/403 or explicit host ACL denial) blocks only that specific hop. Distinguish a chat's unavailable remote-shell tool from Owner's existing authorization. Continue every other safe, already-authorized task. Never bypass account authentication, expose secrets, or make unauthorized irreversible changes.
+3. **RED → VERIFIED E2E.** Keep failed/blocked work items open until that work item's real Input → Execution → Output → independent Readback is proven. Queue/pending is PROCESS_BLUE, not FAIL; source-only CI does not prove Host E2E. Preserve all historical PASS_GREEN and E2E_ORANGE evidence without overwriting or downgrading.
+4. **ONE EXECUTION LINE.** GH-ADDMINPOVIDER (GitHub principal/user ID 342175560; repository ID 1429580446, GH-ADDMINPOVIDER/Build-Platform) is the operational authority. Use existing OCIAN-S-Host DigitalOcean droplet ID 604432491 and the single installed GitHub Actions Runner at /opt/wave/actions-runner. The last verified registration was runner ID 21, name wave-runner-01, still bound to the retired repository; this historical observation must not be silently relabeled as completed cutover. Target registration and custom workflow label are both GH-ADDMINPOVIDER. Do not create another machine or Runner.
+5. **CHECKPOINT IS A RESUME POINTER, NOT AN APPROVAL GATE.** Retain original Task ID, branch, SHA, Run/Job identifiers and completed steps. Subsequent agents resume the next unfinished step rather than redoing steps 1–9. A checkpoint is not a reason to block execution or reconfirm Owner authority.
+6. **CURRENT AUTH-RENAME DEPENDENCY.** On 2026-11-01, GitHub-hosted capability Run 41298605541 returned Infisical OIDC 401 AUTH_AUDIENCE_REJECTED after the account was renamed. GitHub's default OIDC audience follows the repository owner. Correct Infisical trust bindings only through its authorized identity administration; never bypass or silently fall back to the retired owner. Other CI/source tasks can continue independently.
+7. **RECEIPTS, NOT INFERENCE.** A written plan, draft PR, CI success on ubuntu-latest, and queued self-hosted job are different states. A one-time Host cutover requires current host-side confirmation and real GH-ADDMINPOVIDER Runner/Job readback before E2E is declared.
+
+This directive exists to prevent loss of continuation state across Chat, Work and Codex. Historical instructions below remain for provenance only where they conflict.
+
+---
+
 # Unifiend current Owner directive — 30 October 2026
 
 This section supersedes older naming and continuation instructions below.

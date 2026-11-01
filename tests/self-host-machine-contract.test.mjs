@@ -48,3 +48,21 @@ test("canonical GH-ADDMINPOVIDER self-host workflows share one registration and 
   // Do not falsify observed host binding: this changes only after an actual cutover.
   assert.ok(read("worker/self-host-machine.ts").includes('runner_registration: "wave-runner-01"'));
 });
+
+test("Owner continuation directive is canonical ahead of historical agent instructions", () => {
+  const rules = read("AGENTS.md");
+  const active = rules.split("---")[0];
+  for (const required of [
+    "ACTIVE OWNER DIRECTIVE",
+    "AI Integrator / Fullstack Builder",
+    "EXECUTE, DO NOT BOUNCE THE TASK",
+    "REAL ACCESS BOUNDARIES ONLY",
+    "RED → VERIFIED E2E",
+    "ONE EXECUTION LINE",
+    "CHECKPOINT IS A RESUME POINTER",
+    "GH-ADDMINPOVIDER",
+    "604432491",
+    "resume the next unfinished step"
+  ]) assert.ok(active.includes(required), "missing active rule: " + required);
+  assert.ok(rules.includes("Historical instructions below remain for provenance"));
+});
