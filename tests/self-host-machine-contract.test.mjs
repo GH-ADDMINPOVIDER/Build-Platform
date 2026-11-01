@@ -30,3 +30,21 @@ test("historical runner aliases remain explicit and are not treated as agent acc
   assert.match(machine, /codex-selfhost:wave-runner-01/);
   assert.match(machine, /runner_count: 1/);
 });
+
+
+test("canonical GH-ADDMINPOVIDER self-host workflows share one registration and immutable repository identity", () => {
+  const consumer = read(".github/workflows/unifiend-command-consumer.yml");
+  const closeout = read(".github/workflows/oge-28-provider-codex-closeout.yml");
+  const smoke = read(".github/workflows/unifiend-self-hosted-smoke.yml");
+  for (const workflow of [consumer, closeout, smoke]) {
+    assert.match(workflow, /runs-on: \\[GH-ADDMINPOVIDER\\]/);
+    assert.doesNotMatch(workflow, /runs-on: \\[self-hosted, linux, x64, wave\\]/);
+  }
+  assert.match(closeout, /github\\.repository_id == '1429580446'/);
+  assert.match(closeout, /github\\.repository_owner_id == '342175560'/);
+  assert.match(closeout, /github\\.actor == 'GH-ADDMINPOVIDER'/);
+  assert.match(smoke, /test "\\$RUNNER_NAME" = "GH-ADDMINPOVIDER"/);
+  assert.match(consumer, /github\\.repository_id == '1429580446'/);
+  // The currently observed host registration is historical metadata until live cutover.
+  assert.match(read("worker/self-host-machine.ts"), /runner_registration: "wave-runner-01"/);
+});

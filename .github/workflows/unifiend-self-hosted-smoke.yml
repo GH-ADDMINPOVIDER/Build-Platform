@@ -15,8 +15,8 @@ permissions:
 
 jobs:
   smoke:
-    name: wave-runner-01 smoke
-    runs-on: [self-hosted, linux, x64, wave]
+    name: GH-ADDMINPOVIDER smoke
+    runs-on: [GH-ADDMINPOVIDER]
     timeout-minutes: 30
 
     steps:
@@ -48,6 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
+          test "$RUNNER_NAME" = "GH-ADDMINPOVIDER"
           hostname
           uname -a
           free -h
