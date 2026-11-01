@@ -37,3 +37,18 @@ test("Console auth probe works through the real sudo transport on Ubuntu", {
 }, () => {
   verifyTransport("sudo", ["-H", "-u", process.env.USER || "root", "/bin/bash", "-s"]);
 });
+
+test("Pinned Console loaders resolve the current GitHub owner without redirects", () => {
+  for (const path of [
+    "ops/unifiend-console-apply.sh",
+    "scripts/unifiend-console-cutover-launch.sh",
+    "scripts/unifiend-console-binding-launch.sh",
+    "ops/unifiend-console-copilot.sh",
+  ]) {
+    const source = readFileSync(path, "utf8");
+    assert.ok(source.includes("https://api.github.com/repos/GH-ADDMINPOVIDER/Build-Platform/contents/"), path);
+    assert.equal(source.includes("https://api.github.com/repos/Wave-Runner-2/Build-Platform/contents/"), false, path);
+    assert.match(source, /class NoRedirect/);
+    assert.match(source, /hashlib\.sha256\(/);
+  }
+});
