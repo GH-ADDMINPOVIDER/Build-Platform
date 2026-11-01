@@ -2,8 +2,8 @@
 
 The repository owner is the sole required reviewer for code changes:
 
-- GitHub owner: `Wave-Runner-2` (ID `342175560`)
-- Required reviewer: `@Wave-Runner-2`
+- GitHub owner: `GH-ADDMINPOVIDER` (ID `342175560`)
+- Required reviewer: `@GH-ADDMINPOVIDER`
 - Protected staging branch: `Unified-on-Progress`
 - Canonical runtime remains staging-only; this policy does not grant any new
   provider, secret, runner, or production permission.
@@ -21,7 +21,7 @@ branch intended to be protected):
 2. Require review from Code Owners.
 3. Require one approval and dismiss stale approvals when a new commit is pushed.
 4. Require the status check `Owner approval gate / owner-approval`.
-5. Restrict direct pushes to `Wave-Runner-2` (or leave direct pushes
+5. Restrict direct pushes to `GH-ADDMINPOVIDER` (or leave direct pushes
    disabled and use an owner-created PR).
 
 The source repository cannot change these GitHub settings by itself. Until the

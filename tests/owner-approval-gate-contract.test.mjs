@@ -6,7 +6,7 @@ const read = (path) => readFileSync(path, "utf8");
 
 test("all repository paths are owned by the canonical GitHub owner", () => {
   const codeowners = read(".github/CODEOWNERS");
-  assert.match(codeowners, /^\* @Wave-Runner-2$/m);
+  assert.match(codeowners, /^\* @GH-ADDMINPOVIDER$/m);
 });
 
 test("owner approval gate is read-only and binds approval to the current PR head", () => {
@@ -15,7 +15,7 @@ test("owner approval gate is read-only and binds approval to the current PR head
   assert.match(workflow, /pull_request_review:/);
   assert.match(workflow, /contents: read/);
   assert.match(workflow, /pull-requests: read/);
-  assert.match(workflow, /OWNER_LOGIN: Wave-Runner-2/);
+  assert.match(workflow, /OWNER_LOGIN: GH-ADDMINPOVIDER/);
   assert.match(workflow, /pulls\.listReviews/);
   assert.match(workflow, /owner\.state !== "APPROVED"/);
   assert.match(workflow, /owner\.commit_id !== pull\.head\.sha/);
