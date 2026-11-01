@@ -12,6 +12,9 @@ on:
       - config/github-provider.json
       - config/unifiend-host-trust.json
       - config/unifiend-execution-policy.json
+      - config/unifiend-copilot-modes.json
+      - scripts/unifiend-copilot-modes.py
+      - tests/test_unifiend_copilot_modes.py
       - tests/unifiend-capability-access.test.mjs
       - tests/unifiend-host-access.test.mjs
       - tests/unifiend-checkpoint-access.test.mjs
@@ -58,6 +61,30 @@ jobs:
         run: node --test tests/unifiend-capability-access.test.mjs tests/unifiend-host-access.test.mjs tests/unifiend-checkpoint-access.test.mjs tests/unifiend-probe-cleanup.test.mjs tests/unifiend-console-status.test.mjs tests/unifiend-saved-tools.test.mjs tests/unifiend-terminal-host-scope.test.mjs tests/unifiend-terminal-solo-contract.test.mjs tests/athena-guarded-command-handoff.test.mjs tests/unifiend-consumer-secret-guard.test.mjs
       - name: Verify the existing host binding reader
         run: python3 -m unittest discover -s tests -p 'test_unifiend_*.py' -v
+      - name: Verify pinned Copilot package and ACP transports without inference
+        id: copilot_check
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/unifiend-copilot" --no-audit --no-fund @github/copilot@1.0.105
+          "$RUNNER_TEMP/unifiend-copilot/node_modules/.bin/copilot" --version
+          python3 - "$RUNNER_TEMP/unifiend-copilot/node_modules/.bin/copilot" "$RUNNER_TEMP" <<'PY'
+          import importlib.util, json, pathlib, subprocess, sys
+          spec = importlib.util.spec_from_file_location('modes', 'scripts/unifiend-copilot-modes.py')
+          modes = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(modes)
+          executable, directory = sys.argv[1:]
+          help_result = subprocess.run([executable, '--help'], env=modes.clean_environment(directory), capture_output=True, text=True, timeout=30)
+          flags = {flag: flag in help_result.stdout for flag in modes.FLAGS}
+          outcomes = {mode: modes.smoke_transport(executable, mode, directory) for mode in ('acp-stdio', 'acp-tcp')}
+          report = {'flags': flags, 'transports': outcomes, 'inference': 'NOT_RUN', 'host_install': 'NOT_APPLIED', 'auth': 'NOT_TESTED'}
+          print(json.dumps(report))
+          pathlib.Path('.unifiend-reports').mkdir(exist_ok=True)
+          pathlib.Path('.unifiend-reports/copilot-modes.json').write_text(json.dumps(report))
+          assert help_result.returncode == 0 and all(flags.values()), 'INSTALLED_FLAGS_UNSUPPORTED'
+          assert all(value == 'INITIALIZE_VERIFIED_NO_INFERENCE' for value in outcomes.values()), 'ACP_TRANSPORT_NOT_VERIFIED'
+          PY
       - name: Verify the pinned OpenCode package in temporary Cloud storage
         id: opencode_check
         continue-on-error: true
@@ -77,12 +104,15 @@ jobs:
           UNIFIEND_VERIFY_CONSOLE_SOURCE: 'true'
           UNIFIEND_INSPECT_SAVED_TOOLS: 'true'
           UNIFIEND_OPENCODE_PACKAGE_CHECK: ${{ steps.opencode_check.outcome }}
+          UNIFIEND_COPILOT_PACKAGE_CHECK: ${{ steps.copilot_check.outcome }}
         run: node scripts/unifiend-capability-access.mjs
       - name: Retain sanitized access result
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: unifiend-capability-access
-          path: .unifiend-reports/capability-access.json
+          path: |
+            .unifiend-reports/capability-access.json
+            .unifiend-reports/copilot-modes.json
           if-no-files-found: ignore
           retention-days: 7

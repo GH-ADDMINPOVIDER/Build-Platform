@@ -74,6 +74,7 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
     connection_references: [],
     credential_probes: [],
     opencode_package_check: ["success", "failure", "skipped"].includes(env.UNIFIEND_OPENCODE_PACKAGE_CHECK) ? env.UNIFIEND_OPENCODE_PACKAGE_CHECK : "NOT_TESTED",
+    copilot_package_check: ["success", "failure", "skipped"].includes(env.UNIFIEND_COPILOT_PACKAGE_CHECK) ? env.UNIFIEND_COPILOT_PACKAGE_CHECK : "NOT_TESTED",
   };
   try {
     if (env.GITHUB_ACTIONS !== "true" || env.GITHUB_REPOSITORY_ID !== String(REPOSITORY_ID)
