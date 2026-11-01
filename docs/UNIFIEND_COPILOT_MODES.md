@@ -30,6 +30,8 @@ python3 scripts/unifiend-copilot-modes.py inspect
 
 The installer preserves an existing CLI and auth. A missing CLI is pinned to the official prerelease `@github/copilot@1.0.106-2` in user-local storage for transport verification. Stable 1.0.105 did not pass the first transport probe. Global help does not necessarily list transport-specific flags; actual initialization is authoritative. If an existing version lacks requested flags, inspection reports unsupported; it does not overwrite the existing program automatically. Do not call either release host-ready until actual transport and authentication results are read.
 
+For the existing root Console, `ops/unifiend-console-copilot.sh` inspects by default or accepts `install-missing`. It verifies the existing operational principal and an immutable source checksum, discovers the one existing unprivileged service account, and passes no Infisical values to the installer. Installation stops if existing work is active or available memory is below 512 MiB. It does not stop or reconfigure the existing service.
+
 After verifying the selected account, entitlement and task scope, start the chosen mode on demand:
 
 ```bash
