@@ -6,7 +6,7 @@ import os, json, base64, hashlib, urllib.request, sys
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args, **kwargs): return None
 try:
-    url = 'https://api.github.com/repos/Wave-Runner-2/Build-Platform/contents/scripts/unifiend-host-binding.py?ref=d4e555203c1896d7b4038c8d8c624bb24d1e7861'
+    url = 'https://api.github.com/repos/GH-ADDMINPOVIDER/Build-Platform/contents/scripts/unifiend-host-binding.py?ref=d4e555203c1896d7b4038c8d8c624bb24d1e7861'
     request = urllib.request.Request(url, headers={'Authorization':'Bearer '+os.environ['GH_ADDMINPROVIDER-FINE_GRAINED'], 'Accept':'application/vnd.github+json', 'User-Agent':'Unifiend-Console'})
     with urllib.request.build_opener(NoRedirect()).open(request, timeout=20) as response:
         code = base64.b64decode(json.load(response)['content'])
