@@ -14,7 +14,7 @@ loaded = {}
 try:
     opener = urllib.request.build_opener(NoRedirect())
     for path, digest in sources.items():
-        url = "https://api.github.com/repos/Wave-Runner-2/Build-Platform/contents/" + path + "?ref=" + revision
+        url = "https://api.github.com/repos/GH-ADDMINPOVIDER/Build-Platform/contents/" + path + "?ref=" + revision
         request = urllib.request.Request(url, headers={
             "Authorization": "Bearer " + os.environ["GH_ADDMINPROVIDER-FINE_GRAINED"],
             "Accept": "application/vnd.github+json", "User-Agent": "Unifiend-Console"})
