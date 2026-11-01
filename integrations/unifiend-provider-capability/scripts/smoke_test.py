@@ -20,7 +20,7 @@ def main():
             path.write_text("#!/bin/sh\n[ -z \"${UNIFIEND_FIXTURE_SECRET:-}\" ] || exit 91\nprintf '%s\\n' '" + output + "'\n")
             path.chmod(0o700)
         ssh_mock = root / "ssh"
-        ssh_mock.write_text("#!/bin/sh\n[ -z \"\${UNIFIEND_FIXTURE_SECRET:-}\" ] || exit 91\ncase \" $* \" in *StrictHostKeyChecking=yes*) ;; *) exit 92;; esac\ncase \" $* \" in *165.232.174.32*) ;; *) exit 93;; esac\nprintf 'UNIFIEND_SSH_AUTH_OK\\n'\n")
+        ssh_mock.write_text("#!/bin/sh\n[ -z \"${UNIFIEND_FIXTURE_SECRET:-}\" ] || exit 91\ncase \" $* \" in *StrictHostKeyChecking=yes*) ;; *) exit 92;; esac\ncase \" $* \" in *165.232.174.32*) ;; *) exit 93;; esac\nprintf 'UNIFIEND_SSH_AUTH_OK\\n'\n")
         ssh_mock.chmod(0o700)
         env = dict(os.environ, UNIFIEND_WORKTREE=str(work), PATH=str(root) + os.pathsep + os.defpath,
                    SSH_AUTH_SOCK=str(root / "fake-agent"), UNIFIEND_FIXTURE_SECRET="must-not-be-forwarded")
