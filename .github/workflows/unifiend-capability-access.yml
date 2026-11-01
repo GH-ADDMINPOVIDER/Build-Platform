@@ -33,6 +33,8 @@ on:
       - tests/unifiend-saved-tools.test.mjs
       - scripts/unifiend-terminal-solo.sh
       - tests/unifiend-terminal-host-scope.test.mjs
+      - tests/self-host-machine-contract.test.mjs
+      - tests/github-provider-evidence.test.mjs
       - tests/athena-guarded-command-handoff.test.mjs
       - scripts/validate_toolkit.py
       - tests/validate_toolkit_secret_scan_test.py
@@ -59,7 +61,7 @@ jobs:
         with:
           node-version: 24
       - name: Verify access and checkpoint boundaries
-        run: node --test tests/unifiend-capability-access.test.mjs tests/unifiend-host-access.test.mjs tests/unifiend-checkpoint-access.test.mjs tests/unifiend-probe-cleanup.test.mjs tests/unifiend-console-status.test.mjs tests/unifiend-saved-tools.test.mjs tests/unifiend-terminal-host-scope.test.mjs tests/unifiend-terminal-solo-contract.test.mjs tests/athena-guarded-command-handoff.test.mjs tests/unifiend-consumer-secret-guard.test.mjs
+        run: node --test tests/github-provider-evidence.test.mjs tests/self-host-machine-contract.test.mjs tests/unifiend-capability-access.test.mjs tests/unifiend-host-access.test.mjs tests/unifiend-checkpoint-access.test.mjs tests/unifiend-probe-cleanup.test.mjs tests/unifiend-console-status.test.mjs tests/unifiend-saved-tools.test.mjs tests/unifiend-terminal-host-scope.test.mjs tests/unifiend-terminal-solo-contract.test.mjs tests/athena-guarded-command-handoff.test.mjs tests/unifiend-consumer-secret-guard.test.mjs
       - name: Verify the existing host binding reader
         run: python3 -m unittest discover -s tests -p 'test_unifiend_*.py' -v
       - name: Verify pinned Copilot package and ACP transports without inference
