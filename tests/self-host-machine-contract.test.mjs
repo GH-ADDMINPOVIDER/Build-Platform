@@ -37,14 +37,14 @@ test("canonical GH-ADDMINPOVIDER self-host workflows share one registration and 
   const closeout = read(".github/workflows/oge-28-provider-codex-closeout.yml");
   const smoke = read(".github/workflows/unifiend-self-hosted-smoke.yml");
   for (const workflow of [consumer, closeout, smoke]) {
-    assert.match(workflow, /runs-on: \\[GH-ADDMINPOVIDER\\]/);
-    assert.doesNotMatch(workflow, /runs-on: \\[self-hosted, linux, x64, wave\\]/);
+    assert.ok(workflow.includes("runs-on: [GH-ADDMINPOVIDER]"));
+    assert.ok(!workflow.includes("runs-on: [self-hosted, linux, x64, wave]"));
   }
-  assert.match(closeout, /github\\.repository_id == '1429580446'/);
-  assert.match(closeout, /github\\.repository_owner_id == '342175560'/);
-  assert.match(closeout, /github\\.actor == 'GH-ADDMINPOVIDER'/);
-  assert.match(smoke, /test "\\$RUNNER_NAME" = "GH-ADDMINPOVIDER"/);
-  assert.match(consumer, /github\\.repository_id == '1429580446'/);
-  // The currently observed host registration is historical metadata until live cutover.
-  assert.match(read("worker/self-host-machine.ts"), /runner_registration: "wave-runner-01"/);
+  assert.ok(closeout.includes("github.repository_id == '1429580446'"));
+  assert.ok(closeout.includes("github.repository_owner_id == '342175560'"));
+  assert.ok(closeout.includes("github.actor == 'GH-ADDMINPOVIDER'"));
+  assert.ok(smoke.includes('test "$RUNNER_NAME" = "GH-ADDMINPOVIDER"'));
+  assert.ok(consumer.includes("github.repository_id == '1429580446'"));
+  // Do not falsify observed host binding: this changes only after an actual cutover.
+  assert.ok(read("worker/self-host-machine.ts").includes('runner_registration: "wave-runner-01"'));
 });
