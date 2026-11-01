@@ -2,6 +2,7 @@ import importlib.util
 import os
 import pathlib
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
@@ -80,6 +81,23 @@ writer.flush()
                 with self.subTest(mode=mode):
                     self.assertEqual(module.smoke_transport(str(executable), mode, home)['state'], 'INITIALIZE_VERIFIED_NO_INFERENCE')
             self.assertFalse((pathlib.Path(home) / 'copilot-smoke-state').exists())
+
+    def test_partial_ndjson_is_bounded_and_owned_process_is_stopped(self):
+        fixture = '''#!/usr/bin/env python3
+import sys, time
+sys.stdin.buffer.readline()
+sys.stdout.write('{"partial":')
+sys.stdout.flush()
+time.sleep(20)
+'''
+        with tempfile.TemporaryDirectory() as home:
+            executable = pathlib.Path(home) / 'partial-copilot'
+            executable.write_text(fixture)
+            executable.chmod(0o700)
+            started = time.monotonic()
+            result = module.smoke_transport(str(executable), 'acp-stdio', home, timeout=0.2)
+            self.assertEqual(result['state'], 'INITIALIZE_UNAVAILABLE')
+            self.assertLess(time.monotonic() - started, 3)
 
 
 if __name__ == '__main__':

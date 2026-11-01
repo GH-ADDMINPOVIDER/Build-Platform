@@ -5,6 +5,7 @@ import json
 import os
 import pathlib
 import selectors
+import signal
 import shutil
 import socket
 import subprocess
@@ -105,7 +106,7 @@ def inspect(home):
     return result
 
 
-def smoke_transport(executable, mode, home):
+def smoke_transport(executable, mode, home, timeout=30):
     """Only ACP initialize, with no session/new, prompt, tools or model calls."""
     if mode not in ('acp-stdio', 'acp-tcp'):
         raise ValueError('TRANSPORT_MODE_REQUIRED')
@@ -149,12 +150,13 @@ def smoke_transport(executable, mode, home):
     env['COPILOT_PROVIDER_MODEL'] = 'unifiend-transport-fixture'
     args += ['--model', 'unifiend-transport-fixture']
     child = subprocess.Popen(args, cwd=home, env=env, stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
     channel = None
     selector = selectors.DefaultSelector()
-    deadline = time.monotonic() + 30
+    deadline = time.monotonic() + timeout
     state = 'INITIALIZE_UNAVAILABLE'
     errors = b''
+    pending = b''
     try:
         if mode == 'acp-tcp':
             while time.monotonic() < deadline and child.poll() is None:
@@ -180,16 +182,24 @@ def smoke_transport(executable, mode, home):
         while time.monotonic() < deadline:
             if not selector.select(timeout=max(0, deadline - time.monotonic())):
                 break
-            line = reader.readline()
-            if not line:
+            chunk = os.read(reader.fileno(), 65536)
+            if not chunk:
                 break
-            try:
-                message = json.loads(line)
-            except (ValueError, UnicodeError):
-                continue
-            if message.get('id') == 1:
-                result = message.get('result')
-                state = 'INITIALIZE_VERIFIED_NO_INFERENCE' if isinstance(result, dict) and result.get('protocolVersion') == 1 else 'INITIALIZE_REJECTED'
+            pending += chunk
+            if len(pending) > 262144:
+                state = 'INITIALIZE_REJECTED'
+                break
+            while bytes([10]) in pending:
+                line, pending = pending.split(bytes([10]), 1)
+                try:
+                    message = json.loads(line)
+                except (ValueError, UnicodeError):
+                    continue
+                if message.get('id') == 1:
+                    result = message.get('result')
+                    state = 'INITIALIZE_VERIFIED_NO_INFERENCE' if isinstance(result, dict) and result.get('protocolVersion') == 1 else 'INITIALIZE_REJECTED'
+                    break
+            if state != 'INITIALIZE_UNAVAILABLE':
                 break
     except RuntimeError:
         state = 'LISTENER_UNAVAILABLE'
@@ -198,12 +208,12 @@ def smoke_transport(executable, mode, home):
         if channel:
             channel.close()
         if child.poll() is None:
-            child.terminate()
+            os.killpg(child.pid, signal.SIGTERM)
         try:
             _, errors = child.communicate(timeout=3)
         except subprocess.TimeoutExpired:
-            child.kill()
-            _, errors = child.communicate()
+            os.killpg(child.pid, signal.SIGKILL)
+            _, errors = child.communicate(timeout=3)
         isolated.cleanup()
         provider.shutdown()
         provider.server_close()
