@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Local stdio MCP: inspection and planning only. Python 3.9+, no dependencies."""
+import base64
+import hashlib
 import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 VERSIONS = ("2025-06-18", "2025-03-26", "2024-11-05")
@@ -18,7 +21,7 @@ def schema(properties=None, required=None):
 TOOLS = [
     {"name": "unifiend_capability_contract", "description": "Read historical non-secret contract; not a live verification.", "inputSchema": schema()},
     {"name": "unifiend_copilot_status", "description": "Inspect this machine's executable/help. No login or inference.", "inputSchema": schema()},
-    {"name": "unifiend_ssh_status", "description": "Inspect this process's SSH agent. No key identities or server login.", "inputSchema": schema()},
+    {"name": "unifiend_ssh_status", "description": "Inspect this process SSH agent. Set probe=true for one fixed read-only SSH login test against the Owner-pinned host; never unlock keys or expose identities.", "inputSchema": schema({"probe": {"type": "boolean"}})},
     {"name": "unifiend_mode_plan", "description": "Return argv without execution. Requires UNIFIEND_WORKTREE.", "inputSchema": schema({"mode": {"type": "string", "enum": ["terminal", "prompt", "acp-stdio", "acp-tcp"]}, "cwd": {"type": "string"}, "port": {"type": "integer", "minimum": 1024, "maximum": 65535}, "prompt": {"type": "string", "minLength": 1, "maxLength": 12000}}, ["mode", "cwd"])},
 ]
 
@@ -28,6 +31,60 @@ def inspect(command):
         return subprocess.run(command, capture_output=True, text=True, timeout=15, env=env)
     except (OSError, subprocess.TimeoutExpired):
         return None
+
+
+def pinned_ssh_auth_probe():
+    """Optional owner-invoked, strictly pinned authentication test; no passphrases or file changes."""
+    outcome = {"ssh_authentication": "NOT_VERIFIED", "operation": "FIXED_READ_ONLY_MARKER",
+               "client_key_source": "EXISTING_SSH_AGENT", "credential_values": "NOT_READ"}
+    if not os.environ.get("SSH_AUTH_SOCK"):
+        outcome["reason"] = "CLIENT_SSH_AGENT_UNAVAILABLE"
+        return outcome
+    loaded = inspect(["ssh-add", "-l"])
+    if not loaded or loaded.returncode != 0:
+        outcome["reason"] = "CLIENT_KEY_NOT_LOADED"
+        return outcome
+    try:
+        trust = json.loads((ROOT / "references/provider-contract.json").read_text())["verified_ssh_host"]
+        expected = "165.232.174.32"
+        hostline = trust["known_hosts"]
+        parts = hostline.strip().split()
+        if (trust["address"] != expected or trust["port"] != 22 or trust["ssh_user"] != "wave"
+                or len(parts) != 3 or parts[0] != expected or parts[1] != "ssh-ed25519"):
+            raise ValueError("PIN_METADATA_INVALID")
+        raw = base64.b64decode(parts[2], validate=True)
+        if len(raw) != 51 or int.from_bytes(raw[:4], "big") != 11 or raw[4:15] != b"ssh-ed25519":
+            raise ValueError("PIN_KEY_INVALID")
+        actual = "SHA256:" + base64.b64encode(hashlib.sha256(raw).digest()).decode("ascii").rstrip("=")
+        if actual != trust["fingerprint_sha256"]:
+            raise ValueError("PIN_FINGERPRINT_MISMATCH")
+    except (OSError, ValueError, KeyError, TypeError, IndexError):
+        outcome["reason"] = "OWNER_PIN_VALIDATION_FAILED"
+        return outcome
+    with tempfile.TemporaryDirectory(prefix="unifiend-ssh-public-trust-") as folder:
+        pinned = Path(folder) / "known_hosts"
+        pinned.write_text(hostline + "\n")
+        pinned.chmod(0o600)
+        command = ["ssh", "-F", "/dev/null", "-T", "-p", "22",
+                   "-o", "BatchMode=yes", "-o", "IdentitiesOnly=no",
+                   "-o", "PreferredAuthentications=publickey",
+                   "-o", "PasswordAuthentication=no", "-o", "KbdInteractiveAuthentication=no",
+                   "-o", "StrictHostKeyChecking=yes", "-o", "VerifyHostKeyDNS=no",
+                   "-o", "UpdateHostKeys=no", "-o", "ProxyCommand=none",
+                   "-o", "ForwardAgent=no", "-o", "ClearAllForwardings=yes",
+                   "-o", "ConnectionAttempts=1", "-o", "ConnectTimeout=7",
+                   "-o", "LogLevel=ERROR",
+                   "-o", "UserKnownHostsFile=" + str(pinned),
+                   "-o", "GlobalKnownHostsFile=/dev/null",
+                   "wave@" + expected, "printf 'UNIFIEND_SSH_AUTH_OK\\n'"]
+        result = inspect(command)
+    if result and result.returncode == 0 and result.stdout.strip() == "UNIFIEND_SSH_AUTH_OK":
+        outcome["ssh_authentication"] = "VERIFIED"
+        outcome["result"] = "PASS_GREEN_AUTH_ONLY"
+        outcome["note"] = "CURRENT_CALLING_CLIENT_TO_OWNER_PINNED_HOST"
+    else:
+        outcome["reason"] = "PINNED_SSH_AUTH_OR_CONNECTIVITY_NOT_VERIFIED"
+    return outcome
 
 def invoke(name, args):
     tool = next((t for t in TOOLS if t["name"] == name), None)
@@ -43,9 +100,14 @@ def invoke(name, args):
         help_text = result.stdout if result and result.returncode == 0 else ""
         return {"installed": bool(executable), "help_verified": bool(help_text), "acp_supported": "--acp" in help_text, "github_catalog_option": "--enable-all-github-mcp-tools" in help_text, "authentication": "NOT_TESTED", "quota": "NOT_TESTED", "inference": "NOT_RUN"}
     if name == "unifiend_ssh_status":
+        if "probe" in args and type(args["probe"]) is not bool:
+            raise ValueError("INVALID_SSH_PROBE_FLAG")
         result = inspect(["ssh-add", "-l"]) if os.environ.get("SSH_AUTH_SOCK") else None
         count = len(result.stdout.splitlines()) if result and result.returncode == 0 else 0
-        return {"agent": "KEYS_LOADED" if count else "EMPTY" if result and result.returncode == 1 else "UNAVAILABLE", "key_count": count, "server_authentication": "NOT_TESTED"}
+        status = {"agent": "KEYS_LOADED" if count else "EMPTY" if result and result.returncode == 1 else "UNAVAILABLE", "key_count": count, "server_authentication": "NOT_TESTED"}
+        if args.get("probe", False):
+            status["login_probe"] = pinned_ssh_auth_probe()
+        return status
     mode, cwd = args["mode"], args["cwd"]
     if not isinstance(mode, str) or mode not in ("terminal", "prompt", "acp-stdio", "acp-tcp") or not isinstance(cwd, str) or not Path(cwd).is_absolute():
         raise ValueError("INVALID_MODE_OR_WORKTREE")
