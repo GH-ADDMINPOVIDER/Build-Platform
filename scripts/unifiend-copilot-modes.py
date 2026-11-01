@@ -1,5 +1,6 @@
 """Prepare Copilot modes without changing existing profiles or starting services."""
 import argparse
+import http.server
 import json
 import os
 import pathlib
@@ -8,6 +9,7 @@ import shutil
 import socket
 import subprocess
 import tempfile
+import threading
 import time
 
 VERSION = '1.0.106-2'
@@ -119,6 +121,33 @@ def smoke_transport(executable, mode, home):
     # Isolate CLI state from existing profiles and block incidental GitHub auth.
     env['COPILOT_HOME'] = str(pathlib.Path(isolated.name) / 'config')
     env['COPILOT_OFFLINE'] = 'true'
+    # A synthetic loopback provider permits startup without a real account.
+    # It may answer model metadata, but rejects and counts every inference attempt.
+    calls = {'inference': 0}
+    class MetadataOnly(http.server.BaseHTTPRequestHandler):
+        def log_message(self, *_args):
+            pass
+
+        def do_GET(self):
+            body = json.dumps({'object': 'list', 'data': [{'id': 'unifiend-transport-fixture', 'object': 'model', 'owned_by': 'fixture'}]}).encode()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_POST(self):
+            calls['inference'] += 1
+            self.send_response(403)
+            self.end_headers()
+
+    provider = http.server.ThreadingHTTPServer(('127.0.0.1', 0), MetadataOnly)
+    thread = threading.Thread(target=provider.serve_forever, daemon=True)
+    thread.start()
+    env['COPILOT_PROVIDER_BASE_URL'] = 'http://127.0.0.1:' + str(provider.server_port) + '/v1'
+    env['COPILOT_PROVIDER_API_KEY'] = 'fixture'
+    env['COPILOT_PROVIDER_TYPE'] = 'openai'
+    env['COPILOT_PROVIDER_MODEL'] = 'unifiend-transport-fixture'
+    args += ['--model', 'unifiend-transport-fixture']
     child = subprocess.Popen(args, cwd=home, env=env, stdin=subprocess.PIPE,
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     channel = None
@@ -176,6 +205,9 @@ def smoke_transport(executable, mode, home):
             child.kill()
             _, errors = child.communicate()
         isolated.cleanup()
+        provider.shutdown()
+        provider.server_close()
+        thread.join(timeout=1)
     lowered = errors.decode(errors='replace').lower()
     diagnostic = 'NONE' if state == 'INITIALIZE_VERIFIED_NO_INFERENCE' else 'UNCLASSIFIED'
     for marker, category in (('unknown option', 'CLI_OPTION_UNSUPPORTED'),
@@ -186,7 +218,10 @@ def smoke_transport(executable, mode, home):
         if marker in lowered:
             diagnostic = category
             break
-    return {'state': state, 'diagnostic': diagnostic}
+    if calls['inference']:
+        state, diagnostic = 'INITIALIZE_REJECTED', 'MODEL_CALL_NOT_PERMITTED_IN_TRANSPORT_SMOKE'
+    return {'state': state, 'diagnostic': diagnostic, 'provider': 'SYNTHETIC_LOOPBACK_ONLY',
+            'inference_requests': calls['inference'], 'real_authentication': 'NOT_TESTED'}
 
 
 def main():

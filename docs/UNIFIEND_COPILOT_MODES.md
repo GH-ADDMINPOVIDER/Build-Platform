@@ -41,7 +41,7 @@ python3 scripts/unifiend-copilot-modes.py launch --mode acp-tcp --cwd /verified/
 
 These are alternatives, not four simultaneous processes. Native permission checks remain enabled; the kit never adds allow-all or disables sandboxing. The launcher forwards only supported Copilot authentication/provider variables, not every injected Infisical value. Do not configure credentials inside launch arguments or commit them to source.
 
-`inspect` never verifies auth or credits and does not infer readiness from a badge. Transport smoke sends only ACP `initialize`, with built-in MCP disabled in an isolated temporary home, and sends no session/new or prompt. A successful handshake is not model inference, a tool invocation or a D1 checkout.
+`inspect` never verifies auth or credits and does not infer readiness from a badge. Transport smoke sends only ACP `initialize`, with built-in MCP disabled in an isolated temporary home, and sends no session/new or prompt. Startup uses a synthetic loopback provider that can return model metadata but rejects and counts inference requests. Zero inference requests are required. A successful handshake proves only ACP transport against this fixture, not provider authentication, model entitlement, tool invocation or a D1 checkout.
 
 The Cloud capability workflow records Copilot package/transport outcome separately from host state and includes that outcome in the existing canonical checkpoint. Failed optional transport verification must remain visible even when the independent control/broker checkpoint succeeds.
 
