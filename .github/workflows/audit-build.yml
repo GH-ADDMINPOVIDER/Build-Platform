@@ -25,6 +25,9 @@ jobs:
       - name: Validate Phase VI toolkit
         run: python scripts/validate_toolkit.py
 
+      - name: Smoke-test portable Unifiend MCP tools and mock pinned SSH handshake
+        run: python3 integrations/unifiend-provider-capability/scripts/smoke_test.py
+
       - name: Build single toolkit bundle
         shell: bash
         run: |
