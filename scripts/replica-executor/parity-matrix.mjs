@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
 const shaPattern = /^[a-f0-9]{40}$/;
-const REPO = "Wave-Runner-2/Build-Platform";
+const REPO = "GH-ADDMINPOVIDER/Build-Platform";
 const BRANCH = "Unified-on-Progress";
 const PASS = "PASS";
 const FAIL = "FAIL";

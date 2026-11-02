@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-const CANONICAL_REPOSITORY = "Wave-Runner-2/Build-Platform";
+const CANONICAL_REPOSITORY = "GH-ADDMINPOVIDER/Build-Platform";
 const CANONICAL_BRANCH = "Unified-on-Progress";
 const WORKERS = new Set(["linearcodex", "codex", "claude"]);
 
