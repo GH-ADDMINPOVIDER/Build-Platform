@@ -22,7 +22,7 @@
     "linear.attach_pr@1"
   ],
   "allowed_repositories": [
-    "Wave-Runner-2/Build-Platform"
+    "GH-ADDMINPOVIDER/Build-Platform"
   ],
   "allowed_linear_projects": []
 }
