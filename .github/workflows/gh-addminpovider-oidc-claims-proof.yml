@@ -1,0 +1,59 @@
+name: GH-ADDMINPOVIDER OIDC Claims Proof
+
+on:
+  push:
+    branches: [Unified-on-Progress]
+    paths:
+      - config/github-oidc.staging.json
+      - .github/workflows/gh-addminpovider-oidc-claims-proof.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify-oidc:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Compare live signed GitHub OIDC claims to pinned current Owner contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const cfg = JSON.parse(readFileSync('config/github-oidc.staging.json', 'utf8'));
+          const reqUrl = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+          const reqToken = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+          if (!reqUrl || !reqToken || !reqUrl.startsWith('https://')) throw Error('OIDC_REQUEST_UNAVAILABLE');
+          const response = await fetch(reqUrl, { headers: { Authorization: 'Bearer ' + reqToken }, signal: AbortSignal.timeout(15000) });
+          if (!response.ok) throw Error('OIDC_REQUEST_HTTP_' + response.status);
+          const jwt = (await response.json()).value;
+          if (typeof jwt !== 'string' || jwt.split('.').length !== 3) throw Error('OIDC_RESPONSE_INVALID');
+          const claims = JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString('utf8'));
+          const checks = {
+            issuer: claims.iss === cfg.issuer,
+            audience: claims.aud === cfg.audience,
+            subject: claims.sub === cfg.subject,
+            repository_id: String(claims.repository_id) === '1429580446',
+            owner_id: String(claims.repository_owner_id) === '342175560',
+            branch: process.env.GITHUB_REF === 'refs/heads/' + cfg.branch,
+          };
+          console.log(JSON.stringify({
+            proof: 'GH_ADDMINPOVIDER_OIDC_CLAIMS_V1',
+            issuer: claims.iss, audience: claims.aud, subject: claims.sub,
+            repository_id: String(claims.repository_id),
+            repository_owner_id: String(claims.repository_owner_id),
+            checks, token_value_logged: false, infisical_policy_changed: false,
+          }));
+          if (!Object.values(checks).every(Boolean)) throw Error('CURRENT_OIDC_CLAIMS_MISMATCH');
+          console.log('GH_ADDMINPOVIDER_OIDC_CLAIMS_MATCH_CURRENT_REPOSITORY');
+          NODE
