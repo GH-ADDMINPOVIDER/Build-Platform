@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-export const repository = 'Wave-Runner-2/Build-Platform';
+export const repository = 'GH-ADDMINPOVIDER/Build-Platform';
 export const staging = 'Unified-on-Progress';
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 export const taskDigest = issue => sha256(JSON.stringify([issue.number, issue.title, issue.body || '']));

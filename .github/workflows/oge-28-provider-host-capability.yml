@@ -9,7 +9,7 @@ permissions:
   id-token: write
 jobs:
   capability_probe:
-    if: github.repository_id == '1429580446' && github.actor == 'Wave-Runner-2'
+    if: github.repository_id == '1429580446' && github.actor == 'GH-ADDMINPOVIDER'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 8
     steps:
@@ -67,7 +67,7 @@ jobs:
           # vs host-local identities. A GitHub Actions actor is not a local login.
           test "${RUNNER_NAME:-}" = wave-runner-01
           echo "SELFHOST_RUNNER1=VERIFIED"
-          if test "${GITHUB_ACTOR:-}" = Wave-Runner-2; then
+          if test "${GITHUB_ACTOR:-}" = GH-ADDMINPOVIDER; then
             echo "GH_ADDMINPROVIDER_ACTIONS_ACTOR=VERIFIED"
           else
             echo "GH_ADDMINPROVIDER_ACTIONS_ACTOR=NOT_THIS_RUN"
@@ -108,7 +108,7 @@ jobs:
             # The runner can have historical local auth even when GH_ADDMINPROVIDER pushes.
             # Unset job-token aliases to avoid misidentifying Github Actions.
             stored_login="$(env -u GH_TOKEN -u GITHUB_TOKEN -u COPILOT_GITHUB_TOKEN timeout 12 gh api user --jq .login 2>/dev/null || true)"
-            if test "$stored_login" = Wave-Runner-2; then
+            if test "$stored_login" = GH-ADDMINPOVIDER; then
               echo "GH_ADDMINPROVIDER_HOST_LOCAL_GH_AUTH=VERIFIED"
             elif test -n "$stored_login"; then
               echo "GH_ADDMINPROVIDER_HOST_LOCAL_GH_AUTH=OTHER_ACCOUNT"
@@ -121,14 +121,14 @@ jobs:
           echo "MCP_PROBE_SCOPE=READ_ONLY_NO_INSTALL_NO_TOKEN_OUTPUT"
           echo OGE28_RUNNER2_HOST_CAPABILITY_END
       - name: Install Copilot CLI user-local only for Unifiend capability on existing runner
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         shell: bash
         run: |
           set -euo pipefail
           test "$RUNNER_NAME" = wave-runner-01
           test "$GITHUB_REPOSITORY_ID" = 1429580446
           test "$GITHUB_REF_NAME" = Unified-on-Progress
-          test "$GITHUB_ACTOR" = Wave-Runner-2
+          test "$GITHUB_ACTOR" = GH-ADDMINPOVIDER
           test "$HOME" = /home/wave
           umask 077
           bin="$HOME/.local/bin/copilot"
@@ -165,7 +165,7 @@ jobs:
           echo "GH_ADDMINPROVIDER_COPILOT_MCP_OUTBOUND_TOOLS=NOT_ENABLED"
 
       - name: Probe OGENIC SSH IDE OpenCode MCP and Cloudflare live readiness
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         shell: bash
         run: |
           set -euo pipefail
@@ -230,7 +230,7 @@ jobs:
           echo "OCIAN_HOST_PROBE=END"
 
       - name: Install optional OpenCode CLI in isolated user-local prefix
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         shell: bash
         run: |
           set -euo pipefail
@@ -271,7 +271,7 @@ jobs:
           echo "OCIAN_OPENCODE_PROVIDER_AUTH=NOT_ATTEMPTED"
           echo "OCIAN_OPENCODE_PAID_MODEL_CALLS=ZERO"
       - name: Bind existing Owner staging key with Infisical OIDC
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         uses: Infisical/secrets-action@v1.0.17
         with:
           method: oidc
@@ -284,7 +284,7 @@ jobs:
           include-imports: false
           recursive: false
       - name: Authenticated owner MCP inventory and D1 connector state
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         shell: bash
         run: |
           set -euo pipefail
@@ -316,7 +316,7 @@ jobs:
           echo 'OCIAN_MCP_NO_TOOLS_CALL_OR_SECRET_EXPOSURE=TRUE'
 
       - name: CCS 15-mode real owner-authenticated runtime matrix
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         shell: bash
         run: |
           set -euo pipefail
@@ -371,7 +371,7 @@ jobs:
           echo CCS15_NO_NEW_GATEWAY_RUNNER_OR_SECRET=TRUE
 
       - name: CCS GitHub remote MCP Read-only registration and true discovery
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         shell: bash
         run: |
           set -euo pipefail
@@ -419,7 +419,7 @@ jobs:
           echo CCS_GITHUB_MCP_NEW_SERVER_INSTALLED=FALSE
 
       - name: CCS/1.0 real Card Stone policy and safe lease verification
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         shell: bash
         run: |
           set -euo pipefail
@@ -465,7 +465,7 @@ jobs:
           echo CCS10_RUNTIME_6_VERBS=PASS
 
       - name: CCS GitHub MCP real tools-call bounded staging receipt
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         shell: bash
         run: |
           set -euo pipefail
@@ -495,7 +495,7 @@ jobs:
           echo CCS_GH_ADDMINPROVIDER_MCP_PAID_MODEL_CALLS=ZERO
 
       - name: Bind existing generic webhook secret through scoped Infisical OIDC
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         id: generic_webhook_secret
         continue-on-error: true
         uses: Infisical/secrets-action@v1.0.17
@@ -510,7 +510,7 @@ jobs:
           include-imports: false
           recursive: false
       - name: CCS15 signed generic webhook delivery and dedup D1 readback
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         shell: bash
         run: |
           set -euo pipefail
@@ -559,7 +559,7 @@ jobs:
           echo CCS15_WEBHOOK_SECRET_VALUE_EXPOSED=FALSE
 
       - name: Bind existing self-host n8n API credential via Infisical OIDC
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         id: ccs15_n8n_auth
         continue-on-error: true
         uses: Infisical/secrets-action@v1.0.17
@@ -574,7 +574,7 @@ jobs:
           include-imports: false
           recursive: false
       - name: CCS15 n8n authenticated real API workflow inventory and CLI checks
-        if: github.actor == 'Wave-Runner-2'
+        if: github.actor == 'GH-ADDMINPOVIDER'
         shell: bash
         run: |
           set -euo pipefail

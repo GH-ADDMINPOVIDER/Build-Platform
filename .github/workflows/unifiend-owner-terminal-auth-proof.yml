@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   terminal-proof:
-    if: github.repository_id == '1429580446' && github.actor == 'Wave-Runner-2'
+    if: github.repository_id == '1429580446' && github.actor == 'GH-ADDMINPOVIDER'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 25
     steps:

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { dirname, join, resolve } from "node:path";
 
 const EXPECTED = ["linearcodex", "codex", "claude"];
-const CANONICAL_REPOSITORY = "Wave-Runner-2/Build-Platform";
+const CANONICAL_REPOSITORY = "GH-ADDMINPOVIDER/Build-Platform";
 const CANONICAL_BRANCH = "Unified-on-Progress";
 
 function arg(name, fallback = "") {
