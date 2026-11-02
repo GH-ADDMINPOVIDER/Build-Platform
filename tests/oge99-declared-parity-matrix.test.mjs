@@ -4,7 +4,7 @@ import { buildParityMatrix } from "../scripts/replica-executor/parity-matrix.mjs
 
 const sha = "a".repeat(40);
 const basics = () => ({
-  sha, repository: "Wave-Runner-2/Build-Platform",
+  sha, repository: "GH-ADDMINPOVIDER/Build-Platform",
   branch: "Unified-on-Progress", runId: "123",
   replica: {source_sha:sha,local_db_only:true,provider_inference_calls:0,real_cloudflare_deploy:false,
     status:"LOCAL_PROOF_PASS",local_checks_passed:12,local_checks_total:12,
