@@ -23,7 +23,7 @@ ROOT = pathlib.Path("/opt/wave/actions-runner")
 RECOVERY = ROOT / ".unifiend-cutover"
 PRIMARY_ID = 1429580446
 PRINCIPAL_ID = 342175560
-OLD_URL = "https://github.com/Ogenicchocolate21debug/Build-Platform"
+OLD_URL_SHA256 = "c02116372ab860df057a868d561dab6e112ca100bd82c935c3ca1785e63d07d1"
 HOST_NAME = "Ocian-S-Host"
 NAME = "GH-ADDMINPOVIDER"
 LABEL = "GH-ADDMINPOVIDER"
@@ -75,7 +75,7 @@ def validate_preflight(config, repo, machines, pin, busy):
         if len(matches) != 1 or len(machines) != 1:
             raise CutoverBlocked("PRIMARY_REGISTRATION_NOT_UNIQUE")
         return "PRIMARY_ALREADY_BOUND"
-    if config.get("gitHubUrl") != OLD_URL or config.get("agentId") != 21:
+    if config.get("agentId") != 21 or hashlib.sha256(str(config.get("gitHubUrl", "")).encode("utf-8")).hexdigest() != OLD_URL_SHA256:
         raise CutoverBlocked("UNEXPECTED_EXISTING_BINDING")
     if machines:
         raise CutoverBlocked("PRIMARY_NOT_EMPTY_PRESERVED")

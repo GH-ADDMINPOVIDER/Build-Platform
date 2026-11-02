@@ -12,13 +12,15 @@ test("read only from the one original OGE-128 staging D1 Certificate, never a TL
   assert.match(certificate,/D1_DOCUMENT_SHA256_MATCH/);
   assert.match(certificate,/CERTIFICATE_INTEGRITY_MISMATCH/);
   assert.match(certificate,/owner_identity_correction_20261020/);
-  assert.match(certificate,/github_first/);
+  assert.doesNotMatch(certificate,/github_first/);
   assert.match(certificate,/github_addminprovider/);
   assert.match(certificate,/codex_ts/);
   assert.match(certificate,/runtime_e2e_verified:false/);
   assert.match(certificate,/identity_migration_20261026/);
   assert.match(certificate,/PENDING_EXTERNAL_VERIFICATION/);
   assert.match(certificate,/label:GITHUB_PROVIDER_LABEL/);
+  assert.match(certificate,/historical_source_only:true/);
+  assert.match(certificate,/github_login:GITHUB_PROVIDER_LOGIN/);
   assert.match(certificate,/d1_write_performed:false/);
   assert.doesNotMatch(certificate,/CREATE TABLE|INSERT INTO|UPDATE certificate_lincenc/);
 });

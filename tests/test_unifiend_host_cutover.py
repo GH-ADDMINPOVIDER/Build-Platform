@@ -20,7 +20,8 @@ def module(name, file):
 cut = module('cutover', 'unifiend-host-cutover.py')
 plan = module('plan', 'unifiend-codex-plan.py')
 REPO = {'id': cut.PRIMARY_ID, 'owner': {'id': cut.PRINCIPAL_ID}, 'full_name': 'canonical/target', 'html_url': 'https://github.com/canonical/target'}
-OLD = {'gitHubUrl': cut.OLD_URL, 'agentId': 21, 'agentName': 'historical-host'}
+OLD = {'gitHubUrl': 'https://github.com/retired-fixture/Build-Platform', 'agentId': 21, 'agentName': 'historical-host'}
+cut.OLD_URL_SHA256 = hashlib.sha256(OLD['gitHubUrl'].encode('utf-8')).hexdigest()
 
 class PreflightTests(unittest.TestCase):
     def test_exact_old_installation_can_move(self):

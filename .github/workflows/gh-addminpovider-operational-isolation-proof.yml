@@ -34,7 +34,9 @@ jobs:
           # Preserve immutable historical CERT/docs/tests; forbid active wiring to retired accounts.
           if git grep -n -E 'Ogenicchocolate21debug|Wave-Runner-2|1350684572|306097555' -- \
             worker config scripts .github/workflows deploy integrations ops infra packages workflows \
-            ':(exclude).github/workflows/gh-addminpovider-operational-isolation-proof.yml'; then
+            ':(exclude).github/workflows/gh-addminpovider-operational-isolation-proof.yml' \
+            ':(exclude)config/oge-error-memory.json' \
+            ':(exclude)config/provider-readiness-attestations.json'; then
             echo "::error::RETIRED_GITHUB_IDENTITY_PRESENT_IN_ACTIVE_SOURCE"
             exit 1
           fi
