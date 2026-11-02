@@ -260,7 +260,7 @@ export default function LocalAgentTeamPanel() {
               </button>
               <small>{!codexReady ? "Existing Codex runtime E2E receipt or dispatch credentials not confirmed." : !selectedTask ? "Select a READ task above." : roomTask?.permission !== "READ" ? "This task is not READ; no write/execute room adapter." : roomTask.command_task_id ? "Command already linked. Check its receipt below." : "Ready for bounded read-only dispatch."}</small>
               {roomTask?.command_task_id && <a href={"/command?task_id=" + encodeURIComponent(roomTask.command_task_id)}>Command {roomTask.command_task_id.slice(0, 23)}…</a>}
-              {roomTask?.runtime_receipt?.result_ref?.startsWith("https://github.com/Wave-Runner-2/Build-Platform/actions/runs/") &&
+              {roomTask?.runtime_receipt?.result_ref?.startsWith("https://github.com/GH-ADDMINPOVIDER/Build-Platform/actions/runs/") &&
                 <a href={roomTask.runtime_receipt.result_ref} target="_blank" rel="noopener noreferrer">Verified Runner evidence</a>}
               {roomTask?.runtime_receipt && <State value={roomTask.runtime_receipt.status} />}
             </div>
