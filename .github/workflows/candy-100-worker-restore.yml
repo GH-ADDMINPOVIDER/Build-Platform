@@ -16,7 +16,7 @@ env:
   INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
   INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
   INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
-  CANDY_REPO: Ogenicchocolate21debug/ogenic-chocolate
+  CANDY_REPO: ${{ vars.CANDY_CANONICAL_REPO || '' }}
   CANDY_REF: cf-preview-drive-a1-a6-20260908
   WORKER_NAME: bitter-shadow-464a
   LIVE_URL: https://candybaked.ogenicchocolate.com/
@@ -24,6 +24,8 @@ env:
 
 jobs:
   deploy:
+    # Fail closed until a GH2-owned Candy repository and explicit Owner production permission exist.
+    if: github.repository_id == '1429580446' && startsWith(vars.CANDY_CANONICAL_REPO, 'GH-ADDMINPOVIDER/') && vars.CANDY_PRODUCTION_OWNER_APPROVED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
