@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const REPO = "Wave-Runner-2/Build-Platform";
+const REPO = "GH-ADDMINPOVIDER/Build-Platform";
 const BRANCH = "Unified-on-Progress";
 const WORKER = "ogenic-phase-vi-staging";
 const GITHUB_API = "https://api.github.com/repos/" + REPO;
@@ -34,7 +34,7 @@ export function inspectRunnerTwoCredential(name, raw) {
 }
 export function selectRunnerTwoAuthorizedCredential(authorized) {
   // Only choose after a real GitHub principal check and Actions-write canary.
-  return authorized.find(x => x.principal === "wave-runner-2" &&
+  return authorized.find(x => x.principal === "gh-addminpovider" &&
     x.key.startsWith(CANONICAL_GITHUB_CREDENTIAL + "_")) ?? null;
 }
 export function classifyDispatchProbe(http) {
@@ -139,7 +139,7 @@ export function existingHostAuthCandidates(run = spawnSync, env = process.env) {
 // the operational principal may be selected for Unifiend dispatch.
 // A 200 from /user proves token validity, NOT the expected GitHub identity.
 export const OWNER_GITHUB_IDENTITIES = Object.freeze({
-  capability: { id: 342175560, login: "wave-runner-2" },
+  capability: { id: 342175560, login: "gh-addminpovider" },
 });
 export function classifyOwnerPrincipal(payload, expected = "capability") {
   if (expected !== "capability" && expected !== "either") return null;
@@ -257,7 +257,7 @@ export async function main() {
       }
       if(result==="AUTHORIZED_INVALID_REF_NO_WORKFLOW_RUN")authorized.push({
         key:label, token:candidate, type:recognized.recognized ? recognized.type : "LEGACY",
-        principal: "wave-runner-2",
+        principal: "gh-addminpovider",
       });
     }
   }

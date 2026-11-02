@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-REPO="Wave-Runner-2/Build-Platform"
+REPO="GH-ADDMINPOVIDER/Build-Platform"
 BRANCH="Unified-on-Progress"
 RUNNER_NAME="wave-runner-01"
 RUNNER_LABELS="unifiend,sgp1"
