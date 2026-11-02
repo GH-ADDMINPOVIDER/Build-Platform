@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { hasOwnerOrOpsAccess } from "./app-auth";
 import { SELF_HOST_RUNNER_ID, selfHostMachineMetadata } from "./self-host-machine";
 
-const CANONICAL_REPOSITORY = "Wave-Runner-2/Build-Platform";
+const CANONICAL_REPOSITORY = "GH-ADDMINPOVIDER/Build-Platform";
 const CANONICAL_BRANCH = "Unified-on-Progress";
 const CANONICAL_CONVERSATION = "owner-main";
 const CANONICAL_SESSION = "1LSS_OWNER_MAIN";
