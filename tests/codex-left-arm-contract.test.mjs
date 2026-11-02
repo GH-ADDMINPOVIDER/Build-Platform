@@ -16,7 +16,7 @@ test("Codex left arm exposes four stable control contracts", () => {
 
 test("dispatch is staging locked and fail closed behind Yellow Stone approval", () => {
   assert.match(api, /Unified-on-Progress/);
-  assert.match(api, /Wave-Runner-2\/Build-Platform/);
+  assert.match(api, /GH-ADDMINPOVIDER\/Build-Platform/);
   assert.match(api, /HUMAN_APPROVAL_REQUIRED/);
   assert.match(api, /YELLOW_STONE_OGE_26/);
   assert.match(api, /FAIL_CLOSED_UNTIL_EXACT_APPROVAL_BINDING_IS_VERIFIED/);

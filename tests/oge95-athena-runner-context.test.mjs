@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { deriveAthenaContext } from "../scripts/replica-executor/athena-context.mjs";
 
-const REPO="Wave-Runner-2/Build-Platform";
+const REPO="GH-ADDMINPOVIDER/Build-Platform";
 const BRANCH="Unified-on-Progress";
 const head="a".repeat(40), older="b".repeat(40);
 const run=(id,name,sha,status="completed",conclusion="success")=>({

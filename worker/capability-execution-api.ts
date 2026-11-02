@@ -48,7 +48,7 @@ type VerificationState = "verified" | "partially_verified" | "unverified" | "blo
 const CANONICAL_CONVERSATION = "owner-main";
 const CANONICAL_SESSION_LINE = "1LSS_OWNER_MAIN";
 const CANONICAL_STAGING_BRANCH = "Unified-on-Progress";
-const DEFAULT_REPOSITORY = "Wave-Runner-2/Build-Platform";
+const DEFAULT_REPOSITORY = "GH-ADDMINPOVIDER/Build-Platform";
 const SENSITIVE_PATH = /(^|\/)(?:\.env(?:\.|$)|credentials?(?:\.|$)|secrets?(?:\.|$)|id_rsa(?:\.|$)|[^/]+\.(?:pem|p12|pfx|key)$)/i;
 const SECRET_LIKE = /(sk-[a-z0-9_-]{12,}|gh[pousr]_[a-z0-9]{12,}|bearer\s+[a-z0-9._~+/=-]{12,}|(?:password|passwd|secret|token|api[_ -]?key)\s*[:=]\s*\S{6,})/i;
 
