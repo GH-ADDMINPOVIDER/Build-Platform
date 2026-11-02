@@ -3,7 +3,7 @@ const env=process.env;
 if(!env.ACTIONS_ID_TOKEN_REQUEST_URL||!env.ACTIONS_ID_TOKEN_REQUEST_TOKEN||!env.INFISICAL_IDENTITY_ID||!env.INFISICAL_ORG_ID||!env.INFISICAL_ORG_SLUG){
  console.log("AUDIT_BLOCKER=MISSING_OIDC_CONTEXT");process.exit(86);
 }
-if(env.GITHUB_REPOSITORY!=="Wave-Runner-2/Build-Platform"||
+if(env.GITHUB_REPOSITORY!=="GH-ADDMINPOVIDER/Build-Platform"||
  env.GITHUB_REF!=="refs/heads/Unified-on-Progress"||env.RUNNER_NAME!=="wave-runner-01"){
  console.log("AUDIT_BLOCKER=TRUST_SCOPE");process.exit(86);
 }
