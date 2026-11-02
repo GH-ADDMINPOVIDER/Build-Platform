@@ -39,7 +39,7 @@ test("reuses only existing unifiend-host CLI and git credential helper without i
     return {status:1,stdout:""};
   };
   assert.deepEqual(existingHostAuthCandidates(fake,{RUNNER_NAME:"other"}),[]);
-  const rows=existingHostAuthCandidates(fake,{RUNNER_NAME:"wave-runner-01",GH_TOKEN:"do_not_reuse_gh_token",GITHUB_TOKEN:"do_not_reuse_actions_token"});
+  const rows=existingHostAuthCandidates(fake,{RUNNER_NAME:"GH-ADDMINPOVIDER",GH_TOKEN:"do_not_reuse_gh_token",GITHUB_TOKEN:"do_not_reuse_actions_token"});
   assert.deepEqual(rows.map(x=>x.key),["RUNNER_UNIFIEND_GH_CLI_AUTH","RUNNER_UNIFIEND_GIT_CREDENTIAL_HELPER"]);
   for(const c of calls){assert.equal(c.opt.env.GH_TOKEN,undefined);assert.equal(c.opt.env.GITHUB_TOKEN,undefined);}
   assert.equal(calls[1].opt.input,"protocol=https\nhost=github.com\n\n");
@@ -91,9 +91,9 @@ test("the canonical provider remains bound to the operational Actions principal"
 });
 test("the canonical provider is principal-verified before dispatch",()=>{
   const src=readFileSync("scripts/oge34-github-worker-binding.mjs","utf8");
-  assert.match(src,/recognized\.recognized \? "capability"/);
+  assert.match(src,/const expectedPrincipal = "capability"/);
   assert.match(src,/await verifyExistingHostGitHubPrincipal\(candidate, expectedPrincipal\)/);
-  assert.match(src,/principal: verifiedPrincipal === "capability"/);
+  assert.match(src,/principal: "gh-addminpovider"/);
   assert.match(src,/gh-addminpovider/);
   assert.doesNotMatch(src,/\["unifiend_runner-2", "tomload21"\]/);
 });
