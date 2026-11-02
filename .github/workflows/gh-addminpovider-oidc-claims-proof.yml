@@ -5,6 +5,7 @@ on:
     branches: [Unified-on-Progress]
     paths:
       - config/github-oidc.staging.json
+      - tests/github-oidc-owner-rename.test.mjs
       - .github/workflows/gh-addminpovider-oidc-claims-proof.yml
   workflow_dispatch:
 
@@ -24,6 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Regression test current GitHub owner and immutable repository trust
+        run: node --test tests/github-oidc-owner-rename.test.mjs
       - name: Compare live signed GitHub OIDC claims to pinned current Owner contract
         shell: bash
         run: |
