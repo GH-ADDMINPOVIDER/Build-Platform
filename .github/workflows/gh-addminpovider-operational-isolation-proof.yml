@@ -8,7 +8,7 @@ on:
       - "scripts/oge34-github-worker-binding.mjs"
       - "scripts/replica-executor/athena-context.mjs"
       - ".github/workflows/**"
-      - "tests/gh-addminpovider-operational-isolation.test.mjs"
+      - "tests/**"
   workflow_dispatch:
 
 permissions:
