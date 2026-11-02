@@ -38,7 +38,7 @@ const nav: Array<{ id: View; label: string; icon: string }> = [
 ];
 
 const apps: AppLink[] = [
-  { id: "github", label: "GitHub", sub: "Build-Platform", icon: "GH", url: "https://github.com/Wave-Runner-2/Build-Platform" },
+  { id: "github", label: "GitHub", sub: "Build-Platform", icon: "GH", url: "https://github.com/GH-ADDMINPOVIDER/Build-Platform" },
   { id: "linear", label: "Linear", sub: "Ogenic-Sio", icon: "LI", url: "https://linear.app/ogenic-sio" },
   { id: "openai", label: "OpenAI", sub: "Platform", icon: "AI", url: "https://platform.openai.com", internal: "openai" },
   { id: "cloudflare", label: "Cloudflare", sub: "Workers · D1", icon: "CF", url: "https://dash.cloudflare.com" },
