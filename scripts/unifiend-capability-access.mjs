@@ -197,7 +197,7 @@ export async function inspectCapabilityAccess({ env, request = fetch }) {
         } catch (error) { report.host_registration = { state: "READ_UNAVAILABLE", ...publicFailure(error) }; }
         if (env.UNIFIEND_VERIFY_ADMIN_WRITE === "true") {
           report.operations = "READ_AND_UNCHANGED_NAME_ADMIN_PROBE";
-          if (repo.full_name !== "Wave-Runner-2/Build-Platform" || repo.name !== "Build-Platform") {
+          if (repo.full_name !== "GH-ADDMINPOVIDER/Build-Platform" || repo.name !== "Build-Platform") {
             throw new ProbeFailure("administration_write", "CURRENT_NAME_CHANGED_REVIEW_REQUIRED");
           }
           const updated = await jsonRequest(request, "administration_write", `https://api.github.com/repos/${repo.full_name}`, {

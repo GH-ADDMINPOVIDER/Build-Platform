@@ -15,7 +15,7 @@ if (!key) {
 
 const research = [
   "ROLE: DeepSeek infrastructure reviewer for Unifiend Replica Runner OGE-95. Answer in Thai with 5 specific improvements prioritized P0/P1, a safe execution lane, and exact parity measurement. Do not claim independent web browsing.",
-  "PROVEN: staging repo Wave-Runner-2/Build-Platform on Unified-on-Progress; Cloudflare Worker+workerd, local D1 15 migrations, GitHub-hosted Node22 runner, one existing self-hosted staging deploy runner.",
+  "PROVEN: staging repo GH-ADDMINPOVIDER/Build-Platform on Unified-on-Progress; Cloudflare Worker+workerd, local D1 15 migrations, GitHub-hosted Node22 runner, one existing self-hosted staging deploy runner.",
   "GitHub proof run 37749673030: 348/348 tests; 12/12 local runtime; 10/10 selected public route/auth-denial contracts. NOT 1:1: lacks owner-authenticated session behavior, realistic 1LSS state, Ruby retain proof, third-party mock contract parity, mobile UI, real deploy proof.",
   "Factory SOURCE->DISTILL->REPRODUCE->RUBY VERIFY->GREEN retain; Yellow is existing execution authority. Must NOT invent a new DB, gate, cloud machine, or paid model loop.",
   "Architecture requirements: code commit pinned, synthetic D1 only, isolated ephemeral agent tasks with fixed allowlisted operations and time limits; provable idempotency and evidence; safe staged deployment via existing human-selected workflow (never production).",

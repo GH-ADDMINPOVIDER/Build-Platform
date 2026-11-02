@@ -79,7 +79,7 @@ function failed(id: LiveToolSnapshot["id"], label: string, error: unknown, start
 async function github(env: LiveToolBindings): Promise<LiveToolSnapshot> {
   const started = Date.now();
   const token = clean(env.GITHUB_TOKEN, 500);
-  const repository = clean(env.OGENIC_GITHUB_REPO, 180) || "Wave-Runner-2/Build-Platform";
+  const repository = clean(env.OGENIC_GITHUB_REPO, 180) || "GH-ADDMINPOVIDER/Build-Platform";
   const branch = clean(env.OGENIC_GITHUB_BRANCH, 180) || "Unified-on-Progress";
   if (!token) return configured("github", "GitHub", started);
   try {

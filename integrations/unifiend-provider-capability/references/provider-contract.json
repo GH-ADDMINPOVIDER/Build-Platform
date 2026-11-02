@@ -1,7 +1,7 @@
 {
   "schema": "UNIFIEND_PROVIDER_CAPABILITY_V1",
   "provider": "GH-ADDMINPOVIDER",
-  "repository": "Wave-Runner-2/Build-Platform",
+  "repository": "GH-ADDMINPOVIDER/Build-Platform",
   "repository_id": 1429580446,
   "branch": "Unified-on-Progress",
   "host": "Ocian-S-Host",
