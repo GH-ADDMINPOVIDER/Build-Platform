@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { appendFileSync } from "node:fs";
 
-const repo="Wave-Runner-2/Build-Platform";
+const repo="GH-ADDMINPOVIDER/Build-Platform";
 const branch="Unified-on-Progress";
 const base="https://wave.ogenicchocolate.com";
 assert.equal(process.env.GITHUB_REPOSITORY,repo,"REPO_SCOPE");
