@@ -47,7 +47,7 @@ jobs:
           from pathlib import Path
 
           canonical = os.environ.get("GH_ADDMINPROVIDER", "")
-          url = "https://api.github.com/repos/Wave-Runner-2/Build-Platform/contents/tests/athena-guarded-command-handoff.test.mjs?ref=Unified-on-Progress"
+          url = "https://api.github.com/repos/GH-ADDMINPOVIDER/Build-Platform/contents/tests/athena-guarded-command-handoff.test.mjs?ref=Unified-on-Progress"
 
           def has_control(value):
               return any(ord(ch) < 32 or ord(ch) == 127 for ch in value)

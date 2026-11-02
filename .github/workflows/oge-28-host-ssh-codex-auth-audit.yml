@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   verify:
-    if: github.repository_id == '1429580446' && github.actor == 'Wave-Runner-2'
+    if: github.repository_id == '1429580446' && github.actor == 'GH-ADDMINPOVIDER'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 7
     steps:
