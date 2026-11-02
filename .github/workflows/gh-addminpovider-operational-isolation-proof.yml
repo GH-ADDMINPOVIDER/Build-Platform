@@ -27,6 +27,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Audit active source tree for retired GitHub identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Preserve immutable historical CERT/docs/tests; forbid active wiring to retired accounts.
+          if git grep -n -E 'Ogenicchocolate21debug|Wave-Runner-2|1350684572|306097555' -- \
+            worker config scripts .github/workflows deploy integrations ops infra packages workflows \
+            ':(exclude).github/workflows/gh-addminpovider-operational-isolation-proof.yml'; then
+            echo "::error::RETIRED_GITHUB_IDENTITY_PRESENT_IN_ACTIVE_SOURCE"
+            exit 1
+          fi
+          echo "GH2_ACTIVE_SOURCE_LEGACY_REFERENCE_SCAN=PASS"
       - name: Assert retired identities cannot enter active workflows
         run: |
           set -euo pipefail
