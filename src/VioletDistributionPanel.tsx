@@ -181,7 +181,7 @@ export default function VioletDistributionPanel(){
             <div><strong>#{pstack.stable_numbers?.find(x=>x.id===skill.id)?.number} · {skill.id}</strong>
             <span>{pstack.stable_numbers?.find(x=>x.id===skill.id)?.categories.join(" / ")}</span>
             <span>{skill.description||"Portable source available · not runtime verified"}</span></div>
-            <a href={`https://github.com/Wave-Runner-2/Build-Platform/blob/Unified-on-Progress/${skill.path}`}
+            <a href={`https://github.com/GH-ADDMINPOVIDER/Build-Platform/blob/Unified-on-Progress/${skill.path}`}
               target="_blank" rel="noreferrer" aria-label={`View source for ${skill.id}`}>Source ↗</a>
           </div>)}
           {!matchedSkills.length&&<p className="wnPolicy">No matching skill.</p>}

@@ -638,7 +638,7 @@ export default function UnifiendNext({ initialTab = "run", surface = "operate" }
             <div><dt>Codex TS historical</dt><dd>{certificate?.owner_identity_labels?.codex_ts?.historical_execution_result || "NOT_VERIFIED"}</dd></div>
             <div><dt>Current E2E</dt><dd>{certificate?.runtime_e2e_verified ? "VERIFIED" : "NOT_PROVEN_BY_CERTIFICATE"}</dd></div>
           </dl>
-          <p className="wnBody"><a href={certificate?.canonical_source?.url || "https://github.com/Wave-Runner-2/Build-Platform/blob/task/oge-128-runtime-certificate-20261018/.ogenic/proofs/oge-128-wave-runner-01-certificate-baseline.json"} target="_blank" rel="noreferrer">Original Certificate in GitHub ↗</a></p>
+          <p className="wnBody"><a href="https://docs.google.com/spreadsheets/d/12Udw2-bMrvZ7oHC2SaJ3IXyIWH9HdXrGDtLCLIyYTyg/edit#gid=20261102" target="_blank" rel="noreferrer">CERT · Current GH2 rules and preserved historical evidence ↗</a></p>
         </article>
 
         <article className="wnCard">
