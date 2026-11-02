@@ -31,7 +31,7 @@ function service(overrides = {}) {
       return overrides.login?.() || Response.json({ accessToken: fixture.vault });
     }
     if (url.includes("/oidc-auth/identities/")) return overrides.policy?.() || Response.json({
-      identityOidcAuth: { boundSubject: "repo:Wave-Runner-2/Build-Platform:*", boundClaims: { repository_id: "1429580446" } },
+      identityOidcAuth: { boundSubject: "repo:GH-ADDMINPOVIDER/Build-Platform:*", boundClaims: { repository_id: "1429580446" } },
     });
     if (url.includes("/api/v4/secrets?")) {
       assert.equal(new URL(url).searchParams.get("viewSecretValue"), "false");
@@ -49,9 +49,9 @@ function service(overrides = {}) {
       return overrides.user?.() || Response.json({ id: 342175560 });
     }
     if (url === "https://api.github.com/repositories/1429580446") {
-      return Response.json({ id: 1429580446, name: "Build-Platform", full_name: "Wave-Runner-2/Build-Platform", owner: { id: 342175560 }, permissions: { admin: true } });
+      return Response.json({ id: 1429580446, name: "Build-Platform", full_name: "GH-ADDMINPOVIDER/Build-Platform", owner: { id: 342175560 }, permissions: { admin: true } });
     }
-    if (url === "https://api.github.com/repos/Wave-Runner-2/Build-Platform") {
+    if (url === "https://api.github.com/repos/GH-ADDMINPOVIDER/Build-Platform") {
       assert.equal(init.method, "PATCH");
       assert.deepEqual(JSON.parse(init.body), { name: "Build-Platform" });
       return overrides.admin?.() || Response.json({ id: 1429580446 });
