@@ -48,7 +48,7 @@ type VerificationState = "verified" | "partially_verified" | "unverified" | "blo
 const CANONICAL_CONVERSATION = "owner-main";
 const CANONICAL_SESSION_LINE = "1LSS_OWNER_MAIN";
 const CANONICAL_STAGING_BRANCH = "Unified-on-Progress";
-const DEFAULT_REPOSITORY = "Wave-Runner-2/Build-Platform";
+const DEFAULT_REPOSITORY = "GH-ADDMINPOVIDER/Build-Platform";
 const SENSITIVE_PATH = /(^|\/)(?:\.env(?:\.|$)|credentials?(?:\.|$)|secrets?(?:\.|$)|id_rsa(?:\.|$)|[^/]+\.(?:pem|p12|pfx|key)$)/i;
 const SECRET_LIKE = /(sk-[a-z0-9_-]{12,}|gh[pousr]_[a-z0-9]{12,}|bearer\s+[a-z0-9._~+/=-]{12,}|(?:password|passwd|secret|token|api[_ -]?key)\s*[:=]\s*\S{6,})/i;
 
@@ -259,6 +259,9 @@ async function readGitHubFile(env: ExecutionBindings, path: string) {
 
   const repository = clean(env.OGENIC_GITHUB_REPO, 180) || DEFAULT_REPOSITORY;
   const branch = clean(env.OGENIC_GITHUB_BRANCH, 180) || CANONICAL_STAGING_BRANCH;
+  if (repository !== DEFAULT_REPOSITORY) {
+    return { ok: false as const, code: "REPOSITORY_SCOPE_MISMATCH", expected_repository: DEFAULT_REPOSITORY };
+  }
   if (branch !== CANONICAL_STAGING_BRANCH) {
     return { ok: false as const, code: "ENVIRONMENT_SCOPE_MISMATCH", expected_branch: CANONICAL_STAGING_BRANCH };
   }
