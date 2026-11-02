@@ -1,0 +1,35 @@
+name: GH-ADDMINPOVIDER Operational Isolation Proof
+on:
+  push:
+    branches: [Unified-on-Progress]
+    paths:
+      - "worker/**"
+      - "config/**"
+      - "scripts/oge34-github-worker-binding.mjs"
+      - "scripts/replica-executor/athena-context.mjs"
+      - ".github/workflows/**"
+      - "tests/gh-addminpovider-operational-isolation.test.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  operational-isolation:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: Unified-on-Progress
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Assert retired identities cannot enter active workflows
+        run: |
+          set -euo pipefail
+          node --check scripts/oge34-github-worker-binding.mjs
+          node --check scripts/replica-executor/athena-context.mjs
+          node --test tests/gh-addminpovider-operational-isolation.test.mjs tests/codex-left-arm-contract.test.mjs tests/oge95-athena-runner-context.test.mjs tests/oge-34-github-worker-binding.test.mjs
