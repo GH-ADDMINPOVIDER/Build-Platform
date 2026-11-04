@@ -1,3 +1,5 @@
+import { handleWaveManusMcp } from "./wave-manus-mcp-api";
+import { handleWaveOAuth, isWaveOAuthPath } from "./wave-mcp-oauth";
 import { isGitHubRunEvidence } from "./github-provider";
 import base from "./entry-connectors";
 import {
@@ -539,8 +541,10 @@ async function athenaGuardedCommand(request: Request, env: Bindings, ctx: unknow
 }
 
 export default {
-  async fetch(request: Request, env: Bindings, ctx: unknown) {
+  async fetch(request: Request, env: Bindings, ctx: unknown): Promise<Response> {
     const pathname = new URL(request.url).pathname;
+    if (isWaveOAuthPath(pathname)) return handleWaveOAuth(request, env as never);
+    if (pathname === "/mcp") return handleWaveManusMcp(request, env as never, (delegated) => this.fetch(delegated, env, ctx));
     if (pathname.startsWith("/api/discord/")) {
       return discordApi.fetch(request, env as never, ctx as never);
     }
@@ -744,3 +748,4 @@ export default {
     return base.scheduled(controller, env as never, ctx);
   },
 };
+
