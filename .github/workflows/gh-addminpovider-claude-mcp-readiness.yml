@@ -1,0 +1,72 @@
+name: Claude Yellow Stone existing runtime readiness
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/gh-addminpovider-claude-mcp-readiness.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  inspect:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: [GH-ADDMINPOVIDER]
+    timeout-minutes: 5
+    steps:
+      - name: Read existing Worker, OAuth schema and MCP readiness
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.parse,urllib.error
+          def mask(v):
+              for s in str(v).splitlines():
+                  if s: print("::add-mask::"+s,flush=True)
+          def request(url,token=None,data=None,headers=None):
+              h={"User-Agent":"GH-ADDMINPOVIDER-Claude-MCP-proof","Accept":"application/json"}
+              h.update(headers or {})
+              if token:h["Authorization"]="Bearer "+token
+              body=None
+              if data is not None:h["Content-Type"]="application/json";body=json.dumps(data).encode()
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers=h,data=body),timeout=25) as r:
+                      raw=r.read(); status=r.status; ct=r.headers.get("content-type","")
+              except urllib.error.HTTPError as e: raw=e.read();status=e.code;ct=e.headers.get("content-type","")
+              try: value=json.loads(raw)
+              except: value={}
+              return status,ct,value
+          assert os.environ["GITHUB_REPOSITORY_ID"]=="1429580446"
+          assert os.environ["GITHUB_REPOSITORY_OWNER_ID"]=="342175560"
+          oidc=os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"]+"&audience="+urllib.parse.quote("https://github.com/GH-ADDMINPOVIDER",safe="")
+          s,_,j=request(oidc,os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]);assert s==200
+          jwt=j["value"];mask(jwt)
+          s,_,j=request("https://app.infisical.com/api/v1/auth/oidc-auth/login",data={"identityId":"b0962d69-bd33-4ac3-b4f4-48589535ca38","jwt":jwt});assert s==200
+          session=j["accessToken"];mask(session)
+          def secret(name):
+              q=urllib.parse.urlencode({"projectId":"e8cfba67-ea99-4d79-bc9f-87b862f9129c","environment":"staging","secretPath":"/","type":"shared","viewSecretValue":"true","expandSecretReferences":"false"})
+              s,_,j=request("https://app.infisical.com/api/v4/secrets/"+urllib.parse.quote(name,safe="")+"?"+q,session);assert s==200
+              v=j["secret"]["secretValue"];mask(v);return v
+          account=secret("CLOUDFLARE_ACCOUNT_ID");cf=secret("CLOUDFLARE_API_TOKEN")
+          base="https://api.cloudflare.com/client/v4/accounts/"+account
+          report={"runner":os.environ.get("RUNNER_NAME"),"source_sha":os.environ["GITHUB_SHA"]}
+          s,_,j=request(base+"/workers/scripts/ogenic-phase-vi-staging/settings",cf)
+          settings=j.get("result",{})
+          report["worker_settings"]={"status":s,"success":j.get("success"),"binding_names":[x.get("name") for x in settings.get("bindings",[])]}
+          s,_,j=request(base+"/workers/scripts/ogenic-phase-vi-staging/deployments",cf)
+          report["deployments"]={"status":s,"success":j.get("success"),"deployments":[{"id":x.get("id"),"versions":x.get("versions"),"created_on":x.get("created_on")} for x in j.get("result",{}).get("deployments",[])[:2]]}
+          s,_,j=request(base+"/d1/database/b4ac3a33-df80-47cf-8e75-7574e025b87b/query",cf,{"sql":"SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'mcp_oauth_%' ORDER BY name","params":[]})
+          report["oauth_tables"]={"status":s,"success":j.get("success"),"tables":j.get("result",[{}])[0].get("results",[]) if j.get("result") else []}
+          origin="https://wave.ogenicchocolate.com"
+          for path in ["/.well-known/oauth-protected-resource/mcp","/.well-known/oauth-authorization-server"]:
+              s,ct,j=request(origin+path)
+              report[path]={"status":s,"json":"application/json" in ct,"issuer":j.get("issuer"),"scopes_supported":j.get("scopes_supported"),"authorization_endpoint":j.get("authorization_endpoint")}
+          for method,params in [("initialize",{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"Claude-bridge-readiness","version":"1"}}),("tools/list",{})]:
+              s,ct,j=request(origin+"/mcp",data={"jsonrpc":"2.0","id":1,"method":method,"params":params},headers={"Accept":"application/json, text/event-stream"})
+              r=j.get("result",{})
+              report[method]={"status":s,"json":"application/json" in ct,"serverInfo":r.get("serverInfo"),"tools":[x.get("name") for x in r.get("tools",[])],"rpc_error":j.get("error",{}).get("code")}
+          s,ct,j=request(origin+"/api/session",data={"owner_key":secret("OWNER_KEY_OPS")},headers={"Origin":origin,"X-OGENIC-Client":"native"})
+          bearer=j.get("session_token","");mask(bearer)
+          report["owner_auth"]={"status":s,"json":"application/json" in ct,"authenticated":j.get("authenticated"),"code":j.get("code"),"session_token_present":bool(bearer)}
+          print(json.dumps(report,sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as f:f.write("## Claude / Yellow Stone live readiness\n\n~~~json\n"+json.dumps(report,indent=2)+"\n~~~\n")
+          
+          PY
