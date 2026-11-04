@@ -73,7 +73,7 @@ api.get("/api/maop/lab/status", async (c) => {
     lab: "MAOP_WEB_LAB_V1",
     protocol_version: MAOP_PROTOCOL_VERSION,
     runtime: "Cloudflare Worker",
-    canonical_branch: "phase-vi-provider-incentive-metering",
+    canonical_branch: "Unified-on-Progress",
     core_scenarios: [
       "happy_path",
       "replay",
@@ -144,7 +144,7 @@ api.post("/api/maop/lab/core", async (c) => {
 
   const input = scenario === "secret_reject"
     ? { api_key: "sk-example-secret-value-123456" }
-    : { query: "first impression from real WAVE staging" };
+    : { query: "first impression from real Unifiend staging" };
   const protocol = scenario === "protocol_mismatch" ? "9.9.9" : MAOP_PROTOCOL_VERSION;
   const request = task(cap.capability_id, permission, input, protocol);
   const first = await runtime.run(request);

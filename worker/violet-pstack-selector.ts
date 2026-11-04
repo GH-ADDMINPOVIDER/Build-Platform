@@ -31,7 +31,7 @@ export function selectPstackSkillStack(task:unknown,library:Skill[]){
 }
 export function planSkillLearning(library:Skill[]){
  const arranged=[...library].sort((a,b)=>Number(a.id.startsWith("principle-"))-Number(b.id.startsWith("principle-"))||a.id.localeCompare(b.id));
- const waves=[];
- for(let i=0;i<arranged.length;i+=9)waves.push({wave:waves.length+1,source_refs:arranged.slice(i,i+9).map(x=>({id:x.id,path:x.agent_skill_path,hash:x.source_sha256})),read_receipt:"NOT_VERIFIED"});
- return {skill_count:library.length,waves,learning_state:"NOT_DISPATCHED",ruby_receipt:"NOT_VERIFIED",green_retention:"NOT_WRITTEN",new_memory_database:false};
+ const unifiends=[];
+ for(let i=0;i<arranged.length;i+=9)unifiends.push({unifiend:unifiends.length+1,source_refs:arranged.slice(i,i+9).map(x=>({id:x.id,path:x.agent_skill_path,hash:x.source_sha256})),read_receipt:"NOT_VERIFIED"});
+ return {skill_count:library.length,unifiends,learning_state:"NOT_DISPATCHED",ruby_receipt:"NOT_VERIFIED",green_retention:"NOT_WRITTEN",new_memory_database:false};
 }

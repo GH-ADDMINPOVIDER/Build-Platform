@@ -1,0 +1,60 @@
+{
+  "schema_version": "OGENIC_REPLICA_RUNNER_V1",
+  "name": "Unifiend Replica Runner",
+  "target": "0.9:1 local-to-staging operational parity (a goal, not a certified metric)",
+  "job_host": "github-hosted/ubuntu-latest",
+  "local_runtime": "Cloudflare workerd through Wrangler dev --local",
+  "source": {
+    "repository": "GH-ADDMINPOVIDER/Build-Platform",
+    "branch": "Unified-on-Progress"
+  },
+  "toolchain": {
+    "node": "22",
+    "wrangler": "package.json devDependency ^4",
+    "python": "optional, not part of core proof"
+  },
+  "cloudflare": {
+    "worker_entry": "worker/entry-yellow-stone.ts",
+    "d1_binding": "DB",
+    "database": "local-isolated-copy",
+    "browser_binding": "local-simulated"
+  },
+  "cost_policy": {
+    "uses_existing_github_hosted_allowance": true,
+    "billable_provider_calls": false,
+    "cloudflare_deploy": false,
+    "railway_deploy": false,
+    "do_droplet_create": false
+  },
+  "expected_fidelity_limits": [
+    "Remote D1 content, latency, replication, and migrations not sourced from real production",
+    "Infisical OIDC, live third-party models and rate limits not reproduced without explicit separate validation",
+    "Browser binding and Cloudflare edge/network behavior may not match every case",
+    "Staging deploy runs exclusively in existing protected self-hosted workflow; never inside this replica proof"
+  ],
+  "deployment_handoff": {
+    "workflow": ".github/workflows/provider-incentive-staging-deploy.yml",
+    "ref": "Unified-on-Progress",
+    "mode": "OPERATOR_EXPLICIT_DISPATCH_AFTER_PARITY_PROOF",
+    "replica_may_dispatch": false
+  },
+  "hard_scope": {
+    "main": false,
+    "production": false,
+    "Candy": false,
+    "remote_d1": false,
+    "secrets": false,
+    "billed_llm": false
+  },
+  "checks": [
+    "source_config",
+    "node22",
+    "worker_bundle",
+    "local_d1_migrations",
+    "workerd_health",
+    "local_public_routes",
+    "owner_auth_fail_closed",
+    "deployment_handoff_identified"
+  ],
+  "evidence": "replica-evidence.json"
+}

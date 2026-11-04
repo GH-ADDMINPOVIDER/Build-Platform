@@ -4,28 +4,28 @@ Status: **Audited and staged**, not a production migration. This is an inventory
 
 ## Evidence
 
-- Read-only WAVE host inventory: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38493903293
+- Read-only Unifiend host inventory: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38493903293
 - Infisical CLI user-local install: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38491772460
 - Bubblewrap sandbox verification: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38492220381
 - Active Codex account verification: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38491235489
-- Reusable workflow-local activation: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38494480696 — composite action `.github/actions/ogenic-wave-tools/action.yml` and `rg/yq/uv/uvx/infisical` CLI smoke **SUCCESS**.
+- Reusable workflow-local activation: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38494480696 — composite action `.github/actions/ogenic-unifiend-tools/action.yml` and `rg/yq/uv/uvx/infisical` CLI smoke **SUCCESS**.
 - Rootless Docker Compose CLI install: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38494556161 — official SHA-256 verified, **Docker Compose v5.6.0 ready**. Client only; **zero containers created/started**.
 - Standby small CLI installation **COMPLETE/SUCCESS**: https://github.com/Ogenicchocolate21debug/Build-Platform/actions/runs/38494192060 — SHA-256 verified: `rg 15.2.0`, `yq 4.54.1`, `uv/uvx 0.13.0`; no service started / secrets / sudo
 
-## Current WAVE host state (observed)
+## Current Unifiend host state (observed)
 
 - Ubuntu 24.04.5 LTS, DigitalOcean Premium Intel, Linux x64; **1 CPU thread**, **984,552 KiB RAM**, ~**609,000 KiB MemAvailable**, **2,097,148 KiB swap**.
 - Root filesystem **33 GB total, 17 GB used / 17 GB available** at observation.
 - Docker daemon functional, **0 running containers**, **3 cached images**, ~250 MB image inventory.
 - Git, GitHub CLI, Node 22, npm, Python 3.12, Docker, jq, curl, rsync, tmux, htop, Wrangler, Codex CLI 0.158, Bubblewrap 0.9 and user-local Infisical CLI 0.43.143 are present.
-- Only `wave-runner-01` proved online on inspected host, no second runner instance proved, no noninteractive `sudo` for `wave`.
+- Only `wave-runner-01` proved online on inspected host, no second runner instance proved, no noninteractive `sudo` for `unifiend`.
 - **Installed on host ≠ ChatGPT connected app** and **installed CLI ≠ authorized Secrets access**.
 
 ## Confirmed installed ChatGPT app plugins via directory lookup (15)
 
 | Group | Installed connector apps | Host strategy |
 | --- | --- | --- |
-| Code / CI / product releases | GitHub, Vercel, Railway, Lovable, OpenAI Developers, Context7, Statsig | Keep hosted APIs. `gh`, Node, `codex`, `wrangler` already available on WAVE. Use least-privilege CI; do not install SaaS backend on WAVE. |
+| Code / CI / product releases | GitHub, Vercel, Railway, Lovable, OpenAI Developers, Context7, Statsig | Keep hosted APIs. `gh`, Node, `codex`, `wrangler` already available on Unifiend. Use least-privilege CI; do not install SaaS backend on Unifiend. |
 | Delivery / communication / shared context | Notion, ClickUp, Linear, Gmail, Outlook Email | Hosted connectors; if automation needed, use existing GitHub/n8n API with proper scopes. Do not replicate Gmail/Outlook/Notion data into local host. |
 | Design / commerce | Shopify, Figma, Canva | Hosted connectors; use API/webhooks with staging allowlist and managed auth. Do not start storefront, design server or unnecessary local DB. |
 
@@ -36,7 +36,7 @@ Additionally, **DataCamp, Manus, AppDeploy** tool groups are visible to ChatGPT 
 ## Existing external/platform integrations
 
 - n8n orchestrator and migration contracts exist in repo. `.github/workflows/oge-69-n8n-live-connect.yml` references the Railway-hosted staging endpoint `https://n8n-staging-76b7.up.railway.app` as a default, **not proof of current endpoint health**.
-- Cloudflare Worker/D1 stage are configured through Wrangler and workflows; do not move databases to the WAVE host.
+- Cloudflare Worker/D1 stage are configured through Wrangler and workflows; do not move databases to the Unifiend host.
 - Infisical OIDC is used in existing Actions; CLI rootless install alone does not automatically authorize it or guarantee which secrets the runtime can access.
 - Preserve canonical staging branch isolation, existing authorization policies, and separate Runner-2 account/work.
 
@@ -71,6 +71,6 @@ Additionally, **DataCamp, Manus, AppDeploy** tool groups are visible to ChatGPT 
 
 ## Next operating steps
 
-A. Complete/check `OGENIC WAVE lightweight standby toolkit` action run and version markers.
+A. Complete/check `OGENIC Unifiend lightweight standby toolkit` action run and version markers.
 B. Keep heavy modules in this catalog until owner has approved host upgrade; after resize, create a tested Compose profile/instance with internal-only access, health checks and storage mounts.
 C. For Runner-2, continue Issue #28 only after host-admin and GitHub runner registration permissions are legitimately available.

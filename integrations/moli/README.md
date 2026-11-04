@@ -21,7 +21,7 @@ Current implementation:
 
 ## IMPORTANT readiness levels
 
-1. `REGISTERED` means discovery code exists. Does **not** mean Moli is installed on WAVE's Cloudflare Worker or accessible as an Agent automation route.
+1. `REGISTERED` means discovery code exists. Does **not** mean Moli is installed on Unifiend's Cloudflare Worker or accessible as an Agent automation route.
 2. `BROWSER_SMOKE_PASS` is established only by a completed GitHub Actions CI run, on an exact SHA.
 3. General browser sessions/actions require a future **authorized Yellow capability invocation** with egress allowlist, DNS/IP and redirects SSRF protections, state isolation, task budget, rate limits, and human approval for side effects. Never expose an unauthenticated `moli serve` port, or redirect arbitrary requests into the CLI.
 4. For screenshots or complex/Canvas/WebGL UI, use existing Chrome/Cloudflare Browser Run if it is a better fit; Moli is an optional lightweight browser tool, not a browser-monoculture migration.

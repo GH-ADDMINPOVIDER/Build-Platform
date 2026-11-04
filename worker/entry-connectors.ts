@@ -558,7 +558,7 @@ async function athenaChatRequest(request: Request) {
   });
 }
 
-async function defaultWaveTextOnly(request: Request) {
+async function defaultUnifiendTextOnly(request: Request) {
   if (request.method !== "POST") return false;
   const body = await request.clone().json().catch(() => ({})) as FunctionTurnBody;
   const attachments = Array.isArray(body.attachment_ids) ? body.attachment_ids.filter(Boolean) : [];
@@ -566,7 +566,7 @@ async function defaultWaveTextOnly(request: Request) {
 }
 
 const FRESH_AGENT_TIME_PATTERN = /\b(?:current|currently|latest|live|now|today|status|health|up[ -]?to[ -]?date)\b|สถานะ|ล่าสุด|ปัจจุบัน|ตอนนี้|วันนี้/i;
-const FRESH_AGENT_TARGET_PATTERN = /\b(?:wave|ogenic|system|repo(?:sitory)?|github|ci|workflow|linear|runtime|provider|quota|roadmap|agent|deploy(?:ment)?|build|branch|commit|1lss|d1)\b|ระบบ|รันไทม์|โควตา|โรดแมป|กิตฮับ|ลิเนียร์|ดีพลอย|บิลด์|บรাঞ্চ|คอมมิต/i;
+const FRESH_AGENT_TARGET_PATTERN = /\b(?:unifiend|ogenic|system|repo(?:sitory)?|github|ci|workflow|linear|runtime|provider|quota|roadmap|agent|deploy(?:ment)?|build|branch|commit|1lss|d1)\b|ระบบ|รันไทม์|โควตา|โรดแมป|กิตฮับ|ลิเนียร์|ดีพลอย|บิลด์|บรাঞ্চ|คอมมิต/i;
 
 export function isFreshAgentReadRequest(prompt: unknown) {
   const text = clip(prompt, 7000);
@@ -653,7 +653,7 @@ export default {
         ? request
         : await canonicalChatModelRequest(request, sourceSurface);
 
-      if (pathname === "/api/chat/model" && await defaultWaveTextOnly(canonicalRequest)) {
+      if (pathname === "/api/chat/model" && await defaultUnifiendTextOnly(canonicalRequest)) {
         return await dispatchAndFinishTurn(
           canonicalRequest.clone(),
           async () => {

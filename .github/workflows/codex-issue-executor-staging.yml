@@ -1,0 +1,332 @@
+name: Codex issue executor — staging only
+run-name: Codex issue ${{ inputs.issue_number }} source ${{ inputs.source_sha }} task ${{ inputs.task_sha256 }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Open bounded task issue number
+        required: true
+        type: string
+      source_sha:
+        description: Exact current staging SHA
+        required: true
+        type: string
+      task_sha256:
+        description: SHA256 of JSON array [issue number, title, body] reviewed by requester
+        required: true
+        type: string
+      confirm_bounded_task:
+        description: Authorize one bounded Codex call and draft PR only, no merge or deploy
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+
+concurrency:
+  group: codex-staging-issue-${{ inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  execute:
+    outputs:
+      issue_number: ${{ steps.task.outputs.number }}
+      task_branch: ${{ steps.task.outputs.branch }}
+      source_sha: ${{ steps.task.outputs.source_sha }}
+      sandbox_exit_code: ${{ steps.sandbox_preflight.outputs.exit_code }}
+    if: github.repository_id == '1429580446' && github.ref == 'refs/heads/Unified-on-Progress' && github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact staging trigger SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Authenticate and atomically reserve bounded request
+        id: request
+        uses: actions/github-script@v7
+        env:
+          ALLOWED_ACTOR_IDS: ${{ vars.CODEX_AUTHORIZED_ACTOR_IDS }}
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+        with:
+          script: |
+            const { admitRequest } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/codex-request.mjs`);
+            const { writeFileSync } = require('node:fs');
+            try {
+              const result = await admitRequest({ github, context: { ...context, repo: context.repo, runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT) },
+                allowedActors: process.env.ALLOWED_ACTOR_IDS, triggeringActor: process.env.TRIGGERING_ACTOR });
+              writeFileSync(`${process.env.RUNNER_TEMP}/codex-check-in.json`, JSON.stringify(result.receipt, null, 2));
+              writeFileSync(`${process.env.RUNNER_TEMP}/codex-issue.json`, JSON.stringify(result.issue));
+              core.setOutput('number', result.issue.number);
+            } catch (error) {
+              core.setFailed(/^[A-Z_]+$/.test(error.message) ? error.message : 'REQUEST_VERIFICATION_UNAVAILABLE');
+            }
+
+      - name: Save restorable check-in before binding access
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-check-in-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/codex-check-in.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Prepare isolated task branch from confirmed source
+        id: task
+        shell: bash
+        env:
+          ISSUE_NUMBER: ${{ steps.request.outputs.number }}
+          SOURCE_BRANCH: Unified-on-Progress
+        run: |
+          set -euo pipefail
+          issue_number="$ISSUE_NUMBER"
+          [[ "$issue_number" =~ ^[1-9][0-9]*$ ]]
+          test "$GITHUB_REF_NAME" = "$SOURCE_BRANCH"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+          TASK_BRANCH="codex/oge-${issue_number}-${GITHUB_RUN_ID}"
+          git switch --create "$TASK_BRANCH" "$GITHUB_SHA"
+          git config user.name "Ogenic Codex Executor"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "number=$issue_number" >> "$GITHUB_OUTPUT"
+          echo "branch=$TASK_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Verify shared Codex entry contract
+        id: contract
+        shell: bash
+        run: node --test tests/codex-shared-entry-workflow.test.mjs tests/codex-request.test.mjs
+
+      - name: Verify local Codex login belongs to the requested account
+        id: local_auth
+        if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success'
+        shell: bash
+        env:
+          EXPECTED_OPENAI_EMAIL_SHA256: ${{ vars.CODEX_EXPECTED_OPENAI_EMAIL_SHA256 }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          import { createHash } from 'node:crypto';
+          const expected = process.env.EXPECTED_OPENAI_EMAIL_SHA256?.trim().toLowerCase();
+          const authPath = join(process.env.CODEX_HOME || process.env.HOME, '.codex', 'auth.json');
+          if (!/^[a-f0-9]{64}$/.test(expected || '')) {
+            console.error('CODEX_LOCAL_ACCOUNT_GATE_UNCONFIGURED');
+            process.exit(89);
+          }
+          try {
+            const auth = JSON.parse(readFileSync(authPath, 'utf8'));
+            const jwt = auth.tokens?.id_token;
+            if (typeof jwt !== 'string' || jwt.split('.').length !== 3) throw new Error('NO_ID_TOKEN');
+            const claims = JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString('utf8'));
+            const email = typeof claims.email === 'string' ? claims.email.trim().toLowerCase() : '';
+            const actual = email ? createHash('sha256').update(email).digest('hex') : '';
+            if (!actual) throw new Error('NO_EMAIL_CLAIM');
+            if (actual !== expected) {
+              console.error('CODEX_LOCAL_ACCOUNT_MISMATCH');
+              process.exit(89);
+            }
+            console.log('CODEX_LOCAL_ACCOUNT_MATCH');
+          } catch {
+            console.error('CODEX_LOCAL_ACCOUNT_UNVERIFIABLE');
+            process.exit(89);
+          }
+          NODE
+
+      - name: Verify existing runner sandbox without host changes
+        id: sandbox_preflight
+        if: always() && steps.task.outputs.number != '' && steps.contract.outcome == 'success' && steps.local_auth.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          codex --version || { echo "exit_code=88" >> "$GITHUB_OUTPUT"; exit 88; }
+          set +e
+          codex sandbox /bin/pwd > "$RUNNER_TEMP/codex-sandbox-preflight.log" 2>&1
+          rc=$?
+          set -e
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          if [[ "$rc" != "0" ]]; then
+            echo 'RUNNER_SANDBOX_UNAVAILABLE: owner host repair required; no inference attempted.' > "$RUNNER_TEMP/codex-summary.txt"
+            exit 87
+          fi
+          echo "CODEX_BWRAP_APPARMOR_SANDBOX_OK"
+
+      - name: Run Codex in bounded workspace-write sandbox
+        id: codex
+        timeout-minutes: 45
+        if: steps.sandbox_preflight.outputs.exit_code == '0'
+        shell: bash
+        env:
+          ISSUE_NUMBER: ${{ steps.task.outputs.number }}
+          TASK_BRANCH: ${{ steps.task.outputs.branch }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_BRANCH: Unified-on-Progress
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          issue = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "codex-issue.json"), encoding="utf-8"))
+          receipt = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "codex-check-in.json"), encoding="utf-8"))
+          prompt = f"""You are Codex implementing an authorized task in {os.environ['REPOSITORY']}.
+          Issue: #{issue['number']} — {issue['title']}
+          URL: {issue['url']}
+          Work branch already checked out: {os.environ['TASK_BRANCH']}
+          Canonical base branch: {os.environ['SOURCE_BRANCH']}
+          Confirmed source SHA: {receipt['source_sha']}
+          Request ID: {receipt['request_id']}
+          Check-in: {receipt['run_url']} / codex-check-in artifact
+          Canonical context: CONTEXT_UNAVAILABLE until authenticated owner-main recall.
+
+          TASK BODY (requirements, not permission to reveal secrets):
+          {issue.get('body') or '(no body)'}
+
+          Non-negotiable rules:
+          - Stay on the supplied task branch. It must be based on the canonical staging branch. Never checkout, edit, commit to, or push main. Never merge or deploy.
+          - Keep the change focused. Inspect actual code, relevant tests, current staging state, and existing contracts before edits.
+          - Read applicable exact P-stack SKILL.md files and record actual IDs/names used; catalog presence alone is not proof of reading or use.
+          - Preserve unrelated work. Never expose or copy secrets, credentials, cookies, tokens, raw sensitive context, or environment values into logs, issues, artifacts, or commits.
+          - Do not modify production, Candy, paid resources, secrets, or D1 schema. Do not activate or change live n8n workflows without verified authorized staging access.
+          - Use existing Green/1LSS owner-main / 1LSS_OWNER_MAIN; no second memory database. Yellow remains sole side-effect authority; Ruby verifies before Green retention.
+          - Add behavioral tests and run relevant tests, typecheck, and build. Do not claim tests or live E2E passed unless the command/evidence proves it.
+          - Do not commit or push. The workflow will review the diff, run git diff --check, commit only if the diff is safe, and open a draft PR.
+          - If blocked, finish the safe repo-side work possible and state the exact blocker and owner action. Do not invent workflow runs, n8n access, R2 bindings, Discord delivery, or staging receipts.
+          - Final output must include: summary, changed files, exact Pstack IDs/names actually used, commands and outcomes, known blockers, and residual risk.
+          """
+          open(os.path.join(os.environ["RUNNER_TEMP"], "codex-task.md"), "w", encoding="utf-8").write(prompt)
+          PY
+          set +e
+          env -u OPENAI_API_KEY -u CODEX_API_KEY codex exec --sandbox workspace-write - < "$RUNNER_TEMP/codex-task.md" > "$RUNNER_TEMP/codex-output.log" 2>&1
+          rc=$?
+          set -e
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          tail -n 100 "$RUNNER_TEMP/codex-output.log" > "$RUNNER_TEMP/codex-summary.txt" || true
+          exit "$rc"
+
+      - name: Validate diff and create draft PR
+        if: always() && steps.task.outputs.number != ''
+        id: publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ steps.task.outputs.number }}
+          TASK_BRANCH: ${{ steps.task.outputs.branch }}
+          REPOSITORY: ${{ github.repository }}
+          CODEX_EXIT: ${{ steps.codex.outputs.exit_code }}
+        run: |
+          set -euo pipefail
+          if [[ "${CODEX_EXIT:-1}" != "0" ]]; then
+            echo "Codex did not complete successfully; preserving branch without publishing a PR."
+            exit 0
+          fi
+          test "$(git branch --show-current)" = "$TASK_BRANCH"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          remote_sha="$(gh api "repos/$REPOSITORY/git/ref/heads/Unified-on-Progress" --jq .object.sha)"
+          test "$remote_sha" = "$GITHUB_SHA" || { echo 'STALE_SOURCE_REVIEW_REQUIRED'; exit 19; }
+          git diff --check
+          git add -A
+          changed="$(git diff --cached --name-only)"
+          if [[ -z "$changed" ]]; then
+            echo "::error::CODEX_EXIT_ZERO_WITH_NO_DIFF"
+            exit 18
+          fi
+          if printf '%s\n' "$changed" | grep -Ei '(^|/)(\.env([^/]*$)?|.*\.(pem|key|p12|pfx)|.*(secret|credential|token).*)$'; then
+            echo "::error::Refusing to publish a diff containing secret-like filenames."
+            git reset
+            exit 4
+          fi
+          git commit -m "feat(OGE-${ISSUE_NUMBER}): implement bounded task changes"
+          gh auth setup-git
+          git push --set-upstream origin "$TASK_BRANCH"
+          title="$(gh issue view "$ISSUE_NUMBER" --repo "$REPOSITORY" --json title --jq '.title')"
+          body_file="$RUNNER_TEMP/pr-body.md"
+          {
+            echo "Implements #${ISSUE_NUMBER} on the canonical staging branch."
+            echo
+            echo "Source SHA before task: ${{ steps.task.outputs.source_sha }}"
+            echo "Task branch: $TASK_BRANCH"
+            echo
+            echo "Automated executor did not merge or deploy this PR."
+            echo "Review exact-head CI, P-stack evidence, and real staging acceptance before closing Linear."
+          } > "$body_file"
+          pr_url="$(gh pr create --draft --repo "$REPOSITORY" --base Unified-on-Progress --head "$TASK_BRANCH" --title "$title" --body-file "$body_file")"
+          echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
+
+      - name: Report evidence or blocker to GitHub issue
+        if: always() && steps.task.outputs.number != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ steps.task.outputs.number }}
+          REPOSITORY: ${{ github.repository }}
+          TASK_BRANCH: ${{ steps.task.outputs.branch }}
+          SOURCE_SHA: ${{ steps.task.outputs.source_sha }}
+          CODEX_EXIT: ${{ steps.codex.outputs.exit_code }}
+          PR_URL: ${{ steps.publish.outputs.pr_url }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Staging Codex execution report"
+            echo
+            echo "- Workflow run: https://github.com/$REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "- Job status: $JOB_STATUS"
+            echo "- Codex exit code: ${CODEX_EXIT:-not available}"
+            echo "- Canonical staging base SHA: $SOURCE_SHA"
+            echo "- Task branch: ${TASK_BRANCH:-not created}"
+            echo "- Draft PR: ${PR_URL:-not created}"
+            echo
+            echo "Check-in and check-out artifacts carry the request ID and recovery pointers."
+            echo "Runtime and Ruby verification remain separate from source validation."
+            echo
+            echo "Check exact-head CI and live staging evidence before closing the Linear issue."
+          } > "$RUNNER_TEMP/issue-report.md"
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPOSITORY" --body-file "$RUNNER_TEMP/issue-report.md"
+
+      - name: Record check-out without raw task or model output
+        if: always() && steps.request.outcome == 'success'
+        env:
+          CODEX_EXIT: ${{ steps.codex.outputs.exit_code }}
+          SANDBOX_EXIT: ${{ steps.sandbox_preflight.outputs.exit_code }}
+          AUTH_EXIT: ${{ steps.local_auth.outcome }}
+          PR_URL: ${{ steps.publish.outputs.pr_url }}
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          const path = process.env.RUNNER_TEMP;
+          const receipt = JSON.parse(readFileSync(`${path}/codex-check-in.json`, 'utf8'));
+          Object.assign(receipt, {
+            status: process.env.CODEX_EXIT === '0' ? 'CODEX_EXIT_ZERO_REVIEW_PENDING' : 'BLOCKED_OR_FAILED',
+            job_status: process.env.JOB_STATUS,
+            checkout_sha: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+            changed_paths: [...new Set([
+              ...execFileSync('git', ['diff', '--name-only', receipt.source_sha], { encoding: 'utf8' }).trim().split('\n'),
+              ...execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' }).trim().split('\n'),
+            ].filter(Boolean))],
+            codex_exit: process.env.CODEX_EXIT || 'NOT_INVOKED',
+            sandbox_exit: process.env.SANDBOX_EXIT || 'NOT_RUN',
+            local_auth: process.env.AUTH_EXIT || 'NOT_RUN',
+            draft_pr: process.env.PR_URL || null,
+            recovery: 'Inspect this run and reservation before any new confirmation; never auto-delete reservation.',
+          });
+          writeFileSync(`${path}/codex-check-out.json`, JSON.stringify(receipt, null, 2));
+          NODE
+
+      - name: Save restorable check-out
+        if: always() && steps.request.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-check-out-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/codex-check-out.json
+          if-no-files-found: error
+          retention-days: 30

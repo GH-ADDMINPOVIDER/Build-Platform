@@ -47,7 +47,7 @@ jobs:
       - name: Ingest original source-backed result into same factory, do NOT retain until Ruby
         run: |
           node --test tests/oge95-factory-core.test.mjs
-          node scripts/replica-runner/factory-run.mjs \
+          node scripts/replica-executor/factory-run.mjs \
             --operation deepseek_research_ingest \
             --task OGE-95-original-research-recheck \
             --input oge95-prior-proof.json \

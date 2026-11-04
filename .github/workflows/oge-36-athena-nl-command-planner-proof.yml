@@ -30,7 +30,7 @@ jobs:
         run: npm install --package-lock-only && npm ci
 
       - name: Contract tests
-        run: node --test tests/athena-command-planner-contract.test.mjs tests/athena-guarded-command-handoff.test.mjs tests/athena-default-chat-contract.test.mjs tests/yellow-stone-execution-router-contract.test.mjs tests/blue-diamond-contract.test.mjs tests/wave-next-ui.test.mjs
+        run: node --test tests/athena-command-planner-contract.test.mjs tests/athena-guarded-command-handoff.test.mjs tests/athena-default-chat-contract.test.mjs tests/yellow-stone-execution-router-contract.test.mjs tests/blue-diamond-contract.test.mjs tests/unifiend-next-ui.test.mjs
 
       - name: Typecheck
         run: npm run typecheck
@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           jq -n \
-            --arg branch "phase-vi-provider-incentive-metering" \
+            --arg branch "Unified-on-Progress" \
             --arg sha "$GITHUB_SHA" \
             '{ok:true,branch:$branch,proof_sha:$sha,natural_language_planner:true,structured_plan:true,yellow_stone_only:true,verified_read:true,canonical_1lss:true,non_read_approval_gate:true,ambiguous_fail_closed:true,secret_intent_blocked:true,direct_execution_bypass:false,secrets_exposed:false}' \
             > oge-36-proof.json

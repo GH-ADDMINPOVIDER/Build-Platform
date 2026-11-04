@@ -19,7 +19,7 @@ test("server-side proof uses signed auth and only allowlisted reads with safe ev
       else assert.equal(init.headers.Cookie, "ogenic_owner_session=fixture-signed-session");
       return Response.json({ authenticated: true, user: { role: "owner" } }, { headers: { "set-cookie": "ogenic_owner_session=fixture-signed-session; HttpOnly; Secure" } });
     }
-    if (url.endsWith("/api/dashboard")) return Response.json({ ok: true, runtime: { branch: "phase-vi-provider-incentive-metering", git_sha: "c".repeat(40) } });
+    if (url.endsWith("/api/dashboard")) return Response.json({ ok: true, runtime: { branch: "Unified-on-Progress", git_sha: "c".repeat(40) } });
     if (url.endsWith("/api/connectors")) return Response.json({ ok: true, connectors: [] });
     if (url.includes("api.cloudflare.com")) {
       const { sql, params } = JSON.parse(init.body);
@@ -103,7 +103,7 @@ test("live dispatch locks reads, sanitizes provider output, and contains upstrea
       if (name === "github_fetch_file") assert.match(result.data.content, /สวัสดี/);
       if (name === "lss_recent_turns") assert.equal(result.data.session, "1LSS_OWNER_MAIN");
     }
-    assert.ok(requests.filter(({ url }) => url.includes("api.github.com")).every(({ url, method }) => method === "GET" && url.includes("Wave-Runner-2/Build-Platform") && url.includes("phase-vi-provider-incentive-metering")));
+    assert.ok(requests.filter(({ url }) => url.includes("api.github.com")).every(({ url, method }) => method === "GET" && url.includes("Wave-Runner-2/Build-Platform") && url.includes("Unified-on-Progress")));
     assert.ok(requests.filter(({ method }) => method === "POST").every(({ body }) => !body.includes("mutation")));
     assert.ok(queries.some(sql => sql.includes("WHERE conversation_id = ?")));
     globalThis.fetch = async () => { throw new Error("synthetic-github-binding"); };
@@ -124,8 +124,8 @@ test("OGE-32 original seven verified tools are preserved, plus D1 Certificate re
 
 test("private tool bridge locks canonical resources and fails writes closed", async () => {
   const source = await read("worker/verified-function-tools.ts");
-  assert.match(source, /Ogenicchocolate21debug\/Build-Platform/);
-  assert.match(source, /phase-vi-provider-incentive-metering/);
+  assert.match(source, /Wave-Runner-2\/Build-Platform/);
+  assert.match(source, /Unified-on-Progress/);
   assert.match(source, /CANONICAL_CONVERSATION = "owner-main"/);
   assert.match(source, /CANONICAL_SESSION = "1LSS_OWNER_MAIN"/);
   assert.match(source, /HUMAN_APPROVAL_REQUIRED/);

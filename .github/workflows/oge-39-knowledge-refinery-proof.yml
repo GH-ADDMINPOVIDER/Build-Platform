@@ -30,7 +30,7 @@ jobs:
         run: npm run check
 
       - name: Build isolated Docker knowledge worker
-        run: docker build -f infra/knowledge-sandbox/Dockerfile -t wave-knowledge-sandbox:${GITHUB_SHA} .
+        run: docker build -f infra/knowledge-sandbox/Dockerfile -t unifiend-knowledge-sandbox:${GITHUB_SHA} .
 
       - name: Prove Docker worker isolation
         shell: bash
@@ -41,7 +41,7 @@ jobs:
             --read-only \
             --cap-drop=ALL \
             --security-opt=no-new-privileges \
-            wave-knowledge-sandbox:${GITHUB_SHA} > oge-39-docker-proof.json
+            unifiend-knowledge-sandbox:${GITHUB_SHA} > oge-39-docker-proof.json
           jq -e '.ok == true and .runtime == "DOCKER_WORKER" and .agent == false and .network_policy == "DISABLED_AT_RUNTIME" and .filesystem_policy == "READ_ONLY_AT_RUNTIME"' oge-39-docker-proof.json >/dev/null
           echo "OGE_39_DOCKER_WORKER_OK"
 

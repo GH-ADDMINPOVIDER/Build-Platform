@@ -3,34 +3,34 @@ import { createRoot } from "react-dom/client";
 import { Capacitor, CapacitorHttp } from "@capacitor/core";
 import UnifiedChat from "./UnifiedChat";
 import Landing from "./Landing";
-import WaveNext from "./WaveNext";
-import WaveDashboard from "./WaveDashboard";
-import WaveThemeToggle from "./WaveThemeToggle";
+import UnifiendNext from "./UnifiendNext";
+import UnifiendDashboard from "./UnifiendDashboard";
+import UnifiendThemeToggle from "./UnifiendThemeToggle";
 import MaopLab from "./MaopLab";
 
 const LegacyControlSurface = lazy(() => import("./LegacyControlSurface"));
 import "./unified-chat.css";
 import "./landing.css";
-import "./wave-next.css";
+import "./unifiend-next.css";
 import "./stone-rule-panel.css";
-import "./wave-dashboard.css";
-import "./wave-route-polish.css";
-import "./wave-theme.css";
+import "./unifiend-dashboard.css";
+import "./unifiend-route-polish.css";
+import "./unifiend-theme.css";
 import "./maop-lab.css";
 
 const nativeApp = Capacitor.isNativePlatform();
-const WAVE_ORIGIN = "https://wave.ogenicchocolate.com";
-const NATIVE_API_BASE = WAVE_ORIGIN;
+const UNIFIEND_ORIGIN = "https://wave.ogenicchocolate.com";
+const NATIVE_API_BASE = UNIFIEND_ORIGIN;
 const NATIVE_SESSION_KEY = "ogenic.native.session.v1";
 
-function enforceCanonicalWaveHost() {
+function enforceCanonicalUnifiendHost() {
   if (nativeApp) return;
   if (window.location.hostname !== "candybaked.ogenicchocolate.com") return;
-  const target = new URL(`${window.location.pathname}${window.location.search}${window.location.hash}`, WAVE_ORIGIN);
+  const target = new URL(`${window.location.pathname}${window.location.search}${window.location.hash}`, UNIFIEND_ORIGIN);
   window.location.replace(target.toString());
 }
 
-enforceCanonicalWaveHost();
+enforceCanonicalUnifiendHost();
 
 function installNativeApiBridge() {
   if (!nativeApp) return;
@@ -129,7 +129,7 @@ const agentsRoute = !nativeApp && (pathname === "/agents" || pathname.startsWith
 const maopLabRoute = !nativeApp && (pathname === "/maop" || pathname.startsWith("/maop/"));
 const legacyOverviewRoute = !nativeApp && (pathname === "/overview/legacy" || pathname.startsWith("/overview/legacy/"));
 const dashboardRoute = !nativeApp && pathname === "/overview";
-const waveNextRoute = !nativeApp && !legacyOverviewRoute && (
+const unifiendNextRoute = !nativeApp && !legacyOverviewRoute && (
   pathname === "/overview/next" ||
   pathname.startsWith("/overview/next/")
 );
@@ -141,32 +141,32 @@ const unifiedChatSurface = !controlRoute && !landingRoute && (nativeApp || appRo
 const sourceSurface = webChatRoute ? "ogenic-web" as const : "ogenic-app" as const;
 
 document.title = landingRoute
-  ? "WAVE — WEB"
+  ? "Unifiend — WEB"
   : commandRoute
-    ? "WAVE — COMMAND"
+    ? "Unifiend — COMMAND"
     : agentsRoute
-      ? "WAVE — AGENTS"
+      ? "Unifiend — AGENTS"
       : maopLabRoute
-        ? "WAVE — MA-OP LAB"
+        ? "Unifiend — MA-OP LAB"
       : dashboardRoute
-        ? "WAVE — DASHBOARD"
-      : waveNextRoute
-        ? "WAVE — OPERATE"
+        ? "Unifiend — DASHBOARD"
+      : unifiendNextRoute
+        ? "Unifiend — OPERATE"
         : controlRoute
-          ? "WAVE — DASHBOARD"
+          ? "Unifiend — DASHBOARD"
           : surfaceTitle(sourceSurface);
 
 function surfaceTitle(surface: "ogenic-web" | "ogenic-app") {
-  return surface === "ogenic-web" ? "WAVE — CHAT" : "WAVE — SAME MIND · APP";
+  return surface === "ogenic-web" ? "Unifiend — CHAT" : "Unifiend — SAME MIND · APP";
 }
 
 function SurfaceBridge() {
-  if (landingRoute || nativeApp || dashboardRoute || waveNextRoute || commandRoute || agentsRoute) return null;
+  if (landingRoute || nativeApp || dashboardRoute || unifiendNextRoute || commandRoute || agentsRoute) return null;
   const links = controlRoute
     ? [["WEB", "/"], ["CHAT", "/chat"], ["COMMAND", "/command"]]
     : [["WEB", "/"], ["COMMAND", "/command"], ["OPERATE", "/overview"]];
   return <nav
-    aria-label="WAVE surface navigation"
+    aria-label="Unifiend surface navigation"
     style={{
       position: "fixed",
       top: "calc(env(safe-area-inset-top) + 10px)",
@@ -205,23 +205,23 @@ function SurfaceBridge() {
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <WaveThemeToggle />
+    <UnifiendThemeToggle />
     <SurfaceBridge />
     {landingRoute
       ? <Landing />
       : dashboardRoute
-        ? <WaveDashboard />
+        ? <UnifiendDashboard />
       : commandRoute
-        ? <WaveNext initialTab="run" surface="command" />
+        ? <UnifiendNext initialTab="run" surface="command" />
         : agentsRoute
-          ? <WaveNext initialTab="agent" surface="agents" />
+          ? <UnifiendNext initialTab="agent" surface="agents" />
           : maopLabRoute
             ? <MaopLab />
-          : waveNextRoute
-            ? <WaveNext initialTab="run" surface="operate" />
+          : unifiendNextRoute
+            ? <UnifiendNext initialTab="run" surface="operate" />
             : unifiedChatSurface
               ? <UnifiedChat surface={sourceSurface} />
-              : <Suspense fallback={<main style={{ minHeight: "100dvh", background: "#050807" }} aria-label="Loading legacy WAVE surface" />}>
+              : <Suspense fallback={<main style={{ minHeight: "100dvh", background: "#050807" }} aria-label="Loading legacy Unifiend surface" />}>
                 <LegacyControlSurface />
               </Suspense>}
   </React.StrictMode>,

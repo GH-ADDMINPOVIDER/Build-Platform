@@ -31,7 +31,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REF" = 'refs/heads/phase-vi-provider-incentive-metering'
+          test "$GITHUB_REF" = 'refs/heads/Unified-on-Progress'
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           echo "REVIEWER_INTAKE_GITHUB_SHA_OK"
 
@@ -115,8 +115,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --test tests/oge95-stone-runner-learning.test.mjs
-          node scripts/oge95-stone-runner-learning.mjs \
+          node --test tests/oge95-stone-execution-learning.test.mjs
+          node scripts/oge95-stone-execution-learning.mjs \
             --sha="$GITHUB_SHA" \
             --intake=oge95-final-review-intake.json \
             --previous=oge95-previous-learning.json \

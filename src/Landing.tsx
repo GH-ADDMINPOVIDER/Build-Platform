@@ -8,8 +8,8 @@ const modes: Array<{ kind: ModeKind; tone: Tone; title: string; detail: string; 
   { kind: "agent", tone: "yellow", title: "AGENT DECK", detail: "See real interactive Agents, hierarchy, status and evidence-backed accuracy.", href: "/agents", meta: "VIOLET · AGENTS" },
   { kind: "tools", tone: "mix", title: "TOOLS & SKILLS", detail: "Operate connected capabilities without leaving the workspace.", href: "/overview", meta: "TOOLS · OPERATE" },
   { kind: "session", tone: "green", title: "1LSS SESSION", detail: "One ordered line across web and app surfaces.", href: "/chat", meta: "CONTEXT · SYNCED" },
-  { kind: "supervisor", tone: "yellow", title: "WAVE COMMAND", detail: "Send guarded natural-language commands through ATHENA and Yellow Stone.", href: "/command", meta: "COMMAND · GUARDED" },
-  { kind: "deploy", tone: "mix", title: "DEPLOY & VERIFY", detail: "Runner to staging to verification in one execution path.", href: "/overview", meta: "RUNTIME · READY" },
+  { kind: "supervisor", tone: "yellow", title: "Unifiend COMMAND", detail: "Send guarded natural-language commands through ATHENA and Yellow Stone.", href: "/command", meta: "COMMAND · GUARDED" },
+  { kind: "deploy", tone: "mix", title: "DEPLOY & VERIFY", detail: "Terminal to staging to verification in one execution path.", href: "/overview", meta: "RUNTIME · READY" },
 ];
 
 const runSteps = [
@@ -21,8 +21,8 @@ const runSteps = [
 ];
 
 function StoneArt({ tone }: { tone: "green" | "yellow" }) {
-  const id = tone === "green" ? "waveGreen" : "waveYellow";
-  return <svg viewBox="0 0 360 360" role="img" aria-label={`${tone} WAVE system stone`}>
+  const id = tone === "green" ? "unifiendGreen" : "unifiendYellow";
+  return <svg viewBox="0 0 360 360" role="img" aria-label={`${tone} Unifiend system stone`}>
     <defs>
       <radialGradient id={`${id}Core`} cx="48%" cy="44%" r="62%">
         <stop offset="0" stopColor="#fff" stopOpacity=".96" />
@@ -71,16 +71,16 @@ function ModeArt({ kind }: { kind: ModeKind }) {
 }
 
 function CommandPreview() {
-  return <a className="wvCommand" href="/command" aria-label="Open WAVE Command Center">
+  return <a className="wvCommand" href="/command" aria-label="Open Unifiend Command Center">
     <div className="wvCommandTop">
-      <div><span className="wvDot" /><b>WAVE COMMAND</b><small>owner-main · 1LSS synced</small></div>
+      <div><span className="wvDot" /><b>Unifiend COMMAND</b><small>owner-main · 1LSS synced</small></div>
       <span>OPEN ↗</span>
     </div>
     <div className="wvPrompt"><small>YOU</small><p>Make the interface production-ready, deploy staging and verify every route.</p></div>
     <div className="wvSupervisor"><span>OGENIC · SUPERVISING</span><b>AUTO ROUTING</b></div>
     <div className="wvAgentRows">
       <div><i>01</i><span><b>Implementation</b><small>Codex · patch UI</small></span><em>COMPLETE</em></div>
-      <div><i>02</i><span><b>Operator</b><small>Runner · deploy staging</small></span><em className="hold">APPROVAL</em></div>
+      <div><i>02</i><span><b>Operator</b><small>Terminal · deploy staging</small></span><em className="hold">APPROVAL</em></div>
       <div><i>03</i><span><b>Verifier</b><small>Browser · route checks</small></span><em>QUEUED</em></div>
     </div>
     <div className="wvRun">
@@ -97,11 +97,11 @@ export default function Landing() {
     <div className="wvGlow wvGlowGold" aria-hidden="true" />
 
     <header className="wvTop">
-      <a className="wvBrand" href="/" aria-label="WAVE web home">
-        <img src="/assets/wave-logo.webp" alt="" />
-        <span><b>WAVE</b><small>HUMAN DECISION · AI EXECUTION</small></span>
+      <a className="wvBrand" href="/" aria-label="Unifiend web home">
+        <img src="/assets/unifiend-logo.webp" alt="" />
+        <span><b>Unifiend</b><small>HUMAN DECISION · AI EXECUTION</small></span>
       </a>
-      <nav className="wvNav" aria-label="WAVE navigation">
+      <nav className="wvNav" aria-label="Unifiend navigation">
         <a href="/">WEB</a>
         <a href="/chat">CHAT</a>
         <a href="/command">COMMAND</a>
@@ -117,7 +117,7 @@ export default function Landing() {
       <div className="wvHeroCopy">
         <div className="wvLive"><span /> SYSTEM ONLINE · SAME MIND</div>
         <h1>ONE CONTEXT.<br /><span>MANY AGENTS.</span><br />REAL ACTIONS.</h1>
-        <p>WAVE is the operating surface where conversation, tools, agents, runtime and evidence stay in one continuous work record.</p>
+        <p>Unifiend is the operating surface where conversation, tools, agents, runtime and evidence stay in one continuous work record.</p>
         <div className="wvActions">
           <a className="primary" href="/chat">START IN CHAT <span>→</span></a>
           <a href="/command">OPEN COMMAND</a>
@@ -125,34 +125,34 @@ export default function Landing() {
           <a href="/overview">OPERATE</a>
         </div>
         <div className="wvMiniStatus">
-          <span><b>1LSS</b> ACTIVE</span><span><b>RUNNER</b> READY</span><span><b>RUNTIME</b> CLOUDFLARE</span><span><b>MODE</b> GUARDED</span>
+          <span><b>1LSS</b> ACTIVE</span><span><b>TERMINAL</b> READY</span><span><b>RUNTIME</b> CLOUDFLARE</span><span><b>MODE</b> GUARDED</span>
         </div>
       </div>
       <CommandPreview />
     </section>
 
-    <section className="wvBlueprint" aria-label="WAVE system diagram reserved area">
+    <section className="wvBlueprint" aria-label="Unifiend system diagram reserved area">
       <div className="wvBlueprintIntro">
-        <div><small>WAVE ARCHITECTURE · SAME MIND</small>
+        <div><small>Unifiend ARCHITECTURE · SAME MIND</small>
           <h2>System diagram</h2>
           <p>วงจรหินทั้ง 7 + WHITE DIAMOND ATHENA · กด Run/Pause/Step/Reset ดูสัญญาณวิ่งได้ · เป็นผังจำลอง ไม่ใช่ผลรันจริง</p>
         </div>
-        <button type="button" aria-expanded={showArchitecture} aria-controls="wave-system-diagram-slot"
+        <button type="button" aria-expanded={showArchitecture} aria-controls="unifiend-system-diagram-slot"
           onClick={() => setShowArchitecture((current) => !current)}>
           {showArchitecture ? "HIDE DIAGRAM −" : "SHOW DIAGRAM +"}
         </button>
       </div>
-      {showArchitecture && <div className="wvBlueprintBody" id="wave-system-diagram-slot">
+      {showArchitecture && <div className="wvBlueprintBody" id="unifiend-system-diagram-slot">
         <StoneCircuitDiagram />
       </div>}
     </section>
 
-    <section className="wvStoneRail" id="stones" aria-label="WAVE system cores">
+    <section className="wvStoneRail" id="stones" aria-label="Unifiend system cores">
       <a className="wvStone green" id="green-stone" href="/chat" aria-label="Open Green Stone chat">
         <div className="wvStoneVisual"><StoneArt tone="green" /></div>
         <div className="wvStoneText"><small>01 · CONTEXT CORE</small><h2>GREEN STONE</h2><p>1LSS continuity · one canonical line · same mind.</p><span>OPEN CHAT ↗</span></div>
       </a>
-      <div className="wvEnergy" aria-hidden="true"><span>INTENT</span><i /><b>WAVE</b><i /><span>EXECUTION</span></div>
+      <div className="wvEnergy" aria-hidden="true"><span>INTENT</span><i /><b>Unifiend</b><i /><span>EXECUTION</span></div>
       <a className="wvStone yellow" id="yellow-stone" href="/command" aria-label="Open Yellow Stone command">
         <div className="wvStoneVisual"><StoneArt tone="yellow" /></div>
         <div className="wvStoneText"><small>02 · CAPABILITY CORE</small><h2>YELLOW STONE</h2><p>Tools · policy · approval · execution · verify.</p><span>OPEN COMMAND ↗</span></div>
@@ -171,11 +171,11 @@ export default function Landing() {
       </div>
     </section>
 
-    <section className="wvDock" aria-label="WAVE quick launch">
-      <div><span className="wvDot" /><b>WAVE</b><small>ONE CONTEXT · MANY AGENTS · REAL TOOLS · VERIFIED ACTIONS</small></div>
+    <section className="wvDock" aria-label="Unifiend quick launch">
+      <div><span className="wvDot" /><b>Unifiend</b><small>ONE CONTEXT · MANY AGENTS · REAL TOOLS · VERIFIED ACTIONS</small></div>
       <nav><a href="/">WEB</a><a href="/chat">CHAT</a><a href="/command">COMMAND</a><a href="/agents">AGENTS</a><a href="/overview">OPERATE</a><a href="/app">APP</a></nav>
     </section>
 
-    <footer className="wvFooter"><span>WAVE · OGENIC STONE SYSTEM</span><span>GREEN KEEPS THE THREAD · YELLOW RUNS THE WORK · VIOLET ORCHESTRATES AGENTS</span></footer>
+    <footer className="wvFooter"><span>Unifiend · OGENIC STONE SYSTEM</span><span>GREEN KEEPS THE THREAD · YELLOW RUNS THE WORK · VIOLET ORCHESTRATES AGENTS</span></footer>
   </main>;
 }

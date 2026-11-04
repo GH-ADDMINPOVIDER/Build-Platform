@@ -12,7 +12,7 @@ test("pstack original MIT license and honest integration state",()=>{
  assert.deepEqual(conf.workflows.map(x=>x.id),["investigation","session-pickup","bug-fix","babysit","diagram-design","engineering-loop","agent-harness-guardrails"]);
  assert.match(read("third_party/pstack/LICENSE"),/Copyright \(c\) 2026 Lauren Tan/);
 });
-test("pstack WAVE tool drawer only prepares prompt and never invokes model immediately",()=>{
+test("pstack Unifiend tool drawer only prepares prompt and never invokes model immediately",()=>{
  const start=chat.indexOf('aria-label="pstack workflow presets"'),end=chat.indexOf('{visibleTools.map',start);
  assert.ok(start>0&&end>start);
  const x=chat.slice(start,end);

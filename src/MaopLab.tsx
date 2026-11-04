@@ -236,7 +236,7 @@ export default function MaopLab() {
     <div className="mlFrame">
       <header className="mlHeader">
         <div>
-          <span className="mlKicker">WAVE · OGENIC</span>
+          <span className="mlKicker">Unifiend · OGENIC</span>
           <h1>MA-OP Web Lab</h1>
           <p>ทดสอบของจริงบน Cloudflare staging โดยไม่เปิด WRITE หรือ paid provider</p>
         </div>
@@ -244,7 +244,7 @@ export default function MaopLab() {
       </header>
 
       {authRequired && <div className="mlWarn">
-        ต้องเข้า WAVE owner session ก่อน แล้วกลับมาหน้านี้อีกครั้ง · <a href="/overview">ไปหน้า Login / Operate</a>
+        ต้องเข้า Unifiend owner session ก่อน แล้วกลับมาหน้านี้อีกครั้ง · <a href="/overview">ไปหน้า Login / Operate</a>
       </div>}
 
       <section className="mlStatus">

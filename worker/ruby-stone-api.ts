@@ -76,7 +76,7 @@ function safeDetail(value: unknown, max = 320) {
 }
 
 async function internalViolet(env: RubyStoneBindings, path: string, body: Record<string, unknown>) {
-  const request = new Request(`https://wave.internal${path}`, {
+  const request = new Request(`https://unifiend.internal${path}`, {
     method: "POST",
     headers: {
       "content-type": "application/json",

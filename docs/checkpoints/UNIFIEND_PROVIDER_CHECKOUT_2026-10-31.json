@@ -1,0 +1,204 @@
+{
+  "checked_at": "2026-10-31T08:35:41.098479+07:00",
+  "code_source": "88249cd771bf6bdd47eeabbdc9c347c63b67eae5",
+  "cloud_run": 41156056208,
+  "source_validation_run": 41156060880,
+  "principal_id": 342175560,
+  "repository_id": 1429580446,
+  "provider": [
+    {
+      "reference": "GH_ADDMINPROVIDER-FINE_GRAINED",
+      "state": "VERIFIED_READ",
+      "principal_id": 342175560,
+      "repository_id": 1429580446,
+      "repository_admin": true,
+      "administration_write": "NOT_TESTED"
+    }
+  ],
+  "infisical_login": "VERIFIED",
+  "administration_write": {
+    "state": "VERIFIED_UNCHANGED_NAME",
+    "run": 41155125633
+  },
+  "host": {
+    "host": "Ocian-S-Host",
+    "operation": "READ_ONLY",
+    "state": "BLOCKED",
+    "ssh_auth_attempted": false,
+    "private_key_encoding": "PLAIN",
+    "private_key_has_header": true,
+    "private_key_has_footer": true,
+    "private_key_multiline": true,
+    "stored_pin_format": "FINGERPRINT",
+    "host_key_observed": true,
+    "host_algorithms": [
+      "ecdsa-sha2-nistp256",
+      "ssh-rsa",
+      "ssh-ed25519"
+    ],
+    "stored_pin_matches_server": false,
+    "stored_public_key_matches_server": false,
+    "client_key_usable": false,
+    "client_key_failure": "PASSPHRASE_REQUIRED",
+    "stored_public_key_matches_client": false,
+    "stored_pin_matches_client": false,
+    "reason": "TRUSTED_SERVER_PIN_MISSING"
+  },
+  "registration": {
+    "matching_count": 0,
+    "machines": []
+  },
+  "canonical_checkpoint": {
+    "athena": "VERIFIED_CHECKIN",
+    "d1_read": "VERIFIED",
+    "checkpoint_write": "VERIFIED",
+    "independent_readback": true,
+    "canonical_sequence": 483,
+    "certificate_integrity": "D1_DOCUMENT_SHA256_MATCH",
+    "certificate_independent_readback": true,
+    "checkpoint_ref": "github-actions://1429580446/41156056208",
+    "state_hash": "86e0119f292702079fbfd93bf93de6a4ac3f27beb48ba1ac6e859550a202a3c8"
+  },
+  "cleanup": {
+    "cancelled": [
+      41155815564,
+      41155815569,
+      41155815549,
+      41155815594,
+      41155815606,
+      41155815577,
+      41155815772,
+      41155815685,
+      41155815567,
+      41155815634,
+      41155815565,
+      41155815585,
+      41155815801,
+      41155815635,
+      41155815599,
+      41155815683,
+      41155815597,
+      41155815586,
+      41155815671
+    ],
+    "preserved_started": [
+      41155815596
+    ],
+    "failures": [],
+    "independent_readback": [
+      {
+        "id": 41155815564,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815569,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815549,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815594,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815606,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815577,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815772,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815685,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815567,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815634,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815565,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815585,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815801,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815635,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815599,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815683,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815597,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815586,
+        "status": "completed",
+        "conclusion": "cancelled"
+      },
+      {
+        "id": 41155815671,
+        "status": "completed",
+        "conclusion": "cancelled"
+      }
+    ]
+  },
+  "tests": {
+    "passed": 636,
+    "failed": 0,
+    "typecheck": "PASS",
+    "build": "PASS",
+    "local_worker_runtime": "PASS"
+  },
+  "audit": {
+    "linear_comment_id": "e9b6a7e2-628a-4995-87d2-f8ffe7ec0145",
+    "linear_readback": true,
+    "sheet_tab": "06_UNIFIEND_20261031",
+    "sheet_range": "A16:F23",
+    "sheet_readback": true,
+    "repository_comment_id": 6537279471
+  },
+  "overall": "IN_PROGRESS",
+  "actual_repository_rename": "NOT_PERFORMED",
+  "remote_host_execution": "NOT_PERFORMED"
+}

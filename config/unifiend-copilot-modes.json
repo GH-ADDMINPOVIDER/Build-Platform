@@ -1,0 +1,29 @@
+{
+  "schema": "UNIFIEND_COPILOT_MODES_V1",
+  "provider": "GH-ADDMINPOVIDER",
+  "host": "Ocian-S-Host",
+  "state": "PREPARED_HOST_NOT_APPLIED",
+  "package": "@github/copilot@1.0.106-2",
+  "release_channel": "OFFICIAL_PRERELEASE_TRANSPORT_VERIFICATION_REQUIRED",
+  "minimum_node_major": 22,
+  "modes": ["terminal", "prompt", "acp-stdio", "acp-tcp"],
+  "launch_option": "--enable-all-github-mcp-tools",
+  "tool_permissions": "PRESERVE_EXISTING_OWNER_SCOPE_AND_NATIVE_PERMISSION_CHECKS",
+  "tcp_binding": "127.0.0.1_BY_VENDOR_DEFAULT",
+  "startup": "ON_DEMAND_NO_NEW_DAEMON",
+  "preserve_existing_installations_and_auth": true,
+  "automatic_paid_fallback": false,
+  "automatic_model_download": false,
+  "extension_surfaces": {
+    "mcp": "CONFIGURE_AND_AUTHENTICATE_EACH_SERVER",
+    "skills": "REVIEW_AND_ENABLE_SELECTED_EXISTING_SKILLS",
+    "instructions": "REUSE_CURRENT_OWNER_CONTRACT",
+    "hooks": "REUSE_EXISTING_CHECKPOINT_CONTRACT",
+    "lsp": "INSTALL_ONLY_FOR_REQUIRED_LANGUAGES",
+    "custom_agents": "REQUIRES_SUPPORTED_AGENT_DEFINITION"
+  },
+  "authentication": "EXISTING_SELECTED_USER_OAUTH_OR_VERIFIED_PROVIDER_BINDING_REQUIRED",
+  "github_model_entitlement": "NOT_INFERRED_FROM_REPOSITORY_ADMIN",
+  "byok": "OPTIONAL_EXISTING_PROVIDER_ONLY_NOT_AUTOMATICALLY_CONFIGURED",
+  "canonical_memory": "owner-main / 1LSS_OWNER_MAIN"
+}

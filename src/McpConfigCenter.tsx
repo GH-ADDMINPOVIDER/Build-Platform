@@ -101,12 +101,12 @@ export default function McpConfigCenter() {
     } finally { setBusy(""); }
   }
 
-  return <section className="wnCard" aria-label="WAVE MCP Config Center">
+  return <section className="wnCard" aria-label="Unifiend MCP Config Center">
     <div className="wnCardHead">
       <div><span className="wnKicker">MCP CONFIG CENTER</span><h3>Registered capability endpoints</h3></div>
       <button onClick={() => void load()} disabled={Boolean(busy)}>Refresh</button>
     </div>
-    <p className="wnBody">WAVE stores only safe endpoint metadata and server-side secret references. Never paste a token, password, cookie, private key, or SSH key here.</p>
+    <p className="wnBody">Unifiend stores only safe endpoint metadata and server-side secret references. Never paste a token, password, cookie, private key, or SSH key here.</p>
     {error && <div className="wnError">{error}</div>}
 
     <div className="wnActionRow">

@@ -8,7 +8,7 @@ import GagVault from "./GagVault";
 import LiveAssist from "./LiveAssist";
 
 import "./control-plane-v2.css";
-import "./wave-control-v3.css";
+import "./unifiend-control-v3.css";
 import "./usage-panel.css";
 import "./connector-panel.css";
 import "./provider-connect.css";
@@ -17,7 +17,7 @@ import "./openai-platform-theme.css";
 import "./gag-vault.css";
 import "./dense-mobile.css";
 import "./mobile-app.css";
-import "./wave-chat-v3.css";
+import "./unifiend-chat-v3.css";
 import "./mobile-fixes.css";
 
 export default function LegacyControlSurface() {

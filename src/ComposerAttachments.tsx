@@ -2,7 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Capacitor } from "@capacitor/core";
 import { ComposerDraftStore, deviceDraftPersistence, type DraftAttachment, type UploadedAttachment } from "./composer-draft";
 
-const WAVE_NEXT_HANDOFF_DRAFT_KEY = "ogenic.wave-next.handoff.v1";
+const UNIFIEND_NEXT_HANDOFF_DRAFT_KEY = "ogenic.wave-next.handoff.v1";
 
 function dataUrl(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
@@ -52,10 +52,10 @@ export function useComposerDraft(authenticated: boolean) {
     if (!authenticated) return;
     void store.restore().then(() => {
       try {
-        const handoff = sessionStorage.getItem(WAVE_NEXT_HANDOFF_DRAFT_KEY)?.trim();
+        const handoff = sessionStorage.getItem(UNIFIEND_NEXT_HANDOFF_DRAFT_KEY)?.trim();
         if (!handoff) return;
         store.setText(handoff);
-        sessionStorage.removeItem(WAVE_NEXT_HANDOFF_DRAFT_KEY);
+        sessionStorage.removeItem(UNIFIEND_NEXT_HANDOFF_DRAFT_KEY);
       } catch { /* noop */ }
     });
   }, [store, authenticated]);

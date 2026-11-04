@@ -5,7 +5,7 @@ import fs from "node:fs";
 const read = (path) => fs.readFileSync(new URL("../" + path, import.meta.url), "utf8");
 const config = JSON.parse(read("config/pstack-workflows.json"));
 
-test("curated external workflows are available through the existing WAVE P-Stack picker", () => {
+test("curated external workflows are available through the existing Unifiend P-Stack picker", () => {
   const byId = new Map(config.workflows.map((workflow) => [workflow.id, workflow]));
   for (const id of ["diagram-design", "engineering-loop", "agent-harness-guardrails"]) {
     assert.ok(byId.has(id), id + " workflow missing");

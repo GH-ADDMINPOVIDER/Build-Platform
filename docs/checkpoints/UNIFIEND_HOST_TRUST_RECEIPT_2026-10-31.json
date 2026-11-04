@@ -1,0 +1,45 @@
+{
+  "time": "2026-10-31T09:55:39.311197+07:00",
+  "source": "116ef00d2b7f78597cc08f9fc60a3da2a9ce8641",
+  "run": 41162007882,
+  "host": {
+    "host": "Ocian-S-Host",
+    "operation": "READ_ONLY",
+    "state": "BLOCKED",
+    "ssh_auth_attempted": false,
+    "trust_source": "OWNER_DIGITALOCEAN_CONSOLE",
+    "private_key_encoding": "PLAIN",
+    "private_key_has_header": true,
+    "private_key_has_footer": true,
+    "private_key_multiline": true,
+    "stored_pin_format": "FINGERPRINT",
+    "host_key_observed": true,
+    "host_algorithms": [
+      "ssh-rsa",
+      "ecdsa-sha2-nistp256",
+      "ssh-ed25519"
+    ],
+    "stored_pin_matches_server": false,
+    "verified_console_pin_matches_server": true,
+    "server_identity_verified": true,
+    "stored_public_key_matches_server": false,
+    "client_key_usable": false,
+    "client_key_failure": "PASSPHRASE_REQUIRED",
+    "stored_public_key_matches_client": false,
+    "stored_pin_matches_client": false,
+    "reason": "CLIENT_KEY_NOT_USABLE_WITHOUT_PROMPT"
+  },
+  "canonical_checkpoint": {
+    "athena": "VERIFIED_CHECKIN",
+    "d1_read": "VERIFIED",
+    "checkpoint_write": "VERIFIED",
+    "independent_readback": true,
+    "canonical_sequence": 483,
+    "certificate_integrity": "D1_DOCUMENT_SHA256_MATCH",
+    "certificate_independent_readback": true,
+    "checkpoint_ref": "github-actions://1429580446/41162007882",
+    "state_hash": "e8fce1f20264b58281d6d296cbdaaa486885c123f4f61a84fede186ef50d802c"
+  },
+  "tests": 641,
+  "overall": "IN_PROGRESS"
+}

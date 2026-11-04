@@ -70,7 +70,7 @@ jobs:
 
           curl --silent --show-error --output .oge40tail/execute.body --write-out '%{http_code}'             -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}"             -H 'content-type: application/json'             --data-binary '{"intent":"OGE-40 exception tail","capability":"read_file","provider":"github","environment":"staging","input":{"path":"tests/athena-guarded-command-handoff.test.mjs"}}'             "${STAGING_URL}/api/capabilities/execute" > .oge40tail/execute.status || true
 
-          curl --silent --show-error --output .oge40tail/wave.body --write-out '%{http_code}'             -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}"             -H 'content-type: application/json'             --data-binary '{"intent":"OGE-40 exception tail","capability":"read_file","provider":"github","environment":"staging","input":{"path":"tests/athena-guarded-command-handoff.test.mjs"}}'             "${STAGING_URL}/api/wave/command" > .oge40tail/wave.status || true
+          curl --silent --show-error --output .oge40tail/unifiend.body --write-out '%{http_code}'             -H "x-ogenic-ops-key: ${OGENIC_OPS_KEY}"             -H 'content-type: application/json'             --data-binary '{"intent":"OGE-40 exception tail","capability":"read_file","provider":"github","environment":"staging","input":{"path":"tests/athena-guarded-command-handoff.test.mjs"}}'             "${STAGING_URL}/api/unifiend/command" > .oge40tail/unifiend.status || true
 
           wait "$TAIL_PID" || true
 
@@ -142,6 +142,6 @@ jobs:
           git add docs/evidence/oge-40-worker-exception-tail-latest.json
           git diff --cached --quiet && exit 0
           git commit -m "test(oge-40): capture Worker exception boundary"
-          git fetch origin phase-vi-provider-incentive-metering
-          git rebase origin/phase-vi-provider-incentive-metering
-          git push origin HEAD:phase-vi-provider-incentive-metering
+          git fetch origin Unified-on-Progress
+          git rebase origin/Unified-on-Progress
+          git push origin HEAD:Unified-on-Progress

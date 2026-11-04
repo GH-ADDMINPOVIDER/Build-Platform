@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unifiend Capability | GH-ADDMINPOVIDER"
+  short_description: "Provider modes, SSH recovery and tool handoff"
+  default_prompt: "Use $unifiend-provider-capability to recover the existing provider contract and prepare the requested tools."

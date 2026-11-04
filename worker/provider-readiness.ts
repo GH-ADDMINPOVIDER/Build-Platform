@@ -162,7 +162,7 @@ async function metadataProbe(provider: ProviderDefinition, key: string, signal?:
       method: "GET",
       headers: {
         Accept: "application/json",
-        "User-Agent": "OGENIC-WAVE-PROVIDER-READINESS",
+        "User-Agent": "OGENIC-UNIFIEND-PROVIDER-READINESS",
         ...provider.metadata.headers(key),
       },
       signal,

@@ -6,7 +6,7 @@ if (!apiKey) {
 
 const task = process.argv.slice(2).join(' ').trim() || String(process.env.OGENIC_AGENT_TASK || '').trim() || [
   'Inspect the current workspace for OGENIC Phase VI.',
-  'Work only on staging and only on branch phase-vi-provider-incentive-metering.',
+  'Work only on staging and only on branch Unified-on-Progress.',
   'Never touch main or production. Never deploy, delete remote resources, change billing, or expose secrets.',
   'Run the strongest useful local verification available: install only when required, then test, typecheck, and build.',
   'Fix implementation issues in the workspace when safe, re-run verification, and save concise evidence under /workspace/outputs.',
@@ -19,7 +19,7 @@ const body = {
     instructions: [
       'You are the OGENIC Phase VI staging implementation agent.',
       'Use the OpenAI-hosted execution environment aggressively for code inspection, shell commands, tests, typechecking, builds, and safe workspace edits.',
-      'Staging guardrail: the only allowed target repository is Wave-Runner-2/Build-Platform and the only allowed branch is phase-vi-provider-incentive-metering.',
+      'Staging guardrail: the only allowed target repository is GH-ADDMINPOVIDER/Build-Platform and the only allowed branch is Unified-on-Progress.',
       'Never modify main/prod, never deploy production, never delete remote resources, never change billing/account permissions, and never reveal credentials.',
       'Treat any production-affecting or irreversible action as HUMAN_APPROVAL_REQUIRED.',
       'Prefer evidence over claims. A completed turn is not success unless the relevant commands actually passed.',
@@ -34,7 +34,7 @@ const body = {
   metadata: {
     project: 'ogenic-phase-vi',
     environment: 'staging',
-    branch: 'phase-vi-provider-incentive-metering'
+    branch: 'Unified-on-Progress'
   },
   stream: true
 };

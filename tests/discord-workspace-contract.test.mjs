@@ -8,7 +8,7 @@ const entry = read("../worker/entry-yellow-stone.ts");
 const bindings = JSON.parse(read("../config/staging-runtime-bindings.json"));
 const wrangler = JSON.parse(read("../wrangler.jsonc"));
 const ui = read("../src/DiscordWorkspacePanel.tsx");
-const dashboard = read("../src/WaveDashboard.tsx");
+const dashboard = read("../src/UnifiendDashboard.tsx");
 
 test("Discord endpoints require authenticated owner or ops access", () => {
   assert.match(api, /hasOwnerOrOpsAccess/);
@@ -23,7 +23,7 @@ test("Discord credentials stay server-side and enter the Worker runtime binding 
   assert.doesNotMatch(ui, /DISCORD_TOKEN\s*=/);
 });
 
-test("Discord status, channels, messages and workspace provisioning are wired to WAVE", () => {
+test("Discord status, channels, messages and workspace provisioning are wired to Unifiend", () => {
   assert.match(entry, /createDiscordApi/);
   assert.match(entry, /pathname\.startsWith\("\/api\/discord\/"\)/);
   assert.match(api, /\/api\/discord\/status/);
@@ -39,7 +39,7 @@ test("workspace bootstrap is repeat-safe and never moves or deletes existing roo
   assert.doesNotMatch(api, /method:\s*"DELETE"/);
 });
 
-test("WAVE UI supports manual workspace setup, message review and image attachment previews", () => {
+test("Unifiend UI supports manual workspace setup, message review and image attachment previews", () => {
   assert.match(dashboard, /DiscordWorkspacePanel/);
   assert.match(ui, /Create Notion-style workspace/);
   assert.match(ui, /\/api\/discord\/channels\//);

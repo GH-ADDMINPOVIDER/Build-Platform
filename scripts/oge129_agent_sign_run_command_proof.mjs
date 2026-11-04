@@ -1,4 +1,4 @@
-// OGE-129: Agent → Signed Owner Session → WAVE Command → Yellow Approval proof.
+// OGE-129: Agent → Signed Owner Session → Unifiend Command → Yellow Approval proof.
 // This proof intentionally does not issue the second owner confirmation or dispatch.
 const BASE="https://wave.ogenicchocolate.com";
 const headers={"content-type":"application/json","accept":"application/json","user-agent":"ogenic-oge129-agent-sign-run-proof"};
@@ -42,7 +42,7 @@ else{
   const verified=await get("/api/session",cookie);
   row("SIGNED_OWNER_SESSION_VERIFIED",verified.status===200&&verified.data?.authenticated===true
     &&verified.data?.user?.role==="owner",{status:verified.status});
-  const approval=await post("/api/wave/command",task,cookie);
+  const approval=await post("/api/unifiend/command",task,cookie);
   const challenge=approval.data?.approval?.approval_id;
   const challengeOkay=approval.status===202&&approval.data?.code==="OWNER_APPROVAL_REQUIRED"
     &&approval.data?.approval?.required===true&&typeof challenge==="string"&&challenge.startsWith("wave-approval-")
@@ -53,7 +53,7 @@ else{
     code:approval.data?.code||"UNKNOWN",command_executed:false});
   if(challengeOkay){
    // Prove the command cannot run with a forged or mismatched approval token.
-   const invalid=await post("/api/wave/command",{...task,
+   const invalid=await post("/api/unifiend/command",{...task,
      approval:{confirmed:true,approval_id:"wave-approval-invalid-proof-only"}},cookie);
    row("MISMATCHED_SIGNATURE_DENIED",
      invalid.status===409&&invalid.data?.code==="APPROVAL_PLAN_MISMATCH",
@@ -64,7 +64,7 @@ else{
 const all=results.length===4&&results.every(r=>r.result==="PASS");
 const outcome={
  protocol:"OGE129_AGENT_SIGN_RUN_COMMAND_ADMISSION_V1",source_sha:sha,run_id:run,
- mode:"WAVE_COMMAND_API",environment:"staging",
+ mode:"UNIFIEND_COMMAND_API",environment:"staging",
  agent:"codex_selfhost",owner_session:"HMAC_SESSION",
  owner_approval:"YELLOW_STONE_TWO_STEP_CHALLENGE",signed_capability_grant:false,
  no_approval_confirmation_sent:true,no_command_dispatch_sent:true,
@@ -75,7 +75,7 @@ console.log("AGENT_SIGN_RUN_RESULT="+outcome.result);
 const fs=await import("node:fs");
 if(process.env.GITHUB_STEP_SUMMARY){
  fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-  "### WAVE Agent Sign Run — Signed Command Admission\n\n"+
+  "### Unifiend Agent Sign Run — Signed Command Admission\n\n"+
   "| Stage | Status |\n|---|---|\n"+
   results.map(r=>"| "+r.step+" | "+r.result+" |\n").join("")+
   "\n**This is not an executed Agent task.** Matching Owner confirmation is required. No secret, cookie, or approval ID is published.\n");

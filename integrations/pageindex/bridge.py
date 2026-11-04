@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""WAVE Yellow's opt-in PageIndex SDK bridge: no LLM/API calls in this phase.
+"""Unifiend Yellow's opt-in PageIndex SDK bridge: no LLM/API calls in this phase.
 
 This is NOT PageIndex reasoning retrieval. 'outline' only reads PDF-embedded
 bookmarks as a free deterministic precursor. Actual PageIndex index/chat will
@@ -122,7 +122,7 @@ def outline(pdf_path: str) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="WAVE PageIndex optional no-LLM bridge")
+    parser = argparse.ArgumentParser(description="Unifiend PageIndex optional no-LLM bridge")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("doctor", help="Verify the official Python SDK is pinned locally")
     outline_arg = sub.add_parser("outline", help="Extract an embedded PDF table of contents without LLM")

@@ -1,13 +1,13 @@
-# OGENIC / WAVE Functional Architecture Groups
+# OGENIC / Unifiend Functional Architecture Groups
 
-Canonical branch: `phase-vi-provider-incentive-metering`.
+Canonical branch: `Unified-on-Progress`.
 
 This file groups OGE work by runtime responsibility so the system can be understood as one connected architecture instead of an issue list.
 
 ## First-view flow
 
 ```text
-WAVE
+Unifiend
  -> ATHENA + BLUE
  -> YELLOW / MA-OP
  -> CCS / Use Card
@@ -26,7 +26,7 @@ Issues: OGE-1, OGE-2, OGE-3, OGE-4, OGE-85, OGE-86.
 
 OGE-21 was not present in the Linear export used for this grouping, so no role is invented for it.
 
-## G1 — WAVE / Human Surface
+## G1 — Unifiend / Human Surface
 
 User-facing web, chat, operate, composer, status and presentation surfaces.
 
@@ -82,7 +82,7 @@ Issues: OGE-5, OGE-8, OGE-9, OGE-10, OGE-12, OGE-16.
 
 ## Canonical edge set
 
-1. WAVE -> ATHENA/BLUE: intent enters admission and planning.
+1. Unifiend -> ATHENA/BLUE: intent enters admission and planning.
 2. ATHENA/BLUE -> YELLOW: guarded command handoff.
 3. YELLOW -> CCS: capability, scope and lease checks.
 4. CCS -> VIOLET: authorized work fans out.

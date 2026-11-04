@@ -3,7 +3,7 @@ name: OGE-78 USE CARD check
 on:
   push:
     branches:
-      - phase-vi-provider-incentive-metering
+      - Unified-on-Progress
     paths:
       - "config/use-card-policy.json"
       - "worker/use-card-policy.ts"

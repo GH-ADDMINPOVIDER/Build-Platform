@@ -15,10 +15,10 @@ Official references:
 | Long description | Developer System-Bootstrap Ops coordinates Drive assets, GitHub repositories, Notion documentation, Shopify catalogs, Cloudflare deployments, and secret-backed workflows. It inspects before writing, separates secret metadata from secret values, preserves recoverable versions, audits builds, and verifies external changes before saving. |
 | Category | Developer Tools |
 | Developer identity | Select the verified TAWATCHAI SAMORNRUM or verified OGENIC business identity in the same OpenAI organization. |
-| Website | https://github.com/Ogenicchocolate21debug/Build-Platform |
-| Support | https://github.com/Ogenicchocolate21debug/Build-Platform/issues |
-| Privacy policy | https://github.com/Ogenicchocolate21debug/Build-Platform/blob/main/PRIVACY.md |
-| Terms | https://github.com/Ogenicchocolate21debug/Build-Platform/blob/main/TERMS.md |
+| Website | https://github.com/GH-ADDMINPOVIDER/Build-Platform |
+| Support | https://github.com/GH-ADDMINPOVIDER/Build-Platform/issues |
+| Privacy policy | https://github.com/GH-ADDMINPOVIDER/Build-Platform/blob/main/PRIVACY.md |
+| Terms | https://github.com/GH-ADDMINPOVIDER/Build-Platform/blob/main/TERMS.md |
 | Submission type | Skills only for the current validated bundle; choose With MCP only after a public production MCP endpoint exists. |
 | MCP URL type | Universal when a single production URL serves all users. |
 | Country availability | Thailand first; add other countries only when support and data handling are ready. |

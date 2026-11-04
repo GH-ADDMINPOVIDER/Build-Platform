@@ -2,8 +2,8 @@
 // Never requests provider credentials, sends prompts, executes Codex tasks, writes D1 or deploys.
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
-const repo="Wave-Runner-2/Build-Platform";
-const branch="phase-vi-provider-incentive-metering";
+const repo="GH-ADDMINPOVIDER/Build-Platform";
+const branch="Unified-on-Progress";
 function probe(command,args,timeout=12000) {
   try {
     const data=execFileSync(command,args,{
@@ -27,7 +27,7 @@ const result={
   schema_version:"OGE98_CODEX_HOST_PREFLIGHT_V1",
   source_sha:sha,
   repository:repo,branch,
-  execution_host:"EXISTING_SELF_HOSTED_GITHUB_WAVE",
+  execution_host:"EXISTING_SELF_HOSTED_GITHUB_Unifiend",
   codex_cli_present:codex.ok,
   codex_exec_server_help_available:server.ok,
   git_remote_configured:remote.ok,

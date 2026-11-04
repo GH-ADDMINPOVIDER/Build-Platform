@@ -38,7 +38,7 @@ const nav: Array<{ id: View; label: string; icon: string }> = [
 ];
 
 const apps: AppLink[] = [
-  { id: "github", label: "GitHub", sub: "Build-Platform", icon: "GH", url: "https://github.com/Wave-Runner-2/Build-Platform" },
+  { id: "github", label: "GitHub", sub: "Build-Platform", icon: "GH", url: "https://github.com/GH-ADDMINPOVIDER/Build-Platform" },
   { id: "linear", label: "Linear", sub: "Ogenic-Sio", icon: "LI", url: "https://linear.app/ogenic-sio" },
   { id: "openai", label: "OpenAI", sub: "Platform", icon: "AI", url: "https://platform.openai.com", internal: "openai" },
   { id: "cloudflare", label: "Cloudflare", sub: "Workers · D1", icon: "CF", url: "https://dash.cloudflare.com" },
@@ -222,7 +222,7 @@ export default function ControlPlaneV2() {
       <div className="cpSideFoot"><span><i className="cpOnlineDot" /> Owner session</span><button onClick={() => void signOut()}>Sign out</button></div>
     </aside>
     <section className="cpWorkspace">
-      <header className="cpHeader"><div><span className="eyebrow">OGENIC HARNESS</span><h1>{nav.find((n) => n.id === view)?.label}</h1></div><div className="cpHeaderActions"><span className="cpStage">STAGING ONLY</span><button onClick={() => { window.location.href = "/chat"; }}>WAVE Chat ↗</button><button onClick={() => void loadDashboard()}>{loading ? "Syncing…" : "↻ Sync"}</button></div></header>
+      <header className="cpHeader"><div><span className="eyebrow">OGENIC HARNESS</span><h1>{nav.find((n) => n.id === view)?.label}</h1></div><div className="cpHeaderActions"><span className="cpStage">STAGING ONLY</span><button onClick={() => { window.location.href = "/chat"; }}>Unifiend Chat ↗</button><button onClick={() => void loadDashboard()}>{loading ? "Syncing…" : "↻ Sync"}</button></div></header>
       {loadError && <div className="cpError">{loadError}</div>}
 
       {view === "overview" && <>

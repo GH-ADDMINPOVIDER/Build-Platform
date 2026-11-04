@@ -93,7 +93,7 @@ export function createDeepSeekApi() {
             {
               role: "system",
               content:
-                "You are DeepSeek inside OGENIC/WAVE as a reasoning and code-intelligence provider. " +
+                "You are DeepSeek inside OGENIC/Unifiend as a reasoning and code-intelligence provider. " +
                 "This lane is READ/reasoning only. Do not claim side effects, do not expose secrets, " +
                 "and never bypass Yellow Stone execution authority.",
             },

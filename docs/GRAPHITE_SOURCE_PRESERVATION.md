@@ -1,12 +1,12 @@
 # GRAPHITE — Source Preservation Mineral
 
-**Status:** Owner-requested design record; documentation-only.  
-**Scope:** Preserve source material and its original structure before OGENIC/WAVE adapts, summarizes, chunks, transforms, or imports it.  
+**Status:** Owner-requested design record; documentation-only.
+**Scope:** Preserve source material and its original structure before OGENIC/Unifiend adapts, summarizes, chunks, transforms, or imports it.
 **Architecture boundary:** GRAPHITE is a separate archival/provenance layer, **not Stone #08**, not a replacement for any of the canonical seven stones, and not a new execution/approval authority. The canonical stone map remains unchanged.
 
 ## Mission
 
-Keep the source of truth distinguishable from every interpretation made by the system. When source material enters OGENIC/WAVE, its original form must remain recoverable (where retention is lawful and permitted), while normalized, chunked, summarized, translated, embedded, or code-adapted forms are stored as separate derivatives linked back to that source.
+Keep the source of truth distinguishable from every interpretation made by the system. When source material enters OGENIC/Unifiend, its original form must remain recoverable (where retention is lawful and permitted), while normalized, chunked, summarized, translated, embedded, or code-adapted forms are stored as separate derivatives linked back to that source.
 
 **Core rule: NEVER overwrite the original with a transformed version.**
 
@@ -26,7 +26,7 @@ Every source record must have one primary source_type; optional tags may refine 
 | owner_directive_conversation | Explicit owner instructions, decisions, handoffs and approved requirements | Exact text, author/authority, timestamp, conversation/issue reference, supersession links |
 | dataset_media_attachment | User-provided files, images, audio, video, data exports and attachments | Original filename, media type, size, digest, supplied-by/context reference, retention permission |
 | third_party_analysis | Blog posts, community posts, issue comments, reviews and secondary explanations | Author, publication date, canonical URL, capture date, confidence/authority label |
-| derived_internal_artifact | WAVE/OGENIC summaries, extracted chunks, embeddings, translations, generated code or transformed documents | Transformation type, model/tool/version, parameters where safe, parent source IDs and output digest |
+| derived_internal_artifact | Unifiend/OGENIC summaries, extracted chunks, embeddings, translations, generated code or transformed documents | Transformation type, model/tool/version, parameters where safe, parent source IDs and output digest |
 
 If a source does not fit, use other_unclassified temporarily and record why; do not silently assign it to a misleading category.
 

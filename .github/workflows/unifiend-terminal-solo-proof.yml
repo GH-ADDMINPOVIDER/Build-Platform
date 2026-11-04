@@ -1,0 +1,129 @@
+name: Unifiend Terminal Solo - Host and Policy Proof
+on:
+  push:
+    branches: [feature/unifiend-liquid-glass-command-ux-20261018]
+    paths:
+      - ".github/workflows/unifiend-terminal-solo-proof.yml"
+      - ".github/workflows/unifiend-command-consumer.yml"
+      - "scripts/unifiend-terminal-solo.sh"
+      - "tests/unifiend-terminal-solo-contract.test.mjs"
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: unifiend-terminal-solo-proof-feature
+  cancel-in-progress: false
+jobs:
+  terminal-solo-policy:
+    if: github.repository_id == '1429580446'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 9
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact Terminal Solo feature SHA
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Guard Ocian-S-Host and test syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$GITHUB_REF_NAME" = feature/unifiend-liquid-glass-command-ux-20261018
+          test "$GITHUB_REPOSITORY_ID" = 1429580446
+          command -v bash >/dev/null
+          command -v node >/dev/null
+          command -v flock >/dev/null
+          bash -n scripts/unifiend-terminal-solo.sh
+          echo "TERMINAL_SOLO_SHELL_SYNTAX=PASS"
+      - name: Test ATHENA Yellow command contract and Terminal segregation
+        run: node --test tests/unifiend-terminal-solo-contract.test.mjs tests/unifiend-command-contract.test.mjs tests/athena-guarded-command-handoff.test.mjs
+      - name: Prove host-stable SOLO file lock excludes concurrent executors
+        shell: bash
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d)"
+          chmod 700 "$d"
+          trap 'rm -rf -- "$d"' EXIT
+          lock="$d/solo.lock"
+          (
+            exec 8>"$lock"
+            flock -x 8
+            touch "$d/acquired"
+            sleep 2
+          ) &
+          holder=$!
+          for i in $(seq 1 50); do
+            if [ -f "$d/acquired" ]; then break; fi
+            sleep 0.1
+          done
+          test -f "$d/acquired"
+          if flock -n "$lock" true; then
+            echo "TERMINAL_SOLO_NEGATIVE_LOCK=FAILED"
+            wait "$holder"
+            exit 1
+          fi
+          echo "TERMINAL_SOLO_NEGATIVE_LOCK=PASS"
+          wait "$holder"
+          flock -n "$lock" true
+          echo "TERMINAL_SOLO_RELEASED_LOCK=PASS"
+      - name: Collect current tools without installing or enabling new network listeners
+        shell: bash
+        run: |
+          set -euo pipefail
+          for bin in ssh vim code code-server openvscode-server opencode codex; do
+            if command -v "$bin" >/dev/null 2>&1; then
+              echo "TERMINAL_TOOL_$bin=INSTALLED"
+            else
+              echo "TERMINAL_TOOL_$bin=NOT_INSTALLED"
+            fi
+          done
+          echo "TERMINAL_SYSTEM_RAM_MIB=$(awk '/MemTotal/{print int($2/1024)}' /proc/meminfo)"
+          echo "TERMINAL_SYSTEM_CPUS=$(getconf _NPROCESSORS_ONLN)"
+          echo "TERMINAL_CONTRACT_GITHUB=SOURCE_VERIFIED"
+          echo "TERMINAL_CONTRACT_INFISICAL=EXISTING_OIDC_NO_NEW_SECRET_REQUEST"
+          echo "TERMINAL_COMMAND_E2E=NOT_TESTED_NO_OWNER_APPROVED_TASK"
+          echo "TERMINAL_OPC_INVOKED=FALSE"
+          echo "TERMINAL_WEB_IDE_INVOKED=FALSE"
+          echo "TERMINAL_PRODUCTION_MUTATED=FALSE"
+      - name: Post sanitized OPS readiness receipt to OGE-128
+        if: success()
+        shell: bash
+        run: |
+          node <<'NODE'
+          const raw={
+            title:'Unifiend TERMINAL SOLO — Ocian-S-Host Policy / Lock Proof',
+            github_run:process.env.GITHUB_RUN_ID,
+            git_sha:process.env.GITHUB_SHA,
+            scope:'FEATURE_ONLY_NOT_DEPLOYED',
+            owner_approval:'REQUIRED_YELLOW_STONE',
+            executor:'EXISTING_CODEX_CONSUMER_ONLY',
+            env_group:'SSH + IDEs + OPC (SPECIAL TERMINAL, NOT AGENT REGISTRY)',
+            solo_shell_contract:'PASS',
+            single_host_file_lock_contention:'PASS',
+            owner_approved_wave_command_e2e:'NOT_TESTED',
+            external_mtls_endpoint:'NOT_TESTED',
+            opencode_ide_live_integration:'NOT_TESTED',
+            production_mutated:false
+          };
+          const body=Object.entries(raw).map(([k,v])=>k+'='+v).join('\n');
+          fetch('https://api.github.com/repos/GH-ADDMINPOVIDER/Build-Platform/issues/39/comments',{
+            method:'POST',headers:{Authorization:'Bearer '+process.env.GH_TOKEN,
+              Accept:'application/vnd.github+json','Content-Type':'application/json',
+              'User-Agent':'ogenic-terminal-solo-proof'},
+            body:JSON.stringify({body}),signal:AbortSignal.timeout(12000)
+          }).then(r=>console.log('TERMINAL_SOLO_ISSUE_RECEIPT_HTTP='+r.status))
+            .catch(()=>console.log('TERMINAL_SOLO_ISSUE_RECEIPT_HTTP=UNAVAILABLE'));
+          NODE
+      - name: Explain bounded result
+        if: always()
+        shell: bash
+        run: |
+          echo "### Unifiend Terminal Solo Ocian-S-Host proof" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Proof only: source contract + host lock contention; no owner-approved command was run" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SSH + IDEs + OPC is one special Terminal group outside Blue/Violet Agents" >> "$GITHUB_STEP_SUMMARY"
+          echo "- OpenCode/Web IDE require separate installation after memory upgrade" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Staging feature branch is NOT deployed; no production changes" >> "$GITHUB_STEP_SUMMARY"
+          echo "- mTLS localhost PASS is separate from Unifiend external endpoint E2E, not repeated here" >> "$GITHUB_STEP_SUMMARY"

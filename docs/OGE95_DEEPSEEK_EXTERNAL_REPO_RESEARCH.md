@@ -19,13 +19,13 @@ Research proof: https://github.com/Ogenicchocolate21debug/Build-Platform/actions
 
 ## Exact repo sources read
 
-- REPO1 scripts/replica-runner/verify.mjs — local contract proof.
-- REPO2 scripts/replica-runner/compare.mjs — ten anonymous/public route contracts.
+- REPO1 scripts/replica-executor/verify.mjs — local contract proof.
+- REPO2 scripts/replica-executor/compare.mjs — ten anonymous/public route contracts.
 - REPO3 worker/knowledge-refinery.ts — existing factory stages.
 - REPO4 worker/capability-execution-api.ts — Yellow DeepSeek explicit READ, 256 output tokens.
 - REPO5 database/migrations/0010_1lss_canonical_line.sql — sequence/idempotency/surface constraints.
-- REPO6 .github/workflows/wave-replica-runner.yml — isolated build/D1/deploy handoff.
-- REPO7 scripts/replica-runner/factory-core.mjs — bounded work order, Ruby hold.
+- REPO6 .github/workflows/unifiend-replica-executor.yml — isolated build/D1/deploy handoff.
+- REPO7 scripts/replica-executor/factory-core.mjs — bounded work order, Ruby hold.
 
 ## DeepSeek's actual, partial finding
 

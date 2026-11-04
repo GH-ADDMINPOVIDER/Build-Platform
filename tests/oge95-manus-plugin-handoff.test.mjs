@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { probeProviderReadiness } from "../scripts/oge95-provider-readiness.mjs";
 import { normalizeManusPluginTask } from "../scripts/oge95-manus-plugin-handoff.mjs";
-import { evaluateFinalIntake, digest } from "../scripts/oge95-final-review-intake.mjs";
+import { evaluateFinalIntake, digest, REPO, BRANCH } from "../scripts/oge95-final-review-intake.mjs";
 import { readFileSync } from "node:fs";
 
 const sha="a".repeat(40);
 const auditSource = JSON.parse(readFileSync("docs/evidence/oge-62-flow-audit-latest.json", "utf8"));
-const audit = { ...auditSource, source_sha: sha, source_sha_attestation: { method: "CHECKED_OUT_GIT_HEAD_AND_GITHUB_SHA", exact_checkout_match: true,
+const audit = { ...auditSource, canonical: { ...auditSource.canonical, repository: REPO, branch: BRANCH }, source_sha: sha, source_sha_attestation: { method: "CHECKED_OUT_GIT_HEAD_AND_GITHUB_SHA", exact_checkout_match: true,
   execution_mode: "SEQUENTIAL_TEN_PROCESS_REPLAY_ON_ONE_HOST", genuinely_parallel_runtime_jobs: false,
   independent_ai_provider_runs: false, authorization_to_commit_or_deploy: false },
   commit_manifest: { allowed: true, execution_approved: false } };

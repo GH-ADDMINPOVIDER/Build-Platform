@@ -1,12 +1,12 @@
-name: OGE-34 ATHENA Default WAVE Chat Proof
+name: OGE-34 ATHENA Default Unifiend Chat Proof
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - ".github/workflows/oge-34-athena-default-chat-proof.yml"
       - "worker/athena-chat-api.ts"
-      - "worker/wave-command-dispatch.ts"
+      - "worker/unifiend-command-dispatch.ts"
       - "worker/entry-connectors.ts"
       - "tests/athena-default-chat-contract.test.mjs"
       - "worker/verified-function-tools.ts"
@@ -44,7 +44,7 @@ jobs:
       - name: Typecheck integration
         run: npm run typecheck
 
-      - name: Build WAVE
+      - name: Build Unifiend
         run: npm run build
 
       - name: Auto-discover Infisical project
@@ -62,7 +62,7 @@ jobs:
           secret-path: /
           recursive: true
 
-      - name: Prove default WAVE text chat invokes ATHENA verified reads
+      - name: Prove default Unifiend text chat invokes ATHENA verified reads
         shell: bash
         run: |
           set -euo pipefail
@@ -116,7 +116,7 @@ jobs:
             exit 1
           fi
 
-          test "$CODE" = "200" || { echo "::error::default WAVE chat returned HTTP $CODE"; exit 1; }
+          test "$CODE" = "200" || { echo "::error::default Unifiend chat returned HTTP $CODE"; exit 1; }
 
           jq -e '.ok == true and .runtime == "BLUE_DIAMOND_ATHENA_VERIFIED_CHAT_V0_1" and .conversation_id == "owner-main" and .session_line == "1LSS_OWNER_MAIN"' "$BODY" >/dev/null \
             || { echo "::error::ATHENA route/canonical contract mismatch"; exit 1; }

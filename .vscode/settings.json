@@ -1,0 +1,61 @@
+{
+  "workbench.colorTheme": "Default Light Modern",
+  "editor.semanticHighlighting.enabled": false,
+  "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": [
+          "string"
+        ],
+        "settings": {
+          "foreground": "#bc2929"
+        }
+      },
+      {
+        "scope": [
+          "keyword",
+          "storage.type"
+        ],
+        "settings": {
+          "foreground": "#a42a99"
+        }
+      },
+      {
+        "scope": [
+          "constant.numeric"
+        ],
+        "settings": {
+          "foreground": "#285c9b"
+        }
+      },
+      {
+        "scope": [
+          "support.type.property-name",
+          "support.type.property-name.json"
+        ],
+        "settings": {
+          "foreground": "#80651c"
+        }
+      },
+      {
+        "scope": [
+          "comment"
+        ],
+        "settings": {
+          "foreground": "#666666"
+        }
+      }
+    ]
+  },
+  "workbench.colorCustomizations": {
+    "editor.background": "#ffffff",
+    "editor.foreground": "#171717",
+    "terminal.background": "#ffffff",
+    "terminal.foreground": "#171717",
+    "terminal.ansiRed": "#bc2929",
+    "terminal.ansiGreen": "#267224",
+    "terminal.ansiYellow": "#80651c",
+    "terminal.ansiBlue": "#285c9b",
+    "terminal.ansiMagenta": "#a42a99"
+  }
+}

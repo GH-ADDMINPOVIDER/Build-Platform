@@ -8,7 +8,7 @@ Flow:
 
 `Harness tool -> MA-OP bridge -> Yellow policy/execution -> GitHub adapter -> evidence -> Ruby verify -> Green eligibility`
 
-The package deliberately contains no direct GitHub HTTP client and no credential lookup. A server-owned `executeYellow` binding is mandatory. If that binding is absent, construction fails closed. GitHub credentials remain in the WAVE server/runtime boundary and never enter Harness tool arguments or results.
+The package deliberately contains no direct GitHub HTTP client and no credential lookup. A server-owned `executeYellow` binding is mandatory. If that binding is absent, construction fails closed. GitHub credentials remain in the Unifiend server/runtime boundary and never enter Harness tool arguments or results.
 
 ## Registered capabilities
 
@@ -30,7 +30,7 @@ The plugin exports:
 - `apply(ctx, bindings)`
 - capability registration through `ctx.tools.register(defineTool(...))`
 
-The `defineTool` helper is intentionally structural and dependency-free in this repository package; WAVE does not vendor DeepSeek Harness upstream. The registered tool shape is bounded to name, description, input schema and execute callback.
+The `defineTool` helper is intentionally structural and dependency-free in this repository package; Unifiend does not vendor DeepSeek Harness upstream. The registered tool shape is bounded to name, description, input schema and execute callback.
 
 `ctx.effect` is used when present so every registration is cleaned up on unload. The invoking Harness `agentId` is forwarded as the MA-OP actor. Harness cancellation signals are honored before and during Yellow routing.
 

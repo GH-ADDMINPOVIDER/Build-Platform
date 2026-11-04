@@ -1,14 +1,14 @@
 name: OGE-28 Bubblewrap host verification
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths: ['.github/workflows/oge-28-bubblewrap-host-verify.yml']
 permissions:
   contents: read
   issues: write
 jobs:
   verify:
-    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.actor == 'Wave-Runner-2'
+    if: github.repository_id == '1429580446' && github.actor == 'GH-ADDMINPOVIDER'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 5
     steps:

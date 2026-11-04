@@ -1,14 +1,14 @@
 name: OGENIC Infisical secret key NAME inventory (no values)
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths: [".github/workflows/oge-infisical-plugin-metadata-audit.yml"]
 permissions:
   contents: read
   id-token: write
 jobs:
   list_names_only:
-    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.actor == 'Wave-Runner-2'
+    if: github.repository_id == '1429580446' && github.actor == 'GH-ADDMINPOVIDER'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 10
     env:

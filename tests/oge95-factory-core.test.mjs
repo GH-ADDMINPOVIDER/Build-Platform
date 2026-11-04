@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {planFactoryOrder,auditFactorySource,receiveDeepSeekResearch,factoryReceipt,FACTORY_VERSION} from "../scripts/replica-runner/factory-core.mjs";
+import {planFactoryOrder,auditFactorySource,receiveDeepSeekResearch,factoryReceipt,FACTORY_VERSION} from "../scripts/replica-executor/factory-core.mjs";
 
 const sha="a".repeat(40);
-const base={task_id:"OGE-95-readonly-proof",operation:"replica_source_audit",branch:"phase-vi-provider-incentive-metering",source_sha:sha,
+const base={task_id:"OGE-95-readonly-proof",operation:"replica_source_audit",branch:"Unified-on-Progress",source_sha:sha,
   requires_paid_inference:false,deploy_requested:false,limits:{max_minutes:10,max_artifact_bytes:65536}};
 const research={
   ok:true,http_status:200,model:"deepseek-flash",calls:1,retries:0,fallbacks:0,

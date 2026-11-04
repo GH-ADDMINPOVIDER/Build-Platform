@@ -671,7 +671,7 @@ export function createConnectorAppApi() {
           metadata: {
             project: "ogenic-phase-vi",
             environment: "staging",
-            branch: c.env.OGENIC_GITHUB_BRANCH || "phase-vi-provider-incentive-metering",
+            branch: c.env.OGENIC_GITHUB_BRANCH || "Unified-on-Progress",
             conversation: "owner-main",
             session_line: "1LSS_OWNER_MAIN",
             source_surface: sourceSurface,

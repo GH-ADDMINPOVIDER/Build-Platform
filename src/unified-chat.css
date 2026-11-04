@@ -22,7 +22,7 @@ button { color: inherit; }
   color: var(--uc-text);
   background:
     linear-gradient(180deg, rgba(1,8,4,.70), rgba(1,8,4,.92)),
-    url("/assets/wave-bg-desktop.webp") center / cover fixed no-repeat,
+    url("/assets/unifiend-bg-desktop.webp") center / cover fixed no-repeat,
     var(--uc-bg);
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
 }
@@ -174,7 +174,7 @@ button { color: inherit; }
 .ucFooterLine button { border: 0; background: transparent; color: var(--uc-sub); font-size: 9px; cursor: pointer; }
 
 @media (max-width: 700px) {
-  .ucShell, .ucSplash, .ucAuth { background: linear-gradient(180deg, rgba(1,8,4,.66), rgba(1,8,4,.94)), url("/assets/wave-bg-mobile.webp") center top / cover fixed no-repeat, var(--uc-bg); }
+  .ucShell, .ucSplash, .ucAuth { background: linear-gradient(180deg, rgba(1,8,4,.66), rgba(1,8,4,.94)), url("/assets/unifiend-bg-mobile.webp") center top / cover fixed no-repeat, var(--uc-bg); }
   .ucTopbar { grid-template-columns: 1fr auto auto; }
   .ucLineState { position: absolute; left: 50%; transform: translateX(-50%); top: max(13px, env(safe-area-inset-top)); padding: 6px 8px; }
   .ucLineState b { font-size: 9px; }
@@ -354,7 +354,7 @@ button { color: inherit; }
 :root[data-og-theme="light"] .ucAuth{
   background:
     linear-gradient(180deg,rgba(247,251,248,.9),rgba(238,245,240,.97)),
-    url("/assets/wave-bg-desktop.webp") center/cover fixed no-repeat,
+    url("/assets/unifiend-bg-desktop.webp") center/cover fixed no-repeat,
     var(--uc-bg);
 }
 :root[data-og-theme="light"] .ucMessage.user{

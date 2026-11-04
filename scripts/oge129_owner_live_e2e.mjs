@@ -1,10 +1,10 @@
-// One real owner-authorized read-only Codex command; staging and existing Runner-1 only.
+// One real owner-authorized read-only Codex command; staging and existing Ocian-S-Host only.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { appendFileSync } from "node:fs";
 
-const repo="Wave-Runner-2/Build-Platform";
-const branch="phase-vi-provider-incentive-metering";
+const repo="GH-ADDMINPOVIDER/Build-Platform";
+const branch="Unified-on-Progress";
 const base="https://wave.ogenicchocolate.com";
 assert.equal(process.env.GITHUB_REPOSITORY,repo,"REPO_SCOPE");
 assert.equal(process.env.GITHUB_REF_NAME,branch,"STAGING_BRANCH_SCOPE");
@@ -37,12 +37,12 @@ const authorization={authorization:"Bearer "+session};
 const verified=await request("/api/session",{headers:authorization});
 assert.equal(verified.body?.authenticated,true,"SIGNED_OWNER_SESSION_NOT_VERIFIED");
 console.log("OGE129_SIGNED_OWNER_SESSION=PASS");
-// One self-hosted Runner-1 can run only one job: never poll here while its
+// One self-hosted Ocian-S-Host can run only one job: never poll here while its
 // consumer job is queued on the SAME host. Reuse an existing queued consumer.
 const ghToken=String(process.env.GH_TOKEN||"").trim();
 if(!ghToken)throw new Error("GITHUB_READ_AUTH_MISSING_FOR_QUEUE_CHECK");
 const activeResponse=await fetch(
-  "https://api.github.com/repos/"+repo+"/actions/workflows/wave-command-consumer.yml/runs?branch="+
+  "https://api.github.com/repos/"+repo+"/actions/workflows/unifiend-command-consumer.yml/runs?branch="+
   encodeURIComponent(branch)+"&per_page=20",
   {headers:{Authorization:"Bearer "+ghToken,Accept:"application/vnd.github+json",
     "User-Agent":"ogenic-oge129-queue-check"},redirect:"error",
@@ -61,11 +61,11 @@ if(pending){
   if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,
     "### OGE-129 existing command recovered\n\nConsumer run "+
     String(pending.html_url||pending.id)+" already queued; no duplicate command sent. "+
-    "Runner-1 released for actual Codex result and D1 verification.\n");
+    "Ocian-S-Host released for actual Codex result and D1 verification.\n");
   process.exit(0);
 }
 const intent="OGE129 READONLY PROOF: Inspect the staging checkout package.json and report the package name and script names. Do not change files, install tools, access the network, or alter Git state.";
-const dispatched=await request("/api/wave/command",{
+const dispatched=await request("/api/unifiend/command",{
   method:"POST",headers:{...authorization,"Idempotency-Key":randomUUID()},
   body:JSON.stringify({command:intent,capability:"codex_selfhost",provider:"openai",mode:"read",environment:"staging"})
 });
@@ -87,8 +87,8 @@ if(dispatched.body?.approval?.authority!=="SIGNED_OWNER_SESSION"||dispatched.bod
 console.log("OGE129_ACTIONS_DISPATCH=PASS");
 console.log("OGE129_EXECUTION=WAIT_FOR_CONSUMER_RESULT_NOT_DONE");
 if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-  "### OGE-129 WAVE live command dispatch\n\n"+
+  "### OGE-129 Unifiend live command dispatch\n\n"+
   "- Owner Session validated\n"+
-  "- One read-only Codex command dispatched to the existing Runner-1\n"+
+  "- One read-only Codex command dispatched to the existing Ocian-S-Host\n"+
   "- Task ID: "+taskId+"\n"+
-  "- **E2E is pending** until WAVE Command Consumer verifies a D1 COMMAND_RESULT_DONE receipt\n");
+  "- **E2E is pending** until Unifiend Command Consumer verifies a D1 COMMAND_RESULT_DONE receipt\n");

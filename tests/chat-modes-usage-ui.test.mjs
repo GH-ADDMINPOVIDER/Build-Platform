@@ -4,9 +4,9 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(new URL("../" + path, import.meta.url), "utf8");
 
-test("UnifiedChat exposes canonical WAVE and Agent AI modes", () => {
+test("UnifiedChat exposes canonical Unifiend and Agent AI modes", () => {
   const ui = read("src/UnifiedChat.tsx");
-  assert.match(ui, /label: "WAVE"/);
+  assert.match(ui, /label: "Unifiend"/);
   assert.match(ui, /"Agent AI"/);
   assert.match(ui, /SAME MIND · OGENIC HARNESS · 1LSS/);
   assert.match(ui, /const \[experienceMode, setExperienceMode\] = useState<ExperienceMode>\("chat-api"\)/);

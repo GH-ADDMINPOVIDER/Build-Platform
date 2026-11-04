@@ -1,6 +1,6 @@
-# OGENIC / WAVE — Direct-to-Work Agent Policy
+# OGENIC / Unifiend — Direct-to-Work Agent Policy
 
-**Default execution:** WAVE / ATHENA → Yellow `/api/capabilities/execute` → agent adapter → Ruby → Green (verified results only).
+**Default execution:** Unifiend / ATHENA → Yellow `/api/capabilities/execute` → agent adapter → Ruby → Green (verified results only).
 
 There is **no mandatory onboarding request before each job**. Yellow is the single authority for capability resolution, auth and permitted execution. A user can send a supported job directly to Yellow. A legitimate resolver denial remains a denial; do not turn 404/409 into hidden provider retries.
 

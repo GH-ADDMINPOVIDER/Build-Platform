@@ -39,13 +39,13 @@ test("live integrations exist only in server-side Worker adapters", async () => 
   assert.match(adapters, /\/api\/v1\/workflows/);
 });
 
-test("deployment remains locked to the staging feature branch", async () => {
+test("preparation branch does not activate the existing deployment push trigger", async () => {
   const workflow = await read(".github/workflows/provider-incentive-staging-deploy.yml");
   const wrangler = await read("wrangler.jsonc");
   assert.match(workflow, /branches: \[phase-vi-provider-incentive-metering\]/);
   assert.match(workflow, /WORKER_NAME: ogenic-phase-vi-staging/);
   assert.match(workflow, /D1_DATABASE_NAME: ogenic-phase-vi-staging/);
-  assert.match(wrangler, /phase-vi-provider-incentive-metering/);
+  assert.match(wrangler, /Unified-on-Progress/);
   assert.doesNotMatch(workflow, /wrangler deploy[^\n]*--env prod/);
 });
 

@@ -11,7 +11,7 @@ test("OGE-110 pinned complete portable pstack source mirror, no vendor execution
   assert.match(importer,/chmodSync\(root,0o644\)/);
   assert.match(workflow,/3a604672c46cd8187d2b19980eae0a34f9f91138/);
   assert.match(workflow,/STALE_STAGING_SHA_ABORT/);
-  assert.match(workflow,/branch(es)?: \[phase-vi-provider-incentive-metering\]|branches:\s*\[phase-vi-provider-incentive-metering\]/);
+  assert.match(workflow,/branch(es)?: \[Unified-on-Progress\]|branches:\s*\[Unified-on-Progress\]/);
   assert.match(workflow,/git add -- \.agents\/skills third_party\/pstack-portable config\/pstack-full-catalog\.json/);
   assert.doesNotMatch(workflow,/npm run.*pstack|npm install.*pstack|wrangler deploy|d1 migrations/i);
 });

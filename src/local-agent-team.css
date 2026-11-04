@@ -1,4 +1,4 @@
-/* OpenBot: existing WAVE Agent Deck, no second app. */
+/* OpenBot: existing Unifiend Agent Deck, no second app. */
 .localTeamPanel{display:grid;gap:12px;min-width:0}
 .localRoomHeader{align-items:center;flex-wrap:wrap}
 .localRoomHeader button{min-height:44px;border-radius:11px;padding:0 14px;cursor:pointer}
@@ -34,7 +34,7 @@
 .localRoomCodexAction button{min-height:44px;padding:10px 12px;font-weight:750;border-radius:10px}
 .localRoomCodexAction button:disabled{opacity:.5;cursor:not-allowed}
 
-/* OpenBot direct Owner-to-Codex composer reuses the established WAVE palette. */
+/* OpenBot direct Owner-to-Codex composer reuses the established Unifiend palette. */
 .localRoomQuickRun{display:grid;gap:11px;padding:16px;border:1px solid rgba(86,168,120,.48);border-radius:15px;background:rgba(87,159,115,.08)}
 .localRoomQuickRun label{font-size:13px}
 .localRoomQuickRun textarea{box-sizing:border-box;width:100%;min-height:86px;padding:12px;border:1px solid #92a89c70;border-radius:11px;color:inherit;background:rgba(128,163,140,.07);font:inherit;resize:vertical}

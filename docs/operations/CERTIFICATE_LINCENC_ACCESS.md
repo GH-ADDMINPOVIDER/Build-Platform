@@ -1,6 +1,6 @@
-> Current naming, 30 Oct 2026: the operational label is `GH-ADDMINPOVIDER`. Exact GitHub account, repository, machine and external secret-reference bindings are in `config/github-provider.json`. Historical observations below retain their original spelling and dates; they are not current permission claims. GitHub connector metadata currently reports repository admin access; runtime PAT grants require their own checks.
+> Current naming, 30 Oct 2026: the operational label is `Unifiend capability`. Exact GitHub account, repository, machine and external secret-reference bindings are in `config/github-provider.json`. Historical observations below retain their original spelling and dates; they are not current permission claims. GitHub connector metadata currently reports repository admin access; runtime PAT grants require their own checks.
 
-# OGENIC/WAVE Certificate lincenc — Canonical Discovery
+# OGENIC/Unifiend Certificate lincenc — Canonical Discovery
 
 Record type: Owner Authorization and Plugin Evidence Registry; NOT an SSL/TLS certificate, X.509 issuance, OAuth token, or permission to execute commands.
 
@@ -11,10 +11,10 @@ Original (single) certificate: https://github.com/Ogenicchocolate21debug/Build-P
 The staging branch intentionally does not contain a duplicate certificate JSON. The authoritative operational copy is the existing Cloudflare D1 database ogenic-phase-vi-staging, table certificate_lincenc, keyed by the same Certificate ID.
 
 READ PATHS
-1. WAVE Owner Session: GET https://wave.ogenicchocolate.com/api/system/certificate-lincenc (read-only, authentication required, no-store, safe allowlisted projection).
+1. Unifiend Owner Session: GET https://wave.ogenicchocolate.com/api/system/certificate-lincenc (read-only, authentication required, no-store, safe allowlisted projection).
 2. ATHENA default chat: certificate_lincenc_status (eighth private read-only function tool; live D1 row).
-3. WAVE Operations UI /overview: Certificate lincenc card, distinct historical evidence versus current E2E.
-4. Outside ChatGPT / agents: use the canonical GitHub branch and file path with the agent's own GitHub read access; a different ChatGPT session is not automatically authenticated to WAVE.
+3. Unifiend Operations UI /overview: Certificate lincenc card, distinct historical evidence versus current E2E.
+4. Outside ChatGPT / agents: use the canonical GitHub branch and file path with the agent's own GitHub read access; a different ChatGPT session is not automatically authenticated to Unifiend.
 
 IDENTITIES FROM OWNER CORRECTION
 Retired store principal — historical owner metadata only; no longer a runtime credential or dispatch source.

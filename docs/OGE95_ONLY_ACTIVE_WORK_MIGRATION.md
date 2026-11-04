@@ -4,7 +4,7 @@
 
 **Owner direction (2026-10-08):** Close every other open Linear OGE issue as **CANCELED/SUPERSEDED OR PARKED**. Only **OGE-95 Stone Runner** remains In Progress. Closing an issue is **administrative consolidation, NOT verified engineering completion**. Preserve exact original issues, commits and CI links; a later owner request can reopen a parked topic.
 
-**Canonical working repo** `Ogenicchocolate21debug/Build-Platform` / `phase-vi-provider-incentive-metering`. **Never touch** main, production, Candy, remote D1 schema, secrets or unapproved spend.
+**Canonical working repo** `Ogenicchocolate21debug/Build-Platform` / `Unified-on-Progress`. **Never touch** main, production, Candy, remote D1 schema, secrets or unapproved spend.
 
 ## Product boundaries
 
@@ -18,7 +18,7 @@
 | OGE-71 | AI role placement | **BLUE+YELLOW:** route truly verified providers by skill/readiness; live Gemini and DeepSeek READ evidence, candidate Claude/Perplexity not assumed READY, Grok/Meta paused billing; GitHub test/probe evidence needed |
 | OGE-73 | Phase II multi-agent finalization | **WHITE / VIOLET:** authoritative controller→Yellow→specialist path, independent lanes, Codex job evidence, honest activation/completion; no duplicate queues |
 | OGE-74 | Global context/token economy | **RULE:** deduplicate transcript, evidence, prompts, source references and hashes; preserve full useful paid outputs and `finish_reason`, track use under existing Yellow approved cost, no new arbitrary 256-token cutoff |
-| OGE-77 | Mobile-first WAVE dashboard / 3 channels | **RUNNER NONBLOCKING UI CHECK:** protect existing /overview, /chat, /command, /agents UI smoke; external Vercel quota was blocker; do not implement new dashboard during runtime focus |
+| OGE-77 | Mobile-first Unifiend dashboard / 3 channels | **RUNNER NONBLOCKING UI CHECK:** protect existing /overview, /chat, /command, /agents UI smoke; external Vercel quota was blocker; do not implement new dashboard during runtime focus |
 | OGE-90 | Perplexity bridge/fallback | **BLUE/TOOLS DEFERRED PROVIDER:** existing Perplexity adapter only if genuinely ready/authorized; safe alternative research via verified providers, NO paid Perplexity or unapproved credits; no surprise auto fallback |
 | OGE-93 | Clean agent readiness audit | **BLUE:** read-only probe of each provider; no false READY solely from installed token or catalog entry; log evidence SHA, API/Quota status; hold candidates |
 | OGE-94 | One-pass provider admission policy | **RULE+YELLOW:** one shared lightweight ready/probe/blocked model and proof on identity/billing changes, preserve true approval/security, no repetitive gates; confirm staged API response and canonical CI before marking validated |

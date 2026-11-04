@@ -42,5 +42,5 @@ test("deployed-entry wrapper only intercepts resolver path and delegates everyth
   assert.match(source, /base\.fetch/);
   assert.match(source, /base\.scheduled/);
   assert.match(wrangler, /"main": "worker\/entry-yellow-stone\.ts"/);
-  assert.match(wrangler, /"OGENIC_GITHUB_BRANCH": "phase-vi-provider-incentive-metering"/);
+  assert.match(wrangler, /"OGENIC_GITHUB_BRANCH": "Unified-on-Progress"/);
 });

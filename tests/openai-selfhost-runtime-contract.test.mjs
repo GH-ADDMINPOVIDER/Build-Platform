@@ -9,7 +9,7 @@ test("OGE-28 self-host route is owner/ops gated, staging-only and approval-gated
   assert.match(source, /hasOwnerOrOpsAccess/);
   assert.match(source, /\/api\/openai\/selfhost\/proof/);
   assert.match(source, /HUMAN_APPROVAL_REQUIRED/);
-  assert.match(source, /CANONICAL_STAGING_BRANCH = "phase-vi-provider-incentive-metering"/);
+  assert.match(source, /CANONICAL_STAGING_BRANCH = "Unified-on-Progress"/);
   assert.match(source, /ENVIRONMENT_SCOPE_MISMATCH/);
 });
 
@@ -17,7 +17,7 @@ test("OGE-28 creates a real self-hosted Agent environment and preserves the lega
   const source = read("worker/openai-selfhost-api.ts");
   assert.match(source, /type: "self_hosted"/);
   assert.match(source, /workspace_directory: workspace/);
-  assert.match(source, /wave-openai-selfhost-executor\.yml/);
+  assert.match(source, /unifiend-openai-selfhost-executor\.yml/);
   assert.match(source, /actions\/workflows\/\$\{EXECUTOR_WORKFLOW\}\/dispatches/);
   assert.match(source, /environment_id: input\.environmentId/);
   assert.match(source, /remote_url: input\.remoteUrl/);
@@ -42,7 +42,7 @@ test("OGE-28 sends input through Agent session events and waits for root termina
   assert.match(source, /agent\.session\.turn\.failed/);
   assert.match(source, /agent\.session\.environment\.failed/);
   assert.match(source, /SELFHOST_PROOF_OUTPUT_UNVERIFIED/);
-  assert.match(source, /WAVE_SELFHOST_PROOF_OK/);
+  assert.match(source, /UNIFIEND_SELFHOST_PROOF_OK/);
 });
 
 test("OGE-28 writes compact verified evidence to canonical 1LSS without executor secret material", () => {
@@ -68,8 +68,8 @@ test("Yellow Stone mounts the self-host runtime without replacing the base Worke
 
 test("OGE-98 proof workflow uses existing two-sided OpenAI self-host handoff without main or production writes", () => {
   const source=read(".github/workflows/oge-28-selfhost-proof.yml");
-  const runner=read(".github/workflows/wave-openai-selfhost-executor.yml");
-  assert.match(source, /branches: \[phase-vi-provider-incentive-metering\]/);
+  const runner=read(".github/workflows/unifiend-openai-selfhost-executor.yml");
+  assert.match(source, /branches: \[Unified-on-Progress\]/);
   assert.match(source, /name: prepare and verify canonical self-host session/);
   assert.match(source, /name: connect wave-runner-01 to prepared OpenAI session/);
   assert.match(source, /phase/);

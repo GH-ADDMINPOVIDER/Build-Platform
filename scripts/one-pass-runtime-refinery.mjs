@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 
 export const ONE_PASS_POLICY_VERSION = "OGE48_ONE_PASS_RUNTIME_REFINERY_V1";
 export const CANONICAL = {
-  repository: "Wave-Runner-2/Build-Platform",
-  branch: "phase-vi-provider-incentive-metering",
+  repository: "GH-ADDMINPOVIDER/Build-Platform",
+  branch: "Unified-on-Progress",
   conversation: "owner-main",
   session_line: "1LSS_OWNER_MAIN",
 };

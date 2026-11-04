@@ -2,7 +2,7 @@ name: OGE-93 Clean Agents Readiness (Read-Only)
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths: [".github/workflows/oge-93-clean-agent-readiness.yml"]
   workflow_dispatch:
 

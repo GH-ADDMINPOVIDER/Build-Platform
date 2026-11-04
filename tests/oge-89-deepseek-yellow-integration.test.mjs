@@ -22,7 +22,7 @@ test("OGE-89 uses the existing Infisical key; active only with verified live evi
   assert.equal(a.api, "REACHABLE");
   assert.equal(a.quota, "AVAILABLE");
   assert.equal(a.billing, "ACTIVE");
-  assert.equal(a.evidence_ref, "github-actions://Wave-Runner-2/Build-Platform/37727857716");
+  assert.equal(a.evidence_ref, "github-actions://Ogenicchocolate21debug/Build-Platform/37727857716");
   assert.match(resolver, /DEEPSEEK_API_KEY/);
   assert.match(resolver, /attestation\?\.verification_state === "VERIFIED"/);
   assert.match(resolver, /attestation\.billing === "ACTIVE"/);

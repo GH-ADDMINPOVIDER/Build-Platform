@@ -5,7 +5,7 @@ import fs from "node:fs";
 const api = fs.readFileSync(new URL("../worker/local-agent-team-api.ts", import.meta.url), "utf8");
 const entry = fs.readFileSync(new URL("../worker/entry-yellow-stone.ts", import.meta.url), "utf8");
 const ui = fs.readFileSync(new URL("../src/LocalAgentTeamPanel.tsx", import.meta.url), "utf8");
-const wave = fs.readFileSync(new URL("../src/WaveNext.tsx", import.meta.url), "utf8");
+const unifiend = fs.readFileSync(new URL("../src/UnifiendNext.tsx", import.meta.url), "utf8");
 
 test("local agent team reuses canonical queue and has resumable task operations", () => {
   for (const route of ["/api/local-agent-team/state", "/api/local-agent-team/providers", "/api/local-agent-team/tasks", "/handoff", "/result", "/checkpoint"]) assert.match(api, new RegExp(route.replaceAll("/", "\\/")));
@@ -22,7 +22,7 @@ test("local agent team reuses canonical queue and has resumable task operations"
 test("local agent team is wired through Yellow Stone and existing Agent Deck", () => {
   assert.match(entry, /createLocalAgentTeamApi/);
   assert.match(entry, /pathname\.startsWith\("\/api\/local-agent-team\/"\)/);
-  assert.match(wave, /LocalAgentTeamPanel/);
+  assert.match(unifiend, /LocalAgentTeamPanel/);
   assert.match(ui, /Create task/);
   assert.match(api, /hasOwnerSession/);
   assert.match(ui, /signed Owner Session/);
@@ -30,7 +30,7 @@ test("local agent team is wired through Yellow Stone and existing Agent Deck", (
 
 test("OpenBot Launch Room uses existing Agent Deck and canonical D1 events", () => {
   assert.match(ui, /Launch Room/);
-  assert.match(ui, /waveLaunchRoom/);
+  assert.match(ui, /unifiendLaunchRoom/);
   assert.match(ui, /\/api\/local-agent-team\/messages/);
   assert.match(ui, /Persistent conversation/);
   assert.match(ui, /No verified room adapter available/);
@@ -43,8 +43,8 @@ test("OpenBot Launch Room uses existing Agent Deck and canonical D1 events", () 
   assert.match(api, /room_adapter: "UNVERIFIED"/);
 });
 
-test("OpenBot read-only Codex dispatch connects existing Owner Yellow command and Runner-1 receipt", () => {
-  assert.match(api, /ExistingWaveDispatcher/);
+test("OpenBot read-only Codex dispatch connects existing Owner Yellow command and Ocian-S-Host receipt", () => {
+  assert.match(api, /ExistingUnifiendDispatcher/);
   assert.match(entry, /createLocalAgentTeamApi\(/);
   assert.match(entry, /athenaGuardedCommand\(request, bindings as Bindings, ctx\)/);
   assert.match(api, /\/api\/local-agent-team\/tasks\/:taskId\/dispatch/);
@@ -71,14 +71,14 @@ test("OpenBot reports absent external adapters and forbids room WRITE execution"
   assert.match(ui, /No verified room adapter available/);
 });
 
-test("OpenBot runtime proof releases Runner-1 before the existing consumer and verifies final D1 checkpoint", () => {
+test("OpenBot runtime proof releases Ocian-S-Host before the existing consumer and verifies final D1 checkpoint", () => {
   const check = fs.readFileSync(new URL("../scripts/verify-openbot-launchroom-staging.mjs", import.meta.url), "utf8");
   const workflow = fs.readFileSync(new URL("../.github/workflows/provider-incentive-staging-deploy.yml", import.meta.url), "utf8");
-  const consumer = fs.readFileSync(new URL("../scripts/wave-command-consumer.mjs", import.meta.url), "utf8");
+  const consumer = fs.readFileSync(new URL("../scripts/unifiend-command-consumer.mjs", import.meta.url), "utf8");
   assert.match(workflow, /node scripts\/verify-openbot-launchroom-staging\.mjs/);
   assert.match(workflow, /contains\(github\.event\.head_commit\.message, 'openbot'\)/);
   assert.match(check, /OPENBOT_LAUNCHROOM_CODEX_READONLY_DISPATCH=PASS/);
-  assert.match(check, /ROOM_WAVE_TASK_LINK_NOT_READBACK/);
+  assert.match(check, /ROOM_UNIFIEND_TASK_LINK_NOT_READBACK/);
   assert.match(consumer, /OPENBOT_LAUNCHROOM_CODEX_D1_E2E=PASS/);
   assert.match(consumer, /OPENBOT_ROOM_D1_RESULT_CHECKPOINT_READBACK_FAILED/);
 });

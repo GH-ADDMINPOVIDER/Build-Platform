@@ -1,7 +1,7 @@
-name: OGE-129 Agent Sign Run - WAVE Command Admission
+name: OGE-129 Agent Sign Run - Unifiend Command Admission
 on:
   push:
-    branches: [feature/wave-liquid-glass-command-ux-20261018]
+    branches: [feature/unifiend-liquid-glass-command-ux-20261018]
     paths:
       - ".github/workflows/oge-129-agent-sign-run-proof.yml"
       - "scripts/oge129_agent_sign_run_command_proof.mjs"
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   signed-command:
-    if: github.repository == 'Wave-Runner-2/Build-Platform'
+    if: github.repository_id == '1429580446'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 7
     env:
@@ -32,8 +32,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$RUNNER_NAME" = "wave-runner-01"
-          test "$GITHUB_REF_NAME" = "feature/wave-liquid-glass-command-ux-20261018"
-          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
+          test "$GITHUB_REF_NAME" = "feature/unifiend-liquid-glass-command-ux-20261018"
+          test "$GITHUB_REPOSITORY_ID" = "1429580446"
           node --check scripts/oge129_agent_sign_run_command_proof.mjs
       - name: Discover existing Infisical OIDC identity scope
         id: discovery
@@ -48,7 +48,7 @@ jobs:
           env-slug: staging
           secret-path: /
           recursive: true
-      - name: Prove signed owner WAVE Command and fail-closed agent approval
+      - name: Prove signed owner Unifiend Command and fail-closed agent approval
         shell: bash
         run: |
           set -euo pipefail

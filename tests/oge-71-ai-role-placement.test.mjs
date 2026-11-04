@@ -44,7 +44,7 @@ test("OGE-71 ATHENA can auto-route bounded analysis to Gemini", () => {
 });
 
 test("OGE-71 keeps code mutation on Codex and unavailable specialists fail closed by policy", () => {
-  const roster = JSON.parse(readFileSync("config/wave-phase-ii-agent-roster.json", "utf8"));
+  const roster = JSON.parse(readFileSync("config/unifiend-phase-ii-agent-roster.json", "utf8"));
   const codex = roster.core_team.find((actor) => actor.id === "codex");
   assert.equal(codex.role, "canonical_repo_code_test_build_fix");
   assert.ok(roster.routing_rules.includes("Do not route to candidates or billing-blocked providers automatically."));

@@ -2,7 +2,7 @@
 
 > **LATEST OWNER OVERRIDE — 2026-10-09 — CONTINUOUS OGE ROADMAP:** Mineral Phase II and alias OGE-II-1 (native Linear OGE-102) have been **CANCELED** by owner along with its separate Linear project. No Product #2 simulated runtime/factory roadmap is active. **Do not reactivate/create Roman-numbered issues or treat old Phase II references below as current instructions.** OGE-101 SAME MIND (In Progress), OGE-103 independent audit, OGE-104 bounded 1LSS recall, OGE-105 A–Z ref lookup, OGE-106 real Agent context intake, OGE-107 live recovery/Ruby verification, OGE-108 anti-forgetting are on one continuously numbered OGE line. OGE-95 Rule Panel remains bounded Done; old 96–99 are Canceled/Deferred (not technically Done). Historic body below remains evidence only. Preserve exact seven Stones + White Diamond identity map and Yellow/Ruby/Green authority. Do not touch main/prod/Candy/D1 schema/secrets.
 
-# OGENIC / WAVE — Canonical Stone & Diamond Identity Map
+# OGENIC / Unifiend — Canonical Stone & Diamond Identity Map
 
 **Owner-approved naming, 2026-10-08.** This is a *naming/ownership* decision, not proof that every subsystem is fully implemented. Do not invent a new policy engine, D1 schema, or project to implement labels.
 
@@ -43,7 +43,7 @@ The defined stone **capabilities are names** for existing architecture and futur
 
 ### Owner-locked presentation standard — gemstone cards (2026-10-09)
 
-**Owner display preference, mandatory when presenting the Stone/Diamond roster in chat, WAVE documents, slides, and any later user-facing overview:** Retain the compact visual-card layout approved on 2026-10-09. This is a presentation/species lock only; it is NOT a new Stone, feature request, renderer implementation proof, runtime change or authority change.
+**Owner display preference, mandatory when presenting the Stone/Diamond roster in chat, Unifiend documents, slides, and any later user-facing overview:** Retain the compact visual-card layout approved on 2026-10-09. This is a presentation/species lock only; it is NOT a new Stone, feature request, renderer implementation proof, runtime change or authority change.
 
 **Presentation contract**
 1. Show **seven numbered rows/cards in canonical order 01→07**. Each has a **visible representative gemstone image on the left**, then on the right: **bold 2-digit number + exact uppercase official stone/diamond name**; a **small color + actual gem species** line; a **bold concise English capability heading**; and **one brief Thai sentence describing the real responsibility**. Separate rows with thin neutral dividers.
@@ -90,7 +90,7 @@ The defined stone **capabilities are names** for existing architecture and futur
 2. `OGE-95` is the **RULE STONE PANEL ONLY**; OGE-96 (Green/OGE-54), OGE-97 (Yellow/OGE-78), OGE-98 (Violet/OGE-37), OGE-99 (Ruby/OGE-38) are separately owned proof follow-ons. OGE-100 completes an honest Phase I Rule Panel handoff. Mineral Phase II OGE-II-1 (native Linear OGE-102) owns Stone Runner **Product #2** future simulator/1:1/advanced factory. The single rules-center source remains `config/oge95-rules-center.json`; do not create a second Yellow permission authority or rename any of the seven canonical stones.
 3. Exclude billing-blocked Grok/xAI and Meta Model from active agent selection; retain their registry records. Use verified working specialists rather than assuming a provider is ready.
 4. This commit codifies *names and boundaries only*. UI display changes, SDK/router wiring, autonomous coding and stage-to-stage runtime proof need their own commits and verified CI before they are called completed.
-5. Protect `main`, production, Candy, credentials, and remote D1 schema. Work only on `phase-vi-provider-incentive-metering`.
+5. Protect `main`, production, Candy, credentials, and remote D1 schema. Work only on `Unified-on-Progress`.
 
 ### Corresponding existing implementation references
 
@@ -98,9 +98,9 @@ The defined stone **capabilities are names** for existing architecture and futur
 - ATHENA/White Manager: `worker/white-diamond-registry.ts`
 - Multi-agent management: `worker/violet-stone-api.ts`
 - Rule source: `config/oge95-rules-center.json`
-- Obsidian execution host: `infra/replica-runner/STONE_RUNNER.md`, `.github/workflows/wave-replica-runner.yml`
+- Obsidian execution host: `infra/replica-executor/STONE_RUNNER.md`, `.github/workflows/unifiend-replica-executor.yml`
 
 **Why Rule Stone (gray) exists separately:** explain and centrally manage the rules; it must *not* duplicate Yellow's already-established enforcement/authorization. 
 
 ## Owner routing clarification — OGE-110 pstack (2026-10-09)
-Full pstack skills and portable multi-agent workflow selection belong to **Violet Stone #04** (Multi-Agent Solution), NOT Yellow #02. Yellow is the sole capability authorization / tool execution gate. Blue #03 retains agent identity and readiness, Ruby verifies, Green/1LSS remains the only canonical memory. The pinned MIT skill source (51 skills, 2 agent definitions) is imported to `.agents/skills` and cataloged through Violet read-only API; executable multi-agent features are **NOT certified** by source import. Historic OGE-109 WAVE four prompt presets remain an interface, not another Stone or runtime. This clarifies ownership only and does not alter names/colors/species in the canonical seven-Stone map.
+Full pstack skills and portable multi-agent workflow selection belong to **Violet Stone #04** (Multi-Agent Solution), NOT Yellow #02. Yellow is the sole capability authorization / tool execution gate. Blue #03 retains agent identity and readiness, Ruby verifies, Green/1LSS remains the only canonical memory. The pinned MIT skill source (51 skills, 2 agent definitions) is imported to `.agents/skills` and cataloged through Violet read-only API; executable multi-agent features are **NOT certified** by source import. Historic OGE-109 Unifiend four prompt presets remain an interface, not another Stone or runtime. This clarifies ownership only and does not alter names/colors/species in the canonical seven-Stone map.

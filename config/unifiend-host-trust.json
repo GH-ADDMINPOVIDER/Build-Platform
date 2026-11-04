@@ -1,0 +1,11 @@
+{
+  "schema": "UNIFIEND_HOST_TRUST_V1",
+  "host": "Ocian-S-Host",
+  "droplet_id": 604432491,
+  "address": "165.232.174.32",
+  "port": 22,
+  "verified_via": "OWNER_DIGITALOCEAN_CONSOLE",
+  "recorded_at": "2026-10-31T09:51:50+07:00",
+  "known_hosts": "165.232.174.32 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPniLMSQKEOYP0M3QKIE7/zcmO6mhIKEV76xFyyaWKFx",
+  "fingerprint_sha256": "SHA256:rtBc5XsEuZwLAOI80yuTbB6JmAgWfO8Nj1rkf5RYtdQ"
+}

@@ -1,0 +1,106 @@
+name: Unifiend OpenAI Self-host Executor
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment_id:
+        description: OpenAI Agents self-hosted environment ID
+        required: true
+        type: string
+      remote_url:
+        description: OpenAI Agents executor remote URL
+        required: true
+        type: string
+      session_id:
+        description: OpenAI Agent session ID for evidence correlation
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+  INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID || 'ccafcbb6-950c-47d5-96f8-7023961895a5' }}
+  INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+  INFISICAL_PROJECT_SLUG: ${{ vars.INFISICAL_PROJECT_SLUG || '' }}
+  INFISICAL_ENV_SLUG: staging
+
+concurrency:
+  group: unifiend-openai-selfhost-${{ inputs.environment_id }}
+  cancel-in-progress: true
+
+jobs:
+  executor:
+    name: connect wave-runner-01 to OpenAI Agent session
+    if: github.ref_name == 'Unified-on-Progress'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 20
+    env:
+      ENVIRONMENT_ID: ${{ inputs.environment_id }}
+      REMOTE_URL: ${{ inputs.remote_url }}
+      AGENT_SESSION_ID: ${{ inputs.session_id }}
+
+    steps:
+      - name: Checkout canonical staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: Unified-on-Progress
+          fetch-depth: 0
+
+      - name: Discover Infisical project
+        id: infisical_project
+        shell: bash
+        run: bash scripts/infisical-discover-project.sh
+
+      - name: Load OpenAI executor credential from Infisical via OIDC
+        uses: Infisical/secrets-action@v1.0.9
+        with:
+          method: oidc
+          identity-id: ${{ env.INFISICAL_IDENTITY_ID }}
+          project-slug: ${{ env.INFISICAL_PROJECT_SLUG || steps.infisical_project.outputs.project_slug }}
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          secret-path: /
+          recursive: true
+
+      - name: Fail closed on invalid provisioning metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          CODEX_API_KEY="${OPENAI_EXECUTOR_API_KEY:-}"
+          export CODEX_API_KEY
+          test -n "$CODEX_API_KEY" || { echo 'CONFIGURATION_REQUIRED: OPENAI_EXECUTOR_API_KEY'; exit 78; }
+          [[ "$ENVIRONMENT_ID" == ccarenv_* ]] || { echo 'INVALID_ENVIRONMENT_ID'; exit 64; }
+          [[ "$AGENT_SESSION_ID" == sess_* || "$AGENT_SESSION_ID" == agent_* ]] || { echo 'INVALID_AGENT_SESSION_ID'; exit 64; }
+          node - <<'NODE'
+          const raw = process.env.REMOTE_URL || '';
+          const url = new URL(raw);
+          if (url.protocol !== 'https:' && url.protocol !== 'wss:') throw new Error('INVALID_REMOTE_URL_PROTOCOL');
+          const allowed = new Set(['api.openai.com', 'codex-cloud-environments.chatgpt.com']);
+          if (!allowed.has(url.hostname)) throw new Error('INVALID_REMOTE_URL_HOST');
+          NODE
+          echo 'UNIFIEND_SELFHOST_METADATA_OK'
+
+      - name: Verify runner and executor capability
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(hostname)" = 'wave-runner-01'
+          codex --version
+          codex exec-server --help >/tmp/wave-codex-exec-server-help.txt
+          test -s /tmp/wave-codex-exec-server-help.txt
+          git rev-parse HEAD
+          echo 'UNIFIEND_EXECUTOR_PREREQUISITES_OK'
+
+      - name: Connect executor to OpenAI Agents session
+        shell: bash
+        run: |
+          set -euo pipefail
+          CODEX_API_KEY="${OPENAI_EXECUTOR_API_KEY:-}"
+          export CODEX_API_KEY
+          test -n "$CODEX_API_KEY" || { echo 'CONFIGURATION_REQUIRED: OPENAI_EXECUTOR_API_KEY'; exit 78; }
+          echo "Starting executor for session=${AGENT_SESSION_ID} environment=${ENVIRONMENT_ID}"
+          exec codex exec-server \
+            --remote "$REMOTE_URL" \
+            --environment-id "$ENVIRONMENT_ID"

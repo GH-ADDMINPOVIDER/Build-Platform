@@ -1,4 +1,4 @@
 # The repository owner is the required reviewer for every file.
 # This file is enforced only when the protected branch requires CODEOWNERS
 # review; see docs/OWNER_CODE_CHANGE_GUARD.md for the repository setting.
-* @Ogenicchocolate21debug
+* @GH-ADDMINPOVIDER

@@ -10,7 +10,7 @@
   "release_url": "https://github.com/lexmount/moli/releases/download/v1.1.12/moli-x86_64-unknown-linux-gnu.tar.gz",
   "release_sha256": "c003600e22a450914ff804cd980eeac6d37495c9e88f8786bf75d00d010171d0",
   "lane": "YELLOW_BROWSER_TOOL",
-  "host": "EXISTING_WAVE_RUNNER_01_TEMPORARY",
+  "host": "EXISTING_UNIFIEND_RUNNER_01_TEMPORARY",
   "deployment_mode": "OPTIONAL_EPHEMERAL_CLI_SMOKE",
   "registered": true,
   "installed_persistently": false,

@@ -2,13 +2,13 @@ name: OGE-75 xAI + Meta Provider Proof
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - ".github/workflows/oge-75-xai-meta-provider-proof.yml"
       - "scripts/xai-meta-provider-proof.mjs"
       - "config/staging-runtime-bindings.json"
       - "config/providers.json"
-      - "config/wave-phase-ii-agent-roster.json"
+      - "config/unifiend-phase-ii-agent-roster.json"
   workflow_dispatch:
 
 permissions:
@@ -110,14 +110,14 @@ jobs:
               hidden_fallback: false
             }' /tmp/oge75-proof.json > .ogenic/proofs/xai-meta-provider-proof.json
 
-          git config user.name "ogenic-wave-proof"
-          git config user.email "ogenic-wave-proof@users.noreply.github.com"
+          git config user.name "ogenic-unifiend-proof"
+          git config user.email "ogenic-unifiend-proof@users.noreply.github.com"
           git add .ogenic/proofs/xai-meta-provider-proof.json
           if git diff --cached --quiet; then
             echo "Proof marker unchanged."
           else
             git commit -m "proof: persist OGE-75 xAI Meta provider result"
-            git push origin "HEAD:phase-vi-provider-incentive-metering"
+            git push origin "HEAD:Unified-on-Progress"
           fi
 
       - name: Enforce provider promotion verdict

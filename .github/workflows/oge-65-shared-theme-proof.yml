@@ -31,5 +31,5 @@ jobs:
       - name: One-controller guard
         run: |
           set -euo pipefail
-          test "$(grep -o '<WaveThemeToggle />' src/main.tsx | wc -l | tr -d ' ')" = "1"
-          ! grep -Eq 'WaveThemeToggle|ThemeController' src/LegacyControlSurface.tsx
+          test "$(grep -o '<UnifiendThemeToggle />' src/main.tsx | wc -l | tr -d ' ')" = "1"
+          ! grep -Eq 'UnifiendThemeToggle|ThemeController' src/LegacyControlSurface.tsx

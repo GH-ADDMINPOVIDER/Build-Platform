@@ -2,7 +2,7 @@ name: OGE-70 n8n Execution Fabric Proof
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - ".github/workflows/oge-70-n8n-execution-fabric-proof.yml"
   workflow_dispatch:
@@ -139,7 +139,7 @@ jobs:
           echo "OGE70_YELLOW_OWNER_AUTH_ADAPTER_DENIAL=PASS"
           echo "OGE70_N8N_EXECUTED=FALSE"
 
-      - name: Verify WAVE exposes placement without enabling execution
+      - name: Verify Unifiend exposes placement without enabling execution
         shell: bash
         run: |
           set -euo pipefail
@@ -152,4 +152,4 @@ jobs:
             .placement.canonical.n8n_role == "WORKFLOW_EXECUTION_FABRIC_NOT_CONTROL_PLANE" and
             .execution_enabled_by_this_endpoint == false
           ' >/dev/null
-          echo "OGE-70 WAVE placement proof PASS."
+          echo "OGE-70 Unifiend placement proof PASS."

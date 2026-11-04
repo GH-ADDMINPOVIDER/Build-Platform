@@ -1,6 +1,6 @@
 # OGE-95 — Review visualization and context economy pilot
 
-Scope: staging branch phase-vi-provider-incentive-metering only. Reuse the existing wave-runner-01 and GitHub graph. No new provider, dependency, memory store, secret, deployment, approval gate or subscription.
+Scope: staging branch Unified-on-Progress only. Reuse the existing wave-runner-01 and GitHub graph. No new provider, dependency, memory store, secret, deployment, approval gate or subscription.
 
 ## Review diagrams (PR Lens concept, no external App/Action installed)
 

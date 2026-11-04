@@ -69,7 +69,7 @@ export function buildWhiteDiamondRegistry(env: RegistryEnv): WhiteDiamondAgent[]
       state: configured(env, ["OPENAI_API_KEY", "OPENAI_EXECUTOR_API_KEY"]),
       capabilities: ["code_search", "read_file", "write_file", "test", "build", "git_diff"],
       route: "/api/codex/status",
-      runtime: "WAVE_RUNNER_01_CODEX_EXEC_SERVER",
+      runtime: "UNIFIEND_RUNNER_01_CODEX_EXEC_SERVER",
       model: "codex",
       auth_ref: has(env, "OPENAI_EXECUTOR_API_KEY") ? "env:OPENAI_EXECUTOR_API_KEY" : null,
       health_ref: "/api/openai/selfhost/readiness",

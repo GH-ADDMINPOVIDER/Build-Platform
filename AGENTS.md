@@ -1,9 +1,37 @@
-# OGENIC / WAVE Agent Operating Rules
+# ACTIVE OWNER DIRECTIVE — 2026-11-01 — AI Integrator / Fullstack Builder
 
-Scope: `phase-vi-provider-incentive-metering` only.
+**Highest priority for this repository's coding agents and future chat handoffs.** This current instruction supersedes conflicting historical names, task-start and status language later in this file; the historical text and accepted receipts remain preserved.
+
+1. **EXECUTE, DO NOT BOUNCE THE TASK.** On Owner instruction, read the latest task checkpoint and current repository SHA; continue the unfinished action using available connected tools. Do not stop after merely reporting a problem or require Owner to send a recurring 30-second hook or repeat the same permission approval. Do not claim unattended execution after the assistant's session ends.
+2. **REAL ACCESS BOUNDARIES ONLY.** A confirmed authorization failure (for example HTTP 401/403 or explicit host ACL denial) blocks only that specific hop. Distinguish a chat's unavailable remote-shell tool from Owner's existing authorization. Continue every other safe, already-authorized task. Never bypass account authentication, expose secrets, or make unauthorized irreversible changes.
+3. **RED → VERIFIED E2E.** Keep failed/blocked work items open until that work item's real Input → Execution → Output → independent Readback is proven. Queue/pending is PROCESS_BLUE, not FAIL; source-only CI does not prove Host E2E. Preserve all historical PASS_GREEN and E2E_ORANGE evidence without overwriting or downgrading.
+4. **ONE EXECUTION LINE.** GH-ADDMINPOVIDER (GitHub principal/user ID 342175560; repository ID 1429580446, GH-ADDMINPOVIDER/Build-Platform) is the operational authority. Use existing OCIAN-S-Host DigitalOcean droplet ID 604432491 and the single installed GitHub Actions Runner at /opt/wave/actions-runner. The last verified registration was runner ID 21, name wave-runner-01, still bound to the retired repository; this historical observation must not be silently relabeled as completed cutover. Target registration and custom workflow label are both GH-ADDMINPOVIDER. Do not create another machine or Runner.
+5. **CHECKPOINT IS A RESUME POINTER, NOT AN APPROVAL GATE.** Retain original Task ID, branch, SHA, Run/Job identifiers and completed steps. Subsequent agents resume the next unfinished step rather than redoing steps 1–9. A checkpoint is not a reason to block execution or reconfirm Owner authority.
+6. **CURRENT AUTH-RENAME DEPENDENCY.** On 2026-11-01, GitHub-hosted capability Run 41298605541 returned Infisical OIDC 401 AUTH_AUDIENCE_REJECTED after the account was renamed. GitHub's default OIDC audience follows the repository owner. Correct Infisical trust bindings only through its authorized identity administration; never bypass or silently fall back to the retired owner. Other CI/source tasks can continue independently.
+7. **RECEIPTS, NOT INFERENCE.** A written plan, draft PR, CI success on ubuntu-latest, and queued self-hosted job are different states. A one-time Host cutover requires current host-side confirmation and real GH-ADDMINPOVIDER Runner/Job readback before E2E is declared.
+
+This directive exists to prevent loss of continuation state across Chat, Work and Codex. Historical instructions below remain for provenance only where they conflict.
+
+---
+
+# Unifiend current Owner directive — 30 October 2026
+
+This section supersedes older naming and continuation instructions below.
+System: Unifiend. Main repository title requested: Inifiend capability. Work branch: Unified-on-Progress, displayed as Unified on Progress. Name components directly. Use Ocian-S-Host for the existing physical host.
+Use the existing operational principal with Infisical and Linear. Follow Terminal → Codex → actual result; Manus supplies supported coverage. Run real applicable tests and verify each write. An empty write, queued task, syntax check or display alias does not prove execution.
+Preserve accepted green/orange history and store as read-only. Immutable receipts and provider-reserved syntax retain truthful originals. External repository/account/secret/registration changes are pending until authenticated provider readback; never manufacture a completed rename in configuration.
+Continue independent authorized work at an actual provider/auth boundary. Record checkout truthfully in source, Linear, CERT/Sheet and D1/ATHENA where actually reachable; never substitute a local note for D1 persistence.
+
+Current verified checkout, 31 October 2026, supersedes historical credential/grant observations below. Read `docs/checkpoints/UNIFIEND_CAPABILITY_CHECKOUT_2026-10-31.md`. Existing Infisical OIDC and reference `GH_ADDMINPROVIDER-FINE_GRAINED` verify operational principal 342175560 and repository 1429580446. This corrects a reference mismatch; no secret was renamed or copied. Administration-write passed unchanged-name PATCH and independent readback. ATHENA and the original-task D1 checkpoint were verified, with original certificate integrity preserved. Do not repeat browser/profile login for this working API route. Ocian-S-Host still requires a verified server pin and an authorized unlock path for the existing encrypted key. Actual repository rename and host execution remain incomplete; no production activation is authorized by this checkout.
+
+# OGENIC / Unifiend Agent Operating Rules
+
+Host trust update, 31 October 2026 at 09:55 +07:00: read `docs/checkpoints/UNIFIEND_HOST_TRUST_CHECKOUT_2026-10-31.md`. The existing server public key supplied by Owner from DigitalOcean Console matches the live server. `config/unifiend-host-trust.json` pins this public identity; existing secret values were not changed. Do not repeat a resolved fingerprint blocker. Client authentication still requires an authorized unlock path for the encrypted existing key. Owner already has a root Console shell; use it to inspect existing profiles/service without requesting new Codex login, installing the accidental client key or overwriting auth directories.
+
+Scope: `Unified-on-Progress` only.
 
 ## Current Owner naming directive, 30 Oct 2026
-- The exact operational display name is `GH-ADDMINPOVIDER`. Do not shorten it to GH2 or silently substitute a spelling variant.
+- The exact operational display name is `Unifiend capability`. Do not shorten it to GH2 or silently substitute a spelling variant.
 - `config/github-provider.json` records the actual GitHub login, numeric IDs, repository, machine and external credential reference separately. A role label does not rename an account, URL, runner or secret.
 - The existing Infisical reference is retained until a real external readback verifies a rename. Do not guess a new secret name or copy secret values.
 - GitHub connector repository metadata on 30 Oct reports `admin: true` for this account's four repositories. Older statements of `write` below describe their historical observation, not the current connector grant. Independently test the credential used for each runtime operation.
@@ -17,12 +45,12 @@ Scope: `phase-vi-provider-incentive-metering` only.
 
 ## Owner operating authority — verified account topology (20 Oct 2026)
 - **Owner sets objectives and final authorization.** GS and GT are implementers/operators, not a second source of ownership or a second consent gate. Carry out already-authorized staging work through existing systems and continue after PASS/FAIL until the requested runtime outcome is verified or a genuine access/budget/safety boundary is reached. Do not substitute a status report, repeated planning, or delegation ping-pong for execution.
-- **Existing signed Owner session is sufficient for scoped WAVE staging commands** where the implemented route permits it; do not demand a duplicate Yellow Stone/Agent confirmation. Yellow remains the tools/capability adapter and scope enforcement; it cannot mint identity or impersonate Owner. Reject unauthenticated requests, unsupported operations, missing adapter binding, wrong environment or spending beyond authority. Do not interpret bare text or `-Ow` as a cryptographic login.
-- **Canonical GitHub provider / Tomload21:** GitHub connector principal `Wave-Runner-2` (user ID `342175560`, profile email `tomload21@gmail.com`) uses Infisical secret **`GH_ADDMINPROVIDER`**. Repository collaborator permission observed `write`; repo permission and token grants are distinct. The invalid-ref Actions dispatch canary returned **HTTP 422** (Actions-write recognized; no actual workflow was run by the canary). This is the **existing WAVE staging dispatch primary**.
+- **Existing signed Owner session is sufficient for scoped Unifiend staging commands** where the implemented route permits it; do not demand a duplicate Yellow Stone/Agent confirmation. Yellow remains the tools/capability adapter and scope enforcement; it cannot mint identity or impersonate Owner. Reject unauthenticated requests, unsupported operations, missing adapter binding, wrong environment or spending beyond authority. Do not interpret bare text or `-Ow` as a cryptographic login.
+- **Canonical GitHub provider / Tomload21:** GitHub connector principal `Wave-Runner-2` (user ID `342175560`, profile email `tomload21@gmail.com`) uses Infisical secret **`GH_ADDMINPROVIDER`**. Repository collaborator permission observed `write`; repo permission and token grants are distinct. The invalid-ref Actions dispatch canary returned **HTTP 422** (Actions-write recognized; no actual workflow was run by the canary). This is the **existing Unifiend staging dispatch primary**.
 - **Platform Engineer / Tomload21:** The existing GitHub account `Wave-Runner-2` / user ID `342175560` is the **existing staging Platform Engineer**, accountable for GH_ADDMINPROVIDER Actions Dispatch, staging CI/integration repairs, single-runner routing and verified job/result receipts. Operational role, **not a GitHub custom ACL**: the observed repository permission stays `write`. The retired store principal remains outside runtime routing. This identity is not a second self-hosted runner, cannot impersonate Owner, and gains no Secret/Admin/Production privileges from this title. The binding, duties, credential reference and authorization limits are canonical in `docs/CCS_AUTHORITY_CONTRACT.md`; verify current principal/token scope and repo SHA before delegated writes.
 - **Only one self-hosted machine:** DigitalOcean Droplet `604432491` is `wave-runner-01`. The GitHub provider identity is not a second host. Codex GS is historically under `/home/wave/.codex`; Codex TS is historically under `/root/.codex` and completed a real Docker-mediated inference in run `39124078680`. A historical E2E is evidence, **not a fresh operational receipt**; do not reinstall, erase, or override either auth directory when a test only checks one.
 - **One Certificate record:** `Certificate lincenc` is an evidence/connector registry within the original OGE-128 certificate, with separate Staging D1 table `certificate_lincenc`; it is NOT an automatic OAuth token, a provider license, or a certificate issued by a CA. Read prior receipts before proposing any reconnection. Do not create replacement certificate IDs or modify the seven-stone canonical tables.
-- **Latest GH_ADDMINPROVIDER recovery proof:** GitHub Actions run `39400379296` confirmed principal, the 422 dispatch authorization probe, `OGE34_STAGING_WORKER_GITHUB_TOKEN_BINDING=UPDATED`, and staging health. This is not a claim that `WAVE → wave-runner-01 → Codex TS/GS → COMMAND_RESULT_DONE → D1` currently passes. Confirm live operation with a legitimate scoped end-to-end receipt before declaring DONE.
+- **Latest GH_ADDMINPROVIDER recovery proof:** GitHub Actions run `39400379296` confirmed principal, the 422 dispatch authorization probe, `OGE34_STAGING_WORKER_GITHUB_TOKEN_BINDING=UPDATED`, and staging health. This is not a claim that `Unifiend → wave-runner-01 → Codex TS/GS → COMMAND_RESULT_DONE → D1` currently passes. Confirm live operation with a legitimate scoped end-to-end receipt before declaring DONE.
 - **Cross-chat continuity:** Before answering another GS/GT takeover, read this file, `docs/OGENIC_SESSION_LOCK_CANONICAL.md`, the original certificate, recent source SHA and exact failing logs. Report in one compact line `RESULT | CHANGED | TEST | DEPLOY | RUNTIME | SHA | RUN_ID | UI_URL | BLOCKER/NEXT_ACTION`. If a connector/tool cannot access a source, state exactly which source is unavailable; do not call all connections disconnected and do not ask Owner to re-enter facts already versioned here.
 - **Stop boundary:** Never secretly overwrite production, secret values, credentials, billing, D1 schema or hard authorization limits. When a genuinely fresh Owner decision is required, ask for the exact scope once; otherwise implement and verify through the existing authorized staging path.
 
@@ -39,19 +67,19 @@ Act as an operator, not a status reporter. Read the real state, choose the cheap
 
 ## pstack guided workflows — OGE-109
 - The upstream pstack from Lauren Tan is MIT-licensed, checked version 0.15.15; license text under third_party/pstack/LICENSE.
-- Cursor-only `/add-plugin pstack` CANNOT run in Cloudflare, Railway or a ChatGPT connector. WAVE exposes FOUR pstack-inspired prompt presets (config/pstack-workflows.json), not a natively installed Cursor plugin and not a model execution service.
-- A preset in the authenticated WAVE Tools panel fills the DRAFT only. It must not send, spend credits, commit, deploy or mutate D1 automatically. A subsequent manual Send uses existing provider route/quota and Yellow/Ruby/Green controls.
+- Cursor-only `/add-plugin pstack` CANNOT run in Cloudflare, Railway or a ChatGPT connector. Unifiend exposes FOUR pstack-inspired prompt presets (config/pstack-workflows.json), not a natively installed Cursor plugin and not a model execution service.
+- A preset in the authenticated Unifiend Tools panel fills the DRAFT only. It must not send, spend credits, commit, deploy or mutate D1 automatically. A subsequent manual Send uses existing provider route/quota and Yellow/Ruby/Green controls.
 - Before acting, preserve previous owner-main / 1LSS decisions and verify exact current GitHub staging SHA. Native pstack Cursor-specific multi-agent features are UNSUPPORTED unless separately proven. No new memory, Control Tower or paid hosting.
 
 ## OGE-110 — Full portable pstack source belongs to VIOLET STONE
 - Violet is the **workflow and multi-agent coordinator**, never Yellow. The complete MIT portable skill source catalog is pinned at `3a604672c46cd8187d2b19980eae0a34f9f91138` from `backnotprop/pstack`, mirrored into `third_party/pstack-portable` and standard `.agents/skills/` (51 Skills + 2 agent definitions).
 - `GET /api/violet/pstack/catalog` is authenticated/read-only skill inventory and NEVER calls providers. `src/VioletDistributionPanel.tsx` exposes mobile searchable source cards. A catalog/Skill file is NOT proof of actual agent execution or an installed native Cursor plugin.
 - Blue verifies eligible agents, Violet selects workflow/team, Yellow alone authorizes paid calls/tool side effects, Ruby independently verifies; Green/1LSS holds one canonical owner-main memory line. Pinned third-party scripts and automations are data ONLY and must never be executed without separate review and authorizations.
-- OGE-109 four WAVE prompt presets are still the existing composer UI. OGE-110 imports source and exposes catalog; real /swarm, /poteto-mode, provider-specific subprocesses and UI automation require host capability, quota consent, proven receipts; report UNSUPPORTED rather than inventing missing providers. No new paid Railway/Replit runtime or desktop Cursor required.
+- OGE-109 four Unifiend prompt presets are still the existing composer UI. OGE-110 imports source and exposes catalog; real /swarm, /poteto-mode, provider-specific subprocesses and UI automation require host capability, quota consent, proven receipts; report UNSUPPORTED rather than inventing missing providers. No new paid Railway/Replit runtime or desktop Cursor required.
 
 ## OGE-111 — pstack source-backed cognition and agent read receipts
-- Pstack is WAVE's working methodology; Violet owns selecting Skills and coordinating Blue-verified agents, not a second Yellow gate.
-- `POST /api/violet/pstack/select` picks a small source-checked Skill stack without model inference. `GET /api/violet/pstack/learning-plan` offers all 51 original hashes in bounded read waves; receiving a catalog is NOT proof of a real Agent reading or remembering it.
+- Pstack is Unifiend's working methodology; Violet owns selecting Skills and coordinating Blue-verified agents, not a second Yellow gate.
+- `POST /api/violet/pstack/select` picks a small source-checked Skill stack without model inference. `GET /api/violet/pstack/learning-plan` offers all 51 original hashes in bounded read unifiends; receiving a catalog is NOT proof of a real Agent reading or remembering it.
 - Agents retrieve selected full Skills when authorized, receive owner-main/1LSS context separately, and must report real source fingerprints and session receipt. Ruby verifies before any Green canonical retention. No new D1 schema or second memory database, no 51xN paid automatic calls.
 - Missing Blue readiness or Yellow consent means NOT_DISPATCHED; never claim learned/completed from a prompt or CI compilation.
 
@@ -69,7 +97,7 @@ Act as an operator, not a status reporter. Read the real state, choose the cheap
 
 ## Canonical system
 - Repo: `Wave-Runner-2/Build-Platform`
-- Branch: `phase-vi-provider-incentive-metering`
+- Branch: `Unified-on-Progress`
 - Conversation: `owner-main`
 - Session line: `1LSS_OWNER_MAIN`
 - D1: canonical operational state
@@ -81,7 +109,7 @@ Act as an operator, not a status reporter. Read the real state, choose the cheap
 ## Mandatory Codex checkout attestation — EVERY invocation / resumed session / before write
 The Codex sandbox checkout is NOT the GitHub connector. GitHub App permissions do not establish shell git remote access. Do not presume a checkout is valid because prior tasks succeeded.
 1. Identify the actual worktree: `pwd`, `git rev-parse --show-toplevel`, `git status --short --branch`, `git branch --show-current`, `git rev-parse HEAD`, `git remote -v`.
-2. Require the canonical repo `Wave-Runner-2/Build-Platform`, expected branch `phase-vi-provider-incentive-metering`, and a verified remote (or authorized GitHub connector selecting this exact repo+branch explicitly). A sandbox branch named `work` is NOT sufficient; never write to `main` or an unrelated sandbox snapshot.
+2. Require the canonical repo `Wave-Runner-2/Build-Platform`, expected branch `Unified-on-Progress`, and a verified remote (or authorized GitHub connector selecting this exact repo+branch explicitly). A sandbox branch named `work` is NOT sufficient; never write to `main` or an unrelated sandbox snapshot.
 3. Independently resolve remote staging HEAD from the connected GitHub API/connector and compare it with local HEAD before editing. Detect dirty/uncommitted work and check intended file ownership against concurrent agents. If HEAD advanced, re-read affected files and rebase/reconcile safely; no blind force push.
 4. Run a read-only auth/connectivity probe for whichever write transport is actually used. If the shell gets HTTP 403, missing `origin`, or wrong checkout, STOP shell git; use an already-authorized GitHub connector to read/write *explicit* repo+branch when available, checking blob SHA per write. Do not recreate remotes with guessed credentials, exfiltrate tokens, or repeatedly retry 403.
 5. Re-attest branch, exact upstream SHA, scope and diff immediately BEFORE each commit/push. Immediately AFTER, independently re-read committed SHA/branch and CI evidence through GitHub. Dispatch/delegation is not a successful code change. Report `BLOCKED_CHECKOUT` or `BLOCKED_AUTH` with sanitized actual evidence when either path is unavailable.
@@ -155,7 +183,7 @@ Use only as a subordinate rapid prototype. Never replace the canonical Cloudflar
 ### Vercel
 Preview when relevant. Do not replace Cloudflare as canonical runtime.
 
-## WAVE UX rules
+## Unifiend UX rules
 - Connections page = configure/manage.
 - Composer = use capabilities.
 - No fake controls or fake notification dots.

@@ -1,12 +1,12 @@
 # OGE-19 — Actual App Capability Matrix
 
-Canonical scope: `Ogenicchocolate21debug/Build-Platform` / `phase-vi-provider-incentive-metering`.
+Canonical scope: `Ogenicchocolate21debug/Build-Platform` / `Unified-on-Progress`.
 
 This matrix is an evidence-oriented inventory. **Available** does not imply authenticated. **Connected** is used only where the current control surface produced live evidence. No secret values belong in this document or in D1/1LSS.
 
 ## Classification
 
-- `KEEP IN MOBILE` — frequent owner capability worth exposing in WAVE.
+- `KEEP IN MOBILE` — frequent owner capability worth exposing in Unifiend.
 - `MORE` — valid capability, but better behind secondary/admin UI.
 - `HIDDEN` — infrastructure/runtime capability; not a normal end-user app button.
 - `BLOCKED` — unavailable, frozen, partner-gated, or not live-verified.
@@ -27,8 +27,8 @@ This matrix is an evidence-oriented inventory. **Available** does not imply auth
 | Gmail | ChatGPT connector surface available; auth not re-proven here | Potential | Potential | Google OAuth | Native Gmail connector | none | Sending/modifying mail is consequential | KEEP IN MOBILE |
 | Google Calendar | ChatGPT connector surface available; auth not re-proven here | Potential | Potential | Google OAuth | Native Calendar connector | none | Event writes require explicit scoped action | MORE |
 | Figma | Native connector surface available; auth not re-proven here | Potential | Potential | Figma connector/OAuth | Native Figma connector | exported design artifact | Writes only when requested | MORE |
-| Vercel | Native connector surface available; WAVE canonical runtime is Cloudflare | Potential | Potential | Vercel OAuth/token | Native Vercel connector | GitHub/Cloudflare staging | Optional legacy deploy; no production promotion without approval | MORE |
-| Railway | Native connector surface available; not canonical WAVE runtime | Potential | Potential | Railway connector | Native Railway connector | self-host/Cloudflare | Infrastructure mutation is consequential | MORE |
+| Vercel | Native connector surface available; Unifiend canonical runtime is Cloudflare | Potential | Potential | Vercel OAuth/token | Native Vercel connector | GitHub/Cloudflare staging | Optional legacy deploy; no production promotion without approval | MORE |
+| Railway | Native connector surface available; not canonical Unifiend runtime | Potential | Potential | Railway connector | Native Railway connector | self-host/Cloudflare | Infrastructure mutation is consequential | MORE |
 | ClickUp | No current in-scope connector surface in this audit | No verified | No verified | Unknown | None until rediscovered | Linear | Do not infer auth from historical inventory | BLOCKED |
 | n8n | Server-side connector path exists; no native ChatGPT connector required | Potential | Potential | Infisical/Worker secret refs | Direct registered n8n adapter | Direct HTTP/provider adapter | Truthful `LIVE/DEGRADED/QUOTA_BLOCKED/CONFIGURATION_REQUIRED/OFFLINE`; writes approval-gated | MORE |
 | Infisical | OIDC secret injection proved in GitHub Actions, including OGE-28 | Metadata only | Secret delivery only | Machine identity / OIDC | Infisical OIDC | provider-native secret store | Never expose raw values; infrastructure-only | HIDDEN |
@@ -45,7 +45,7 @@ This matrix is an evidence-oriented inventory. **Available** does not imply auth
 4. Provider health must be honest: `LIVE`, `DEGRADED`, `CONFIGURATION_REQUIRED`, `QUOTA_BLOCKED`, `SIMULATED`, `OFFLINE`, or `UNVERIFIED` where appropriate.
 5. Write/execute/dangerous operations require OGE-26 policy/approval and idempotency. Read-only discovery/health may auto-run.
 6. Prefer native connected API/connector -> registered server-side API/MCP adapter -> reusable session -> Browser Run -> human takeover.
-7. No raw token/password/cookie/SSH material in WAVE payloads, model prompts, logs, or 1LSS.
+7. No raw token/password/cookie/SSH material in Unifiend payloads, model prompts, logs, or 1LSS.
 8. Preserve `owner-main / 1LSS_OWNER_MAIN` as canonical input/output evidence line.
 
 ## D1 decision

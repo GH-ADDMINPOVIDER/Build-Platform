@@ -1,8 +1,8 @@
-# WAVE Knowledge Refinery v1
+# Unifiend Knowledge Refinery v1
 
 ## Purpose
 
-Turn external research and debugging experience into verified, reusable WAVE knowledge without creating a second memory system.
+Turn external research and debugging experience into verified, reusable Unifiend knowledge without creating a second memory system.
 
 Canonical lifecycle:
 

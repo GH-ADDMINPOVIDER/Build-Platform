@@ -3,7 +3,7 @@ name: OGE-89 DeepSeek Staging Readiness (Read-Only)
 # Separate from live smoke: NO inference or paid API calls.
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - ".github/workflows/oge-89-deepseek-staging-readiness.yml"
   workflow_dispatch:

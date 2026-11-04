@@ -7,11 +7,11 @@ const sessionId = String(process.env.SESSION_ID ?? "").trim();
 const environmentId = String(process.env.ENVIRONMENT_ID ?? "").trim();
 const stagingUrl = String(process.env.STAGING_URL ?? "https://wave.ogenicchocolate.com").replace(/\/$/, "");
 const resultPath = String(process.env.RESULT_PATH ?? "oge28-selfhost-proof.json");
-const branch = "phase-vi-provider-incentive-metering";
+const branch = "Unified-on-Progress";
 const conversationId = "owner-main";
 const sessionLine = "1LSS_OWNER_MAIN";
 const secretLike = /(sk-[a-z0-9_-]{12,}|gh[pousr]_[a-z0-9]{12,}|bearer\s+[a-z0-9._~+/=-]{12,}|BEGIN (?:RSA|OPENSSH|EC) PRIVATE KEY|(?:password|passwd|secret|token|api[_ -]?key)\s*[:=]\s*\S{6,})/i;
-const safePrefix = /^WAVE_SELFHOST_PROOF_OK(?:\s|$)/m;
+const safePrefix = /^UNIFIEND_SELFHOST_PROOF_OK(?:\s|$)/m;
 
 function requireValue(name, value) {
   if (!value) throw new Error(`CONFIGURATION_REQUIRED:${name}`);
@@ -35,7 +35,7 @@ const prompt = [
   "3. git branch --show-current",
   "4. codex --version",
   "Do not modify files. Do not access secrets. Do not use network tools.",
-  "Return one final line beginning WAVE_SELFHOST_PROOF_OK followed by the four verified values.",
+  "Return one final line beginning UNIFIEND_SELFHOST_PROOF_OK followed by the four verified values.",
 ].join("\n");
 
 const abort = new AbortController();

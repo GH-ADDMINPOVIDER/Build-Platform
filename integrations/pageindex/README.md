@@ -1,4 +1,4 @@
-# OGENIC / WAVE — PageIndex (staging, no LLM)
+# OGENIC / Unifiend — PageIndex (staging, no LLM)
 
 Upstream: [VectifyAI/PageIndex](https://github.com/VectifyAI/PageIndex) · MIT · official Python package `pageindex==0.2.10`.
 

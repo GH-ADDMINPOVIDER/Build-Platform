@@ -2,7 +2,7 @@ name: OGE-28 Executor Diagnostic
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - ".github/workflows/oge-28-executor-diagnostic.yml"
   workflow_dispatch:
@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: phase-vi-provider-incentive-metering
+          ref: Unified-on-Progress
           fetch-depth: 1
 
       - name: Load staging bindings via Infisical OIDC

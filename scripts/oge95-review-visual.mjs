@@ -3,10 +3,10 @@ import {readFileSync,writeFileSync} from "node:fs";
 import {execFileSync} from "node:child_process";
 import {resolve} from "node:path";
 import {fileURLToPath} from "node:url";
-const BRANCH="phase-vi-provider-incentive-metering";
+const BRANCH="Unified-on-Progress";
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 const mapping=[
- [/^(src\/|public\/|index\.html$)/,["WAVE"]],
+ [/^(src\/|public\/|index\.html$)/,["Unifiend"]],
  [/^worker\/(athena|blue-diamond)/,["ATHENA_BLUE"]],
  [/^worker\/(yellow|capability|maop|ccs)/,["YELLOW_MAOP","CCS"]],
  [/^worker\/(violet|agent-task|workflow-engine)/,["VIOLET"]],
@@ -50,8 +50,8 @@ export function svg(report,graph){
  const labels=new Map(graph.nodes.map(n=>[n.id,n.label]));
  const height=145+report.flow.length*91+(report.change_summary?18:0);
  const body=['<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="'+height+'" viewBox="0 0 1040 '+height+'" role="img">',
-  '<title>WAVE source review (not runtime proof)</title><rect width="100%" height="100%" fill="#fff"/>',
-  '<text x="40" y="41" font-family="Arial" font-weight="bold" font-size="24">WAVE REVIEW IMPACT MAP</text>'];
+  '<title>Unifiend source review (not runtime proof)</title><rect width="100%" height="100%" fill="#fff"/>',
+  '<text x="40" y="41" font-family="Arial" font-weight="bold" font-size="24">Unifiend REVIEW IMPACT MAP</text>'];
  if(report.change_summary){const c=report.change_summary;body.push('<text x="40" y="58" font-family="Arial" font-size="13">Diff facts: +'+c.added+' ~'+c.modified+' -'+c.deleted+' type '+c.type_changed+'</text>');}
  report.flow.forEach((id,i)=>{
   const y=(report.change_summary?76:58)+i*91,hit=report.candidate_nodes.includes(id);

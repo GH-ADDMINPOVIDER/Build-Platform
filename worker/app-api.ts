@@ -118,7 +118,7 @@ export function createAppApi() {
         provider: c.env.OGENIC_RUNTIME ?? "cloudflare",
         database: "D1_BOUND",
         git_sha: clean(c.env.OGENIC_GIT_SHA, 80) || "UNPINNED",
-        branch: c.env.OGENIC_GITHUB_BRANCH ?? "phase-vi-provider-incentive-metering",
+        branch: c.env.OGENIC_GITHUB_BRANCH ?? "Unified-on-Progress",
       },
       tasks: tasks.results ?? [],
       task_counts: taskCounts.results ?? [],
@@ -147,7 +147,7 @@ export function createAppApi() {
       runtime_state: state,
       live_tools: live,
       total_tools: tools.length,
-      branch: c.env.OGENIC_GITHUB_BRANCH ?? "phase-vi-provider-incentive-metering",
+      branch: c.env.OGENIC_GITHUB_BRANCH ?? "Unified-on-Progress",
       git_sha: clean(c.env.OGENIC_GIT_SHA, 80) || "UNPINNED",
       note: "GOD MODE is the internal execution contract of OGENIC Phase VI.",
     }, 200, { "Cache-Control": "no-store" });

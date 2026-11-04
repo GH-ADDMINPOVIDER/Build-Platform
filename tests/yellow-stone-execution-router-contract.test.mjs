@@ -28,7 +28,7 @@ test("initial concrete adapter is staging-scoped GitHub read_file with secret gu
   const resolver = read("worker/capability-resolver-api.ts");
   assert.match(resolver, /\('github', 'read_file', 11\)/);
   assert.match(source, /descriptor\.provider_id !== "github" \|\| descriptor\.capability_id !== "read_file"/);
-  assert.match(source, /CANONICAL_STAGING_BRANCH = "phase-vi-provider-incentive-metering"/);
+  assert.match(source, /CANONICAL_STAGING_BRANCH = "Unified-on-Progress"/);
   assert.match(source, /INVALID_OR_SENSITIVE_PATH/);
   assert.match(source, /CONTENT_REDACTED_SECRET_LIKE/);
   assert.doesNotMatch(source, /secret_ref/);

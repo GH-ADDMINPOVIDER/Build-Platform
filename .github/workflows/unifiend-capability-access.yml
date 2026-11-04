@@ -1,0 +1,121 @@
+name: Unifiend Capability Access
+
+on:
+  push:
+    branches: [Unified-on-Progress]
+    paths:
+      - .github/workflows/unifiend-capability-access.yml
+      - scripts/unifiend-capability-access.mjs
+      - scripts/unifiend-host-access.mjs
+      - scripts/unifiend-checkpoint-access.mjs
+      - scripts/unifiend-probe-cleanup.mjs
+      - config/github-provider.json
+      - config/unifiend-host-trust.json
+      - config/unifiend-execution-policy.json
+      - config/unifiend-copilot-modes.json
+      - scripts/unifiend-copilot-modes.py
+      - tests/test_unifiend_copilot_modes.py
+      - tests/unifiend-capability-access.test.mjs
+      - tests/unifiend-host-access.test.mjs
+      - tests/unifiend-checkpoint-access.test.mjs
+      - tests/unifiend-probe-cleanup.test.mjs
+      - scripts/unifiend-console-status.sh
+      - tests/unifiend-console-status.test.mjs
+      - scripts/unifiend-host-binding.py
+      - tests/test_unifiend_host_binding.py
+      - scripts/unifiend-host-cutover.py
+      - scripts/unifiend-codex-plan.py
+      - scripts/unifiend-host-tools.py
+      - scripts/unifiend-opencode.py
+      - scripts/unifiend-saved-tools.mjs
+      - tests/test_unifiend_host_cutover.py
+      - tests/test_unifiend_opencode.py
+      - tests/unifiend-saved-tools.test.mjs
+      - scripts/unifiend-terminal-solo.sh
+      - tests/unifiend-terminal-host-scope.test.mjs
+      - tests/self-host-machine-contract.test.mjs
+      - tests/github-provider-evidence.test.mjs
+      - tests/athena-guarded-command-handoff.test.mjs
+      - scripts/validate_toolkit.py
+      - tests/validate_toolkit_secret_scan_test.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: unifiend-capability-access
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560' && github.ref == 'refs/heads/Unified-on-Progress'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify access and checkpoint boundaries
+        run: node --test tests/github-provider-evidence.test.mjs tests/self-host-machine-contract.test.mjs tests/unifiend-capability-access.test.mjs tests/unifiend-host-access.test.mjs tests/unifiend-checkpoint-access.test.mjs tests/unifiend-probe-cleanup.test.mjs tests/unifiend-console-status.test.mjs tests/unifiend-saved-tools.test.mjs tests/unifiend-terminal-host-scope.test.mjs tests/unifiend-terminal-solo-contract.test.mjs tests/athena-guarded-command-handoff.test.mjs tests/unifiend-consumer-secret-guard.test.mjs
+      - name: Verify the existing host binding reader
+        run: python3 -m unittest discover -s tests -p 'test_unifiend_*.py' -v
+      - name: Verify pinned Copilot package and ACP transports without inference
+        id: copilot_check
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/unifiend-copilot" --no-audit --no-fund @github/copilot@1.0.106-2
+          "$RUNNER_TEMP/unifiend-copilot/node_modules/.bin/copilot" --version
+          python3 - "$RUNNER_TEMP/unifiend-copilot/node_modules/.bin/copilot" "$RUNNER_TEMP" <<'PY'
+          import importlib.util, json, pathlib, subprocess, sys
+          spec = importlib.util.spec_from_file_location('modes', 'scripts/unifiend-copilot-modes.py')
+          modes = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(modes)
+          executable, directory = sys.argv[1:]
+          help_result = subprocess.run([executable, '--help'], env=modes.clean_environment(directory), capture_output=True, text=True, timeout=30)
+          flags = {flag: flag in help_result.stdout for flag in modes.FLAGS}
+          outcomes = {mode: modes.smoke_transport(executable, mode, directory) for mode in ('acp-stdio', 'acp-tcp')}
+          report = {'flags': flags, 'transports': outcomes, 'inference': 'NOT_RUN', 'host_install': 'NOT_APPLIED', 'auth': 'NOT_TESTED'}
+          print(json.dumps(report))
+          pathlib.Path('.unifiend-reports').mkdir(exist_ok=True)
+          pathlib.Path('.unifiend-reports/copilot-modes.json').write_text(json.dumps(report))
+          assert help_result.returncode == 0 and flags['--acp'] and flags['--enable-all-github-mcp-tools'], 'INSTALLED_FLAGS_UNSUPPORTED'
+          assert all(value['state'] == 'INITIALIZE_VERIFIED_NO_INFERENCE' for value in outcomes.values()), 'ACP_TRANSPORT_NOT_VERIFIED'
+          PY
+      - name: Verify the pinned OpenCode package in temporary Cloud storage
+        id: opencode_check
+        continue-on-error: true
+        run: |
+          npm install --prefix "$RUNNER_TEMP/unifiend-opencode" --no-audit --no-fund opencode-ai@1.19.5
+          actual=$("$RUNNER_TEMP/unifiend-opencode/node_modules/.bin/opencode" --version)
+          test "$actual" = '1.19.5'
+          "$RUNNER_TEMP/unifiend-opencode/node_modules/.bin/opencode" serve --help > /dev/null
+      - name: Inspect the existing capability binding
+        env:
+          INFISICAL_IDENTITY_ID: ${{ vars.INFISICAL_IDENTITY_ID || 'b0962d69-bd33-4ac3-b4f4-48589535ca38' }}
+          INFISICAL_ORG_SLUG: ${{ vars.INFISICAL_ORG_SLUG || 'ogenic-sio-r5-nd' }}
+          UNIFIEND_VERIFY_ADMIN_WRITE: 'false'
+          UNIFIEND_INSPECT_HOST: 'true'
+          UNIFIEND_RECORD_CHECKPOINT: 'true'
+          UNIFIEND_CLEANUP_MIGRATION_CHECKS: 'false'
+          UNIFIEND_VERIFY_CONSOLE_SOURCE: 'true'
+          UNIFIEND_INSPECT_SAVED_TOOLS: 'true'
+          UNIFIEND_OPENCODE_PACKAGE_CHECK: ${{ steps.opencode_check.outcome }}
+          UNIFIEND_COPILOT_PACKAGE_CHECK: ${{ steps.copilot_check.outcome }}
+        run: node scripts/unifiend-capability-access.mjs
+      - name: Retain sanitized access result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unifiend-capability-access
+          path: |
+            .unifiend-reports/capability-access.json
+            .unifiend-reports/copilot-modes.json
+          if-no-files-found: ignore
+          retention-days: 7

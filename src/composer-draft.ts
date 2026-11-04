@@ -89,9 +89,9 @@ export class ComposerDraftStore {
 }
 
 export function deviceDraftPersistence(scope: string): DraftPersistence {
-  const textKey = `wave.composer.text.${scope}`;
+  const textKey = `unifiend.composer.text.${scope}`;
   const open = () => new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open("wave-unsent-drafts", 1);
+    const request = indexedDB.open("unifiend-unsent-drafts", 1);
     request.onupgradeneeded = () => { request.result.createObjectStore("drafts"); };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);

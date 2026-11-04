@@ -1,0 +1,92 @@
+name: Unifiend Owner — Ocian-S-Host Terminal & Dual Codex Identity Proof
+on:
+  push:
+    branches: [fix/owner-terminal-runtime-20261017, Unified-on-Progress]
+    paths:
+      - ".github/workflows/unifiend-owner-terminal-auth-proof.yml"
+      - "scripts/owner-terminal-auth-proof.mjs"
+      - "worker/entry-yellow-stone.ts"
+      - "ops/owner-terminal-request.json"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: unifiend-owner-auth-probe-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  terminal-proof:
+    if: github.repository_id == '1429580446' && github.actor == 'GH-ADDMINPOVIDER'
+    runs-on: [self-hosted, linux, x64, wave]
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact source SHA without stored GitHub credentials
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Assert trusted feature branch and self-hosted terminal
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$GITHUB_REF_NAME" in
+            fix/owner-terminal-runtime-20261017|Unified-on-Progress) ;;
+            *) echo 'REF_SCOPE_NOT_ALLOWED'; exit 64 ;;
+          esac
+          test "$RUNNER_NAME" = wave-runner-01
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "TERMINAL_TRANSPORT=GITHUB_ACTIONS_SELFHOSTED"
+      - name: Validate bounded owner request (no arbitrary terminal command)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const r = JSON.parse(readFileSync("ops/owner-terminal-request.json", "utf8"));
+          const good = r.schema === "ogenic.owner.terminal-request.v1"
+            && /^[A-Za-z0-9._-]{8,100}$/.test(r.request_id)
+            && r.operation === "READINESS_AND_BUILD"
+            && r.target === "wave-runner-01"
+            && r.execution === "SEQUENTIAL"
+            && r.no_arbitrary_shell === true && r.no_raw_credentials === true;
+          if (!good) throw new Error("UNAUTHORIZED_TERMINAL_OPERATION");
+          console.log("OWNER_TERMINAL_REQUEST_ACCEPTED="+r.request_id);
+          console.log("OWNER_TERMINAL_OPERATION=READINESS_AND_BUILD");
+          NODE
+      - name: Verify both Codex local identities with sanitized claims
+        shell: bash
+        env:
+          OPENAI_API_KEY: ""
+          CODEX_API_KEY: ""
+        run: |
+          set -euo pipefail
+          node scripts/owner-terminal-auth-proof.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Resolve repository dependencies
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund && npm ci --ignore-scripts --no-audit --no-fund
+      - name: Validate Unifiend Command transport typing
+        run: npm run typecheck
+      - name: Build staging source without any deployment
+        run: npm run build
+      - name: Publish sanitized credential-free evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unifiend-owner-terminal-auth-proof-${{ github.run_id }}
+          path: owner-terminal-auth-proof.json
+          retention-days: 2
+          if-no-files-found: warn
+      - name: Print exact proof scope
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Unifiend Owner Ocian-S-Host Terminal proof"
+            echo "- Source SHA: $GITHUB_SHA"
+            echo "- Runner: $RUNNER_NAME"
+            echo "- Credentials/token contents: not emitted or uploaded"
+            echo "- Verifies local Codex identities only, NOT Codex inference or GitHub secondary login session"
+            echo "- No secrets/Infisical values changed, no deploy, no production/main/Candy changes"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(new URL("../" + path, import.meta.url), "utf8");
 const chat = read("src/UnifiedChat.tsx");
-const wave = read("src/WaveNext.tsx");
+const unifiend = read("src/UnifiendNext.tsx");
 const css = read("src/unified-chat.css");
 
 test("OGE-53 capability dock searches only real runtime-backed execution rows", () => {
@@ -22,12 +22,12 @@ test("connector states are visible without becoming fake execution buttons", () 
   assert.doesNotMatch(chat, /setToolMode\(row\.id as ToolMode\)/);
 });
 
-test("capability navigation targets real WAVE surfaces", () => {
+test("capability navigation targets real Unifiend surfaces", () => {
   assert.match(chat, /href="\/overview\?tab=connections">Manage Connections/);
   assert.match(chat, /href="\/agents">Agents/);
   assert.match(chat, /href="\/overview\?tab=run">Runtime/);
-  assert.match(wave, /URLSearchParams\(window\.location\.search\)/);
-  assert.match(wave, /connections/);
+  assert.match(unifiend, /URLSearchParams\(window\.location\.search\)/);
+  assert.match(unifiend, /connections/);
 });
 
 test("selected capability is explicit and removable before send", () => {

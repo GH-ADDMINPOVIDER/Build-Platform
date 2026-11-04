@@ -28,7 +28,7 @@ const WORKSPACE: WorkspaceGroup[] = [
   {
     name: "00 HOME & INDEX",
     rooms: [
-      { name: "start-here", topic: "OGENIC WAVE workspace guide, operating rules and quick links." },
+      { name: "start-here", topic: "OGENIC Unifiend workspace guide, operating rules and quick links." },
       { name: "announcements", topic: "Owner-approved workspace announcements and important changes." },
       { name: "workspace-index", topic: "Index of projects, docs, task boards, logs and agent lanes." },
     ],
@@ -62,10 +62,10 @@ const WORKSPACE: WorkspaceGroup[] = [
   {
     name: "04 AGENT CONTROL",
     rooms: [
-      { name: "wave-commands", topic: "Owner requests for WAVE/OGENIC. Do not post credentials." },
+      { name: "unifiend-commands", topic: "Owner requests for Unifiend/OGENIC. Do not post credentials." },
       { name: "agent-runs", topic: "Agent execution summaries, run IDs and verified artifacts." },
       { name: "approval-queue", topic: "Actions waiting for explicit owner approval." },
-      { name: "wave-inbox", topic: "Upload images, screenshots, PDFs and files here for WAVE/OGENIC agent review. Add a short context note. Never upload passwords, API keys, bot tokens or other secrets." },
+      { name: "unifiend-inbox", topic: "Upload images, screenshots, PDFs and files here for Unifiend/OGENIC agent review. Add a short context note. Never upload passwords, API keys, bot tokens or other secrets." },
     ],
   },
   {
@@ -108,7 +108,7 @@ async function discordRequest(env: DiscordBindings, path: string, init: RequestI
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const headers = new Headers(init.headers);
     headers.set("Authorization", "Bot " + token);
-    headers.set("User-Agent", "OGENIC-WAVE (https://wave.ogenicchocolate.com, 1.0)");
+    headers.set("User-Agent", "OGENIC-Unifiend (https://wave.ogenicchocolate.com, 1.0)");
     if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
     let response: Response;
@@ -213,7 +213,7 @@ function requestErrorCode(status: number) {
 }
 
 function auditReason() {
-  return encodeURIComponent("Owner-approved OGENIC WAVE workspace setup");
+  return encodeURIComponent("Owner-approved OGENIC Unifiend workspace setup");
 }
 
 export function createDiscordApi() {
@@ -251,7 +251,7 @@ export function createDiscordApi() {
         upstream_status: botResult.status,
         message: invalidToken
           ? "Discord rejected the bot credential. Check DISCORD_TOKEN in Infisical."
-          : "WAVE could not complete a request to the Discord API. Check the upstream status and retry.",
+          : "Unifiend could not complete a request to the Discord API. Check the upstream status and retry.",
       }, 502);
     }
 
@@ -268,7 +268,7 @@ export function createDiscordApi() {
         code: "DISCORD_GUILD_ACCESS_REQUIRED",
         bot,
         guild_id: id,
-        message: "Bot token is valid, but Nika Wave cannot read the configured server. Confirm the bot is a member and can view channels.",
+        message: "Bot token is valid, but Nika Unifiend cannot read the configured server. Confirm the bot is a member and can view channels.",
       }, 200);
     }
 
@@ -381,8 +381,8 @@ export function createDiscordApi() {
         code,
         upstream_status: guildResult.status,
         message: code === "DISCORD_NETWORK_ERROR" || code === "DISCORD_UNSAFE_REDIRECT" || code === "DISCORD_REDIRECT_LOOP"
-          ? "WAVE could not reach the Discord API safely. Retry the connection check."
-          : "Nika Wave cannot access the configured server. Verify the server ID and bot membership.",
+          ? "Unifiend could not reach the Discord API safely. Retry the connection check."
+          : "Nika Unifiend cannot access the configured server. Verify the server ID and bot membership.",
       }, clientStatus(guildResult.status));
     }
 
@@ -446,7 +446,7 @@ export function createDiscordApi() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              content: "OGENIC WAVE workspace initialized. Start in #workspace-index. Use the knowledge rooms for durable notes, project rooms for work, and Operations & Logs for deployment/workflow receipts. Never post API keys, bot tokens, passwords or other secrets in Discord.",
+              content: "OGENIC Unifiend workspace initialized. Start in #workspace-index. Use the knowledge rooms for durable notes, project rooms for work, and Operations & Logs for deployment/workflow receipts. Never post API keys, bot tokens, passwords or other secrets in Discord.",
               allowed_mentions: { parse: [] },
             }),
           });

@@ -4,7 +4,7 @@ name: OGE-89 DeepSeek One-Pass Staging Smoke
 # Push triggers only when this workflow file is added or modified.
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - ".github/workflows/oge-89-deepseek-one-pass-smoke.yml"
   workflow_dispatch:

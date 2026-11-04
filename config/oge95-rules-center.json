@@ -17,8 +17,8 @@
     "technical_checks_retained": ["AUTHENTICATION", "PROVIDER_PERMISSIONS", "STAGING_SCOPE", "ADAPTER_READINESS", "SECRETS", "COST", "IDEMPOTENCY", "EXPIRY"]
   },
   "canonical_paths": {
-    "repository": "Wave-Runner-2/Build-Platform",
-    "branch": "phase-vi-provider-incentive-metering",
+    "repository": "GH-ADDMINPOVIDER/Build-Platform",
+    "branch": "Unified-on-Progress",
     "policy_file": "config/oge95-rules-center.json",
     "operator_guide": "docs/OGE95_RULES_CENTER.md",
     "owner_issue": "https://linear.app/ogenic-sio/issue/OGE-95"
@@ -32,8 +32,8 @@
   "categories": {
     "01_scope_identity": {
       "description": "Where the production line lives; one 1LSS operational state",
-      "branch": "phase-vi-provider-incentive-metering",
-      "repository": "Wave-Runner-2/Build-Platform",
+      "branch": "Unified-on-Progress",
+      "repository": "GH-ADDMINPOVIDER/Build-Platform",
       "issue": "OGE-95",
       "canonical_conversation": "owner-main",
       "session_line": "1LSS_OWNER_MAIN",
@@ -111,7 +111,7 @@
     },
     "06_replica_compute": {
       "description": "Clone app behavior locally, never confuse simulated services with live deployment",
-      "host": "SELF_HOSTED_WAVE_RUNNER_01",
+      "host": "SELF_HOSTED_UNIFIEND_RUNNER_01",
       "runtime": "SAME_COMPILED_WORKER_IN_WORKERD",
       "d1": "LOCAL_SYNTHETIC_ONLY",
       "target": "1:1 measurable tested behavior; full external/edge equivalence unproved",
@@ -478,19 +478,19 @@
         "linear.attach_pr@1"
       ],
       "allowed_repositories": [
-        "Wave-Runner-2/Build-Platform"
+        "GH-ADDMINPOVIDER/Build-Platform"
       ],
       "allowed_linear_projects": []
     },
     "replica": {
       "schema_version": "OGENIC_REPLICA_RUNNER_V1",
-      "name": "WAVE Replica Runner",
+      "name": "Unifiend Replica Runner",
       "target": "0.9:1 local-to-staging operational parity (a goal, not a certified metric)",
-      "job_host": "self-hosted/linux/x64/wave",
+      "job_host": "self-hosted/linux/x64/unifiend",
       "local_runtime": "Cloudflare workerd through Wrangler dev --local",
       "source": {
-        "repository": "Wave-Runner-2/Build-Platform",
-        "branch": "phase-vi-provider-incentive-metering"
+        "repository": "GH-ADDMINPOVIDER/Build-Platform",
+        "branch": "Unified-on-Progress"
       },
       "toolchain": {
         "node": "22",
@@ -518,7 +518,7 @@
       ],
       "deployment_handoff": {
         "workflow": ".github/workflows/provider-incentive-staging-deploy.yml",
-        "ref": "phase-vi-provider-incentive-metering",
+        "ref": "Unified-on-Progress",
         "mode": "OPERATOR_EXPLICIT_DISPATCH_AFTER_PARITY_PROOF",
         "replica_may_dispatch": false
       },
@@ -585,7 +585,7 @@
       "role": "COMPATIBILITY_REFERENCE_NOT_CANONICAL_EDIT_SURFACE"
     },
     "replica": {
-      "path": "infra/replica-runner/replica-manifest.json",
+      "path": "infra/replica-executor/replica-manifest.json",
       "role": "COMPATIBILITY_REFERENCE_NOT_CANONICAL_EDIT_SURFACE"
     },
     "one_line_session": {

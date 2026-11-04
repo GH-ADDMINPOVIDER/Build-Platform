@@ -67,9 +67,9 @@ jobs:
 
           probe_post execute "/api/capabilities/execute"             '{"intent":"OGE-40 runtime isolation read","capability":"read_file","provider":"github","environment":"staging","input":{"path":"tests/athena-guarded-command-handoff.test.mjs"}}'
 
-          probe_post wave "/api/wave/command"             '{"intent":"OGE-40 runtime isolation read","capability":"read_file","provider":"github","environment":"staging","input":{"path":"tests/athena-guarded-command-handoff.test.mjs"}}'
+          probe_post unifiend "/api/unifiend/command"             '{"intent":"OGE-40 runtime isolation read","capability":"read_file","provider":"github","environment":"staging","input":{"path":"tests/athena-guarded-command-handoff.test.mjs"}}'
 
-          probe_post planner "/api/wave/command"             '{"intent":"deploy this"}'
+          probe_post planner "/api/unifiend/command"             '{"intent":"deploy this"}'
 
           probe_post invalid_path "/api/capabilities/execute"             '{"intent":"OGE-40 invalid path control","capability":"read_file","provider":"github","environment":"staging","input":{"path":"../secret"}}'
 
@@ -173,7 +173,7 @@ jobs:
               "interpretation": {
                   "resolve_200_rules_out_resolver_query_for_same_fixture": statuses["resolve"] == 200,
                   "execute_500_after_resolve_200_points_after_resolution": statuses["resolve"] == 200 and statuses["execute"] == 500,
-                  "wave_matches_execute": statuses["wave"] == statuses["execute"],
+                  "unifiend_matches_execute": statuses["wave"] == statuses["execute"],
                   "planner_structured": statuses["planner"] in (409, 422),
                   "invalid_path_structured": statuses["invalid_path"] == 400,
               },
@@ -195,6 +195,6 @@ jobs:
           git add docs/evidence/oge-40-runtime-isolation-latest.json
           git diff --cached --quiet && exit 0
           git commit -m "test(oge-40): capture isolated runtime boundary"
-          git fetch origin phase-vi-provider-incentive-metering
-          git rebase origin/phase-vi-provider-incentive-metering
-          git push origin HEAD:phase-vi-provider-incentive-metering
+          git fetch origin Unified-on-Progress
+          git rebase origin/Unified-on-Progress
+          git push origin HEAD:Unified-on-Progress

@@ -1,13 +1,13 @@
 name: OGENIC Self-host capacity and tool inventory
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths: ['.github/workflows/oge-host-capacity-inventory.yml']
 permissions:
   contents: read
 jobs:
   inventory:
-    if: github.repository == 'Wave-Runner-2/Build-Platform' && github.actor == 'Wave-Runner-2'
+    if: github.repository_id == '1429580446' && github.actor == 'GH-ADDMINPOVIDER'
     runs-on: [self-hosted, linux, x64, wave]
     timeout-minutes: 6
     steps:

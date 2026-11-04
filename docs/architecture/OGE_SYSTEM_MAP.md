@@ -1,10 +1,10 @@
-# OGENIC / WAVE — System Architecture Map
+# OGENIC / Unifiend — System Architecture Map
 
 This is the **human first-view** architecture. It intentionally compresses OGE-1..80+ into functional domains so the control path is visible before implementation detail.
 
 ```mermaid
 flowchart LR
-  WAVE["WAVE / Human Surface"] --> ATHENA["ATHENA + BLUE / Admission & Planning"]
+  Unifiend["Unifiend / Human Surface"] --> ATHENA["ATHENA + BLUE / Admission & Planning"]
   ATHENA --> YELLOW["YELLOW / MA-OP / Execution Authority"]
   YELLOW --> CCS["CCS / Capability · Scope · Lease"]
   CCS --> VIOLET["VIOLET / Multi-Agent · Workflow"]
@@ -33,12 +33,12 @@ flowchart LR
 
 The solid center line is the authority/canonical path:
 
-**WAVE -> ATHENA/BLUE -> YELLOW -> CCS -> VIOLET -> RUBY -> GREEN/1LSS**
+**Unifiend -> ATHENA/BLUE -> YELLOW -> CCS -> VIOLET -> RUBY -> GREEN/1LSS**
 
 Parallel work can fan out under VIOLET, but execution authority does not fan out with it. Results must return through Ruby before canonical promotion.
 
 See:
 - [Functional grouping](./OGE_SYSTEM_GROUPS.md)
 - [Machine-readable edges](./oge-system-edges.json)
-- [WAVE embed contract](./WAVE_EMBED.md)
+- [Unifiend embed contract](./UNIFIEND_EMBED.md)
 - [Standalone SVG](../../public/architecture/oge-system-map.svg)

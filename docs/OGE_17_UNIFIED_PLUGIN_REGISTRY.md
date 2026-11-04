@@ -1,12 +1,12 @@
 # OGE-17 — Unified Plugin / Capability Registry
 
-Canonical repo/branch: `Ogenicchocolate21debug/Build-Platform` / `phase-vi-provider-incentive-metering`.
+Canonical repo/branch: `Ogenicchocolate21debug/Build-Platform` / `Unified-on-Progress`.
 
-This is the implementation handoff and registry policy for WAVE Mobile. It consumes the verified inventory in `docs/OGE_19_ACTUAL_APP_CAPABILITY_MATRIX.md` and reuses existing Yellow Stone / connector contracts rather than introducing another orchestrator.
+This is the implementation handoff and registry policy for Unifiend Mobile. It consumes the verified inventory in `docs/OGE_19_ACTUAL_APP_CAPABILITY_MATRIX.md` and reuses existing Yellow Stone / connector contracts rather than introducing another orchestrator.
 
 ## Canonical invariant
 
-`WAVE → Cloudflare ingress → capability resolver → policy / approval → registered adapter → provider/runtime → verification/evidence → owner-main / 1LSS_OWNER_MAIN`
+`Unifiend → Cloudflare ingress → capability resolver → policy / approval → registered adapter → provider/runtime → verification/evidence → owner-main / 1LSS_OWNER_MAIN`
 
 Installed/available ChatGPT plugins are **execution surfaces**, not canonical memory and not proof of current authorization. D1/1LSS remains canonical state/evidence; raw credentials remain in OAuth/provider stores/Infisical/Worker secrets.
 
@@ -74,17 +74,17 @@ Logical sequence:
 
 The authoritative current per-surface classification is in `docs/OGE_19_ACTUAL_APP_CAPABILITY_MATRIX.md`.
 
-WAVE should show frequently used owner capabilities directly and keep admin/infrastructure surfaces behind `Connections`, `Agent`, `Approvals`, `History`, or secondary sheets. Do not recreate full third-party UIs where opening the real app is more useful.
+Unifiend should show frequently used owner capabilities directly and keep admin/infrastructure surfaces behind `Connections`, `Agent`, `Approvals`, `History`, or secondary sheets. Do not recreate full third-party UIs where opening the real app is more useful.
 
 ## Duplicate / stale paths not to carry forward
 
-- Old `Chat / Work / Live / Apps / More` information architecture is superseded by OGE-31 WAVE NEXT.
+- Old `Chat / Work / Live / Apps / More` information architecture is superseded by OGE-31 Unifiend NEXT.
 - Legacy dashboard-first GM/Cashflow/App Hub framing must not become the capability registry shell.
-- Vercel is optional/legacy for WAVE; Cloudflare remains canonical runtime.
+- Vercel is optional/legacy for Unifiend; Cloudflare remains canonical runtime.
 - n8n is an optional registered adapter, never a mandatory central orchestrator.
 - Native ChatGPT connector plus server-side provider adapter must represent one logical provider capability, not two competing memories/authorities.
 - Historical Candy/Shopify execution remains frozen.
-- Do not revive isolated Control Tower implementations that are not integrated into the canonical WAVE branch.
+- Do not revive isolated Control Tower implementations that are not integrated into the canonical Unifiend branch.
 
 ## D1 / schema decision
 

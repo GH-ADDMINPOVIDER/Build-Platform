@@ -98,6 +98,21 @@ def is_environment_reference(key: str, value: str) -> bool:
 
 
 def looks_like_plaintext_secret(value: str) -> bool:
+    # A mapping lookup reads a runtime value. Accept only a simple variable,
+    # one literal key, and optionally an empty default. A literal dictionary,
+    # nonempty fallback or chained expression can still contain a real secret.
+    try:
+        expression = ast.parse(value.strip().rstrip(","), mode="eval").body
+    except SyntaxError:
+        expression = None
+    if (isinstance(expression, ast.Call) and isinstance(expression.func, ast.Attribute)
+            and isinstance(expression.func.value, ast.Name) and expression.func.attr == "get"
+            and not expression.keywords and 1 <= len(expression.args) <= 2
+            and isinstance(expression.args[0], ast.Constant) and isinstance(expression.args[0].value, str)
+            and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_-]*", expression.args[0].value)
+            and (len(expression.args) == 1 or isinstance(expression.args[1], ast.Constant)
+                 and expression.args[1].value in (None, ""))):
+        return False
     # Connector registries contain lists of environment binding names, not values.
     # Only accept literal lists whose every entry has a recognized binding suffix.
     try:

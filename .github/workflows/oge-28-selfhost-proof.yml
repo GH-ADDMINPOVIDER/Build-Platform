@@ -2,7 +2,7 @@ name: OGE-28 Self-host Runtime Proof
 
 on:
   push:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - ".github/workflows/oge-28-selfhost-proof.yml"
       - "scripts/verify-oge-28-selfhost.mjs"
@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: phase-vi-provider-incentive-metering
+          ref: Unified-on-Progress
           fetch-depth: 1
 
       - name: Load staging proof authorization via Infisical OIDC
@@ -74,7 +74,7 @@ jobs:
             --output "$PREPARED" --write-out '%{http_code}' \
             "${STAGING_URL}/api/openai/selfhost/proof")"
           test "$HTTP_CODE" = "200" || { jq '{ok,code,missing,message}' "$PREPARED"; echo "::error::prepare returned HTTP ${HTTP_CODE}"; exit 1; }
-          jq -e '.ok == true and .verification == "prepared" and .branch == "phase-vi-provider-incentive-metering" and .conversation_id == "owner-main" and .session_line == "1LSS_OWNER_MAIN"' "$PREPARED" >/dev/null
+          jq -e '.ok == true and .verification == "prepared" and .branch == "Unified-on-Progress" and .conversation_id == "owner-main" and .session_line == "1LSS_OWNER_MAIN"' "$PREPARED" >/dev/null
 
           SESSION_ID="$(jq -r '.agent_session_id // empty' "$PREPARED")"
           ENVIRONMENT_ID="$(jq -r '.environment_id // empty' "$PREPARED")"
@@ -110,7 +110,7 @@ jobs:
           echo "::add-mask::$ENVIRONMENT_ID"
           SESSION_ID="$SESSION_ID" ENVIRONMENT_ID="$ENVIRONMENT_ID" RESULT_PATH="oge28-selfhost-proof.json" \
             node scripts/verify-oge-28-selfhost.mjs
-          jq -e '.ok == true and .verification == "verified" and .runner == "wave-runner-01" and .branch == "phase-vi-provider-incentive-metering" and .conversation_id == "owner-main" and .session_line == "1LSS_OWNER_MAIN" and (.evidence_sequence | type == "number") and (.result_sha256 | type == "string" and length == 64)' oge28-selfhost-proof.json >/dev/null
+          jq -e '.ok == true and .verification == "verified" and .runner == "wave-runner-01" and .branch == "Unified-on-Progress" and .conversation_id == "owner-main" and .session_line == "1LSS_OWNER_MAIN" and (.evidence_sequence | type == "number") and (.result_sha256 | type == "string" and length == 64)' oge28-selfhost-proof.json >/dev/null
           echo 'OGE28_REAL_SELFHOST_PROOF_OK'
 
       - name: Publish proof-complete marker and sanitized evidence
@@ -132,7 +132,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: phase-vi-provider-incentive-metering
+          ref: Unified-on-Progress
           fetch-depth: 1
 
       - name: Load restricted executor binding via Infisical OIDC
@@ -161,8 +161,8 @@ jobs:
           codex --version
           codex exec-server --help >/tmp/wave-codex-exec-server-help.txt
           test -s /tmp/wave-codex-exec-server-help.txt
-          test "$(git branch --show-current)" = 'phase-vi-provider-incentive-metering'
-          echo 'WAVE_EXECUTOR_PREREQUISITES_OK'
+          test "$(git branch --show-current)" = 'Unified-on-Progress'
+          echo 'UNIFIEND_EXECUTOR_PREREQUISITES_OK'
 
       - name: Wait for and download ephemeral executor handoff
         shell: bash
@@ -213,7 +213,7 @@ jobs:
           EXEC_PID=$!
           sleep 2
           kill -0 "$EXEC_PID" 2>/dev/null || { echo 'EXECUTOR_FAILED_TO_START'; exit 1; }
-          echo 'WAVE_EXECUTOR_CONNECTED_PROCESS_STARTED'
+          echo 'UNIFIEND_EXECUTOR_CONNECTED_PROCESS_STARTED'
 
           API="https://api.github.com/repos/${GITHUB_REPOSITORY}"
           COMPLETE_ID=''

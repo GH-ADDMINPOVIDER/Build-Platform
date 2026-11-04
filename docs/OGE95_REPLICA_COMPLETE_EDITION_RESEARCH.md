@@ -9,7 +9,7 @@
 - Canonical staging deploy stays in `.github/workflows/provider-incentive-staging-deploy.yml` on `wave-runner-01`. Replica deploy handoff needs explicit `workflow_dispatch` with `deploy_staging=true` and same-HEAD proof; it has **not** been exercised by this research.
 - **Important:** 10/10 chosen surface contracts is *not* certified 90% whole-system operational parity.
 
-## What would make the replica genuinely close to the real WAVE?
+## What would make the replica genuinely close to the real Unifiend?
 
 | Priority | Missing feature | Smallest useful implementation | Verification |
 | --- | --- | --- | --- |
@@ -23,7 +23,7 @@
 ## Proposed complete architecture
 
 ```text
-WAVE / ATHENA  ->  YELLOW / MA-OP (one execution authority)
+Unifiend / ATHENA  ->  YELLOW / MA-OP (one execution authority)
    |
    +-> OGE-95 task envelope (task_id, allowed_operation, source_sha,
    |                         max_wall_clock, idempotency_key, approval_state)

@@ -2,7 +2,7 @@ name: OGE-125 Web + Cafe Read-only Connector Proof
 
 on:
   pull_request:
-    branches: [phase-vi-provider-incentive-metering]
+    branches: [Unified-on-Progress]
     paths:
       - "worker/web-cafe-connector-api.ts"
       - "worker/entry-yellow-stone.ts"
@@ -44,8 +44,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REPOSITORY" = "Wave-Runner-2/Build-Platform"
-          git diff --exit-code "origin/phase-vi-provider-incentive-metering...HEAD" -- database/migrations
+          test "$GITHUB_REPOSITORY_ID" = "1429580446"
+          git diff --exit-code "origin/Unified-on-Progress...HEAD" -- database/migrations
           grep -q '"primary_runtime": "cloudflare"' config/external-resource-capabilities.json
           grep -q 'hasOwnerOrOpsAccess' worker/web-cafe-connector-api.ts
           grep -q 'method: "GET"' worker/web-cafe-connector-api.ts

@@ -1,0 +1,119 @@
+name: Unifiend Self-hosted Runner Smoke
+
+on:
+  push:
+    branches:
+      - Unified-on-Progress
+    paths:
+      - scripts/bootstrap-unifiend-selfhost.sh
+      - scripts/patch-unifiend-domain-nav.py
+      - .github/workflows/unifiend-self-hosted-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  smoke:
+    name: GH-ADDMINPOVIDER smoke
+    runs-on: [GH-ADDMINPOVIDER]
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: Unified-on-Progress
+          fetch-depth: 0
+
+      - name: Apply pending Unifiend domain/navigation patch
+        shell: bash
+        run: |
+          if test -f scripts/patch-unifiend-domain-nav.py; then
+            python3 scripts/patch-unifiend-domain-nav.py
+          fi
+
+      - name: Install Cloudflare cf CLI open beta for runner user
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p "$HOME/.local"
+          npm install -g --prefix "$HOME/.local" cf
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/cf" --version
+          "$HOME/.local/bin/cf" --help >/tmp/wave-cf-help.txt
+          test -s /tmp/wave-cf-help.txt
+
+      - name: Host evidence
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test "$RUNNER_NAME" = "GH-ADDMINPOVIDER"
+          hostname
+          uname -a
+          free -h
+          df -h /
+          git --version
+          gh --version
+          node --version
+          npm --version
+          docker --version
+          wrangler --version
+          cf --version
+          codex --version || true
+
+      - name: Verify OpenAI self-host executor prerequisite
+        shell: bash
+        run: |
+          set -euo pipefail
+          codex exec-server --help >/tmp/wave-codex-exec-server-help.txt
+          test -s /tmp/wave-codex-exec-server-help.txt
+          echo "UNIFIEND_CODEX_EXEC_SERVER_READY"
+
+      - name: Report executor environment-key readiness
+        shell: bash
+        env:
+          OPENAI_EXECUTOR_API_KEY: ${{ secrets.OPENAI_EXECUTOR_API_KEY }}
+        run: |
+          set -euo pipefail
+          if test -n "$OPENAI_EXECUTOR_API_KEY"; then
+            echo "UNIFIEND_OPENAI_EXECUTOR_KEY_STATE=BOUND"
+          else
+            echo "UNIFIEND_OPENAI_EXECUTOR_KEY_STATE=CONFIGURATION_REQUIRED"
+          fi
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Test + typecheck + build
+        run: npm run check
+
+      - name: Verify staging invariants
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test "${GITHUB_REF_NAME}" = "Unified-on-Progress"
+          grep -q 'ogenic-phase-vi-staging' wrangler.jsonc
+          grep -q 'worker/entry-yellow-stone.ts' wrangler.jsonc
+          grep -q 'wave.ogenicchocolate.com' wrangler.jsonc
+          grep -q 'href="/overview"' src/UnifiedChat.tsx
+          grep -q 'Unifiend Chat' src/ControlPlaneV2.tsx
+          cf --version
+          echo "UNIFIEND_SELF_HOSTED_SMOKE_OK"
+
+      - name: Commit verified Unifiend UI/navigation patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git restore .github/workflows/provider-incentive-staging-deploy.yml || true
+          git config user.name "Unifiend Self-host Runner"
+          git config user.email "unifiend-runner@users.noreply.github.com"
+          git add src/UnifiedChat.tsx src/ControlPlaneV2.tsx tests/chat-modes-usage-ui.test.mjs tests/agent-session-runtime-contract.test.mjs
+          if git diff --cached --quiet; then
+            echo "No verified UI patch changes to commit."
+            exit 0
+          fi
+          git commit -m "ui: connect Unifiend chat and dashboard"
+          git fetch origin Unified-on-Progress
+          git rebase origin/Unified-on-Progress
+          git push origin HEAD:Unified-on-Progress

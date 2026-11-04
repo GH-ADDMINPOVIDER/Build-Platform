@@ -3,8 +3,8 @@ import { readConnectorRegistry, type ConnectorBindings } from "./connector-runti
 import { readCanonicalD1Context } from "./d1-context";
 import { readCertificateLincenc } from "./certificate-lincenc-registry";
 
-export const CANONICAL_REPOSITORY = "Wave-Runner-2/Build-Platform";
-export const CANONICAL_BRANCH = "phase-vi-provider-incentive-metering";
+export const CANONICAL_REPOSITORY = "GH-ADDMINPOVIDER/Build-Platform";
+export const CANONICAL_BRANCH = "Unified-on-Progress";
 export const CANONICAL_CONVERSATION = "owner-main";
 export const CANONICAL_SESSION = "1LSS_OWNER_MAIN";
 
