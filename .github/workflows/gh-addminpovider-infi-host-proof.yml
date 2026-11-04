@@ -92,7 +92,8 @@ jobs:
               report["github_infisical_pair"]="PASS"
               stage="existing_host_ssh"
               keys=[x["secretKey"] for x in metadata if x.get("secretKey") in ["SSH_PRIVATE_KEY","SSH_OWNER_KEY"]]
-              passes=[x["secretKey"] for x in metadata if re.fullmatch(r"(?:SSH|HOST_SSH|OCIAN_SSH)_(?:KEY_)?PASSPHRASE",x.get("secretKey",""),re.I)]
+              passes=[x["secretKey"] for x in metadata if re.fullmatch(r"(?:SSH|HOST|OCIAN)[A-Z0-9_-]*PASS_?PHRASE",x.get("secretKey",""),re.I)]
+              report["ssh_reference_names"]=[x["secretKey"] for x in metadata if re.search(r"SSH|PASSPHRASE|PASS_PHRASE",x.get("secretKey",""),re.I)]
               report["ssh_passphrase_reference_present"]=bool(passes)
               remote=(
                   "import os,json,sys,pathlib,subprocess,urllib.request,urllib.parse;"
@@ -135,7 +136,10 @@ jobs:
                               helper.chmod(0o700);env["SSH_ASKPASS"]=str(helper)
                               changed=subprocess.run(["ssh-keygen","-p","-N","","-f",str(key)],env=env,stdin=subprocess.DEVNULL,capture_output=True,timeout=15)
                               if changed.returncode: reasons.append("KEY_PASSPHRASE_REJECTED");continue
-                          else: reasons.append("ENCRYPTED_OR_INVALID_KEY_NO_PASSPHRASE_REFERENCE");continue
+                          else:
+                              detail=derived.stderr.decode(errors="ignore").lower()
+                              reasons.append(name+("=PASSPHRASE_REQUIRED" if "passphrase" in detail or "encrypted" in detail else "=KEY_FORMAT_REJECTED"))
+                              continue
                       cmd=["ssh","-F","/dev/null","-T","-i",str(key),"-o","BatchMode=yes","-o","IdentitiesOnly=yes","-o","StrictHostKeyChecking=yes","-o","UserKnownHostsFile="+str(known),"-o","GlobalKnownHostsFile=/dev/null","-o","ConnectTimeout=12","-o","ConnectionAttempts=1","wave@"+HOST,"python3 -c "+shlex.quote(remote)]
                       out=subprocess.run(cmd,input=json.dumps({"infi":session,"gh":gh})+"\n",text=True,capture_output=True,timeout=75)
                       if out.returncode==0 and "HOST_GITHUB_INFISICAL_PAIR=PASS" in out.stdout:
