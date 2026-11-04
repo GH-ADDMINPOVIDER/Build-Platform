@@ -1,0 +1,148 @@
+name: GH-ADDMINPOVIDER existing runner cutover and OIDC E2E
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/gh-addminpovider-existing-runner-cutover.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: gh-addminpovider-existing-runner-cutover
+  cancel-in-progress: false
+jobs:
+  bind_existing:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 36b5eb61dff2f3cd5a320854afbf5bb746f3b3d5
+          persist-credentials: false
+      - name: Reuse sole existing runner with pinned recovery and busy-work guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.parse,urllib.error,pathlib,subprocess,tempfile,sys,shlex
+          BASE="https://app.infisical.com"
+          PROJECT="e8cfba67-ea99-4d79-bc9f-87b862f9129c"
+          IDENTITY="b0962d69-bd33-4ac3-b4f4-48589535ca38"
+          AUD="https://github.com/GH-ADDMINPOVIDER"
+          def mask(value):
+              for line in str(value).splitlines():
+                  if line:print("::add-mask::"+line,flush=True)
+          def req(url,token=None,data=None):
+              headers={"User-Agent":"GH-ADDMINPOVIDER-existing-host","Accept":"application/json"}
+              if token:headers["Authorization"]="Bearer "+token
+              body=None
+              if data is not None:headers["Content-Type"]="application/json";body=json.dumps(data).encode()
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers=headers,data=body),timeout=25) as r:return json.load(r)
+              except urllib.error.HTTPError as e:raise RuntimeError("HTTP_"+str(e.code)) from None
+          def login():
+              assert os.environ["GITHUB_REPOSITORY_ID"]=="1429580446" and os.environ["GITHUB_REPOSITORY_OWNER_ID"]=="342175560"
+              u=urllib.parse.urlsplit(os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"])
+              assert u.scheme=="https" and u.hostname.endswith(".actions.githubusercontent.com")
+              jwt=req(urllib.parse.urlunsplit(u._replace(query=urllib.parse.urlencode(urllib.parse.parse_qsl(u.query)+[("audience",AUD)]))),os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"])["value"]
+              mask(jwt)
+              token=req(BASE+"/api/v1/auth/oidc-auth/login",data={"identityId":IDENTITY,"jwt":jwt})["accessToken"];mask(token)
+              return token
+          def secret(token,name):
+              q=urllib.parse.urlencode({"projectId":PROJECT,"environment":"staging","secretPath":"/","type":"shared","viewSecretValue":"true","expandSecretReferences":"false"})
+              value=req(BASE+"/api/v4/secrets/"+urllib.parse.quote(name,safe="")+"?"+q,token)["secret"]["secretValue"]
+              mask(value);return value
+          
+          stage="oidc"
+          result={"state":"BLOCKED","host_id":604432491}
+          try:
+              session=login()
+              gh=secret(session,"GH_ADDMINPROVIDER-FINE_GRAINED")
+              assert req("https://api.github.com/user",gh)["id"]==342175560
+              repo=req("https://api.github.com/repositories/1429580446",gh)
+              assert repo["full_name"]=="GH-ADDMINPOVIDER/Build-Platform" and repo["owner"]["id"]==342175560
+              stage="existing_ssh_credential"
+              private=secret(session,"SSH_PRIVATE_KEY").replace("\r\n","\n").strip()
+              if "\n" not in private and "\\n" in private:private=private.replace("\\n","\n")
+              passphrase=secret(session,"SSH_OWNER_KEY")
+              source=pathlib.Path("scripts/unifiend-host-cutover.py").read_text()
+              remote="import sys,json,types,urllib.request,urllib.error,os\nc=json.loads(sys.stdin.read())\nassert os.geteuid()==0\nmodule=types.ModuleType(\"existing_unifiend_cutover\")\nexec(compile(c[\"source\"],\"pinned-unifiend-host-cutover.py\",\"exec\"),module.__dict__)\ndef api(path,method=\"GET\"):\n    allowed=path==\"/user\" or path==\"/repositories/1429580446\" or path.startswith(\"/repos/GH-ADDMINPOVIDER/Build-Platform/actions/runners\")\n    assert allowed and method in [\"GET\",\"POST\"]\n    h={\"Authorization\":\"Bearer \"+c[\"token\"],\"Accept\":\"application/vnd.github+json\",\"User-Agent\":\"GH-ADDMINPOVIDER-existing-cutover\",\"X-GitHub-Api-Version\":\"2022-11-28\"}\n    with urllib.request.urlopen(urllib.request.Request(\"https://api.github.com\"+path,headers=h,method=method),timeout=20) as response:return json.load(response)\npreflight=module.perform_cutover(api,apply=False)\nresult=module.perform_cutover(api,apply=True) if preflight.get(\"ok\") else preflight\nprint(json.dumps(result),flush=True)\nsys.exit(0 if result.get(\"ok\") and result.get(\"state\")==\"PRIMARY_ONLINE\" else 1)\n"
+              with tempfile.TemporaryDirectory(prefix="existing-host-cutover-") as directory:
+                  d=pathlib.Path(directory)
+                  key=d/"key";key.write_text(private+"\n");key.chmod(0o600)
+                  known=d/"known_hosts";known.write_text("165.232.174.32 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPniLMSQKEOYP0M3QKIE7/zcmO6mhIKEV76xFyyaWKFx\n");known.chmod(0o600)
+                  helper=d/"askpass";helper.write_text("#!/usr/bin/env python3\nimport os\nprint(os.environ['EXISTING_HOST_KEY_PASSPHRASE'])\n");helper.chmod(0o700)
+                  env=dict(os.environ,EXISTING_HOST_KEY_PASSPHRASE=passphrase,SSH_ASKPASS=str(helper),SSH_ASKPASS_REQUIRE="force",DISPLAY=":0")
+                  change=subprocess.run(["ssh-keygen","-p","-N","","-f",str(key)],env=env,stdin=subprocess.DEVNULL,capture_output=True,timeout=15)
+                  assert change.returncode==0
+                  stage="existing_root_access"
+                  attempts=[]
+                  for account,prefix in [("root",""),("wave","sudo -n ")]:
+                      cmd=["ssh","-F","/dev/null","-T","-i",str(key),"-o","BatchMode=yes","-o","IdentitiesOnly=yes","-o","StrictHostKeyChecking=yes","-o","UserKnownHostsFile="+str(known),"-o","GlobalKnownHostsFile=/dev/null","-o","ConnectTimeout=12","-o","ConnectionAttempts=1",account+"@165.232.174.32",prefix+"python3 -c "+shlex.quote(remote)]
+                      p=subprocess.run(cmd,input=json.dumps({"source":source,"token":gh}),text=True,capture_output=True,timeout=240)
+                      try:report=json.loads(p.stdout.strip().splitlines()[-1])
+                      except (ValueError,IndexError):report=None
+                      attempts.append({"user":account,"exit_code":p.returncode,"report":report})
+                      if report is not None:
+                          result=report;result["access_user"]=account
+                          break
+                  else:result={"state":"BLOCKED","reason":"EXISTING_ROOT_ACCESS_UNAVAILABLE","attempts":attempts}
+          except Exception as exc:
+              result={"state":"BLOCKED","stage":stage,"reason":str(exc) if isinstance(exc,RuntimeError) else type(exc).__name__}
+          print(json.dumps(result,sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as f:f.write("## Existing runner cutover\n\n~~~json\n"+json.dumps(result,indent=2)+"\n~~~\n")
+          sys.exit(0 if result.get("ok") and result.get("state")=="PRIMARY_ONLINE" else 1)
+          PY
+  prove_existing:
+    needs: bind_existing
+    runs-on: [GH-ADDMINPOVIDER]
+    timeout-minutes: 4
+    steps:
+      - name: Prove GitHub and Infisical OIDC on the existing physical host
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.parse,urllib.error,pathlib,subprocess,tempfile,sys,shlex
+          BASE="https://app.infisical.com"
+          PROJECT="e8cfba67-ea99-4d79-bc9f-87b862f9129c"
+          IDENTITY="b0962d69-bd33-4ac3-b4f4-48589535ca38"
+          AUD="https://github.com/GH-ADDMINPOVIDER"
+          def mask(value):
+              for line in str(value).splitlines():
+                  if line:print("::add-mask::"+line,flush=True)
+          def req(url,token=None,data=None):
+              headers={"User-Agent":"GH-ADDMINPOVIDER-existing-host","Accept":"application/json"}
+              if token:headers["Authorization"]="Bearer "+token
+              body=None
+              if data is not None:headers["Content-Type"]="application/json";body=json.dumps(data).encode()
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers=headers,data=body),timeout=25) as r:return json.load(r)
+              except urllib.error.HTTPError as e:raise RuntimeError("HTTP_"+str(e.code)) from None
+          def login():
+              assert os.environ["GITHUB_REPOSITORY_ID"]=="1429580446" and os.environ["GITHUB_REPOSITORY_OWNER_ID"]=="342175560"
+              u=urllib.parse.urlsplit(os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"])
+              assert u.scheme=="https" and u.hostname.endswith(".actions.githubusercontent.com")
+              jwt=req(urllib.parse.urlunsplit(u._replace(query=urllib.parse.urlencode(urllib.parse.parse_qsl(u.query)+[("audience",AUD)]))),os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"])["value"]
+              mask(jwt)
+              token=req(BASE+"/api/v1/auth/oidc-auth/login",data={"identityId":IDENTITY,"jwt":jwt})["accessToken"];mask(token)
+              return token
+          def secret(token,name):
+              q=urllib.parse.urlencode({"projectId":PROJECT,"environment":"staging","secretPath":"/","type":"shared","viewSecretValue":"true","expandSecretReferences":"false"})
+              value=req(BASE+"/api/v4/secrets/"+urllib.parse.quote(name,safe="")+"?"+q,token)["secret"]["secretValue"]
+              mask(value);return value
+          
+          assert os.environ["RUNNER_NAME"]=="GH-ADDMINPOVIDER"
+          os.environ["PATH"]=str(pathlib.Path.home()/".local/bin")+":/usr/local/bin:"+os.environ["PATH"]
+          p=subprocess.run(["infisical","--version"],capture_output=True,text=True,timeout=15)
+          assert p.returncode==0
+          session=login()
+          gh=secret(session,"GH_ADDMINPROVIDER-FINE_GRAINED")
+          assert req("https://api.github.com/user",gh)["id"]==342175560
+          q=urllib.parse.urlencode({"projectId":PROJECT,"environment":"staging","secretPath":"/","viewSecretValue":"false"})
+          count=len(req(BASE+"/api/v4/secrets?"+q,session)["secrets"])
+          result={"state":"SELF_HOSTED_GITHUB_INFISICAL_E2E_PASS","runner":os.environ["RUNNER_NAME"],"host":os.uname().nodename,"infisical_version":p.stdout.strip(),"staging_secret_count":count}
+          print(json.dumps(result,sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as f:f.write("## Existing-host OIDC E2E\n\n~~~json\n"+json.dumps(result,indent=2)+"\n~~~\n")
+          PY
