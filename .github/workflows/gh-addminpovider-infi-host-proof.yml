@@ -94,7 +94,18 @@ jobs:
               keys=[x["secretKey"] for x in metadata if x.get("secretKey") in ["SSH_PRIVATE_KEY","SSH_OWNER_KEY"]]
               passes=[x["secretKey"] for x in metadata if re.fullmatch(r"(?:SSH|HOST|OCIAN)[A-Z0-9_-]*PASS_?PHRASE",x.get("secretKey",""),re.I)]
               report["ssh_reference_names"]=[x["secretKey"] for x in metadata if re.search(r"SSH|PASSPHRASE|PASS_PHRASE",x.get("secretKey",""),re.I)]
-              report["ssh_passphrase_reference_present"]=bool(passes)
+              report["explicit_passphrase_reference_present"]=bool(passes)
+              if not passes and any(x.get("secretKey")=="SSH_OWNER_KEY" for x in metadata):
+                  passes=["SSH_OWNER_KEY"]
+              report["passphrase_candidate_references"]=passes
+              report["environment_reference_inventory"]={}
+              for env_slug in ["dev","staging","prod"]:
+                  try:
+                      inventory_params=dict(params,environment=env_slug)
+                      inventory=request(BASE+"/api/v4/secrets?"+urllib.parse.urlencode(inventory_params),session)["secrets"]
+                      report["environment_reference_inventory"][env_slug]={"count":len(inventory),"host_references":[{"name":x.get("secretKey"),"path":x.get("secretPath") or x.get("path") or "/"} for x in inventory if re.search(r"SSH|PASSPHRASE|PASS_PHRASE|HOST|TERMUIS|TERMIUS|OCIAN",x.get("secretKey",""),re.I)]}
+                  except RuntimeError as exc:
+                      report["environment_reference_inventory"][env_slug]={"status":str(exc)}
               remote=(
                   "import os,json,sys,pathlib,subprocess,urllib.request,urllib.parse;"
                   "c=json.loads(sys.stdin.readline());"
