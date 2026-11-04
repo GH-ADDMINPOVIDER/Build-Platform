@@ -1,0 +1,27 @@
+name: Claude Yellow Stone bridge validation
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/gh-addminpovider-claude-mcp-validate.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 8d61e1d06a78adcc84e755bdacfbb9911dd169bf
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: OAuth and Yellow Stone execution boundary tests
+        run: node --test tests/claude-yellow-stone-mcp.test.mjs
+      - name: Install pinned repository dependencies
+        run: npm ci
+      - name: Existing repository tests, TypeScript and build
+        run: npm run check
