@@ -115,7 +115,7 @@ jobs:
               jar=http.cookiejar.CookieJar()
               opener=urllib.request.build_opener(NoRedirect(),urllib.request.HTTPCookieProcessor(jar))
               def owner(path,data=None):
-                  headers={"Content-Type":"application/json"}
+                  headers={"Content-Type":"application/json","User-Agent":"GH-ADDMINPOVIDER-owner-sync"}
                   with opener.open(urllib.request.Request("https://wave.ogenicchocolate.com"+path,data=json.dumps(data).encode() if data is not None else None,headers=headers),timeout=25) as response:return json.load(response)
               logged=owner("/api/session",{"owner_key":secret(session,"OWNER_KEY_OPS")})
               assert logged.get("authenticated") and logged.get("user",{}).get("role")=="owner"
