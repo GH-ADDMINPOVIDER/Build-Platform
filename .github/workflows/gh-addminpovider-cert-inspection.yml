@@ -1,0 +1,91 @@
+name: GH-ADDMINPOVIDER certificate runner inspection
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/gh-addminpovider-cert-inspection.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: gh-addminpovider-cert-inspection
+  cancel-in-progress: false
+jobs:
+  inspect:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Read existing host service inventory and primary runner registration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.parse,urllib.error,pathlib,subprocess,tempfile,sys,shlex
+          BASE="https://app.infisical.com"
+          PROJECT="e8cfba67-ea99-4d79-bc9f-87b862f9129c"
+          IDENTITY="b0962d69-bd33-4ac3-b4f4-48589535ca38"
+          AUD="https://github.com/GH-ADDMINPOVIDER"
+          def mask(value):
+              for line in str(value).splitlines():
+                  if line:print("::add-mask::"+line,flush=True)
+          def req(url,token=None,data=None):
+              headers={"User-Agent":"GH-ADDMINPOVIDER-existing-host","Accept":"application/json"}
+              if token:headers["Authorization"]="Bearer "+token
+              body=None
+              if data is not None:headers["Content-Type"]="application/json";body=json.dumps(data).encode()
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers=headers,data=body),timeout=25) as r:return json.load(r)
+              except urllib.error.HTTPError as e:raise RuntimeError("HTTP_"+str(e.code)) from None
+          def login():
+              assert os.environ["GITHUB_REPOSITORY_ID"]=="1429580446" and os.environ["GITHUB_REPOSITORY_OWNER_ID"]=="342175560"
+              u=urllib.parse.urlsplit(os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"])
+              assert u.scheme=="https" and u.hostname.endswith(".actions.githubusercontent.com")
+              jwt=req(urllib.parse.urlunsplit(u._replace(query=urllib.parse.urlencode(urllib.parse.parse_qsl(u.query)+[("audience",AUD)]))),os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"])["value"]
+              mask(jwt)
+              token=req(BASE+"/api/v1/auth/oidc-auth/login",data={"identityId":IDENTITY,"jwt":jwt})["accessToken"];mask(token)
+              return token
+          def secret(token,name):
+              q=urllib.parse.urlencode({"projectId":PROJECT,"environment":"staging","secretPath":"/","type":"shared","viewSecretValue":"true","expandSecretReferences":"false"})
+              value=req(BASE+"/api/v4/secrets/"+urllib.parse.quote(name,safe="")+"?"+q,token)["secret"]["secretValue"]
+              mask(value);return value
+          
+          stage="oidc"
+          result={"operations":"READ_ONLY","cert_status":"HOLD"}
+          try:
+              session=login()
+              gh=secret(session,"GH_ADDMINPROVIDER-FINE_GRAINED")
+              assert req("https://api.github.com/user",gh)["id"]==342175560
+              repo=req("https://api.github.com/repositories/1429580446",gh)
+              assert repo["full_name"]=="GH-ADDMINPOVIDER/Build-Platform" and repo["owner"]["id"]==342175560
+              machines=req("https://api.github.com/repos/GH-ADDMINPOVIDER/Build-Platform/actions/runners?per_page=100",gh)
+              result["github_runners"]=[{"id":r["id"],"name":r["name"],"status":r["status"],"busy":r["busy"],"labels":[l["name"] for l in r.get("labels",[])]} for r in machines["runners"]]
+              stage="host_read_only"
+              private=secret(session,"SSH_PRIVATE_KEY").replace("\r\n","\n").strip()
+              if "\n" not in private and "\\n" in private:private=private.replace("\\n","\n")
+              phrase=secret(session,"SSH_OWNER_KEY")
+              remote="import json,subprocess,pathlib,os,datetime\ndef run(args):\n    return subprocess.check_output(args,text=True,timeout=20)\ninstalled=[line.split()[0] for line in run([\"systemctl\",\"list-unit-files\",\"--no-legend\",\"--no-pager\",\"actions.runner*.service\"]).splitlines() if line.strip()]\nactive=[]\ndetails=[]\nfor unit in installed:\n    raw=run([\"systemctl\",\"show\",unit,\"-p\",\"LoadState\",\"-p\",\"ActiveState\",\"-p\",\"SubState\",\"-p\",\"User\",\"-p\",\"FragmentPath\",\"--no-pager\"])\n    fields=dict(line.split(\"=\",1) for line in raw.splitlines() if \"=\" in line)\n    details.append({\"unit\":unit,**fields})\n    if fields.get(\"ActiveState\")==\"active\" and fields.get(\"SubState\")==\"running\":active.append(unit)\nlisteners=[]\nworkers=[]\nfor comm in pathlib.Path(\"/proc\").glob(\"[0-9]*/comm\"):\n    try:\n        name=comm.read_text().strip()\n        if name not in [\"Runner.Listener\",\"Runner.Worker\"]:continue\n        groups=(comm.parent/\"cgroup\").read_text().splitlines()\n        units=sorted({part for line in groups for part in line.split(\"/\") if part.endswith(\".service\")})\n        item={\"pid\":int(comm.parent.name),\"units\":units}\n        (listeners if name==\"Runner.Listener\" else workers).append(item)\n    except OSError:continue\nold=\"actions.runner.Ogenicchocolate21debug-Build-Platform.wave-runner-01.service\"\nold_fields=dict(line.split(\"=\",1) for line in run([\"systemctl\",\"show\",old,\"-p\",\"LoadState\",\"-p\",\"ActiveState\",\"-p\",\"UnitFileState\",\"--no-pager\"]).splitlines() if \"=\" in line)\nbinding=json.loads(pathlib.Path(\"/opt/wave/actions-runner/.runner\").read_text(encoding=\"utf-8-sig\"))\none=(len(installed)==1 and len(active)==1 and len(listeners)==1 and active[0] in listeners[0][\"units\"] and old_fields.get(\"ActiveState\")!=\"active\")\nresult={\"checked_at\":datetime.datetime.now(datetime.timezone.utc).isoformat(),\"host\":os.uname().nodename,\"installed_runner_services\":details,\"active_runner_service_count\":len(active),\"listener_count\":len(listeners),\"listeners\":listeners,\"worker_count\":len(workers),\"old_service\":old_fields,\"registration\":{\"id\":binding.get(\"agentId\"),\"name\":binding.get(\"agentName\"),\"repository\":binding.get(\"gitHubUrl\")},\"single_runner_service_verified\":one,\"operations\":\"READ_ONLY\"}\nprint(json.dumps(result,sort_keys=True))\nsys_exit=0 if one else 1\nraise SystemExit(sys_exit)\n"
+              with tempfile.TemporaryDirectory(prefix="cert-runner-audit-") as directory:
+                  d=pathlib.Path(directory)
+                  key=d/"identity";key.write_text(private+"\n");key.chmod(0o600)
+                  known=d/"known_hosts";known.write_text("165.232.174.32 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPniLMSQKEOYP0M3QKIE7/zcmO6mhIKEV76xFyyaWKFx\n");known.chmod(0o600)
+                  helper=d/"askpass";helper.write_text("#!/usr/bin/env python3\nimport os\nprint(os.environ['EXISTING_HOST_KEY_PASSPHRASE'])\n");helper.chmod(0o700)
+                  env=dict(os.environ,EXISTING_HOST_KEY_PASSPHRASE=phrase,SSH_ASKPASS=str(helper),SSH_ASKPASS_REQUIRE="force",DISPLAY=":0")
+                  p=subprocess.run(["ssh-keygen","-p","-N","","-f",str(key)],env=env,stdin=subprocess.DEVNULL,capture_output=True,timeout=15)
+                  assert p.returncode==0
+                  command=["ssh","-F","/dev/null","-T","-i",str(key),"-o","BatchMode=yes","-o","IdentitiesOnly=yes","-o","StrictHostKeyChecking=yes","-o","UserKnownHostsFile="+str(known),"-o","GlobalKnownHostsFile=/dev/null","-o","ConnectTimeout=12","root@165.232.174.32","python3 -c "+shlex.quote(remote)]
+                  p=subprocess.run(command,text=True,capture_output=True,timeout=90)
+                  assert p.stdout.strip()
+                  result["host_audit"]=json.loads(p.stdout.strip().splitlines()[-1])
+                  result["inspection_completed"]=p.returncode==0
+                  labels={"self-hosted","linux","x64","wave"}
+                  result["requested_name_labels_match"]=len(machines["runners"])==1 and machines["runners"][0]["name"]=="wave-runner-01" and labels.issubset({l["name"].lower() for l in machines["runners"][0].get("labels",[])})
+                  result["cert_status"]="HOLD_NAME_LABEL_MISMATCH" if not result["requested_name_labels_match"] else "REVIEW_READY"
+          except Exception as exc:
+              result["inspection_completed"]=False
+              result["stage"]=stage
+              result["reason"]=str(exc) if isinstance(exc,RuntimeError) else type(exc).__name__
+          print(json.dumps(result,sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as f:f.write("## Certificate evidence inspection\n\n~~~json\n"+json.dumps(result,indent=2)+"\n~~~\n")
+          sys.exit(0 if result.get("inspection_completed") else 1)
+          PY
