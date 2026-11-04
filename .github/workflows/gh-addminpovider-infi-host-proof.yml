@@ -109,7 +109,7 @@ jobs:
               remote=(
                   "import os,json,sys,pathlib,subprocess,urllib.request,urllib.parse;"
                   "c=json.loads(sys.stdin.readline());"
-                  "os.environ['PATH']=str(pathlib.Path.home()/'.local/bin')+':'+os.environ['PATH'];"
+                  "os.environ['PATH']=str(pathlib.Path.home()/'.local/bin')+':/home/wave/.local/bin:/usr/local/bin:'+os.environ['PATH'];"
                   "p=subprocess.run(['infisical','--version'],capture_output=True,text=True,timeout=15);"
                   "print('HOST_INFISICAL_CLI='+str(p.returncode));"
                   "print('HOST_INFISICAL_VERSION='+p.stdout.strip()[:100]);"
@@ -121,7 +121,7 @@ jobs:
                   "g=json.load(urllib.request.urlopen(urllib.request.Request('https://api.github.com/user',headers={'Authorization':'Bearer '+c['gh'],'User-Agent':'GH-ADDMINPOVIDER'}),timeout=20));"
                   "assert g['id']==342175560;"
                   "print('HOST_GITHUB_INFISICAL_PAIR=PASS');"
-                  "workers=[x for x in pathlib.Path('/proc').glob('[0-9]*/comm') if x.exists() and x.read_text().strip()=='Runner.Worker'];"
+                  "workers=[x for x in subprocess.check_output(['ps','-eo','comm'],text=True).splitlines() if x.strip()=='Runner.Worker'];"
                   "print('ACTIVE_RUNNER_WORKERS='+str(len(workers)));"
                   "binding=pathlib.Path('/opt/wave/actions-runner/.runner');"
                   "b=json.loads(binding.read_text()) if binding.exists() else {};"
@@ -151,11 +151,20 @@ jobs:
                               detail=derived.stderr.decode(errors="ignore").lower()
                               reasons.append(name+("=PASSPHRASE_REQUIRED" if "passphrase" in detail or "encrypted" in detail else "=KEY_FORMAT_REJECTED"))
                               continue
-                      cmd=["ssh","-F","/dev/null","-T","-i",str(key),"-o","BatchMode=yes","-o","IdentitiesOnly=yes","-o","StrictHostKeyChecking=yes","-o","UserKnownHostsFile="+str(known),"-o","GlobalKnownHostsFile=/dev/null","-o","ConnectTimeout=12","-o","ConnectionAttempts=1","wave@"+HOST,"python3 -c "+shlex.quote(remote)]
-                      out=subprocess.run(cmd,input=json.dumps({"infi":session,"gh":gh})+"\n",text=True,capture_output=True,timeout=75)
-                      if out.returncode==0 and "HOST_GITHUB_INFISICAL_PAIR=PASS" in out.stdout:
-                          print(out.stdout)
-                          report["host_pair"]="PASS";success=True;break
+                      report["usable_private_key_reference"]=name
+                      report["host_attempts"]=[]
+                      for account in ["wave","root"]:
+                          cmd=["ssh","-F","/dev/null","-T","-i",str(key),"-o","BatchMode=yes","-o","IdentitiesOnly=yes","-o","StrictHostKeyChecking=yes","-o","UserKnownHostsFile="+str(known),"-o","GlobalKnownHostsFile=/dev/null","-o","ConnectTimeout=12","-o","ConnectionAttempts=1",account+"@"+HOST,"python3 -c "+shlex.quote(remote)]
+                          out=subprocess.run(cmd,input=json.dumps({"infi":session,"gh":gh})+"\n",text=True,capture_output=True,timeout=75)
+                          err=out.stderr.lower()
+                          kind=("SSH_AUTH_REJECTED" if "permission denied" in err else "HOST_KEY_REJECTED" if "host key verification failed" in err else "HOST_TRANSPORT_FAILED" if "timed out" in err or "connection refused" in err else "REMOTE_COMMAND_FAILED")
+                          markers=[x for x in out.stdout.splitlines() if re.fullmatch(r"(?:HOST_INFISICAL_CLI|HOST_INFISICAL_VERSION|HOST_INFISICAL_METADATA_COUNT|HOST_GITHUB_INFISICAL_PAIR|ACTIVE_RUNNER_WORKERS)=[A-Za-z0-9 ._+:/=-]{1,100}",x)]
+                          report["host_attempts"].append({"user":account,"exit_code":out.returncode,"state":"PASS" if out.returncode==0 else kind,"markers":markers,"cli_missing":("filenotfounderror" in err and "infisical" in err)})
+                          if out.returncode==0 and "HOST_GITHUB_INFISICAL_PAIR=PASS" in out.stdout:
+                              for marker in markers: print(marker)
+                              report["host_pair"]="PASS";report["host_user"]=account;success=True;break
+                          if kind!="SSH_AUTH_REJECTED":break
+                      if success:break
                       reasons.append("SSH_OR_REMOTE_CHECK_FAILED")
               if not success:
                   report["host_pair"]="BLOCKED";report["host_reasons"]=reasons or ["SSH_PRIVATE_KEY_REFERENCE_MISSING"]
