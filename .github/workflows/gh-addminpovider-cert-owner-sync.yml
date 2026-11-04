@@ -1,0 +1,108 @@
+name: GH-ADDMINPOVIDER Owner certificate checkpoint sync
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/gh-addminpovider-cert-owner-sync.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: gh-addminpovider-owner-certificate-sync
+  cancel-in-progress: false
+jobs:
+  inspect_existing:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: [GH-ADDMINPOVIDER]
+    timeout-minutes: 4
+    steps:
+      - name: Inspect existing Owner certificate and checkpoint slots
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.parse,urllib.error,pathlib,subprocess,tempfile,sys,shlex
+          BASE="https://app.infisical.com"
+          PROJECT="e8cfba67-ea99-4d79-bc9f-87b862f9129c"
+          IDENTITY="b0962d69-bd33-4ac3-b4f4-48589535ca38"
+          AUD="https://github.com/GH-ADDMINPOVIDER"
+          def mask(value):
+              for line in str(value).splitlines():
+                  if line:print("::add-mask::"+line,flush=True)
+          def req(url,token=None,data=None):
+              headers={"User-Agent":"GH-ADDMINPOVIDER-existing-host","Accept":"application/json"}
+              if token:headers["Authorization"]="Bearer "+token
+              body=None
+              if data is not None:headers["Content-Type"]="application/json";body=json.dumps(data).encode()
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers=headers,data=body),timeout=25) as r:return json.load(r)
+              except urllib.error.HTTPError as e:raise RuntimeError("HTTP_"+str(e.code)) from None
+          def login():
+              assert os.environ["GITHUB_REPOSITORY_ID"]=="1429580446" and os.environ["GITHUB_REPOSITORY_OWNER_ID"]=="342175560"
+              u=urllib.parse.urlsplit(os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"])
+              assert u.scheme=="https" and u.hostname.endswith(".actions.githubusercontent.com")
+              jwt=req(urllib.parse.urlunsplit(u._replace(query=urllib.parse.urlencode(urllib.parse.parse_qsl(u.query)+[("audience",AUD)]))),os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"])["value"]
+              mask(jwt)
+              token=req(BASE+"/api/v1/auth/oidc-auth/login",data={"identityId":IDENTITY,"jwt":jwt})["accessToken"];mask(token)
+              return token
+          def secret(token,name):
+              q=urllib.parse.urlencode({"projectId":PROJECT,"environment":"staging","secretPath":"/","type":"shared","viewSecretValue":"true","expandSecretReferences":"false"})
+              value=req(BASE+"/api/v4/secrets/"+urllib.parse.quote(name,safe="")+"?"+q,token)["secret"]["secretValue"]
+              mask(value);return value
+          
+          import hashlib,http.cookiejar
+          stage="infisical_oidc"
+          report={"mode":"READ_ONLY_DISCOVERY","source_sha":os.environ.get("GITHUB_SHA")}
+          try:
+              session=login()
+              account=secret(session,"CLOUDFLARE_ACCOUNT_ID")
+              token=secret(session,"CLOUDFLARE_API_TOKEN")
+              database="b4ac3a33-df80-47cf-8e75-7574e025b87b"
+              query_url="https://api.cloudflare.com/client/v4/accounts/"+account+"/d1/database/"+database+"/query"
+              def query(sql,params=[]):
+                  d=req(query_url,token,{"sql":sql,"params":params})
+                  assert d["success"] and d["result"][0]["success"]
+                  return d["result"][0]["results"]
+              stage="d1_certificate_read"
+              rows=query("SELECT certificate_id,display_name,environment,document_sha256,document_json,source_commit FROM certificate_lincenc WHERE certificate_id = ?",["oge-128-wave-runner-01-baseline-20261018"])
+              assert len(rows)==1
+              row=rows[0]
+              assert hashlib.sha256(row["document_json"].encode()).hexdigest()==row["document_sha256"]
+              doc=json.loads(row["document_json"])
+              empty=[]
+              arrays=[]
+              def inspect(v,path=""):
+                  if isinstance(v,dict):
+                      for k,x in v.items():inspect(x,path+"/"+k)
+                  elif isinstance(v,list):
+                      arrays.append({"path":path,"length":len(v)})
+                      if not v:empty.append(path)
+                      for i,x in enumerate(v[:20]):
+                          if isinstance(x,(dict,list)):inspect(x,path+"/"+str(i))
+              inspect(doc)
+              report["certificate"]={"id":row["certificate_id"],"hash":row["document_sha256"],"source_commit":row["source_commit"],"top_keys":list(doc),"empty_arrays":empty[:100],"arrays":arrays[:100]}
+              report["certificate_schema"]=query("PRAGMA table_info(certificate_lincenc)")
+              report["checkpoint_schema"]=query("PRAGMA table_info(agent_checkpoints)")
+              report["related_tables"]=query("SELECT name FROM sqlite_master WHERE type='table' AND (name LIKE '%1lss%' OR name LIKE '%athena%' OR name LIKE '%conversation%' OR name LIKE '%checkin%' OR name LIKE '%event%') ORDER BY name LIMIT 30")
+              report["existing_task"]=query("SELECT id FROM agent_tasks WHERE id=?",["wavecmd_386a7dc72f4ab6a08d3335b86352aa14db94fa872a23314b6af48039f9e97cc2"])
+              stage="owner_session"
+              class NoRedirect(urllib.request.HTTPRedirectHandler):
+                  def redirect_request(self,*args,**kwargs):return None
+              jar=http.cookiejar.CookieJar()
+              opener=urllib.request.build_opener(NoRedirect(),urllib.request.HTTPCookieProcessor(jar))
+              def owner(path,data=None):
+                  headers={"Content-Type":"application/json"}
+                  with opener.open(urllib.request.Request("https://wave.ogenicchocolate.com"+path,data=json.dumps(data).encode() if data is not None else None,headers=headers),timeout=25) as response:return json.load(response)
+              logged=owner("/api/session",{"owner_key":secret(session,"OWNER_KEY_OPS")})
+              assert logged.get("authenticated") and logged.get("user",{}).get("role")=="owner"
+              certificate=owner("/api/system/certificate-lincenc")
+              report["owner_certificate"]={"ok":certificate.get("ok"),"integrity":certificate.get("integrity"),"hash":certificate.get("document_sha256")}
+              assert certificate.get("document_sha256")==row["document_sha256"]
+              report["ok"]=True
+          except Exception as exc:
+              report["ok"]=False
+              report["failure"]={"stage":stage,"code":str(exc) if isinstance(exc,RuntimeError) else type(exc).__name__}
+          print(json.dumps(report,sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as f:f.write("## Existing certificate discovery\n\n~~~json\n"+json.dumps(report,indent=2)+"\n~~~\n")
+          sys.exit(0 if report.get("ok") else 1)
+          PY
