@@ -85,6 +85,30 @@ jobs:
               report["checkpoint_schema"]=query("PRAGMA table_info(agent_checkpoints)")
               report["related_tables"]=query("SELECT name FROM sqlite_master WHERE type='table' AND (name LIKE '%1lss%' OR name LIKE '%athena%' OR name LIKE '%conversation%' OR name LIKE '%checkin%' OR name LIKE '%event%') ORDER BY name LIMIT 30")
               report["existing_task"]=query("SELECT id FROM agent_tasks WHERE id=?",["wavecmd_386a7dc72f4ab6a08d3335b86352aa14db94fa872a23314b6af48039f9e97cc2"])
+              stage="d1_append_owner_accepted_evidence"
+              event_id="GH-ADDMINPOVIDER-INFISICAL-HOST-20261104"
+              history=doc.get("evidence_history_additions")
+              assert isinstance(history,list)
+              prior_history=json.loads(json.dumps(history))
+              entry={"checkpoint_id":event_id,"status":"PASS_GREEN","scope":"GitHub Actions OIDC / Infisical staging / existing self-hosted runner","owner_acceptance":"Owner accepted current runner GH-ADDMINPOVIDER and label GH-ADDMINPOVIDER; physical hostname wave-runner-01","repository":"GH-ADDMINPOVIDER/Build-Platform","repository_id":1429580446,"principal_id":342175560,"run_id":41809961986,"job_id":126506617469,"run_url":"https://github.com/GH-ADDMINPOVIDER/Build-Platform/actions/runs/41809961986","job_url":"https://github.com/GH-ADDMINPOVIDER/Build-Platform/actions/runs/41809961986/job/126506617469","workflow_source_sha":"bccc0b60b48b02b4daf02f473fb15caadb1bed00","event":"push","runner_name":"GH-ADDMINPOVIDER","runner_labels":["GH-ADDMINPOVIDER"],"machine_name":"wave-runner-01","runner_registration_id":21,"droplet_id":604432491,"service_audit_run_id":41811274454,"service_audit_job_id":126510849855,"service_audit_at":"2026-11-04T10:00:29.956032Z","installed_services":1,"active_services":1,"listener_processes":1,"worker_processes_at_audit":0,"old_service":"inactive/not-found","github_runner":"online/idle","infisical_cli":"0.43.143","infisical_project_id":"e8cfba67-ea99-4d79-bc9f-87b862f9129c","environment":"staging","secret_metadata_count":46,"owner_cert_v2":"https://docs.google.com/spreadsheets/d/1zYJw3C-9bnIK5CDJ8hN1qjZonAbg51R6GhXLnLcBlRw/edit","previous_document_sha256":row["document_sha256"],"recorded_by_run_id":os.environ["GITHUB_RUN_ID"],"authorization_effect":"none; evidence only; no permission, role, schema or credential changes","boundaries":{"claude_private_repo":"pending GitHub App authorization","mcp_runtime":"not certified","codex_inference":"not certified","railway_n8n":"quota exhausted; independent","athena_owner_api":"HTTP 403 at POST /api/session in run 41842088327; no acknowledgement claimed"}}
+              matching=[e for e in history if isinstance(e,dict) and e.get("checkpoint_id")==event_id]
+              assert len(matching)<=1
+              if not matching:
+                  history.append(entry)
+                  serialized=json.dumps(doc,ensure_ascii=False,separators=(",",":"))
+                  new_hash=hashlib.sha256(serialized.encode()).hexdigest()
+                  query("UPDATE certificate_lincenc SET document_json=?,document_sha256=?,updated_at=CURRENT_TIMESTAMP WHERE certificate_id=? AND document_sha256=?",[serialized,new_hash,row["certificate_id"],row["document_sha256"]])
+                  updated=query("SELECT document_json,document_sha256,source_commit FROM certificate_lincenc WHERE certificate_id=?",[row["certificate_id"]])[0]
+                  assert updated["document_sha256"]==new_hash and hashlib.sha256(updated["document_json"].encode()).hexdigest()==new_hash
+                  after=json.loads(updated["document_json"])
+                  assert after["evidence_history_additions"][:-1]==prior_history
+                  for key in doc:
+                      if key!="evidence_history_additions":assert after[key]==doc[key]
+                  assert updated["source_commit"]==row["source_commit"]
+                  report["d1_write"]={"status":"PASS_GREEN","mode":"append_evidence_CAS","previous_hash":row["document_sha256"],"new_hash":new_hash,"history_before":len(prior_history),"history_after":len(after["evidence_history_additions"]),"old_history_preserved":True,"permissions_unchanged":True}
+                  row["document_sha256"]=new_hash
+              else:
+                  report["d1_write"]={"status":"PASS_GREEN","mode":"already_recorded_no_write","hash":row["document_sha256"]}
               stage="owner_session"
               class NoRedirect(urllib.request.HTTPRedirectHandler):
                   def redirect_request(self,*args,**kwargs):return None
