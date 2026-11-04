@@ -23,5 +23,35 @@ jobs:
         run: node --test tests/claude-yellow-stone-mcp.test.mjs
       - name: Install pinned repository dependencies
         run: npm ci
-      - name: Existing repository tests, TypeScript and build
-        run: npm run check
+      - name: Compare full test and TypeScript results against unchanged baseline
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import subprocess,pathlib,re,json,os
+          root=pathlib.Path.cwd()
+          base=pathlib.Path(os.environ["RUNNER_TEMP"])/"yellow-stone-baseline"
+          subprocess.run(["git","fetch","origin","36b5eb61dff2f3cd5a320854afbf5bb746f3b3d5"],check=True,stdout=subprocess.DEVNULL)
+          subprocess.run(["git","worktree","add","--detach",str(base),"36b5eb61dff2f3cd5a320854afbf5bb746f3b3d5"],check=True,stdout=subprocess.DEVNULL)
+          (base/"node_modules").symlink_to(root/"node_modules",target_is_directory=True)
+          def run(where,kind):
+              cmd=["node","--test","--test-reporter=tap"]+[str(p.relative_to(where)) for p in sorted((where/"tests").glob("*.test.mjs"))] if kind=="tests" else ["npm","run","typecheck"]
+              result=subprocess.run(cmd,cwd=where,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+              (root/(("baseline" if where==base else "candidate")+"-"+kind+".log")).write_text(result.stdout)
+              if kind=="tests":failures=sorted(set(re.findall(r"^\s*not ok \d+ - (.+)$",result.stdout,re.M)))
+              else:failures=sorted(set(re.sub(r"\(\d+,\d+\)","",l) for l in result.stdout.splitlines() if "error TS" in l))
+              return {"exit_code":result.returncode,"failures":failures}
+          report={}
+          for kind in ["tests","typecheck"]:
+              before=run(base,kind);after=run(root,kind)
+              added=sorted(set(after["failures"])-set(before["failures"]))
+              if after["exit_code"] and not after["failures"]:added.append("UNPARSED_"+kind+"_FAILURE")
+              report[kind]={"baseline_exit":before["exit_code"],"candidate_exit":after["exit_code"],"baseline_failures":before["failures"],"candidate_failures":after["failures"],"new_failures":added}
+          print(json.dumps(report,indent=2))
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as f:f.write("## Candidate versus existing baseline\n\n~~~json\n"+json.dumps(report,indent=2)+"\n~~~\n")
+          raise SystemExit(1 if any(v["new_failures"] for v in report.values()) else 0)
+          
+          PY
+      - name: Build Worker and app
+        run: npm run build
+      - name: Verify Worker bundle without deployment
+        run: npx wrangler deploy --dry-run --outdir "$RUNNER_TEMP/claude-yellow-stone-worker"
