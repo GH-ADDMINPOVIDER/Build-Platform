@@ -39,9 +39,11 @@ jobs:
           tok=js(b)["accessToken"]
           q=urllib.parse.urlencode({"workspaceId":PROJECT,"environment":"staging","secretPath":"/","recursive":"true","viewSecretValue":"true"})
           s,b=call(BASE+"/api/v3/secrets/raw?"+q,{"Authorization":"Bearer "+tok})
-          S={x["secretKey"]:x["secretValue"] for x in js(b).get("secrets",[])}
+          ALLOW=("CLOUDFLARE_","VERCEL_ACCESS_TOKEN","LINEAR_API_KEY","OPENAI_API_KEY","OPENAI_EXECUTOR_API_KEY","GEMINI_API_KEY","Api_deepseek_key_operate_1","ANTHROPIC_API_KEY","XAI_API_KEY","NOTION_TOKEN","DISCORD_TOKEN","GH_ADDMINPROVIDER-FINE_GRAINED","N8N_URL","N8N_API_KEY")
+          S={x["secretKey"]:x["secretValue"] for x in js(b).get("secrets",[]) if x["secretKey"].startswith(ALLOW) and "\n" not in (x["secretValue"] or "")}
           for v in S.values():
-              if v: print("::add-mask::"+v)
+              for line in (v or "").splitlines():
+                  if line.strip(): print("::add-mask::"+line.strip())
           def G(*names):
               for n in names:
                   if S.get(n):return S[n]
@@ -52,7 +54,7 @@ jobs:
           for k in sorted(S):
               if k.upper().startswith("CLOUDFLARE") and "TOKEN" in k.upper():
                   c,b=call("https://api.cloudflare.com/client/v4/user/tokens/verify",{"Authorization":"Bearer "+S[k]})
-                  rep("cloudflare verify "+k,c,js(b).get("result",{}).get("status",""))
+                  rep("cloudflare verify "+k,c,(js(b).get("result") or {}).get("status",""))
                   if c==200 and not acct:
                       c2,b2=call("https://api.cloudflare.com/client/v4/accounts",{"Authorization":"Bearer "+S[k]})
                       accs=js(b2).get("result",[]) or []
@@ -76,5 +78,5 @@ jobs:
           t=G("GH_ADDMINPROVIDER-FINE_GRAINED"); t and rep("github_fine_grained",call("https://api.github.com/user",{"Authorization":"Bearer "+t})[0])
           n8u,n8k=G("N8N_URL"),G("N8N_API_KEY")
           if n8u and n8k: rep("n8n",call(n8u.rstrip("/")+"/api/v1/workflows?limit=1",{"X-N8N-API-KEY":n8k})[0])
-          print("DO/digitalocean secret names:",",".join(k for k in S if "DIGITAL" in k.upper() or k.upper().startswith("DO_")) or "none")
+          
           PY
