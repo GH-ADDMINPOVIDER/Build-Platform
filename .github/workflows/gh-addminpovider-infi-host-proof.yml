@@ -91,7 +91,7 @@ jobs:
               assert repo["owner"]["id"]==342175560 and repo["full_name"]=="GH-ADDMINPOVIDER/Build-Platform"
               report["github_infisical_pair"]="PASS"
               stage="existing_host_ssh"
-              keys=[x["secretKey"] for x in metadata if x.get("secretKey") in ["SSH_PRIVATE_KEY","SSH_OWNER_KEY"]]
+              keys=[x["secretKey"] for x in metadata if x.get("secretKey")=="SSH_PRIVATE_KEY"]
               passes=[x["secretKey"] for x in metadata if re.fullmatch(r"(?:SSH|HOST|OCIAN)[A-Z0-9_-]*PASS_?PHRASE",x.get("secretKey",""),re.I)]
               report["ssh_reference_names"]=[x["secretKey"] for x in metadata if re.search(r"SSH|PASSPHRASE|PASS_PHRASE",x.get("secretKey",""),re.I)]
               report["explicit_passphrase_reference_present"]=bool(passes)
@@ -106,27 +106,7 @@ jobs:
                       report["environment_reference_inventory"][env_slug]={"count":len(inventory),"host_references":[{"name":x.get("secretKey"),"path":x.get("secretPath") or x.get("path") or "/"} for x in inventory if re.search(r"SSH|PASSPHRASE|PASS_PHRASE|HOST|TERMUIS|TERMIUS|OCIAN",x.get("secretKey",""),re.I)]}
                   except RuntimeError as exc:
                       report["environment_reference_inventory"][env_slug]={"status":str(exc)}
-              remote=(
-                  "import os,json,sys,pathlib,subprocess,urllib.request,urllib.parse;"
-                  "c=json.loads(sys.stdin.readline());"
-                  "os.environ['PATH']=str(pathlib.Path.home()/'.local/bin')+':/home/wave/.local/bin:/usr/local/bin:'+os.environ['PATH'];"
-                  "p=subprocess.run(['infisical','--version'],capture_output=True,text=True,timeout=15);"
-                  "print('HOST_INFISICAL_CLI='+str(p.returncode));"
-                  "print('HOST_INFISICAL_VERSION='+p.stdout.strip()[:100]);"
-                  "assert p.returncode==0;"
-                  "h={'Authorization':'Bearer '+c['infi']};"
-                  "q=urllib.parse.urlencode({'projectId':'"+PROJECT+"','environment':'staging','secretPath':'/','viewSecretValue':'false'});"
-                  "r=json.load(urllib.request.urlopen(urllib.request.Request('"+BASE+"/api/v4/secrets?'+q,headers=h),timeout=20));"
-                  "print('HOST_INFISICAL_METADATA_COUNT='+str(len(r['secrets'])));"
-                  "g=json.load(urllib.request.urlopen(urllib.request.Request('https://api.github.com/user',headers={'Authorization':'Bearer '+c['gh'],'User-Agent':'GH-ADDMINPOVIDER'}),timeout=20));"
-                  "assert g['id']==342175560;"
-                  "print('HOST_GITHUB_INFISICAL_PAIR=PASS');"
-                  "workers=[x for x in subprocess.check_output(['ps','-eo','comm'],text=True).splitlines() if x.strip()=='Runner.Worker'];"
-                  "print('ACTIVE_RUNNER_WORKERS='+str(len(workers)));"
-                  "binding=pathlib.Path('/opt/wave/actions-runner/.runner');"
-                  "b=json.loads(binding.read_text()) if binding.exists() else {};"
-                  "print('RUNNER_BINDING='+json.dumps({k:b.get(k) for k in ['agentName','gitHubUrl']}));"
-              )
+              remote="import os,json,sys,pathlib,subprocess,urllib.request,urllib.parse\nc=json.loads(sys.stdin.readline())\nos.environ[\"PATH\"]=str(pathlib.Path.home()/\".local/bin\")+\":/home/wave/.local/bin:/usr/local/bin:\"+os.environ[\"PATH\"]\np=subprocess.run([\"infisical\",\"--version\"],capture_output=True,text=True,timeout=15)\nprint(\"HOST_INFISICAL_CLI=\"+str(p.returncode))\nprint(\"HOST_INFISICAL_VERSION=\"+p.stdout.strip()[:100])\nassert p.returncode==0\nq=urllib.parse.urlencode({\"projectId\":\"e8cfba67-ea99-4d79-bc9f-87b862f9129c\",\"environment\":\"staging\",\"secretPath\":\"/\",\"viewSecretValue\":\"false\"})\nr=json.load(urllib.request.urlopen(urllib.request.Request(\"https://app.infisical.com/api/v4/secrets?\"+q,headers={\"Authorization\":\"Bearer \"+c[\"infi\"]}),timeout=20))\nprint(\"HOST_INFISICAL_METADATA_COUNT=\"+str(len(r[\"secrets\"])))\ng=json.load(urllib.request.urlopen(urllib.request.Request(\"https://api.github.com/user\",headers={\"Authorization\":\"Bearer \"+c[\"gh\"],\"User-Agent\":\"GH-ADDMINPOVIDER\"}),timeout=20))\nassert g[\"id\"]==342175560\nprint(\"HOST_GITHUB_INFISICAL_PAIR=PASS\")\nworkers=[x for x in subprocess.check_output([\"ps\",\"-eo\",\"comm\"],text=True).splitlines() if x.strip()==\"Runner.Worker\"]\nprint(\"ACTIVE_RUNNER_WORKERS=\"+str(len(workers)))\nbinding=pathlib.Path(\"/opt/wave/actions-runner/.runner\")\ntry:\n    b=json.loads(binding.read_text(encoding=\"utf-8-sig\")) if binding.exists() else {\"state\":\"NOT_PRESENT\"}\n    state={k:b.get(k) for k in [\"agentName\",\"gitHubUrl\",\"state\"] if k in b}\n    print(\"HOST_RUNNER_BINDING=\"+json.dumps(state))\nexcept (OSError,ValueError) as exc:\n    print(\"HOST_RUNNER_BINDING=\"+json.dumps({\"state\":\"READ_UNAVAILABLE\",\"reason\":type(exc).__name__}))\nmatches=[]\nfor item in pathlib.Path(\"/proc\").glob(\"[0-9]*/comm\"):\n    try:\n        pid=int(item.parent.name)\n        name=item.read_text().strip()\n        if pid==os.getpid() or not (name.startswith(\"node\") or name.startswith(\"python\") or name in [\"mcpjungle\",\"uvx\",\"uv\"]):continue\n        args=(item.parent/\"cmdline\").read_bytes().lower()\n        if b\"mcp\" in args or b\"ogenic-control-tower\" in args:\n            matches.append({\"pid\":pid,\"process\":name})\n    except (OSError,ValueError):continue\nprint(\"HOST_MCP_MATCHED_PROCESSES=\"+json.dumps(matches))\n"
               import shlex
               success=False
               reasons=[]
@@ -162,7 +142,9 @@ jobs:
                           report["host_attempts"].append({"user":account,"exit_code":out.returncode,"state":"PASS" if out.returncode==0 else kind,"markers":markers,"cli_missing":("filenotfounderror" in err and "infisical" in err)})
                           if out.returncode==0 and "HOST_GITHUB_INFISICAL_PAIR=PASS" in out.stdout:
                               for marker in markers: print(marker)
-                              report["host_pair"]="PASS";report["host_user"]=account;success=True;break
+                              report["host_pair"]="PASS";report["host_user"]=account
+                              report["host_diagnostics"]=[x for x in out.stdout.splitlines() if x.startswith(("HOST_RUNNER_BINDING=","HOST_MCP_MATCHED_PROCESSES="))]
+                              success=True;break
                           if kind!="SSH_AUTH_REJECTED":break
                       if success:break
                       reasons.append("SSH_OR_REMOTE_CHECK_FAILED")
