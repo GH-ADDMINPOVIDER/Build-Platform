@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 8d61e1d06a78adcc84e755bdacfbb9911dd169bf
+          ref: 28c7233ad77068094803bd816ee8d17185352f7e
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -36,7 +36,7 @@ jobs:
           print("VALIDATED_SOURCE_8d61e1d06a78adcc84e755bdacfbb9911dd169bf")
           PY
       - name: Build validated source
-        run: npm ci && npm run build
+        run: npm ci && node --test tests/claude-yellow-stone-mcp.test.mjs && npm run typecheck && npm run build
       - name: Resolve existing credentials and apply only MCP OAuth state migration
         shell: bash
         run: |
@@ -74,9 +74,10 @@ jobs:
           base="https://api.cloudflare.com/client/v4/accounts/"+account
           s,_,j=request(base+"/workers/scripts/ogenic-phase-vi-staging/deployments",cf);assert s==200 and j["success"]
           old=j["result"]["deployments"][0]["versions"]
-          assert old==[{"version_id":"b01d9a44-54d6-42cf-bc4a-126a51216feb","percentage":100}], "Worker changed since readiness proof"
+          assert len(old)==1 and old[0]["percentage"]==100, "Unexpected split deployment"
           s,_,j=request(base+"/workers/scripts/ogenic-phase-vi-staging/settings",cf);assert s==200 and j["success"]
           provenance={x["name"]:x.get("text") for x in j["result"].get("bindings",[]) if x.get("name") in ["OGENIC_GIT_SHA","OGENIC_GITHUB_BRANCH","OGENIC_GITHUB_REPO"]}
+          assert provenance.get("OGENIC_GIT_SHA")=="8d61e1d06a78adcc84e755bdacfbb9911dd169bf", "Worker source changed; reconcile before deploy"
           print(json.dumps({"previous_versions":old,"previous_provenance":provenance}))
           import pathlib,subprocess
           config=json.loads(pathlib.Path("wrangler.jsonc").read_text())
@@ -91,7 +92,7 @@ jobs:
           
           PY
       - name: Deploy existing staging Worker
-        run: npx wrangler deploy --keep-vars --name ogenic-phase-vi-staging --var OGENIC_GIT_SHA:8d61e1d06a78adcc84e755bdacfbb9911dd169bf --var OGENIC_GITHUB_BRANCH:Unified-on-Progress --var OGENIC_GITHUB_REPO:GH-ADDMINPOVIDER/Build-Platform
+        run: npx wrangler deploy --keep-vars --name ogenic-phase-vi-staging --var OGENIC_GIT_SHA:28c7233ad77068094803bd816ee8d17185352f7e --var OGENIC_GITHUB_BRANCH:Unified-on-Progress --var OGENIC_GITHUB_REPO:GH-ADDMINPOVIDER/Build-Platform
       - name: Verify live OAuth metadata and protected MCP
         shell: bash
         run: |
