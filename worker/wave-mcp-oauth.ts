@@ -180,7 +180,7 @@ function parseClientRow(row: ClientRow): OAuthClient | null {
 
 async function resolveClient(env: WaveMcpOAuthBindings, clientId: string): Promise<OAuthClient | null> {
   if (!clientId || clientId.length > 1800) return null;
-  if (OAUTH_CLIENT_URL.test(clientId)) {
+  if (OAUTH_CLIENT_URL.test(clientId) || clientId === "https://claude.ai/oauth/mcp-oauth-client-metadata") {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 4000);

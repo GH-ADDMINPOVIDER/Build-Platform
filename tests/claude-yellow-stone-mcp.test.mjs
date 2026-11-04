@@ -125,4 +125,24 @@ test('unauthorized discovery challenges OAuth; cross-origin consent cannot grant
   } finally { f.sql.close(); }
 });
 
+test('Claude published CIMD identity is supported without fetching arbitrary client URLs', async () => {
+  const f = fixture();
+  const originalFetch = globalThis.fetch;
+  const clientId = 'https://claude.ai/oauth/mcp-oauth-client-metadata';
+  const redirect = 'https://claude.ai/api/mcp/auth_callback';
+  let fetches = 0;
+  globalThis.fetch = async (url, options) => {
+    fetches++; assert.equal(url, clientId); assert.equal(options.redirect, 'error');
+    return Response.json({ client_id: clientId, client_name: 'Claude', redirect_uris: [redirect], token_endpoint_auth_method: 'none' });
+  };
+  try {
+    const params = new URLSearchParams({ response_type: 'code', client_id: clientId, redirect_uri: redirect, resource, scope: allScopes, state: 'fixture', code_challenge: hash('x'.repeat(64)), code_challenge_method: 'S256' });
+    const response = await handleWaveOAuth(new Request(origin + '/oauth/authorize?' + params, { headers: { Cookie: 'ogenic_owner_session=' + f.owner } }), f.env);
+    assert.equal(response.status, 200); assert.ok((await response.text()).includes('Requested WAVE access')); assert.equal(fetches, 1);
+    params.set('client_id', 'https://untrusted.example/client.json');
+    assert.equal((await handleWaveOAuth(new Request(origin + '/oauth/authorize?' + params), f.env)).status, 400);
+    assert.equal(fetches, 1);
+  } finally { globalThis.fetch = originalFetch; f.sql.close(); }
+});
+
 process.on('exit', () => { void rm(temp, { recursive: true, force: true }); });
