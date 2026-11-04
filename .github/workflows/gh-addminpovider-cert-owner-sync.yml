@@ -95,13 +95,14 @@ jobs:
                   with opener.open(urllib.request.Request("https://wave.ogenicchocolate.com"+path,data=json.dumps(data).encode() if data is not None else None,headers=headers),timeout=25) as response:return json.load(response)
               logged=owner("/api/session",{"owner_key":secret(session,"OWNER_KEY_OPS")})
               assert logged.get("authenticated") and logged.get("user",{}).get("role")=="owner"
+              stage="owner_certificate_read"
               certificate=owner("/api/system/certificate-lincenc")
               report["owner_certificate"]={"ok":certificate.get("ok"),"integrity":certificate.get("integrity"),"hash":certificate.get("document_sha256")}
               assert certificate.get("document_sha256")==row["document_sha256"]
               report["ok"]=True
           except Exception as exc:
               report["ok"]=False
-              report["failure"]={"stage":stage,"code":str(exc) if isinstance(exc,RuntimeError) else type(exc).__name__}
+              report["failure"]={"stage":stage,"code":str(exc) if isinstance(exc,RuntimeError) else type(exc).__name__,"http_status":getattr(exc,"code",None)}
           print(json.dumps(report,sort_keys=True))
           with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as f:f.write("## Existing certificate discovery\n\n~~~json\n"+json.dumps(report,indent=2)+"\n~~~\n")
           sys.exit(0 if report.get("ok") else 1)
