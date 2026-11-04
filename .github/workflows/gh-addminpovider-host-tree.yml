@@ -1,0 +1,26 @@
+name: GH-ADDMINPOVIDER Host Tree (read-only, names and sizes only)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tree:
+    runs-on: [GH-ADDMINPOVIDER]
+    timeout-minutes: 15
+    steps:
+      - name: Directory names and sizes (no file contents)
+        shell: bash
+        run: |
+          set +e
+          for R in /opt/wave /home/wave; do
+            echo "#### $R"
+            du -h --max-depth=2 "$R" 2>/dev/null | sort -rh | head -40
+            echo "-- top-level entries"; ls -A "$R" 2>/dev/null | head -60
+          done
+          echo "#### secret-like file NAMES (count only)"
+          find /opt/wave /home/wave -xdev \( -name '.env*' -o -name '*.pem' -o -name 'id_*' -o -name '*.key' -o -name 'credentials*' \) 2>/dev/null | wc -l
+          echo "#### git repos"; find /opt/wave /home/wave -xdev -maxdepth 4 -name .git -type d 2>/dev/null | head -20
+          echo "#### ollama models"; ollama list 2>&1 | head -15
+          echo "#### nginx sites (names)"; ls /etc/nginx/sites-enabled /etc/nginx/conf.d 2>/dev/null
+          echo "#### largest files (name+size)"; find /opt/wave /home/wave -xdev -type f -size +200M -printf '%s %p\n' 2>/dev/null | sort -rn | head -10
+          exit 0
