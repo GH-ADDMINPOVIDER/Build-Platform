@@ -1,0 +1,23 @@
+name: GH-ADDMINPOVIDER adapter git check (read-only)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: [GH-ADDMINPOVIDER]
+    timeout-minutes: 5
+    steps:
+      - name: git state of ogenic-command-adapter (no contents, creds stripped)
+        shell: bash
+        run: |
+          set +e
+          cd /home/wave/ogenic-command-adapter || exit 0
+          echo "branch: $(git branch --show-current)"
+          echo "remotes:"; git remote -v | sed -E 's#//[^@/]*@#//***@#' | awk '{print $1,$2}' | sort -u
+          echo "uncommitted files: $(git status --porcelain | wc -l)"; git status --porcelain | head -20
+          echo "stash entries: $(git stash list | wc -l)"
+          echo "local branches:"; git branch -vv | cut -c1-150 | head -15
+          echo "commits not on any remote: $(git log --branches --not --remotes --oneline | wc -l)"; git log --branches --not --remotes --oneline | head -10
+          echo "last commits:"; git log -5 --format='%h %ad %s' --date=short | cut -c1-120
+          exit 0

@@ -72,7 +72,9 @@ jobs:
           t=G("GEMINI_API_KEY");       t and rep("gemini",call("https://generativelanguage.googleapis.com/v1beta/models?key="+t)[0])
           t=G("Api_deepseek_key_operate_1"); t and rep("deepseek",call("https://api.deepseek.com/models",{"Authorization":"Bearer "+t})[0])
           t=G("ANTHROPIC_API_KEY");    t and rep("anthropic",call("https://api.anthropic.com/v1/models",{"x-api-key":t,"anthropic-version":"2023-06-01"})[0])
-          t=G("XAI_API_KEY");          t and rep("xai",call("https://api.x.ai/v1/models",{"Authorization":"Bearer "+t})[0])
+          t=G("XAI_API_KEY")
+          if t:
+              c,b=call("https://api.x.ai/v1/models",{"Authorization":"Bearer "+t}); d=js(b); rep("xai",c,"code="+str(d.get("code"))[:40]+" keylen="+str(len(t))+" prefix_ok="+str(t.startswith("xai-")))
           t=G("NOTION_TOKEN");         t and rep("notion",call("https://api.notion.com/v1/users/me",{"Authorization":"Bearer "+t,"Notion-Version":"2022-06-28"})[0])
           t=G("DISCORD_TOKEN");        t and rep("discord",call("https://discord.com/api/v10/users/@me",{"Authorization":"Bot "+t})[0])
           t=G("GH_ADDMINPROVIDER-FINE_GRAINED"); t and rep("github_fine_grained",call("https://api.github.com/user",{"Authorization":"Bearer "+t})[0])
