@@ -1,0 +1,118 @@
+name: Claude Yellow Stone live execution proof
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/gh-addminpovider-claude-mcp-proof.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  prove:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: [GH-ADDMINPOVIDER]
+    timeout-minutes: 6
+    steps:
+      - name: Reconcile existing provider binding and prove OAuth MCP execution
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.parse,urllib.error
+          def mask(v):
+              for s in str(v).splitlines():
+                  if s: print("::add-mask::"+s,flush=True)
+          def request(url,token=None,data=None,headers=None):
+              h={"User-Agent":"GH-ADDMINPOVIDER-Claude-MCP-proof","Accept":"application/json"}
+              h.update(headers or {})
+              if token:h["Authorization"]="Bearer "+token
+              body=None
+              if data is not None:h["Content-Type"]="application/json";body=json.dumps(data).encode()
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers=h,data=body),timeout=25) as r:
+                      raw=r.read(); status=r.status; ct=r.headers.get("content-type","")
+              except urllib.error.HTTPError as e: raw=e.read();status=e.code;ct=e.headers.get("content-type","")
+              try: value=json.loads(raw)
+              except: value={}
+              return status,ct,value
+          assert os.environ["GITHUB_REPOSITORY_ID"]=="1429580446"
+          assert os.environ["GITHUB_REPOSITORY_OWNER_ID"]=="342175560"
+          oidc=os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"]+"&audience="+urllib.parse.quote("https://github.com/GH-ADDMINPOVIDER",safe="")
+          s,_,j=request(oidc,os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]);assert s==200
+          jwt=j["value"];mask(jwt)
+          s,_,j=request("https://app.infisical.com/api/v1/auth/oidc-auth/login",data={"identityId":"b0962d69-bd33-4ac3-b4f4-48589535ca38","jwt":jwt});assert s==200
+          session=j["accessToken"];mask(session)
+          def secret(name):
+              q=urllib.parse.urlencode({"projectId":"e8cfba67-ea99-4d79-bc9f-87b862f9129c","environment":"staging","secretPath":"/","type":"shared","viewSecretValue":"true","expandSecretReferences":"false"})
+              s,_,j=request("https://app.infisical.com/api/v4/secrets/"+urllib.parse.quote(name,safe="")+"?"+q,session);assert s==200
+              v=j["secret"]["secretValue"];mask(v);return v
+          
+          import pathlib,hashlib,secrets,http.cookiejar
+          account=secret("CLOUDFLARE_ACCOUNT_ID");cf=secret("CLOUDFLARE_API_TOKEN")
+          base="https://api.cloudflare.com/client/v4/accounts/"+account
+          s,_,j=request(base+"/workers/scripts/ogenic-phase-vi-staging/settings",cf);assert s==200 and j["success"]
+          vars={x["name"]:x.get("text") for x in j["result"].get("bindings",[]) if x.get("name") in ["OGENIC_GIT_SHA","OGENIC_GITHUB_BRANCH","OGENIC_GITHUB_REPO"]}
+          assert vars.get("OGENIC_GIT_SHA")=="8d61e1d06a78adcc84e755bdacfbb9911dd169bf"
+          origin="https://wave.ogenicchocolate.com"; resource=origin+"/mcp"
+          report={"source_sha":vars.get("OGENIC_GIT_SHA"),"repo":vars.get("OGENIC_GITHUB_REPO"),"branch":vars.get("OGENIC_GITHUB_BRANCH")}
+          for path in ["/.well-known/oauth-protected-resource/mcp","/.well-known/oauth-authorization-server"]:
+              s,ct,j=request(origin+path);assert s==200 and "application/json" in ct
+              report[path]={"status":s,"scopes_supported":j.get("scopes_supported")}
+          gh=secret("GH_ADDMINPROVIDER-FINE_GRAINED")
+          s,_,j=request("https://api.github.com/user",gh);assert s==200 and j["id"]==342175560
+          report["github_binding_principal"]={"id":j["id"],"login":j["login"]}
+          req=urllib.request.Request(base+"/workers/scripts/ogenic-phase-vi-staging/secrets",method="PUT",headers={"Authorization":"Bearer "+cf,"Content-Type":"application/json","User-Agent":"GH-ADDMINPOVIDER-Claude-MCP-proof"},data=json.dumps({"name":"GITHUB_TOKEN","type":"secret_text","text":gh}).encode())
+          with urllib.request.urlopen(req,timeout=25) as r:bound=json.load(r);assert bound["success"]
+          report["github_existing_binding_reconciled"]=True
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,*args,**kwargs):return None
+          opener=urllib.request.build_opener(NoRedirect())
+          def native(path,data=None,token=None,form=None):
+              headers={"User-Agent":"GH-ADDMINPOVIDER-Claude-MCP-proof","Origin":origin,"Accept":"application/json"}
+              if token:headers["Authorization"]="Bearer "+token
+              body=None
+              if data is not None:headers["Content-Type"]="application/json";body=json.dumps(data).encode()
+              if form is not None:headers["Content-Type"]="application/x-www-form-urlencoded";body=urllib.parse.urlencode(form).encode()
+              if path=="/api/session":headers["X-OGENIC-Client"]="native"
+              try:
+                  with opener.open(urllib.request.Request(origin+path,data=body,headers=headers),timeout=45) as r:status=r.status;raw=r.read();location=r.headers.get("location","")
+              except urllib.error.HTTPError as e:status=e.code;raw=e.read();location=e.headers.get("location","")
+              try:value=json.loads(raw)
+              except:value={}
+              return status,value,location
+          s,j,_=native("/api/session",{"owner_key":secret("OWNER_KEY_OPS")});assert s==200 and j.get("authenticated")
+          owner=j["session_token"];mask(owner)
+          s,client,_=native("/oauth/register",{"client_name":"GH-ADDMINPOVIDER native MCP verification","redirect_uris":["https://github.com/GH-ADDMINPOVIDER/Build-Platform"],"grant_types":["authorization_code","refresh_token"],"response_types":["code"],"token_endpoint_auth_method":"none"});assert s==201
+          verifier=secrets.token_urlsafe(48);mask(verifier)
+          import base64
+          challenge=base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
+          params={"response_type":"code","client_id":client["client_id"],"redirect_uri":"https://github.com/GH-ADDMINPOVIDER/Build-Platform","resource":resource,"scope":"ogenic:read ogenic:sessions:read ogenic:write ogenic:execute","state":"native-proof","code_challenge":challenge,"code_challenge_method":"S256","decision":"approve"}
+          s,j,location=native("/oauth/authorize",token=owner,form=params);assert s==302
+          code=dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(location).query))["code"];mask(code)
+          s,j,_=native("/oauth/token",form={"grant_type":"authorization_code","client_id":client["client_id"],"code":code,"code_verifier":verifier,"redirect_uri":params["redirect_uri"],"resource":resource});assert s==200
+          access=j["access_token"];refresh=j["refresh_token"];mask(access);mask(refresh)
+          report["oauth_granted_scopes"]=j["scope"]
+          def rpc(method,params):
+              s,j,_=native("/mcp",{"jsonrpc":"2.0","id":1,"method":method,"params":params},access);assert s==200
+              return j
+          try:
+              initialized=rpc("initialize",{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"Native MCP proof","version":"1"}})
+              report["server"]=initialized["result"]["serverInfo"]
+              listed=rpc("tools/list",{})["result"]["tools"]
+              report["tools"]=[t["name"] for t in listed];assert len(listed)==11
+              bound=rpc("tools/call",{"name":"yellow_stone_mcp_bindings","arguments":{}})
+              v=json.loads(bound["result"]["content"][0]["text"])
+              report["native_tool_dispatch"]={"http_status":v.get("http_status"),"ok":v.get("result",{}).get("ok"),"runtime":v.get("result",{}).get("runtime")}
+              assert v["http_status"]==200 and v["result"]["ok"]
+              read=rpc("tools/call",{"name":"yellow_stone_execute","arguments":{"intent":"Read current README and record native evidence","capability":"read_file","provider":"github","environment":"staging","input":{"path":"README.md"}}})
+              v=json.loads(read["result"]["content"][0]["text"]);r=v.get("result",{})
+              report["yellow_stone_execution"]={"http_status":v.get("http_status"),"ok":r.get("ok"),"code":r.get("code"),"run_id":r.get("run_id"),"canonical":r.get("canonical"),"verification":r.get("verification")}
+              report["ok"]=v.get("http_status")==200 and r.get("ok")==True
+          finally:
+              for token in [access,refresh]:
+                  s,_,_=native("/oauth/revoke",form={"client_id":client["client_id"],"token":token});assert s==200
+              report["native_test_tokens_revoked"]=True
+          print(json.dumps(report,sort_keys=True))
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as f:f.write("## Live Claude MCP / Yellow Stone proof\n\n~~~json\n"+json.dumps(report,indent=2)+"\n~~~\n")
+          assert report.get("ok"), "NATIVE_YELLOW_STONE_EXECUTION_NOT_VERIFIED"
+          
+          PY
