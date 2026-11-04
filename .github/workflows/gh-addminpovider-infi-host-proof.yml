@@ -1,0 +1,159 @@
+name: GH-ADDMINPOVIDER Infisical existing-host proof
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/gh-addminpovider-infi-host-proof.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: gh-addminpovider-infi-host-proof
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Verify OIDC, existing GitHub credential and existing host
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, json, urllib.request, urllib.parse, urllib.error, base64, tempfile, pathlib, subprocess, re, sys
+          BASE="https://app.infisical.com"
+          PROJECT="e8cfba67-ea99-4d79-bc9f-87b862f9129c"
+          IDENTITY="b0962d69-bd33-4ac3-b4f4-48589535ca38"
+          AUD="https://github.com/GH-ADDMINPOVIDER"
+          HOST="165.232.174.32"
+          PIN="165.232.174.32 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPniLMSQKEOYP0M3QKIE7/zcmO6mhIKEV76xFyyaWKFx"
+          report={"repository":"GH-ADDMINPOVIDER/Build-Platform","host_id":604432491,"operations":"AUTH_AND_READ_ONLY"}
+          stage="scope"
+          def mark(value):
+              for line in str(value).splitlines():
+                  if line: print("::add-mask::"+line, flush=True)
+          def request(url, token=None, data=None):
+              headers={"Accept":"application/json","User-Agent":"GH-ADDMINPOVIDER-host-proof"}
+              if token: headers["Authorization"]="Bearer "+token
+              body=None
+              if data is not None:
+                  headers["Content-Type"]="application/json"
+                  body=json.dumps(data).encode()
+              req=urllib.request.Request(url,data=body,headers=headers)
+              try:
+                  with urllib.request.urlopen(req,timeout=25) as res: return json.load(res)
+              except urllib.error.HTTPError as exc:
+                  raise RuntimeError("HTTP_"+str(exc.code)) from None
+          def normalize(value):
+              s=str(value).strip()
+              if s.startswith('"'):
+                  try: s=json.loads(s)
+                  except ValueError: pass
+              if "\n" not in s and "\\n" in s: s=s.replace("\\r\\n","\n").replace("\\n","\n")
+              if "PRIVATE KEY" not in s and re.fullmatch(r"[A-Za-z0-9+/=]+",s or ""):
+                  try: s=base64.b64decode(s).decode()
+                  except (ValueError,UnicodeError): pass
+              return s.replace("\r\n","\n")
+          try:
+              assert os.environ["GITHUB_REPOSITORY_ID"]=="1429580446"
+              assert os.environ["GITHUB_REPOSITORY_OWNER_ID"]=="342175560"
+              assert os.environ["GITHUB_REF"]=="refs/heads/main"
+              stage="github_oidc"
+              u=urllib.parse.urlsplit(os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"])
+              assert u.scheme=="https" and u.hostname.endswith(".actions.githubusercontent.com")
+              query=urllib.parse.parse_qsl(u.query)+[("audience",AUD)]
+              oidc=request(urllib.parse.urlunsplit(u._replace(query=urllib.parse.urlencode(query))),os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"])["value"]
+              mark(oidc)
+              claims=json.loads(base64.urlsafe_b64decode(oidc.split(".")[1]+"==="))
+              assert claims["repository_id"]=="1429580446" and claims["repository_owner_id"]=="342175560" and claims["aud"]==AUD
+              report["oidc_claims"]="MATCH"
+              stage="infisical_oidc_login"
+              session=request(BASE+"/api/v1/auth/oidc-auth/login",data={"identityId":IDENTITY,"jwt":oidc})["accessToken"]
+              mark(session)
+              report["infisical_login"]="PASS"
+              stage="infisical_staging_metadata"
+              params={"projectId":PROJECT,"environment":"staging","secretPath":"/","recursive":"true","viewSecretValue":"false","expandSecretReferences":"false"}
+              metadata=request(BASE+"/api/v4/secrets?"+urllib.parse.urlencode(params),session)["secrets"]
+              report["staging_secret_count"]=len(metadata)
+              def resolve(name):
+                  matches=[x for x in metadata if x.get("secretKey")==name]
+                  if len(matches)!=1: raise RuntimeError("EXACT_REFERENCE_REQUIRED")
+                  p={"projectId":PROJECT,"environment":"staging","secretPath":matches[0].get("secretPath") or "/","type":"shared","viewSecretValue":"true","expandSecretReferences":"false"}
+                  value=request(BASE+"/api/v4/secrets/"+urllib.parse.quote(name,safe="")+"?"+urllib.parse.urlencode(p),session)["secret"]["secretValue"]
+                  mark(value)
+                  return value
+              report["credential_references"]=[x["secretKey"] for x in metadata if x.get("secretKey") in ["GH_ADDMINPROVIDER-FINE_GRAINED","SSH_PRIVATE_KEY","SSH_OWNER_KEY"]]
+              stage="github_principal"
+              gh=resolve("GH_ADDMINPROVIDER-FINE_GRAINED")
+              assert request("https://api.github.com/user",gh)["id"]==342175560
+              repo=request("https://api.github.com/repositories/1429580446",gh)
+              assert repo["owner"]["id"]==342175560 and repo["full_name"]=="GH-ADDMINPOVIDER/Build-Platform"
+              report["github_infisical_pair"]="PASS"
+              stage="existing_host_ssh"
+              keys=[x["secretKey"] for x in metadata if x.get("secretKey") in ["SSH_PRIVATE_KEY","SSH_OWNER_KEY"]]
+              passes=[x["secretKey"] for x in metadata if re.fullmatch(r"(?:SSH|HOST_SSH|OCIAN_SSH)_(?:KEY_)?PASSPHRASE",x.get("secretKey",""),re.I)]
+              report["ssh_passphrase_reference_present"]=bool(passes)
+              remote=(
+                  "import os,json,sys,pathlib,subprocess,urllib.request,urllib.parse;"
+                  "c=json.loads(sys.stdin.readline());"
+                  "os.environ['PATH']=str(pathlib.Path.home()/'.local/bin')+':'+os.environ['PATH'];"
+                  "p=subprocess.run(['infisical','--version'],capture_output=True,text=True,timeout=15);"
+                  "print('HOST_INFISICAL_CLI='+str(p.returncode));"
+                  "print('HOST_INFISICAL_VERSION='+p.stdout.strip()[:100]);"
+                  "assert p.returncode==0;"
+                  "h={'Authorization':'Bearer '+c['infi']};"
+                  "q=urllib.parse.urlencode({'projectId':'"+PROJECT+"','environment':'staging','secretPath':'/','viewSecretValue':'false'});"
+                  "r=json.load(urllib.request.urlopen(urllib.request.Request('"+BASE+"/api/v4/secrets?'+q,headers=h),timeout=20));"
+                  "print('HOST_INFISICAL_METADATA_COUNT='+str(len(r['secrets'])));"
+                  "g=json.load(urllib.request.urlopen(urllib.request.Request('https://api.github.com/user',headers={'Authorization':'Bearer '+c['gh'],'User-Agent':'GH-ADDMINPOVIDER'}),timeout=20));"
+                  "assert g['id']==342175560;"
+                  "print('HOST_GITHUB_INFISICAL_PAIR=PASS');"
+                  "workers=[x for x in pathlib.Path('/proc').glob('[0-9]*/comm') if x.exists() and x.read_text().strip()=='Runner.Worker'];"
+                  "print('ACTIVE_RUNNER_WORKERS='+str(len(workers)));"
+                  "binding=pathlib.Path('/opt/wave/actions-runner/.runner');"
+                  "b=json.loads(binding.read_text()) if binding.exists() else {};"
+                  "print('RUNNER_BINDING='+json.dumps({k:b.get(k) for k in ['agentName','gitHubUrl']}));"
+              )
+              import shlex
+              success=False
+              reasons=[]
+              for name in keys:
+                  with tempfile.TemporaryDirectory(prefix="gh-infi-host-") as td:
+                      td=pathlib.Path(td)
+                      key=td/"identity"; key.write_text(normalize(resolve(name))+"\n"); key.chmod(0o600)
+                      known=td/"known_hosts";known.write_text(PIN+"\n");known.chmod(0o600)
+                      derived=subprocess.run(["ssh-keygen","-y","-P","","-f",str(key)],capture_output=True,timeout=10)
+                      if derived.returncode:
+                          if passes:
+                              passphrase=resolve(passes[0])
+                              env=os.environ.copy()
+                              env["GH_HOST_KEY_PASSPHRASE"]=passphrase
+                              env["SSH_ASKPASS_REQUIRE"]="force";env["DISPLAY"]=":0"
+                              helper=td/"askpass"
+                              helper.write_text("#!/usr/bin/env python3\nimport os\nprint(os.environ['GH_HOST_KEY_PASSPHRASE'])\n")
+                              helper.chmod(0o700);env["SSH_ASKPASS"]=str(helper)
+                              changed=subprocess.run(["ssh-keygen","-p","-N","","-f",str(key)],env=env,stdin=subprocess.DEVNULL,capture_output=True,timeout=15)
+                              if changed.returncode: reasons.append("KEY_PASSPHRASE_REJECTED");continue
+                          else: reasons.append("ENCRYPTED_OR_INVALID_KEY_NO_PASSPHRASE_REFERENCE");continue
+                      cmd=["ssh","-F","/dev/null","-T","-i",str(key),"-o","BatchMode=yes","-o","IdentitiesOnly=yes","-o","StrictHostKeyChecking=yes","-o","UserKnownHostsFile="+str(known),"-o","GlobalKnownHostsFile=/dev/null","-o","ConnectTimeout=12","-o","ConnectionAttempts=1","wave@"+HOST,"python3 -c "+shlex.quote(remote)]
+                      out=subprocess.run(cmd,input=json.dumps({"infi":session,"gh":gh})+"\n",text=True,capture_output=True,timeout=75)
+                      if out.returncode==0 and "HOST_GITHUB_INFISICAL_PAIR=PASS" in out.stdout:
+                          print(out.stdout)
+                          report["host_pair"]="PASS";success=True;break
+                      reasons.append("SSH_OR_REMOTE_CHECK_FAILED")
+              if not success:
+                  report["host_pair"]="BLOCKED";report["host_reasons"]=reasons or ["SSH_PRIVATE_KEY_REFERENCE_MISSING"]
+                  raise RuntimeError("HOST_PAIR_NOT_VERIFIED")
+              report["result"]="PASS"
+          except Exception as exc:
+              report["result"]="BLOCKED"
+              report["stage"]=stage
+              report["reason"]=str(exc) if isinstance(exc,RuntimeError) and re.fullmatch("[A-Z0-9_]+",str(exc)) else type(exc).__name__
+          finally:
+              print(json.dumps(report,sort_keys=True),flush=True)
+              summary=os.environ.get("GITHUB_STEP_SUMMARY")
+              if summary:
+                  with open(summary,"a") as f:f.write("## GH-ADDMINPOVIDER / Infisical / Existing host\n\n~~~json\n"+json.dumps(report,indent=2)+"\n~~~\n")
+          if report.get("result")!="PASS":sys.exit(1)
+          PY
