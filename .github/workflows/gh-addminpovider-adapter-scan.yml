@@ -1,0 +1,31 @@
+name: GH-ADDMINPOVIDER adapter pre-rescue scan (read-only)
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/gh-addminpovider-adapter-scan.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scan:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: [GH-ADDMINPOVIDER]
+    timeout-minutes: 5
+    steps:
+      - name: List uncommitted adapter files and flag secret-like content (names only, never content)
+        run: |
+          set -u
+          cd /home/wave/ogenic-command-adapter
+          echo "machine: $(hostname)  user: $(id -un)  runner: ${RUNNER_NAME:-?}"
+          git ls-files -m -o --exclude-standard -z > "$RUNNER_TEMP/changed.lst"
+          n=$(tr -cd '\0' < "$RUNNER_TEMP/changed.lst" | wc -c)
+          echo "uncommitted files: $n"
+          echo "--- names and sizes:"
+          xargs -0 -r ls -l --time-style=+ < "$RUNNER_TEMP/changed.lst" | awk '{print $5"\t"$7}'
+          echo "--- ignored-by-git but present (names only, top level):"
+          git status --ignored --short | grep '^!!' | head -15 || true
+          echo "--- files matching secret-like patterns (names only):"
+          xargs -0 -r grep -IlE 'PRIVATE KEY|eyJ[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_|sk-[A-Za-z0-9]{20,}|xai-|AKIA[0-9A-Z]{16}' < "$RUNNER_TEMP/changed.lst" || echo "(none)"
+          echo "--- secret-like file names:"
+          tr '\0' '\n' < "$RUNNER_TEMP/changed.lst" | grep -iE '\.env|secret|credential|token|\.pem|\.key|id_rsa|id_ed25519' || echo "(none)"
+          echo "scan done"
