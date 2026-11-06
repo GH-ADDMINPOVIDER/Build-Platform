@@ -1,0 +1,59 @@
+name: GH-ADDMINPOVIDER cloudflare token check (names and status codes only)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  check:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Try each Cloudflare token on both verify endpoints
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.parse,urllib.error
+          BASE="https://app.infisical.com"
+          PROJECT="e8cfba67-ea99-4d79-bc9f-87b862f9129c"
+          IDENTITY="b0962d69-bd33-4ac3-b4f4-48589535ca38"
+          AUD="https://github.com/GH-ADDMINPOVIDER"
+          def call(url,headers=None,data=None):
+              h={"User-Agent":"GH-ADDMINPOVIDER-cf-check","Accept":"application/json"}
+              h.update(headers or {})
+              b=None
+              if data is not None:h["Content-Type"]="application/json";b=json.dumps(data).encode()
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers=h,data=b),timeout=20) as r:return r.status,r.read()
+              except urllib.error.HTTPError as e:return e.code,e.read()
+              except Exception as e:return 0,type(e).__name__.encode()
+          def js(b):
+              try:return json.loads(b)
+              except Exception:return {}
+          u=urllib.parse.urlsplit(os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"])
+          s,b=call(urllib.parse.urlunsplit(u._replace(query=urllib.parse.urlencode(urllib.parse.parse_qsl(u.query)+[("audience",AUD)]))),{"Authorization":"Bearer "+os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]})
+          s,b=call(BASE+"/api/v1/auth/oidc-auth/login",data={"identityId":IDENTITY,"jwt":js(b)["value"]})
+          tok=js(b)["accessToken"]
+          q=urllib.parse.urlencode({"workspaceId":PROJECT,"environment":"staging","secretPath":"/","recursive":"true","viewSecretValue":"true"})
+          s,b=call(BASE+"/api/v3/secrets/raw?"+q,{"Authorization":"Bearer "+tok})
+          S={x["secretKey"]:(x["secretValue"] or "") for x in js(b).get("secrets",[]) if "CLOUDFLARE" in x["secretKey"].upper() or x["secretKey"].upper().startswith("CF_")}
+          for v in S.values():
+              for line in v.splitlines():
+                  if line.strip(): print("::add-mask::"+line.strip())
+          print("infisical secrets http",s)
+          print("cloudflare-like names:",", ".join(sorted(S)) or "(none)")
+          acct=next((v.strip() for k,v in S.items() if "ACCOUNT" in k.upper() and "ID" in k.upper()),None)
+          print("account id present:",bool(acct))
+          for k in sorted(S):
+              v=S[k].strip()
+              if "TOKEN" not in k.upper() and "KEY" not in k.upper(): continue
+              if "\n" in v or not v: print(k,"-> skipped (empty or multi-line)");continue
+              h={"Authorization":"Bearer "+v}
+              c1,b1=call("https://api.cloudflare.com/client/v4/user/tokens/verify",h)
+              line=f"{k} | len={len(v)} | user-verify HTTP {c1} {(js(b1).get('result') or {}).get('status','')}"
+              if acct:
+                  c2,b2=call(f"https://api.cloudflare.com/client/v4/accounts/{acct}/tokens/verify",h)
+                  line+=f" | account-verify HTTP {c2} {(js(b2).get('result') or {}).get('status','')}"
+              print(line)
+          PY
