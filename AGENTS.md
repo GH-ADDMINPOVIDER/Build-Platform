@@ -36,3 +36,8 @@ GitHub Actions บนเครื่องของ GitHub (ubuntu-latest) -> In
 ## เอเจนต์ที่เขียนโค้ด
 - ทำงานผ่าน branch และ PR เท่านั้น ห้าม push ตรงเข้า main โดยไม่ได้รับสั่ง
 - Claude เป็นผู้ตรวจและรวม ห้ามแก้ไฟล์ workflow ที่เกี่ยวกับ OIDC/Infisical โดยไม่แจ้ง
+
+## Self-hosted job machine rules
+- Workflows that target the self-hosted label (GH-ADDMINPOVIDER) must never get a `pull_request` or `pull_request_target` trigger. Allowed triggers: `workflow_dispatch`, `push` limited by `paths`, `issues` with an owner check.
+- The Railway container definition lives in `railway/gh-agent/`. It holds no secrets; `GH_PAT` and `GH_REPO` are Railway variables.
+- When source code is Windows-first or desktop-first, convert it to mobile-first (control from the phone, run on Cloudflare or GitHub, store results in D1).
