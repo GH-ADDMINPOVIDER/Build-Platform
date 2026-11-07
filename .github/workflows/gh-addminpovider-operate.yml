@@ -1,0 +1,33 @@
+name: GH-ADDMINPOVIDER operate (one entry for the whole stack)
+on:
+  workflow_dispatch:
+    inputs:
+      op:
+        description: "name of a script in ops/ (letters, digits, underscore)"
+        required: true
+        type: string
+      args:
+        description: "JSON arguments for the op"
+        required: false
+        default: "{}"
+        type: string
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  operate:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run op (tokens come from Infisical through OIDC, never printed)
+        shell: bash
+        env:
+          OP: ${{ inputs.op }}
+          ARGS: ${{ inputs.args }}
+        run: |
+          set -euo pipefail
+          [[ "$OP" =~ ^[a-z0-9_]+$ && "$OP" != _* ]] || { echo "bad op name"; exit 1; }
+          test -f "ops/$OP.py" || { echo "no such op: $OP"; exit 1; }
+          cd ops && python3 "$OP.py"

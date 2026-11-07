@@ -41,3 +41,8 @@ GitHub Actions บนเครื่องของ GitHub (ubuntu-latest) -> In
 - Workflows that target the self-hosted label (GH-ADDMINPOVIDER) must never get a `pull_request` or `pull_request_target` trigger. Allowed triggers: `workflow_dispatch`, `push` limited by `paths`, `issues` with an owner check.
 - The Railway container definition lives in `railway/gh-agent/`. It holds no secrets; `GH_PAT` and `GH_REPO` are Railway variables.
 - When source code is Windows-first or desktop-first, convert it to mobile-first (control from the phone, run on Cloudflare or GitHub, store results in D1).
+
+## Operator (one entry for the whole stack)
+- Workflow `gh-addminpovider-operate.yml` runs `ops/<name>.py` with tokens fetched from Infisical through GitHub OIDC inside the job. Agents never ask the owner for tokens and never copy tokens to other places.
+- To operate a provider: add a small script in `ops/`, push, dispatch the workflow with `op` and JSON `args`. Reads by default; changes need `args.apply=true`.
+- Output is redacted. Do not print secret values.
