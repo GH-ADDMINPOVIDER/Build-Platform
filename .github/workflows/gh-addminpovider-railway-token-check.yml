@@ -1,0 +1,69 @@
+name: GH-ADDMINPOVIDER railway token check (names and status codes only)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  check:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Find Railway token in Infisical and test it (values never printed)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.parse,urllib.error
+          BASE="https://app.infisical.com"
+          PROJECT="e8cfba67-ea99-4d79-bc9f-87b862f9129c"
+          IDENTITY="b0962d69-bd33-4ac3-b4f4-48589535ca38"
+          AUD="https://github.com/GH-ADDMINPOVIDER"
+          def call(url,headers=None,data=None):
+              h={"User-Agent":"GH-ADDMINPOVIDER-railway-check","Accept":"application/json"}
+              h.update(headers or {})
+              b=None
+              if data is not None:h["Content-Type"]="application/json";b=json.dumps(data).encode()
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers=h,data=b),timeout=25) as r:return r.status,r.read()
+              except urllib.error.HTTPError as e:return e.code,e.read()
+              except Exception as e:return 0,type(e).__name__.encode()
+          def js(b):
+              try:return json.loads(b)
+              except Exception:return {}
+          u=urllib.parse.urlsplit(os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"])
+          s,b=call(urllib.parse.urlunsplit(u._replace(query=urllib.parse.urlencode(urllib.parse.parse_qsl(u.query)+[("audience",AUD)]))),{"Authorization":"Bearer "+os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]})
+          s,b=call(BASE+"/api/v1/auth/oidc-auth/login",data={"identityId":IDENTITY,"jwt":js(b)["value"]})
+          tok=js(b)["accessToken"]
+          out={}
+          for env in ("staging","dev","prod"):
+              q=urllib.parse.urlencode({"workspaceId":PROJECT,"environment":env,"secretPath":"/","recursive":"true","viewSecretValue":"true"})
+              s,b=call(BASE+"/api/v3/secrets/raw?"+q,{"Authorization":"Bearer "+tok})
+              print("infisical env",env,"HTTP",s)
+              for x in js(b).get("secrets",[]):
+                  if "RAILWAY" in x["secretKey"].upper():
+                      out[(env,x["secretKey"])]=(x["secretValue"] or "").strip()
+          for v in out.values():
+              for line in v.splitlines():
+                  if line.strip(): print("::add-mask::"+line.strip())
+          print("railway-like names:",", ".join(f"{e}/{k}" for e,k in sorted(out)) or "(none)")
+          GQL="https://backboard.railway.com/graphql/v2"
+          for (env,k),v in sorted(out.items()):
+              if not v or "\n" in v: print(env,k,"skipped (empty or multi-line)");continue
+              print(f"--- {env}/{k} len={len(v)}")
+              for label,hdr,query in (
+                ("bearer: me",{"Authorization":"Bearer "+v},"{ me { id } }"),
+                ("bearer: projects",{"Authorization":"Bearer "+v},"{ projects { edges { node { name services { edges { node { name } } } } } } }"),
+                ("project-token",{"Project-Access-Token":v},"{ projectToken { projectId environmentId } }"),
+              ):
+                  c,b=call(GQL,hdr,{"query":query}); d=js(b)
+                  errs=[e.get("message","")[:60] for e in (d.get("errors") or [])]
+                  line=f"{label}: HTTP {c}"
+                  if errs: line+=" errors="+"; ".join(errs)
+                  data=d.get("data") or {}
+                  if "projects" in data and data["projects"]:
+                      for e in data["projects"]["edges"]:
+                          n=e["node"]; line+=f"\n   project {n['name']}: services="+",".join(s['node']['name'] for s in n['services']['edges'])
+                  elif data.get("me") or data.get("projectToken"): line+=" ok"
+                  print(line)
+          PY
