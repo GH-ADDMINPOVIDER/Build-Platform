@@ -1,0 +1,63 @@
+name: GH-ADDMINPOVIDER railway agent setup (secrets never printed)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  setup:
+    if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Check the owner-approved GitHub token, then store it on the Railway service
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.parse,urllib.error
+          BASE="https://app.infisical.com"
+          PROJECT="e8cfba67-ea99-4d79-bc9f-87b862f9129c"
+          IDENTITY="b0962d69-bd33-4ac3-b4f4-48589535ca38"
+          AUD="https://github.com/GH-ADDMINPOVIDER"
+          REPO="GH-ADDMINPOVIDER/Build-Platform"
+          PAT_NAME="GH_ADDMINPROVIDER-FINE_GRAINED"
+          RW_PROJECT="59d58346-9de2-426a-adb9-1484dc4c596a"
+          RW_ENV="f42e6093-7126-4485-afe1-842bafff23fb"
+          RW_SERVICE="ef09cd75-de44-4be9-9e7f-8dfa470ee3d9"
+          def call(url,headers=None,data=None,method=None):
+              h={"User-Agent":"GH-ADDMINPOVIDER-agent-setup","Accept":"application/json"}
+              h.update(headers or {})
+              b=None
+              if data is not None:h["Content-Type"]="application/json";b=json.dumps(data).encode()
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers=h,data=b,method=method),timeout=25) as r:return r.status,r.read()
+              except urllib.error.HTTPError as e:return e.code,e.read()
+              except Exception as e:return 0,type(e).__name__.encode()
+          def js(b):
+              try:return json.loads(b)
+              except Exception:return {}
+          u=urllib.parse.urlsplit(os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"])
+          s,b=call(urllib.parse.urlunsplit(u._replace(query=urllib.parse.urlencode(urllib.parse.parse_qsl(u.query)+[("audience",AUD)]))),{"Authorization":"Bearer "+os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]})
+          s,b=call(BASE+"/api/v1/auth/oidc-auth/login",data={"identityId":IDENTITY,"jwt":js(b)["value"]})
+          tok=js(b)["accessToken"]
+          q=urllib.parse.urlencode({"workspaceId":PROJECT,"environment":"staging","secretPath":"/","recursive":"true","viewSecretValue":"true"})
+          s,b=call(BASE+"/api/v3/secrets/raw?"+q,{"Authorization":"Bearer "+tok})
+          secrets={x["secretKey"]:(x["secretValue"] or "").strip() for x in js(b).get("secrets",[])}
+          pat=secrets.get(PAT_NAME,"")
+          rw=next((v for k,v in secrets.items() if "RAILWAY" in k.upper()),"")
+          for v in (pat,rw):
+              if v: print("::add-mask::"+v)
+          print("approved token present:",bool(pat),"| railway project token present:",bool(rw))
+          if not pat or not rw: raise SystemExit("missing secret, stopping")
+          H={"Authorization":"Bearer "+pat,"X-GitHub-Api-Version":"2022-11-28","Accept":"application/vnd.github+json"}
+          c,b=call(f"https://api.github.com/repos/{REPO}/actions/runners",H)
+          print("list self-hosted machines: HTTP",c,"total",js(b).get("total_count"))
+          c,b=call(f"https://api.github.com/repos/{REPO}/actions/runners/registration-token",H,method="POST")
+          d=js(b); print("create registration code: HTTP",c,"got_code:",bool(d.get("token")),"message:",d.get("message","")[:80] if c>=300 else "")
+          if c!=201: raise SystemExit("token cannot register machines for this repo; not storing it on Railway")
+          GQL="https://backboard.railway.com/graphql/v2"
+          m="mutation($i:VariableUpsertInput!){variableUpsert(input:$i)}"
+          c,b=call(GQL,{"Project-Access-Token":rw},{"query":m,"variables":{"i":{"projectId":RW_PROJECT,"environmentId":RW_ENV,"serviceId":RW_SERVICE,"name":"GH_PAT","value":pat,"skipDeploys":True}}})
+          d=js(b); errs=[e.get("message","")[:80] for e in (d.get("errors") or [])]
+          print("store GH_PAT on railway service: HTTP",c,"result:",(d.get("data") or {}).get("variableUpsert"),"errors:","; ".join(errs))
+          PY
