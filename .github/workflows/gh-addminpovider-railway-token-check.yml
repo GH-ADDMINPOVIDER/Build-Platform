@@ -66,4 +66,19 @@ jobs:
                           n=e["node"]; line+=f"\n   project {n['name']}: services="+",".join(s['node']['name'] for s in n['services']['edges'])
                   elif data.get("me") or data.get("projectToken"): line+=" ok"
                   print(line)
+          v=out.get(("staging","WAVE_RAILWAY_KEY"))
+          if v:
+              H={"Project-Access-Token":v}
+              c,b=call(GQL,H,{"query":"{ projectToken { projectId environmentId } }"}); pt=(js(b).get("data") or {}).get("projectToken") or {}
+              print("project token scope: HTTP",c,"has projectId:",bool(pt.get("projectId")))
+              if pt.get("projectId"):
+                  q="query($id:String!,$e:String!){ project(id:$id){ name environments{edges{node{name id}}} services{edges{node{name id}}} } environment(id:$e){ name } }"
+                  c,b=call(GQL,H,{"query":q,"variables":{"id":pt["projectId"],"e":pt["environmentId"]}}); d=js(b)
+                  errs=[e.get("message","")[:80] for e in (d.get("errors") or [])]
+                  print("project detail: HTTP",c,"errors="+"; ".join(errs) if errs else "")
+                  pr=(d.get("data") or {}).get("project") or {}
+                  print("project name:",pr.get("name"))
+                  print("token environment:",((d.get("data") or {}).get("environment") or {}).get("name"))
+                  print("environments:",",".join(e["node"]["name"] for e in (pr.get("environments") or {}).get("edges",[])))
+                  print("services:",",".join(e["node"]["name"] for e in (pr.get("services") or {}).get("edges",[])))
           PY
