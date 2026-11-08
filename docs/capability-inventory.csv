@@ -1,0 +1,25 @@
+id,name,scope,entitlement_note,label_in_cert,e2e_path
+P-001,GitHub Actions job machine,GH_ADDMIN_POVIDER,scoped write,VERIFIED_GREEN (stale: used the expired host),dispatch -> job receipt
+P-002,GH2 terminal Git CLI,GH_ADDMIN_POVIDER,host credentials absent,BLOCKED_RED,git auth -> create private repo -> mirror -> compare SHA
+P-003,Git history bundle,RP_STORE(OLD),repo contents permission,VERIFIED_GREEN,clone mirror -> bundle -> verify 51 refs
+P-004,Signed owner session,OWNER_AUTHORITY,signed owner endpoint,VERIFIED_GREEN,POST session -> dispatch Actions
+P-005,GS Codex command,GPT_GS_CODEX,signed in on old host,VERIFIED_GREEN (stale),owner command -> Actions -> Codex read-only -> D1 receipt
+P-006,Cloudflare D1 / 1LSS,CERTIFICATE_CANONICAL,staging D1 binding,VERIFIED_GREEN,certificate/D1 + command receipt readback
+P-007,Certificate lincenc sync,CERTIFICATE_CANONICAL,cert id evidence only,VERIFIED_GREEN,28 items -> isolated D1 write -> hash readback
+P-008,Certificate validate and bundle CI,CERTIFICATE_CANONICAL,repo cert branch CI,PARTIAL_AMBER,validate and bundle run
+P-009,Infisical OIDC machine identity,SECRETS_OIDC,staging aliases in workflow,VERIFIED_GREEN,OIDC -> Infisical -> secret names in Actions
+P-010,n8n REST inventory,N8N_API,existing key alias,VERIFIED_GREEN (n8n not control plane),GET workflows -> 6 / 0 active
+P-011,Yellow n8n fail-closed,STAGING_ONLY,owner session + ops-only denied,VERIFIED_GREEN,unauthorized 401 / adapter 501
+P-012,n8n approved execution,STAGING_ONLY,invoke unimplemented,PARTIAL_AMBER,approved request -> n8n run -> result -> D1
+P-013,Webhook HMAC + D1 dedup,STAGING_ONLY,no generic HMAC key found,BLOCKED_RED,signed webhook twice -> 1 D1 event; invalid HMAC 401
+P-014,A2A / SDK relay,STAGING_ONLY,no independent provider identity,BLOCKED_RED,agent A -> agent B -> result -> D1
+P-015,GitHub MCP official tool,E2E_PROOF,GitHub OAuth + tool,VERIFIED_GREEN,tools/call get_file_contents -> bytes/hash
+P-016,CCS 15 protocol modes,STAGING_ONLY,"inventory only, never executed","VERIFIED_GREEN (inventory, not execution)",connector mode inventory via test harness
+P-017,LCI control interface,GH_ADDMIN_POVIDER,not proven in shell path,BLOCKED_RED,signed control -> terminal -> build/test -> D1
+P-018,OpenBot signed local endpoint,GH_ADDMIN_POVIDER,draft PR only; vendor license PolyForm Noncommercial,BLOCKED_RED,signed read-only probe -> agent -> result
+P-019,SSH / terminal / sudo,GH_ADDMIN_POVIDER,no owner shell grant,PARTIAL_AMBER,owner -> SSH -> safe command -> audit
+P-020,Remote IDE,GH_ADDMIN_POVIDER,no verified server,BLOCKED_RED,IDE login -> edit -> test -> save
+P-021,Railway runtime / n8n,STAGING_ONLY,bridge not installed,PARTIAL_AMBER,verifier -> n8n staging health
+P-022,OpenCode provider CLI,GH_ADDMIN_POVIDER,provider not authorized,PARTIAL_AMBER,provider auth -> bounded inference -> hash
+P-023,UI persisted readback,STAGING_ONLY,backend D1 result exists,VERIFIED_GREEN,mobile/desktop UI shows same task status/hash
+P-024,Google Sheets checkpoint,SHEET_OWNER,owner Drive edit API,VERIFIED_GREEN,write tabs -> read exact cells
