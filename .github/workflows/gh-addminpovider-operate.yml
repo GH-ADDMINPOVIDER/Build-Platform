@@ -15,9 +15,21 @@ permissions:
   contents: read
   id-token: write
 jobs:
-  operate:
+  pick:
     if: github.repository_id == '1429580446' && github.repository_owner_id == '342175560'
     runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      runs_on: ${{ steps.p.outputs.runs_on }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        env:
+          PRIMARY_LABEL: ocian-host
+        run: cd ops && python3 _pick.py
+  operate:
+    needs: pick
+    runs-on: ${{ fromJSON(needs.pick.outputs.runs_on) }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
