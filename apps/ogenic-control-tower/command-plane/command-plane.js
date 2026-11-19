@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 const definitions = [
   { name: "help", command: "/solo.help", aliases: ["/wf.help"], description: "List Solo commands, required capabilities, and execution boundaries.", capability: "00.core_router", risk: "read_only", adapter: "none" },
+  { name: "index", command: "/solo.index", aliases: ["/wf.index"], description: "Open the capability and workflow index and report connected surfaces.", capability: "05.data_knowledge", risk: "read_only", adapter: "connected_read_adapter" },
   { name: "status", command: "/solo.status", aliases: ["/wf.sync.status"], description: "Read current system, connector, and execution status.", capability: "10.observability_control", risk: "read_only", adapter: "none" },
   { name: "inspect", command: "/solo.inspect", aliases: [], description: "Inspect a named repository, service, workflow, or resource without changing it.", capability: "10.observability_control", risk: "read_only", adapter: "connected_read_adapter" },
   { name: "route", command: "/solo.route", aliases: [], description: "Classify a natural-language request and prepare its minimum capability route.", capability: "00.core_router", risk: "read_only", adapter: "none" },
