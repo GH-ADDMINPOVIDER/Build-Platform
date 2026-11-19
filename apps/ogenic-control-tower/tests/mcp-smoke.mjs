@@ -29,7 +29,7 @@ try {
     const aliasTransport = new StreamableHTTPClientTransport(new URL(`${base}/api/mcp`));
     await aliasClient.connect(aliasTransport);
     const aliasTools = await aliasClient.listTools();
-    assert.equal(aliasTools.tools.length, 4);
+    assert.equal(aliasTools.tools.length, 6);
   } finally {
     await aliasClient.close().catch(() => {});
   }
