@@ -46,7 +46,7 @@ try {
   }
 
   const solo = await client.callTool({ name: "list_solo_commands", arguments: {} });
-  assert.equal(solo.structuredContent.commands.length, 10);
+  assert.equal(solo.structuredContent.commands.length, 11);
   assert.ok(solo.structuredContent.commands.some((item) => item.command === "/solo.run"));
 
   const resolved = await client.callTool({ name: "resolve_solo_command", arguments: { input: "/solo.run deploy production" } });
