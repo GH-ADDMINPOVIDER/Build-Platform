@@ -247,6 +247,7 @@ button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + e
   let mode = "chat";
   let entries = [];
   try { entries = JSON.parse(localStorage.getItem(KEY) || "[]"); if (!Array.isArray(entries)) entries = []; } catch { entries = []; }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(entries.slice(-250))); } catch {} };
   // Seed a one-time, evidence-labelled GS handoff so the Room Agent shows work already completed.
   const HANDOFF = "gs-handoff-2026-11-19";
   if (!entries.some(x => x.sourceId === HANDOFF)) {
@@ -263,7 +264,6 @@ button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + e
     save();
   }
   const escRoom = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(entries.slice(-250))); } catch {} };
   const time = (v) => new Date(v).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
   function openRoom(force) {
     const show = force ?? !drawer.classList.contains("open");
