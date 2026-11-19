@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { listSoloCommands, normalizeCommandInput, resolveSoloCommand } from "../command-plane/command-plane.js";
 
 const commands = listSoloCommands();
-assert.equal(commands.length, 10);
+assert.equal(commands.length, 11);
 assert.equal(commands[0].command, "/solo.help");
+assert.ok(commands.some((item) => item.command === "/solo.index" && item.aliases.includes("/wf.index")));
 assert.ok(commands.some((item) => item.command === "/solo.run"));
 assert.ok(commands.some((item) => item.command === "/solo.rollback.plan"));
 
