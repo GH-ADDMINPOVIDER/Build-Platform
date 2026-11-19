@@ -13,6 +13,7 @@ The Command Plane must call adapters only through the shared Adapter Contract. I
 | Command | Purpose | Boundary |
 |---|---|---|
 | `/solo.help` | List commands and constraints | Read-only |
+| `/solo.index` | Open the capability and workflow index | Read-only adapter required |
 | `/solo.status` | Current system and connector status | Read-only |
 | `/solo.inspect <target>` | Inspect a target | Read-only adapter required |
 | `/solo.route <request>` | Route a natural-language request | Planning only |
