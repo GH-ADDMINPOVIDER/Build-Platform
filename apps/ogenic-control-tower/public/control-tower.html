@@ -143,6 +143,8 @@ button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + e
     throw new Error("MCP Apps host bridge unavailable");
   }
 
+  window.ogenicCallTool = callTool;
+
   function renderRoute(route) {
     if (!route) { $("route").innerHTML = '<div class="empty">No route selected yet.</div>'; return; }
     const support = route.support?.length ? route.support.join(", ") : "none";
@@ -273,14 +275,14 @@ button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + e
     input.value = ""; add("owner","OWNER",text);
     add("agent","GS · ROUTER","รับข้อความแล้ว กำลังจำแนกคำสั่ง…");
     try {
-      const result = await window.openai?.callTool?.("resolve_solo_command", {input:text});
+      const result = await (window.ogenicCallTool || window.openai?.callTool)?.("resolve_solo_command", {input:text});
       const resolved = result?.structuredContent || result;
       if (resolved?.recognized) {
         const status = resolved.dispatched ? "ส่งไป Runtime แล้ว" : "ยังไม่ Dispatch · "+resolved.executionState;
         add("agent","GS · COMMAND PLANE",resolved.command+"\n"+status+"\nCorrelation: "+resolved.correlationId);
         add("GS","ACTIVITY", "รับคำสั่ง "+resolved.command+" · "+resolved.executionState, "activity");
       } else {
-        const routed = await window.openai?.callTool?.("route_request", {request:text});
+        const routed = await (window.ogenicCallTool || window.openai?.callTool)?.("route_request", {request:text});
         const route = routed?.structuredContent || routed;
         if (route?.primary) {
           add("agent","GS · ROUTER","Route: "+route.primary+"\nApproval: "+route.approval+"\nสถานะ: วางแผนเท่านั้น ยังไม่สั่ง CC");
