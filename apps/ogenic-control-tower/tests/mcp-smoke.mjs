@@ -39,11 +39,21 @@ try {
 
   const listed = await client.listTools();
   const names = listed.tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ["get_runtime_status", "list_capabilities", "render_control_tower", "route_request"]);
+  assert.deepEqual(names, ["get_runtime_status", "list_capabilities", "list_solo_commands", "render_control_tower", "resolve_solo_command", "route_request"]);
   for (const tool of listed.tools) {
     assert.equal(tool.annotations?.readOnlyHint, true, `${tool.name} must be read-only`);
     assert.equal(tool.annotations?.destructiveHint, false, `${tool.name} must not be destructive`);
   }
+
+  const solo = await client.callTool({ name: "list_solo_commands", arguments: {} });
+  assert.equal(solo.structuredContent.commands.length, 10);
+  assert.ok(solo.structuredContent.commands.some((item) => item.command === "/solo.run"));
+
+  const resolved = await client.callTool({ name: "resolve_solo_command", arguments: { input: "/solo.run deploy production" } });
+  assert.equal(resolved.structuredContent.command, "/solo.run");
+  assert.equal(resolved.structuredContent.approval, "human_approval_required_before_consequential_action");
+  assert.equal(resolved.structuredContent.dispatched, false);
+  assert.equal(resolved.structuredContent.executionState, "WAITING_ADAPTER_CONTRACT");
 
   const caps = await client.callTool({ name: "list_capabilities", arguments: {} });
   assert.equal(caps.structuredContent.capabilities.length, 11);
