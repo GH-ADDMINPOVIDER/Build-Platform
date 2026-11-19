@@ -10,6 +10,7 @@ import {
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
+import { SOLO_COMMANDS, listSoloCommands, resolveSoloCommand } from "./command-plane/command-plane.js";
 
 export const VERSION = "1.3.2";
 export const TEMPLATE_URI = "ui://ogenic/control-tower-v1.3.0.html";
@@ -195,7 +196,7 @@ async function fetchWithTimeout(url, options = {}) {
 
 async function verifyGitHubSurface() {
   const token = process.env.OGENIC_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
-  const repo = process.env.OGENIC_GITHUB_REPO || "Ogenicchocolate21debug/Build-Platform";
+  const repo = process.env.OGENIC_GITHUB_REPO || "GH-ADDMINPOVIDER/Build-Platform";
   const [expectedOwner, expectedSlug] = repo.split("/");
 
   if (token) {
@@ -313,6 +314,13 @@ const surfaceSchema = z.object({
   note: z.string(),
   mode: z.enum(["direct_api", "host_connector", "git_runtime"]).optional(),
 });
+const soloCommandSchema = z.object({
+  recognized: z.boolean(), input: z.string(), normalized: z.string(), command: z.string().nullable(),
+  name: z.string(), args: z.string(), description: z.string(), capability: z.string(), risk: z.string(),
+  adapter: z.string(), executionState: z.string(), dispatched: z.boolean(),
+  approval: z.enum(APPROVAL_STATES), route: routeSchema.nullable(), correlationId: z.string(),
+  idempotencyKey: z.string(), evidenceRequired: z.array(z.string()),
+});
 
 export function createOgenicServer() {
   const server = new McpServer(
@@ -376,6 +384,49 @@ export function createOgenicServer() {
       return {
         structuredContent: route,
         content: [{ type: "text", text: `Primary route: ${route.primary}. Approval: ${route.approval}.` }],
+      };
+    },
+  );
+
+  registerAppTool(
+    server,
+    "list_solo_commands",
+    {
+      title: "List Solo commands",
+      description: "List the canonical Solo command registry and aliases. This is read-only and does not execute commands.",
+      inputSchema: {},
+      outputSchema: { commands: z.array(z.object({
+        name: z.string(), command: z.string(), aliases: z.array(z.string()), description: z.string(),
+        capability: z.string(), risk: z.string(), adapter: z.string(),
+      })) },
+      annotations: READ_ONLY_ANNOTATIONS,
+      _meta: {},
+    },
+    async () => ({
+      structuredContent: { commands: listSoloCommands() },
+      content: [{ type: "text", text: `Solo registry exposes ${SOLO_COMMANDS.length} canonical commands.` }],
+    }),
+  );
+
+  registerAppTool(
+    server,
+    "resolve_solo_command",
+    {
+      title: "Resolve a Solo command",
+      description: "Normalize and resolve a Solo command or natural-language request into a route and evidence contract. Planning only: this tool never dispatches to an adapter.",
+      inputSchema: { input: z.string().min(1).max(4000) },
+      outputSchema: soloCommandSchema.shape,
+      annotations: READ_ONLY_ANNOTATIONS,
+      _meta: {},
+    },
+    async ({ input }) => {
+      const route = routeRequest(input);
+      const resolved = resolveSoloCommand(input, route);
+      return {
+        structuredContent: resolved,
+        content: [{ type: "text", text: resolved.recognized
+          ? `Resolved ${resolved.command}; state=${resolved.executionState}; dispatched=false.`
+          : "Command is not registered. Use /solo.help." }],
       };
     },
   );
