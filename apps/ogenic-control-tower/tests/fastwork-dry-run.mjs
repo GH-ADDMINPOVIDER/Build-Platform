@@ -39,7 +39,7 @@ export async function runFastworkDryRun(client) {
     assert.equal(tool.annotations?.destructiveHint, false);
   }
   const soloCommands = await call(client, "list_solo_commands");
-  assert.equal(soloCommands.commands.length, 10);
+  assert.equal(soloCommands.commands.length, 11);
   const planned = await call(client, "resolve_solo_command", { input: "/solo.route build and test the app" });
   assert.equal(planned.command, "/solo.route");
   assert.equal(planned.dispatched, false);
