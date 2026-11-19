@@ -46,3 +46,15 @@ GitHub Actions บนเครื่องของ GitHub (ubuntu-latest) -> In
 - Workflow `gh-addminpovider-operate.yml` runs `ops/<name>.py` with tokens fetched from Infisical through GitHub OIDC inside the job. Agents never ask the owner for tokens and never copy tokens to other places.
 - To operate a provider: add a small script in `ops/`, push, dispatch the workflow with `op` and JSON `args`. Reads by default; changes need `args.apply=true`.
 - Output is redacted. Do not print secret values.
+
+
+## Current canonical repository authority — Owner clarification 2026-11-19
+
+This section records the latest Owner clarification and supersedes any conflicting repository-identity or canonical-repository instruction found in historical/archived repositories, including the 2026-11-15 directive in `Ogenicchocolate21debug/Build-Platform/AGENTS.md`.
+
+- **Canonical active repository:** `GH-ADDMINPOVIDER/Build-Platform` (GitHub user ID `342175560`, repository ID `1429580446`).
+- **Archived/historical repository:** `Ogenicchocolate21debug/Build-Platform` (GitHub user ID `306097555`, repository ID `1450486664`). Its historical instructions and evidence must be preserved for provenance, but must not override this canonical repository authority.
+- Agents must read this canonical repository's `AGENTS.md` before acting. If an execution credential cannot access this repository, report `BLOCKED_AUTH` for that specific credential/path; do not silently switch canonical repositories or mark evidence as nonexistent.
+- Historical evidence is immutable provenance. `NOT VERIFIED` means the current verifier could not independently read/confirm the evidence; it does not mean deleted, discarded, invalidated, or absent. Never overwrite or downgrade historical PASS records. Append corrections with source URL, commit/run/job IDs, timestamp, verifier, and readback result.
+- If the CERT/Google Sheet or Drive destination returns an access denial, preserve the source evidence and record the exact destination, account, operation, and denial. Do not substitute a local note for a successful remote write, and do not describe the evidence as lost.
+- This clarification does not authorize writes to `main`, production, secrets, billing, or D1 schema. Changes remain branch/PR-first and require independent readback.
