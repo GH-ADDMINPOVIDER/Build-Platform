@@ -30,6 +30,23 @@ button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + e
 .approval{border:1px solid #55333a;border-radius:14px;padding:11px;background:#25191b;display:flex;gap:9px}.shield{width:30px;height:30px;border-radius:10px;background:#3a2025;display:grid;place-items:center;color:#ff91a1;font-weight:950}.approval b{font-size:10px}.approval p{font-size:9px;color:var(--muted);margin:3px 0 0;line-height:1.45}
 .obsGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.obs{border:1px solid #312b27;border-radius:13px;padding:9px;background:#1d1a18}.obs small{font-size:8px;color:var(--muted);display:block}.obs strong{font-size:13px;display:block;margin-top:3px}.footer{padding:14px 3px 2px;text-align:center;color:#786e66;font-size:9px;line-height:1.45}.toast{position:fixed;z-index:30;left:50%;bottom:24px;transform:translate(-50%,18px);opacity:0;pointer-events:none;transition:.2s;background:var(--cream);color:#1e1713;border-radius:13px;padding:10px 12px;font-size:10px;font-weight:850;box-shadow:var(--shadow)}.toast.show{opacity:1;transform:translate(-50%,0)}
 @media(max-width:760px){.layout{grid-template-columns:1fr}.caps{grid-template-columns:1fr 1fr}}@media(max-width:480px){.app{padding-left:10px;padding-right:10px}.brand{font-size:14px}.hero{padding:14px;border-radius:24px}.ask{grid-template-columns:1fr}.ask button{height:44px}.caps{grid-template-columns:1fr}.routeGrid{grid-template-columns:76px 1fr}.metric{padding:9px}.metric strong{font-size:12px}}
+
+/* Room Agent — collapsible command room */
+.room-launch{position:fixed;z-index:40;left:14px;bottom:calc(14px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:9px;border:1px solid rgba(235,215,180,.3);border-radius:16px;padding:10px 13px;background:rgba(20,18,17,.88);backdrop-filter:blur(22px);color:#f7ead7;box-shadow:0 12px 38px rgba(0,0,0,.42);font-size:11px;font-weight:900;letter-spacing:.04em}
+.room-launch .room-mark{width:25px;height:25px;display:grid;place-items:center;border-radius:9px;background:linear-gradient(135deg,#f0d6a7,#a98957);color:#17120e;font-weight:1000}
+.room-drawer{position:fixed;z-index:39;inset:0 auto 0 0;width:min(430px,100vw);padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));background:rgba(9,9,9,.96);border-right:1px solid rgba(236,218,188,.16);backdrop-filter:blur(28px);box-shadow:24px 0 80px rgba(0,0,0,.5);transform:translateX(-105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column}
+.room-drawer.open{transform:translateX(0)}
+.room-head{display:flex;align-items:center;justify-content:space-between;padding:7px 3px 13px;border-bottom:1px solid #302923}
+.room-title{font-size:13px;font-weight:950;letter-spacing:.12em;color:#f3e7d6}.room-sub{font-size:9px;color:#a99e92;margin-top:4px}
+.room-close{border:1px solid #443a30;background:#1d1916;color:#f3e7d6;border-radius:11px;width:36px;height:36px;font-size:18px}
+.room-tabs{display:flex;gap:7px;padding:12px 0}.room-tab{border:1px solid #3a312a;border-radius:999px;background:#191614;color:#b8aa9b;padding:7px 10px;font-size:9px;font-weight:900}.room-tab.active{background:#e9d5b5;color:#211811;border-color:#e9d5b5}
+.room-feed{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:4px 1px 12px}
+.room-empty{margin:auto;text-align:center;color:#a99e92;font-size:11px;line-height:1.7;max-width:260px}.room-empty b{display:block;color:#f3e7d6;font-size:14px;margin-bottom:6px}
+.room-msg{max-width:91%;border:1px solid #39312b;border-radius:16px;padding:10px 12px;background:#1b1816;align-self:flex-start}.room-msg.owner{align-self:flex-end;background:#e9ddca;color:#211811;border-color:#e9ddca}.room-msg.agent{border-color:#574733;background:linear-gradient(135deg,#272018,#1c1916)}.room-msg .meta{font-size:8px;opacity:.65;font-weight:900;letter-spacing:.1em;margin-bottom:5px;text-transform:uppercase}.room-msg .body{font-size:11px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}.room-msg .stamp{font-size:8px;opacity:.55;margin-top:6px}
+.room-composer{border:1px solid #4b4035;border-radius:18px;background:#171412;padding:8px;display:grid;grid-template-columns:1fr auto;gap:7px}.room-composer textarea{resize:none;min-height:42px;max-height:110px;background:transparent;color:#f8eee1;border:0;outline:none;padding:9px;font:inherit;font-size:11px}.room-send{align-self:end;border:0;border-radius:12px;background:linear-gradient(135deg,#f1dfc1,#c7a66f);color:#211811;font-size:10px;font-weight:950;padding:11px 14px}.room-note{font-size:8px;color:#82766c;padding:7px 3px 0;line-height:1.45}
+.room-scrim{position:fixed;z-index:38;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s}.room-scrim.open{opacity:1;pointer-events:auto}
+@media(min-width:900px){.room-drawer{width:430px}}
+
 </style>
 </head>
 <body>
@@ -69,6 +86,17 @@ button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + e
   </div>
   <div class="footer">Status is evidence-based. “Ready” appears only after a live runtime adapter verifies a surface. Raw secrets are never rendered.</div>
 </div>
+
+<button class="room-launch" id="roomLaunch" aria-controls="roomDrawer" aria-expanded="false"><span class="room-mark">R</span><span>ROOM AGENT</span><span aria-hidden="true">↗</span></button>
+<div class="room-scrim" id="roomScrim"></div>
+<aside class="room-drawer" id="roomDrawer" aria-label="Room Agent" aria-hidden="true">
+  <div class="room-head"><div><div class="room-title">ROOM AGENT</div><div class="room-sub">GS × CC · Shared conversation & activity</div></div><button class="room-close" id="roomClose" aria-label="Close Room Agent">×</button></div>
+  <div class="room-tabs"><button class="room-tab active" data-room-tab="chat">CHAT</button><button class="room-tab" data-room-tab="activity">ACTIVITY</button></div>
+  <div class="room-feed" id="roomFeed" aria-live="polite"><div class="room-empty"><b>One room. Two execution sides.</b>คุยงานและติดตามสิ่งที่ GS / CC ทำไว้ในที่เดียว</div></div>
+  <form class="room-composer" id="roomForm"><textarea id="roomInput" rows="2" placeholder="คุยกับ Room Agent… (Enter เพื่อส่ง)" aria-label="Message Room Agent"></textarea><button class="room-send" type="submit">SEND</button></form>
+  <div class="room-note">Chat history is stored in this browser. Agent-to-agent actions are not enabled until the shared CC adapter endpoint is connected.</div>
+</aside>
+
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script>
 (() => {
@@ -203,5 +231,82 @@ button,input{font:inherit}.app{max-width:980px;margin:auto;padding:calc(14px + e
   renderRuns();
 })();
 </script>
+
+<script>
+(() => {
+  const KEY = "ogenic.room-agent.v1";
+  const drawer = document.getElementById("roomDrawer");
+  const launch = document.getElementById("roomLaunch");
+  const scrim = document.getElementById("roomScrim");
+  const feed = document.getElementById("roomFeed");
+  const form = document.getElementById("roomForm");
+  const input = document.getElementById("roomInput");
+  const tabs = [...document.querySelectorAll("[data-room-tab]")];
+  let mode = "chat";
+  let entries = [];
+  try { entries = JSON.parse(localStorage.getItem(KEY) || "[]"); if (!Array.isArray(entries)) entries = []; } catch { entries = []; }
+  const escRoom = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(entries.slice(-250))); } catch {} };
+  const time = (v) => new Date(v).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  function openRoom(force) {
+    const show = force ?? !drawer.classList.contains("open");
+    drawer.classList.toggle("open", show); scrim.classList.toggle("open", show);
+    drawer.setAttribute("aria-hidden", String(!show)); launch.setAttribute("aria-expanded", String(show));
+    if (show) setTimeout(() => input.focus(), 180);
+  }
+  function render() {
+    const list = mode === "chat" ? entries.filter(x => x.kind !== "activity") : entries.filter(x => x.kind === "activity");
+    feed.innerHTML = list.length ? list.map(x => '<article class="room-msg '+escRoom(x.actor)+'"><div class="meta">'+escRoom(x.label || x.actor)+'</div><div class="body">'+escRoom(x.text)+'</div><div class="stamp">'+time(x.at)+'</div></article>').join("") : '<div class="room-empty"><b>'+ (mode === "chat" ? "Room Agent is ready" : "No activity recorded yet") +'</b>'+ (mode === "chat" ? "ส่งข้อความเพื่อเริ่มบทสนทนา" : "เมื่อมีการเชื่อม activity source รายการจะปรากฏที่นี่") +'</div>';
+    feed.scrollTop = feed.scrollHeight;
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.roomTab === mode));
+  }
+  function add(actor, label, text, kind="chat") {
+    entries.push({actor,label,text:String(text),kind,at:Date.now()}); save(); render();
+  }
+  launch.addEventListener("click", () => openRoom());
+  document.getElementById("roomClose").addEventListener("click", () => openRoom(false));
+  scrim.addEventListener("click", () => openRoom(false));
+  tabs.forEach(t => t.addEventListener("click", () => { mode=t.dataset.roomTab; render(); }));
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const text = input.value.trim(); if (!text) return;
+    input.value = ""; add("owner","OWNER",text);
+    add("agent","GS · ROUTER","รับข้อความแล้ว กำลังจำแนกคำสั่ง…");
+    try {
+      const result = await window.openai?.callTool?.("resolve_solo_command", {input:text});
+      const resolved = result?.structuredContent || result;
+      if (resolved?.recognized) {
+        const status = resolved.dispatched ? "ส่งไป Runtime แล้ว" : "ยังไม่ Dispatch · "+resolved.executionState;
+        add("agent","GS · COMMAND PLANE",resolved.command+"\n"+status+"\nCorrelation: "+resolved.correlationId);
+        add("GS","ACTIVITY", "รับคำสั่ง "+resolved.command+" · "+resolved.executionState, "activity");
+      } else {
+        const routed = await window.openai?.callTool?.("route_request", {request:text});
+        const route = routed?.structuredContent || routed;
+        if (route?.primary) {
+          add("agent","GS · ROUTER","Route: "+route.primary+"\nApproval: "+route.approval+"\nสถานะ: วางแผนเท่านั้น ยังไม่สั่ง CC");
+          add("GS","ACTIVITY","วิเคราะห์คำขอและจัด Route ไป "+route.primary, "activity");
+        } else {
+          add("agent","ROOM AGENT","ข้อความถูกบันทึกแล้ว แต่ยังไม่มีช่องทางส่งต่อให้ CC ทำ Action จริง");
+        }
+      }
+    } catch (error) {
+      add("agent","ROOM AGENT","บันทึกข้อความแล้ว แต่การเรียก Command Router ยังไม่พร้อม: "+error.message);
+    }
+  });
+  input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+  // Shared event contract for a future CC adapter bridge.
+  window.addEventListener("message", event => {
+    if (event.source !== window.parent || !event.data || event.data.type !== "ogenic:room-agent:activity") return;
+    const item = event.data.payload || {};
+    if (typeof item.text === "string" && item.text.trim()) add(item.actor === "CC" ? "agent" : "GS", item.actor || "AGENT", item.text, "activity");
+  });
+  window.addEventListener("ogenic:room-agent:activity", event => {
+    const item = event.detail || {};
+    if (typeof item.text === "string" && item.text.trim()) add(item.actor === "CC" ? "agent" : "GS", item.actor || "AGENT", item.text, "activity");
+  });
+  render();
+})();
+</script>
+
 </body>
 </html>
