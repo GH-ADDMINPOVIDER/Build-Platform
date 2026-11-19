@@ -196,7 +196,7 @@ async function fetchWithTimeout(url, options = {}) {
 
 async function verifyGitHubSurface() {
   const token = process.env.OGENIC_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
-  const repo = process.env.OGENIC_GITHUB_REPO || "Ogenicchocolate21debug/Build-Platform";
+  const repo = process.env.OGENIC_GITHUB_REPO || "GH-ADDMINPOVIDER/Build-Platform";
   const [expectedOwner, expectedSlug] = repo.split("/");
 
   if (token) {
