@@ -32,12 +32,18 @@ async function call(client, name, args = {}) {
 export async function runFastworkDryRun(client) {
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map((tool) => tool.name).sort(),
-    ["get_runtime_status", "list_capabilities", "render_control_tower", "route_request"]
+    ["get_runtime_status", "list_capabilities", "list_solo_commands", "render_control_tower", "resolve_solo_command", "route_request"]
   );
   for (const tool of tools) {
     assert.equal(tool.annotations?.readOnlyHint, true);
     assert.equal(tool.annotations?.destructiveHint, false);
   }
+  const soloCommands = await call(client, "list_solo_commands");
+  assert.equal(soloCommands.commands.length, 10);
+  const planned = await call(client, "resolve_solo_command", { input: "/solo.route build and test the app" });
+  assert.equal(planned.command, "/solo.route");
+  assert.equal(planned.dispatched, false);
+
   const capabilities = await call(client, "list_capabilities");
   assert.equal(capabilities.capabilities.length, 11);
   const route = await call(client, "route_request", { request: BRIEF });
